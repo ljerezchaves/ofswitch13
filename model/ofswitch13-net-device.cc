@@ -684,6 +684,23 @@ OFSwitch13NetDevice::RunThroughPipeline (uint32_t packet_uid, struct ofpbuf* buf
     NS_LOG_ERROR ("Reached outside of pipeline processing cycle.");
 }
 
+
+ofl_err
+OFSwitch13NetDevice::HandleFlowMod (struct ofl_msg_flow_mod *msg)
+{
+  struct sender *sender = (struct sender*)xmalloc (sizeof (struct sender));
+  sender->remote = (struct remote*)xmalloc (sizeof (struct remote));
+  sender->remote->role = OFPCR_ROLE_MASTER;
+
+  ofl_err ret = pipeline_handle_flow_mod (m_dp->pipeline, msg, sender);
+
+  free (sender);
+  return ret;
+}
+
+
+
+
 void 
 OFSwitch13NetDevice::executarssaporra (struct pipeline *pl, struct flow_entry *entry, struct flow_table **next_table, struct packet **pkt)
 {

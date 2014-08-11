@@ -162,6 +162,22 @@ protected:
   void RunThroughPipeline (uint32_t packet_uid, ofpbuf* buffer, ofs::Port* inPort);
 
 
+  /**
+   * \internal
+   *
+   * \brief Handles a flow_mod message 
+   * 
+   * Modifications to a flow table from the controller are done with the
+   * OFPT_FLOW_MOD message (including add, modify or delete).
+   *
+   * \see ofsoftswitch13 function pipeline_handle_flow_mod () at udatapath/pipeline.c
+   *
+   * \param msg The OpenFlow flow_mod message 
+   * \return 0 if sucess or OpenFlow error code
+   */
+  ofl_err HandleFlowMod (struct ofl_msg_flow_mod *msg);
+
+
 
 void 
 executarssaporra (struct pipeline *pl, struct flow_entry *entry, struct flow_table **next_table, struct packet **pkt);

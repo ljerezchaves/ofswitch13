@@ -60,6 +60,7 @@ extern "C"
 #include "udatapath/flow_entry.h"
 #include "udatapath/dp_ports.h"
 #include "udatapath/dp_buffers.h"
+#include "udatapath/dp_actions.h"
 #include "udatapath/meter_table.h"
 #include "udatapath/packet_handle_std.h"
 
@@ -72,6 +73,8 @@ extern "C"
 #include "lib/poll-loop.h"
 
 #include "oflib/ofl-structs.h"
+
+int inst_compare(const void *inst1, const void *inst2);
 
 // void execute_entry (struct pipeline *pl, struct flow_entry *entry, struct flow_table **next_table, struct packet **pkt);
 
