@@ -439,44 +439,21 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev, Ptr<const Packet>
               m_rxCallback (this, packet, protocol, src);
             }
 
-          // ofi::SwitchPacketMetadata data;
-          // data.packet = packet->Copy ();
-          //
-          // //                  m_ports[i].rx_packets++;
-          // m_ports[i].rx_bytes += buffer->size;
-          // data.buffer = buffer;
-          // uint32_t packet_uid = save_buffer (buffer);
-          //
-          // data.protocolNumber = protocol;
-          // data.src = Address (src);
-          // data.dst = Address (dst);
-          // m_packetData.insert (std::make_pair (packet_uid, data));
-          //
-          // RunThroughFlowTable (packet_uid, i);
-
-          
-          
-          
-          
           ofs::SwitchPacketMetadata data;
           data.packet = packet->Copy ();
           
           ofpbuf *buffer = BufferFromPacket (data.packet, src48, dst48, netdev->GetMtu (), protocol);
-          // data.buffer = buffer;
-          // uint32_t packet_uid = dp_buffers_save (); // FIXME Precisa resolver essa parada de salvar o buffer
+          data.buffer = buffer;
           
           inPort->stats->rx_packets++;
           inPort->stats->rx_bytes += buffer->size;
 
-          // data.protocolNumber = protocol;
-          // data.src = Address (src);
-          // data.dst = Address (dst);
+          data.protocolNumber = protocol;
+          data.src = Address (src);
+          data.dst = Address (dst);
           // m_packetData.insert (std::make_pair (packet_uid, data));
 
-          // ProcessBuffer....
-
-       
-          // TODO processar o buffer pelo pipeline.... e liberar depois.... 
+          // TODO descobrir onde iremos liberar o buffer e o pacote 
           PipelineProcessBuffer (0, buffer, inPort);
 
         }
@@ -603,7 +580,7 @@ OFSwitch13NetDevice::PipelineProcessBuffer (uint32_t packet_uid, struct ofpbuf* 
           NS_LOG_DEBUG ("found matching entry: " << ofl_structs_flow_stats_to_string (entry->stats, pkt->dp->exp));
        
           pkt->handle_std->table_miss = ((entry->stats->priority) == 0 && (entry->match->length <= 4));
-         // executarssaporra (pl, entry, &next_table, &pkt); //FIXME
+          // ExecuteEntry (pl, entry, &next_table, &pkt); //FIXME
           
           /* Packet could be destroyed by a meter instruction */
           if (!pkt)
@@ -611,7 +588,7 @@ OFSwitch13NetDevice::PipelineProcessBuffer (uint32_t packet_uid, struct ofpbuf* 
 
           if (next_table == NULL) 
             {
-              action_set_execute (pkt->action_set, pkt, 0xffffffffffffffff);
+              // action_set_execute (pkt->action_set, pkt, 0xffffffffffffffff);
               packet_destroy (pkt);
               return;
             }
@@ -628,46 +605,152 @@ OFSwitch13NetDevice::PipelineProcessBuffer (uint32_t packet_uid, struct ofpbuf* 
 }
 
 
-//ofl_err
-//OFSwitch13NetDevice::HandleFlowMod (struct ofl_msg_flow_mod *msg)
-//{
-//   struct sender *sender = (struct sender*)xmalloc (sizeof (struct sender));
-//   sender->remote = (struct remote*)xmalloc (sizeof (struct remote));
-//   sender->remote->role = OFPCR_ROLE_MASTER;
-// 
-// 
-// 
-// //struct ofl_msg_flow_mod mensagem =
-// //            {{.type = OFPT_FLOW_MOD},
-// //             .cookie = 0x0000000000000000ULL,
-// //             .cookie_mask = 0x0000000000000000ULL,
-// //             .table_id = 0x00,
-// //             .command = OFPFC_ADD,
-// //             .idle_timeout = OFP_FLOW_PERMANENT,
-// //             .hard_timeout = OFP_FLOW_PERMANENT,
-// //             .priority = OFP_DEFAULT_PRIORITY,
-// //             .buffer_id = 0xffffffff,
-// //             .out_port = OFPP_ANY,
-// //             .out_group = OFPG_ANY,
-// //             .flags = 0x0000,
-// //             .match = NULL,
-// //             .instructions_num = 0,
-// //             .instructions = NULL};
-// //
-// ////HandleFlowMod (&mensagem);
-// 
-// 
-// 
-// 
-//  
-// 
-//   ofl_err ret = pipeline_handle_flow_mod (m_dp->pipeline, msg, sender);
-// 
-//   free (sender);
-//   return ret;
-//  ofl_err ret;
-//  return ret;
-//}
+ofl_err
+OFSwitch13NetDevice::HandleFlowMod (struct ofl_msg_flow_mod *msg)
+{
+ /* Note: the result of using table_id = 0xff is undefined in the spec.
+  *       for now it is accepted for delete commands, meaning to delete
+  *       from all tables */
+  ofl_err error;
+  size_t i;
+  bool match_kept, insts_kept;
+
+  match_kept = false;
+  insts_kept = false;
+
+  /*Sort by execution oder*/
+  qsort (msg->instructions, msg->instructions_num, sizeof (struct ofl_instruction_header *), inst_compare);
+
+  // Validate actions in flow_mod
+  for (i=0; i< msg->instructions_num; i++) 
+    {
+      if (msg->instructions[i]->type == OFPIT_APPLY_ACTIONS || msg->instructions[i]->type == OFPIT_WRITE_ACTIONS) 
+        {
+          struct ofl_instruction_actions *ia = (struct ofl_instruction_actions *)msg->instructions[i];
+
+          error = dp_actions_validate (m_pipeline->dp, ia->actions_num, ia->actions);
+          if (error) 
+            {
+              return error;
+            }
+          error = dp_actions_check_set_field_req(msg, ia->actions_num, ia->actions);
+          if (error) 
+            {
+              return error;
+            }
+        }
+      /* Reject goto in the last table. */
+      if ((msg->table_id == (PIPELINE_TABLES - 1)) && (msg->instructions[i]->type == OFPIT_GOTO_TABLE))
+        {
+          return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
+        }
+    }
+
+  /* Validate match for table 60 for exact match IP 5 tupples. */
+  if ((msg->table_id == 60) && (msg->command == OFPFC_ADD)) 
+    {
+      struct ofl_match *match = (struct ofl_match *) msg->match;
+      size_t match_size = match->header.length;
+      int found_mask = 0;
+      /* Examine all match fields. */
+      if (match_size) 
+        {
+          struct ofl_match_tlv *oxm;
+          HMAP_FOR_EACH (oxm, struct ofl_match_tlv, hmap_node, &match->match_fields)
+            {
+              switch (oxm->header) 
+                {
+                  case OXM_OF_IPV4_SRC_W:
+                  case OXM_OF_IPV4_DST_W:
+                    /* We can't accept a wildcarded version of those fields.
+                     * Return an error. */
+                    NS_LOG_DEBUG ("5 tupple validation : found masked field.");
+                    return ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_NW_ADDR_MASK);
+
+                   /* Check if we have all of our 5 tupple. */
+                 case OXM_OF_IP_PROTO:
+                   found_mask |= 0x1;
+                   break;
+                 case OXM_OF_IPV4_SRC:
+                   found_mask |= 0x2;
+                   break;
+                 case OXM_OF_IPV4_DST:
+                   found_mask |= 0x4;
+                   break;
+                 case OXM_OF_TCP_SRC:
+                   found_mask |= 0x8;
+                   break;
+                 case OXM_OF_TCP_DST:
+                   found_mask |= 0x10;
+                   break;
+                 case OXM_OF_UDP_SRC:
+                   found_mask |= 0x8;
+                   break;
+                 case OXM_OF_UDP_DST:
+                   found_mask |= 0x10;
+                   break;
+
+                 case OXM_OF_ETH_TYPE:
+                   /* Must accept pre-requisite. */
+                   break;
+
+                 default:
+                   /* All other fields not welcomed. */
+                    NS_LOG_DEBUG ("5 tupple validation : found unwanted.");
+                   return ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_FIELD);
+              }
+            }
+        }
+      NS_LOG_DEBUG ("5 tupple validation : found_mask= "<< found_mask);
+      if (found_mask != 0x1F) 
+        {
+          /* We need all 5 fields of the 5 tupple. */
+          return ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+        }
+  }
+
+ if (msg->table_id == 0xff) {
+     if (msg->command == OFPFC_DELETE || msg->command == OFPFC_DELETE_STRICT) {
+         size_t i;
+
+         error = 0;
+         for (i=0; i < PIPELINE_TABLES; i++) {
+             error = flow_table_flow_mod(m_pipeline->tables[i], msg, &match_kept, &insts_kept);
+             if (error) {
+                 break;
+             }
+         }
+         if (error) {
+             return error;
+         } else {
+             ofl_msg_free_flow_mod(msg, !match_kept, !insts_kept, m_pipeline->dp->exp);
+             return 0;
+         }
+     } else {
+         return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
+     }
+ } else {
+     error = flow_table_flow_mod(m_pipeline->tables[msg->table_id], msg, &match_kept, &insts_kept);
+     if (error) {
+         return error;
+     }
+     if ((msg->command == OFPFC_ADD || msg->command == OFPFC_MODIFY || msg->command == OFPFC_MODIFY_STRICT) &&
+                         msg->buffer_id != NO_BUFFER) {
+         /* run buffered message through pipeline */
+         struct packet *pkt;
+
+         pkt = dp_buffers_retrieve(m_pipeline->dp->buffers, msg->buffer_id);
+         if (pkt != NULL) {
+            pipeline_process_packet(m_pipeline, pkt);
+         } else {
+              NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << msg->buffer_id);
+         }
+     }
+
+     ofl_msg_free_flow_mod(msg, !match_kept, !insts_kept, m_pipeline->dp->exp);
+     return 0;
+ }
+}
 
 
 

@@ -74,6 +74,7 @@ extern "C"
 #include "lib/dynamic-string.h"
 
 #include "oflib/ofl-structs.h"
+#include "oflib/oxm-match.h"
 
 // From flow_table.c
 int flow_table_features(uint8_t table_id, struct ofl_table_features *features);

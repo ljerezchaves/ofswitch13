@@ -201,10 +201,10 @@ private:
    *
    * \see ofsoftswitch13 function pipeline_handle_flow_mod () at udatapath/pipeline.c
    *
-   * \param msg The OpenFlow flow_mod message 
+   * \param msg The ofl_msg_flow_mod message 
    * \return 0 if sucess or OpenFlow error code
    */
-  //ofl_err HandleFlowMod (struct ofl_msg_flow_mod *msg);
+  ofl_err HandleFlowMod (struct ofl_msg_flow_mod *msg);
 
   /**
    * \internal
@@ -257,6 +257,10 @@ private:
    */
   void AddEthernetHeaderBack (Ptr<Packet> p, Mac48Address source, Mac48Address dest, uint16_t protocolNumber);
   
+
+  // ExecuteEntry ()
+
+
   /**
    * NetDevice callbacks
    */
