@@ -125,8 +125,7 @@ public:
   virtual bool IsPointToPoint (void) const;
   virtual bool IsBridge (void) const;
   virtual bool Send (Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber);
-  virtual bool SendFrom (Ptr<Packet> packet, const Address& source, const Address& dest, 
-      uint16_t protocolNumber);
+  virtual bool SendFrom (Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber);
   virtual Ptr<Node> GetNode (void) const;
   virtual void SetNode (Ptr<Node> node);
   virtual bool NeedsArp (void) const;
@@ -160,6 +159,7 @@ protected:
   void ReceiveFromDevice (Ptr<NetDevice> netdev, Ptr<const Packet> packet, uint16_t protocol, 
       const Address& src, const Address& dst, PacketType packetType);
 
+private:
   /**
    * \internal
    *
@@ -191,7 +191,6 @@ protected:
    */
   void PipelineProcessBuffer (uint32_t packet_uid, ofpbuf* buffer, ofs::Port* inPort);
 
-
   /**
    * \internal
    *
@@ -207,17 +206,64 @@ protected:
    */
   //ofl_err HandleFlowMod (struct ofl_msg_flow_mod *msg);
 
+  /**
+   * \internal
+   *
+   * \brief Creates a flow table 
+   * 
+   * \see ofsoftswitch13 function flow_table_create () at udatapath/flow_table.c
+   *
+   * \param table_id The table id.
+   * \return The pointer to the created table.
+   */
+  struct flow_table* FlowTableCreate (uint8_t table_id);
 
+  /**
+   * \internal
+   *
+   * \brief Creates an ofsoftswitch13 packet from buffer
+   *
+   * This packet in an internal ofsoftswitch13 structure to represent the
+   * packet, and it is used to parse fields, lookup for flow matchs, etc.
+   * 
+   * \see ofsoftswitch13 function packet_create () at udatapath/packet.c
+   *
+   * \param in_port The id of the input port.
+   * \param buf The openflow buffer with the packet
+   * \param packet_out True if the packet arrived in a packet out msg (from the contro
+   * \return The pointer to the created packet
+   */
+  struct packet* PacketCreate (uint32_t in_port, struct ofpbuf *buf, bool packet_out);
 
-void 
-executarssaporra (struct pipeline *pl, struct flow_entry *entry, struct flow_table **next_table, struct packet **pkt);
-
-
+  /**
+   * \internal
+   *
+   * \brief Add an Ethernet header and trailer to the packet
+   *
+   * This is an workaround to facilitate the creation of the openflow buffer.
+   * When the packet gets inside the switch, the Ethernet header has already
+   * been removed by CsmaNetDevice::Receive () method on the NetDevice port.
+   * So, we are going to include it again to properly buffer the packet. We
+   * will remove this header and trailer latter.
+   *
+   * \attention This method only works for DIX encapsulation mode.
+   *
+   * \see CsmaNetDevice::AddHeader ()
+   *
+   * \param p The packet.
+   * \param source The source address.
+   * \param dest The destination address.
+   * \param protocolNumber The L3 protocol defining the packet
+   */
+  void AddEthernetHeaderBack (Ptr<Packet> p, Mac48Address source, Mac48Address dest, uint16_t protocolNumber);
   
-
-private:
+  /**
+   * NetDevice callbacks
+   */
+  //\{
   NetDevice::ReceiveCallback m_rxCallback;
   NetDevice::PromiscReceiveCallback m_promiscRxCallback;
+  //\}
 
   Mac48Address m_address;               ///< Address of this device
   Ptr<Node> m_node;                     ///< Node this device is installed on
@@ -231,32 +277,15 @@ private:
   typedef std::map<uint32_t, ofs::SwitchPacketMetadata> PacketData_t;
   PacketData_t m_packetData;            ///< Packet data
 
-  Ptr<OFSwitch13Controller> m_controller;    ///< Connection to controller
+  Ptr<OFSwitch13Controller> m_controller;     ///< Connection to controller
 
   // Considering the necessary datapath structs from ofsoftswitch13
-  uint64_t m_id;                        ///< Unique identifier for this switch
-  struct ofl_config m_config;           ///< Configuration, set from controller
-  struct pipeline* m_pipeline;          ///< Pipeline with multi-tables
-  // struct group_table* m_groups;         ///< Group tables
-  // struct meter_table* m_meters;         ///< Meter tables
-
-
-  // struct ofl_exp* exp;                  ///< Experimenter handling
-
-
-
-// FIXME criar a tabela
-struct flow_table* FlowTableCreate (uint8_t table_id);
-
-// Criar o packet interno
-struct packet* PacketCreate (uint32_t in_port, struct ofpbuf *buf, bool packet_out);
-
-// Reinsere o cabecalho ethernet que foi removido TODO: precisa descobrir onde apagar esse cabecalho
-// \see CsmaNetDevice::AddHeader ()
-void AddEthernetHeaderBack (Ptr<Packet> p, Mac48Address source, Mac48Address dest, uint16_t protocolNumber);
-
-
-
+  uint64_t m_id;                              ///< Unique identifier for this switch
+  struct ofl_config m_config;                 ///< Configuration, set from controller
+  struct pipeline* m_pipeline;                ///< Pipeline with multi-tables
+  // struct group_table* m_groups;            ///< Group tables
+  // struct meter_table* m_meters;            ///< Meter tables
+  // struct ofl_exp* exp;                     ///< Experimenter handling
 
 };
 

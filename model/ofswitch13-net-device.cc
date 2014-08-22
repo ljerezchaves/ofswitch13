@@ -537,198 +537,15 @@ OFSwitch13NetDevice::BufferFromPacket (Ptr<Packet> packet, Mac48Address src, Mac
   const int hard_header = VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofpbuf_new_with_headroom (hard_header + mtu, headroom);
 
-  /**
-   * When the packet gets here, the Ethernet header has already been removed by
-   * CsmaNetDevice::Receive () method. So, we are going to include it again to
-   * properly buffer the packet. We will remove this header at TODO
-   */
+  // Adding the ethernet header
   AddEthernetHeaderBack (packet, src, dst, protocol);
 
-//  uint32_t psize = packet->GetSize ();
-//  uint8_t bu[psize];
-//  packet->CopyData (bu, psize); 
-//  for (uint32_t i = 0; i < psize; i++)
-//  {
-//    printf ("%02x ",bu[i]);
-//  }
-//  printf ("\n");
-
-//  packet->Print (std::cout);
-//  PacketMetadata::ItemIterator k = packet->BeginItem ();
-//  while (k.HasNext ())
-//  {
-//    struct PacketMetadata::Item item = k.Next ();
-//    if (item.type == PacketMetadata::Item::HEADER)
-//    {
-//      //Callback<ObjectBase *> constructor = item.tid.GetConstructor ();
-//      //HistoryHeaderBase *header = dynamic_cast<HistoryHeaderBase *> (constructor ());
-//      std::cout << item.tid << "\n";
-//      if (item.tid == ns3::EthernetHeader::GetTypeId ())
-//          NS_LOG_UNCOND ("Eth");
-//      else
-//          NS_LOG_UNCOND ("NAo achou");
-//      }
-//    }
-//
   ofpbuf_put_uninit (buffer, packet->GetSize ());
   packet->CopyData ((uint8_t*)buffer->data, packet->GetSize ());
 
-  uint32_t psize = packet->GetSize ();
-  uint8_t bu[psize];
-  packet->CopyData (bu, psize); 
-  for (uint32_t i = 0; i < psize; i++)
-  {
-    printf ("%02x ",bu[i]);
-  }
-  printf ("\n");
-
-
-
-//  TODO: Ainda estou na dúvida sobre este código aqui. Abaixo temos um parser
-//  básico para pacotes, onde os cabecalhos sao criados e depois inseridos no
-//  comeco do buffer... acredito que eu nao preciso disso agora.
-
-/*  buffer->data = (char*)buffer->data + headroom + hard_header;
-
-  int l2_length = 0, l3_length = 0, l4_length = 0;
-
-  ArpHeader ah;
-  packet->PeekHeader (ah);
-  NS_LOG_DEBUG (ah);
-
-  // Load Packet header into buffer
-  // L2 header
-  EthernetHeader ethHeader;
-  if (packet->PeekHeader (ethHeader))
-    {
-      NS_LOG_DEBUG (ethHeader);
-      NS_LOG_DEBUG (ethHeader.GetSource ());
-      buffer->l2 = new eth_header;
-      eth_header* eth_h = (eth_header*)buffer->l2;
-      dst.CopyTo (eth_h->eth_dst);              // Destination Mac Address
-      src.CopyTo (eth_h->eth_src);              // Source Mac Address
-      eth_h->eth_type = htons (ethHeader.GetLengthType ());    // Ether Type
-      NS_LOG_INFO ("Parsed EthernetHeader");
-      l2_length = ETH_HEADER_LEN;
-    }
-
-  // L3 header
-  if (protocol == Ipv4L3Protocol::PROT_NUMBER)
-    {
-      Ipv4Header ip_hd;
-      if (packet->PeekHeader (ip_hd))
-        {
-          buffer->l3 = new ip_header;
-          ip_header* ip_h = (ip_header*)buffer->l3;
-          ip_h->ip_ihl_ver  = IP_IHL_VER (5, IP_VERSION);             // Version
-          ip_h->ip_tos      = ip_hd.GetTos ();                        // Type of Service/Differentiated Services
-          ip_h->ip_tot_len  = packet->GetSize ();                     // Total Length
-          ip_h->ip_id       = ip_hd.GetIdentification ();             // Identification
-          ip_h->ip_frag_off = ip_hd.GetFragmentOffset ();             // Fragment Offset
-          ip_h->ip_ttl      = ip_hd.GetTtl ();                        // Time to Live
-          ip_h->ip_proto    = ip_hd.GetProtocol ();                   // Protocol
-          ip_h->ip_src      = htonl (ip_hd.GetSource ().Get ());      // Source Address
-          ip_h->ip_dst      = htonl (ip_hd.GetDestination ().Get ()); // Destination Address
-          ip_h->ip_csum     = csum (&ip_h, sizeof ip_h);              // Header Checksum
-          NS_LOG_INFO ("Parsed Ipv4Header");
-          l3_length = IP_HEADER_LEN;
-        }
-    }
-  else if (protocol == ArpL3Protocol::PROT_NUMBER)
-    {
-      // ARP Packet; the underlying OpenFlow header isn't used to match, so this is probably superfluous.
-      ArpHeader arp_hd;
-      if (packet->PeekHeader (arp_hd))
-        {
-          buffer->l3 = new arp_eth_header;
-          arp_eth_header* arp_h = (arp_eth_header*)buffer->l3;
-          arp_h->ar_hrd = ARP_HRD_ETHERNET;                               // Hardware type.
-          arp_h->ar_pro = ARP_PRO_IP;                                     // Protocol type.
-          arp_h->ar_op = arp_hd.m_type;                                   // Opcode.
-          arp_hd.GetDestinationHardwareAddress ().CopyTo (arp_h->ar_tha); // Target hardware address.
-          arp_hd.GetSourceHardwareAddress ().CopyTo (arp_h->ar_sha);      // Sender hardware address.
-          arp_h->ar_tpa = arp_hd.GetDestinationIpv4Address ().Get ();     // Target protocol address.
-          arp_h->ar_spa = arp_hd.GetSourceIpv4Address ().Get ();          // Sender protocol address.
-          arp_h->ar_hln = sizeof arp_h->ar_tha;                           // Hardware address length.
-          arp_h->ar_pln = sizeof arp_h->ar_tpa;                           // Protocol address length.
-          NS_LOG_INFO ("Parsed ArpHeader");
-          l3_length = ARP_ETH_HEADER_LEN;
-        }
-
-    }
-  else
-    {
-      NS_ASSERT_MSG (false, "Unknown L3 Protocol... openflow will abort!");
-    }
-
-  // L4 header
-  TcpHeader tcp_hd;
-  if (packet->PeekHeader (tcp_hd))
-    {
-      buffer->l4 = new tcp_header;
-      tcp_header* tcp_h = (tcp_header*)buffer->l4;
-      tcp_h->tcp_src = htons (tcp_hd.GetSourcePort ());         // Source Port
-      tcp_h->tcp_dst = htons (tcp_hd.GetDestinationPort ());    // Destination Port
-      tcp_h->tcp_seq = tcp_hd.GetSequenceNumber ().GetValue (); // Sequence Number
-      tcp_h->tcp_ack = tcp_hd.GetAckNumber ().GetValue ();      // ACK Number
-      tcp_h->tcp_ctl = TCP_FLAGS (tcp_hd.GetFlags ());          // Data Offset + Reserved + Flags
-      tcp_h->tcp_winsz = tcp_hd.GetWindowSize ();               // Window Size
-      tcp_h->tcp_urg = tcp_hd.GetUrgentPointer ();              // Urgent Pointer
-      tcp_h->tcp_csum = csum (&tcp_h, sizeof tcp_h);            // Header Checksum
-      NS_LOG_INFO ("Parsed TcpHeader");
-      l4_length = TCP_HEADER_LEN;
-    }
-  else
-    {
-      UdpHeader udp_hd;
-      if (packet->PeekHeader (udp_hd))
-        {
-          buffer->l4 = new udp_header;
-          udp_header* udp_h = (udp_header*)buffer->l4;
-          udp_h->udp_src = htons (udp_hd.GetSourcePort ());       // Source Port
-          udp_h->udp_dst = htons (udp_hd.GetDestinationPort ());  // Destination Port
-          udp_h->udp_len = htons (UDP_HEADER_LEN + packet->GetSize ());
-
-          if (protocol == Ipv4L3Protocol::PROT_NUMBER)
-            {
-              ip_header* ip_h = (ip_header*)buffer->l3;
-              uint32_t udp_csum = csum_add32 (0, ip_h->ip_src);
-              udp_csum = csum_add32 (udp_csum, ip_h->ip_dst);
-              udp_csum = csum_add16 (udp_csum, IP_TYPE_UDP << 8);
-              udp_csum = csum_add16 (udp_csum, udp_h->udp_len);
-              udp_csum = csum_continue (udp_csum, udp_h, sizeof udp_h);
-              udp_h->udp_csum = csum_finish (csum_continue (udp_csum, buffer->data, buffer->size)); // Header Checksum
-            }
-          else // protocol == ArpL3Protocol::PROT_NUMBER
-            {
-              udp_h->udp_csum = htons (0);
-            }
-          NS_LOG_INFO ("Parsed UdpHeader");
-          l4_length = UDP_HEADER_LEN;
-        }
-    }
-
-  // Load Packet data into buffer data
-  packet->CopyData ((uint8_t*)buffer->data, packet->GetSize ());
-
-  if (buffer->l4)
-    {
-      ofpbuf_push (buffer, buffer->l4, l4_length);
-      delete (tcp_header*)buffer->l4;
-    }
-  if (buffer->l3)
-    {
-      ofpbuf_push (buffer, buffer->l3, l3_length);
-      delete (ip_header*)buffer->l3;
-    }
-  if (buffer->l2)
-    {
-      ofpbuf_push (buffer, buffer->l2, l2_length);
-      delete (eth_header*)buffer->l2;
-    }
-*/  
   return buffer;
 }
+
 
 void
 OFSwitch13NetDevice::PipelineProcessBuffer (uint32_t packet_uid, struct ofpbuf* buffer, ofs::Port* inPort)
@@ -786,7 +603,7 @@ OFSwitch13NetDevice::PipelineProcessBuffer (uint32_t packet_uid, struct ofpbuf* 
           NS_LOG_DEBUG ("found matching entry: " << ofl_structs_flow_stats_to_string (entry->stats, pkt->dp->exp));
        
           pkt->handle_std->table_miss = ((entry->stats->priority) == 0 && (entry->match->length <= 4));
-         // executarssaporra (pl, entry, &next_table, &pkt);
+         // executarssaporra (pl, entry, &next_table, &pkt); //FIXME
           
           /* Packet could be destroyed by a meter instruction */
           if (!pkt)
@@ -851,76 +668,6 @@ OFSwitch13NetDevice::PipelineProcessBuffer (uint32_t packet_uid, struct ofpbuf* 
 //  ofl_err ret;
 //  return ret;
 //}
-
-
-
-
-void 
-OFSwitch13NetDevice::executarssaporra (struct pipeline *pl, struct flow_entry *entry, struct flow_table **next_table, struct packet **pkt)
-{
-
-
-// size_t i;
-//     struct ofl_instruction_header *inst;
-// 
-//     for (i=0; i < entry->stats->instructions_num; i++) {
-//         /*Packet was dropped by some instruction or action*/
-// 
-//         if(!(*pkt)){
-//             return;
-//         }
-// 
-//         inst = entry->stats->instructions[i];
-//         switch (inst->type) {
-//             case OFPIT_GOTO_TABLE: {
-//                 struct ofl_instruction_goto_table *gi = (struct ofl_instruction_goto_table *)inst;
-// 
-//                 *next_table = pl->tables[gi->table_id];
-//                 break;
-//             }
-//             case OFPIT_WRITE_METADATA: {
-//                 struct ofl_instruction_write_metadata *wi = (struct ofl_instruction_write_metadata *)inst;
-//                 struct  ofl_match_tlv *f;
-// 
-//                 /* NOTE: Hackish solution. If packet had multiple handles, metadata
-//                  *       should be updated in all. */
-//                 packet_handle_std_validate((*pkt)->handle_std);
-//                 /* Search field on the description of the packet. */
-//                 HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
-//                     hmap_node, hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std->match.match_fields){
-//                     uint64_t *metadata = (uint64_t*) f->value;
-//                     *metadata = (*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask);
-//             //        VLOG_DBG_RL(LOG_MODULE, &rl, "Executing write metadata: %"PRIu64"", *metadata);
-//                 }
-//                 break;
-//             }
-//             case OFPIT_WRITE_ACTIONS: {
-//                 struct ofl_instruction_actions *wa = (struct ofl_instruction_actions *)inst;
-//                 action_set_write_actions((*pkt)->action_set, wa->actions_num, wa->actions);
-//                 break;
-//             }
-//             case OFPIT_APPLY_ACTIONS: {
-//                 struct ofl_instruction_actions *ia = (struct ofl_instruction_actions *)inst;
-//                 dp_execute_action_list((*pkt), ia->actions_num, ia->actions, entry->stats->cookie);
-//                 break;
-//             }
-//             case OFPIT_CLEAR_ACTIONS: {
-//                 action_set_clear_actions((*pkt)->action_set);
-//                 break;
-//             }
-//             case OFPIT_METER: {
-//             	struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)inst;
-//                 meter_table_apply(pl->dp->meters, pkt , im->meter_id);
-//                 break;
-//             }
-//             case OFPIT_EXPERIMENTER: {
-//                 dp_exp_inst((*pkt), (struct ofl_instruction_experimenter *)inst);
-//                 break;
-//             }
-//         }
-//     }
-
-}
 
 
 
