@@ -13,8 +13,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Blake Hurd  <naimorai@gmail.com>
- *         Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
 #ifndef OFSWITCH13_NET_DEVICE_H
@@ -24,12 +23,16 @@
 #include "ns3/net-device.h"
 #include "ns3/mac48-address.h"
 #include "ns3/bridge-channel.h"
+#include "ns3/csma-net-device.h"
 #include "ns3/node.h"
 #include "ns3/packet.h"
 
 #include "ofswitch13-interface.h"
+#include "ofswitch13-controller.h"
 
 namespace ns3 {
+
+class OFSwitch13Controller;
 
 /**
  * \ingroup ofswitch13
@@ -51,18 +54,39 @@ public:
 
   OFSwitch13NetDevice ();
   virtual ~OFSwitch13NetDevice ();
-
+  
   /**
+   * \name OFSwitch13NetDevice Description Data
+   * \brief These four data describe the OFSwitch13NetDevice as if it were
+   * a real OpenFlow switch.
+   *
+   * There is a type of stats request that OpenFlow switches are supposed to
+   * handle that returns the description of the OpenFlow switch. Currently
+   * manufactured by "The ns-3 team", software description is "Simulated
+   * OpenFlow Switch datapath version 1.3", hardware description is "N/A" and
+   * serial number is 1.
+   */
+  //\{
+  static const char * GetManufacturerDescription ();
+  static const char * GetHardwareDescription ();
+  static const char * GetSoftwareDescription ();
+  static const char * GetSerialNumber ();
+  //\}
+
+ /**
    * \brief Add a 'port' to the switch device
    *
-   * This method adds a new switch port to a OFSwitch13NetDevice, so that
-   * the new switch port NetDevice becomes part of the switch and L2
-   * frames start being forwarded to/from this NetDevice.
+   * This method adds a new switch port to a OFSwitch13NetDevice, so that the
+   * new switch port NetDevice becomes part of the switch and L2 frames start
+   * being forwarded to/from this NetDevice.
+   * 
+   * \attention The current implementation only supports CsmaNetDevices using
+   * DIX encapsulation.
    *
-   * \attention The netdevice that is being added as switch port must
-   * _not_ have an IP address.  In order to add IP connectivity to a
-   * bridging node you must enable IP on the OFSwitch13NetDevice itself,
-   * never on its port netdevices.
+   * \attention The csmaNetDevice that is being added as switch port must _not_
+   * have an IP address.  In order to add IP connectivity to a bridging node
+   * you must enable IP on the OFSwitch13NetDevice itself, never on its port
+   * netdevices.
    *
    * \param switchPort The port to add.
    * \return 0 if everything's ok, otherwise an error number.
@@ -75,6 +99,12 @@ public:
    */
   uint32_t GetNSwitchPorts (void) const;
 
+  /**
+   * \brief Set up the switch's controller connection.
+   *
+   * \param c Pointer to an OFSwitch13Controller.
+   */
+  void SetController (Ptr<OFSwitch13Controller> c);
 
 
   // Inherited from NetDevice base class
@@ -95,7 +125,8 @@ public:
   virtual bool IsPointToPoint (void) const;
   virtual bool IsBridge (void) const;
   virtual bool Send (Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber);
-  virtual bool SendFrom (Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber);
+  virtual bool SendFrom (Ptr<Packet> packet, const Address& source, const Address& dest, 
+      uint16_t protocolNumber);
   virtual Ptr<Node> GetNode (void) const;
   virtual void SetNode (Ptr<Node> node);
   virtual bool NeedsArp (void) const;
@@ -107,16 +138,14 @@ protected:
   virtual void DoDispose (void);
 
   /**
-   * \internal
+   * \brief Search the switch ports looking for a specific device
    *
-   * \param Ptr<NetDevice> device.
+   * \param sed The Ptr<CsmaNetDevice> pointer to device.
    * \return A pointer to the corresponding ofs::Port.
    */
-  ofs::Port* GetPortFromNetDevice (Ptr<NetDevice> dev);
+  ofs::Port* GetPortFromNetDevice (Ptr<CsmaNetDevice> dev);
 
   /**
-   * \internal
-   * 
    * Called when a packet is received on one of the switch's ports.
    *
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c 
@@ -128,7 +157,8 @@ protected:
    * \param dst The destination address of the Packet.
    * \param PacketType Type of the packet.
    */
-  void ReceiveFromDevice (Ptr<NetDevice> netdev, Ptr<const Packet> packet, uint16_t protocol, const Address& src, const Address& dst, PacketType packetType);
+  void ReceiveFromDevice (Ptr<NetDevice> netdev, Ptr<const Packet> packet, uint16_t protocol, 
+      const Address& src, const Address& dst, PacketType packetType);
 
   /**
    * \internal
@@ -145,7 +175,7 @@ protected:
    * \param protocol The L3 protocol defining the packet (as we are in L2).
    * \return The OpenFlow Buffer created from the packet.
    */
-  ofpbuf* BufferFromPacket (Ptr<Packet> packet, Address src, Address dst, int mtu, uint16_t protocol);
+  ofpbuf* BufferFromPacket (Ptr<Packet> packet, Mac48Address src, Mac48Address dst, int mtu, uint16_t protocol);
 
  /**
    * \internal
@@ -159,7 +189,7 @@ protected:
    * \param packet_uid Packet UID; used to fetch the packet and its metadata.
    * \param port The port this packet was received over.
    */
-  void RunThroughPipeline (uint32_t packet_uid, ofpbuf* buffer, ofs::Port* inPort);
+  void PipelineProcessBuffer (uint32_t packet_uid, ofpbuf* buffer, ofs::Port* inPort);
 
 
   /**
@@ -175,7 +205,7 @@ protected:
    * \param msg The OpenFlow flow_mod message 
    * \return 0 if sucess or OpenFlow error code
    */
-  ofl_err HandleFlowMod (struct ofl_msg_flow_mod *msg);
+  //ofl_err HandleFlowMod (struct ofl_msg_flow_mod *msg);
 
 
 
@@ -189,34 +219,44 @@ private:
   NetDevice::ReceiveCallback m_rxCallback;
   NetDevice::PromiscReceiveCallback m_promiscRxCallback;
 
-  Mac48Address m_address;               ///< Address of this device.
-  Ptr<Node> m_node;                     ///< Node this device is installed on.
-  Ptr<BridgeChannel> m_channel;         ///< Collection of port channels into the Switch Channel.
+  Mac48Address m_address;               ///< Address of this device
+  Ptr<Node> m_node;                     ///< Node this device is installed on
+  Ptr<BridgeChannel> m_channel;         ///< Collection of port channels into the Switch Channel
   uint32_t m_ifIndex;                   ///< Interface Index
   uint16_t m_mtu;                       ///< Maximum Transmission Unit
-  uint64_t m_id;                        ///< Unique identifier for this switch, needed for OpenFlow
- 
+   
   typedef std::vector<ofs::Port> Ports_t;
   Ports_t m_ports;                      ///< Switch's ports
 
   typedef std::map<uint32_t, ofs::SwitchPacketMetadata> PacketData_t;
   PacketData_t m_packetData;            ///< Packet data
 
+  Ptr<OFSwitch13Controller> m_controller;    ///< Connection to controller
+
+  // Considering the necessary datapath structs from ofsoftswitch13
+  uint64_t m_id;                        ///< Unique identifier for this switch
+  struct ofl_config m_config;           ///< Configuration, set from controller
+  struct pipeline* m_pipeline;          ///< Pipeline with multi-tables
+  // struct group_table* m_groups;         ///< Group tables
+  // struct meter_table* m_meters;         ///< Meter tables
 
 
-  // Recuperando essas paradas do datapath
+  // struct ofl_exp* exp;                  ///< Experimenter handling
 
-  struct datapath* m_dp;
 
-  // Do datapath dp eu pretendo usar o pipeline, groups, meters, acho que só....
 
-  // struct pipeline* m_pipeline;            ///< Pipeline with multi-tables
-  // struct group_table* m_groups;           ///< Group tables
-  // struct meter_table* m_meters;           ///< Meter tables
+// FIXME criar a tabela
+struct flow_table* FlowTableCreate (uint8_t table_id);
 
-  // struct ofl_config m_config;             ///< Configuration, set from controller
+// Criar o packet interno
+struct packet* PacketCreate (uint32_t in_port, struct ofpbuf *buf, bool packet_out);
 
-  // struct ofl_exp* exp;                    ///< Experimenter handling
+// Reinsere o cabecalho ethernet que foi removido TODO: precisa descobrir onde apagar esse cabecalho
+// \see CsmaNetDevice::AddHeader ()
+void AddEthernetHeaderBack (Ptr<Packet> p, Mac48Address source, Mac48Address dest, uint16_t protocolNumber);
+
+
+
 
 };
 

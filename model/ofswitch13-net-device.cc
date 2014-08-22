@@ -13,16 +13,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Blake Hurd  <naimorai@gmail.com>
- *         Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 #ifdef NS3_OFSWITCH13
 
 #include "ofswitch13-net-device.h"
 #include "ofswitch13-interface.h"
 
+#include "ns3/simulator.h"
+#include "ns3/string.h"
+#include "ns3/integer.h"
+#include "ns3/uinteger.h"
 #include "ns3/log.h"
+
+#include "ns3/csma-net-device.h"
 #include "ns3/ethernet-header.h"
+#include "ns3/ethernet-trailer.h"
 #include "ns3/arp-header.h"
 #include "ns3/tcp-header.h"
 #include "ns3/udp-header.h"
@@ -33,7 +39,20 @@ NS_LOG_COMPONENT_DEFINE ("OFSwitch13NetDevice");
 
 namespace ns3 {
 
-NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
+NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice)
+  ;
+
+static uint64_t
+GenerateId ()
+{
+  uint8_t ea[ETH_ADDR_LEN];
+  eth_addr_random (ea);
+  return eth_addr_to_uint64 (ea);
+}
+
+
+/********** Public methods **********/
+
 
 TypeId
 OFSwitch13NetDevice::GetTypeId (void)
@@ -41,6 +60,11 @@ OFSwitch13NetDevice::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::OFSwitch13NetDevice")
     .SetParent<NetDevice> ()
     .AddConstructor<OFSwitch13NetDevice> ()
+    .AddAttribute ("ID",
+                   "The identification of the OFSwitch13NetDevice/Datapath, needed for OpenFlow compatibility.",
+                   UintegerValue (GenerateId ()),
+                   MakeUintegerAccessor (&OFSwitch13NetDevice::m_id),
+                   MakeUintegerChecker<uint64_t> ())
   ;
   return tid;
 }
@@ -54,22 +78,26 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
 
   m_channel = CreateObject<BridgeChannel> ();
   m_ports.reserve (DP_MAX_PORTS);
+  SetAddress (Mac48Address::Allocate ()); 
 
-  // set_program_name ("luluchaves");
-  // register_fault_handlers();
-  time_init();
-  // vlog_init();
-  // vlog_set_verbosity ("");
-
-  m_dp = dp_new ();
-  if (m_dp == 0)
-    {
-      NS_LOG_ERROR ("Unable to create the ofsoftswitch datapath.");
-    }
-
-  m_id = m_dp->id;
-  NS_LOG_INFO ("OpenFlow version " << OFP_VERSION << " -- Datapath ID " << m_id);
+  // Initializing the datapath, as in dp_net at udatapath/datapath.c
+  NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
   NS_LOG_DEBUG ("Switch addr " << m_address);
+  
+  // Create the pipeline
+  time_init ();
+  m_pipeline = (struct pipeline*)xmalloc (sizeof (struct pipeline));
+  for (int i=0; i<PIPELINE_TABLES; i++) 
+    {
+      m_pipeline->tables[i] = FlowTableCreate (i);
+    }
+ 
+  // Switch configuration
+  m_config.flags = OFPC_FRAG_NORMAL;
+  m_config.miss_send_len = OFP_DEFAULT_MISS_SEND_LEN;
+
+  nblink_initialize(); // FIXME Vou mesmo usar o nblink?
+  ns3::Packet::EnablePrinting (); // FIXME: 
 }
 
 OFSwitch13NetDevice::~OFSwitch13NetDevice ()
@@ -77,24 +105,28 @@ OFSwitch13NetDevice::~OFSwitch13NetDevice ()
   NS_LOG_FUNCTION_NOARGS ();
 }
 
-void
-OFSwitch13NetDevice::DoDispose ()
+const char *
+OFSwitch13NetDevice::GetManufacturerDescription ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  return "The ns-3 team";
+}
 
-  for (Ports_t::iterator b = m_ports.begin (), e = m_ports.end (); b != e; b++)
-    {
-      // Notify the controller that this port has been deleted
-      // SendPortStatus (*b, OFPPR_DELETE);
-      b->netdev = 0;
-    }
-  m_ports.clear ();
+const char *
+OFSwitch13NetDevice::GetHardwareDescription ()
+{
+  return "N/A";
+}
 
-  m_channel = 0;
-  m_node = 0;
-  m_dp = 0;
+const char *
+OFSwitch13NetDevice::GetSoftwareDescription ()
+{
+  return "Simulated OpenFlow Switch datapath version 1.3";
+}
 
-  NetDevice::DoDispose ();
+const char *
+OFSwitch13NetDevice::GetSerialNumber ()
+{
+  return "1";
 }
 
 int 
@@ -102,45 +134,40 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
 {
   NS_LOG_FUNCTION (this << switchPort);
   NS_LOG_DEBUG ("Adding port addr " << switchPort->GetAddress ());
-  NS_ASSERT (switchPort != this);
-
-  if (!Mac48Address::IsMatchingType (switchPort->GetAddress ()))
+  
+  Ptr<CsmaNetDevice> csmaSwitchPort = switchPort->GetObject<CsmaNetDevice> ();
+  if (!csmaSwitchPort)
     {
-      NS_FATAL_ERROR ("Device does not support eui 48 addresses: cannot be added to switch.");
+      NS_FATAL_ERROR ("NetDevice must be of CsmaNetDevice type.");
     }
-  if (!switchPort->SupportsSendFrom ())
+  if (csmaSwitchPort->GetEncapsulationMode () != CsmaNetDevice::DIX)
     {
-      NS_FATAL_ERROR ("Device does not support SendFrom: cannot be added to switch.");
-    }
-  if (m_address == Mac48Address ())
-    { 
-      m_address = Mac48Address::ConvertFrom (switchPort->GetAddress ());
+      NS_FATAL_ERROR ("CsmaNetDevice must use DIX encapsulation.");
     }
 
-  if (m_ports.size () <= DP_MAX_PORTS)
-    {
-      ofs::Port p (m_dp, switchPort, m_ports.size () + 1);
-      m_ports.push_back (p);
-      
-      // FIXME: ativar a notificação
-      // Notify the controller that this port has been added
-      // {
-      // struct ofl_msg_port_status msg =
-      //       {{.type = OFPT_PORT_STATUS},
-      //         .reason = OFPPR_ADD, .desc = p.conf};
-
-      // // SendPortStatus (p, OFPPR_ADD);
-      // // dp_send_message(dp, (struct ofl_msg_header *)&msg, NULL/*sender*/);
-      // }
-
-      NS_LOG_DEBUG ("RegisterProtocolHandler for " << switchPort->GetInstanceTypeId ().GetName ());
-      m_node->RegisterProtocolHandler (MakeCallback (&OFSwitch13NetDevice::ReceiveFromDevice, this), 0, switchPort, true);
-      m_channel->AddChannel (switchPort->GetChannel ());
-    }
-  else
+  if (m_ports.size () >= DP_MAX_PORTS)
     {
       return EXFULL;
     }
+
+  int no = m_ports.size () + 1;
+  NS_LOG_DEBUG ("Port # " << no);
+
+  ofs::Port p (switchPort, no);
+  m_ports.push_back (p);
+  
+  // TODO: Notify the controller that this port has been added
+  // {
+  // struct ofl_msg_port_status msg =
+  //       {{.type = OFPT_PORT_STATUS},
+  //         .reason = OFPPR_ADD, .desc = p.conf};
+  // SendPortStatus (p, OFPPR_ADD);
+  // dp_send_message(dp, (struct ofl_msg_header *)&msg, NULL/*sender*/);
+  // }
+
+  NS_LOG_DEBUG ("RegisterProtocolHandler for " << switchPort->GetInstanceTypeId ().GetName ());
+  m_node->RegisterProtocolHandler (MakeCallback (&OFSwitch13NetDevice::ReceiveFromDevice, this), 0, switchPort, true);
+  m_channel->AddChannel (switchPort->GetChannel ());
   return 0;
 }
 
@@ -150,7 +177,17 @@ OFSwitch13NetDevice::GetNSwitchPorts (void) const
   return m_ports.size ();
 }
 
-
+void
+OFSwitch13NetDevice::SetController (Ptr<OFSwitch13Controller> c)
+{
+  if (m_controller != 0)
+    {
+      NS_LOG_ERROR ("Controller already set.");
+      return;
+    }
+  m_controller = c;
+  m_controller->AddSwitch (this);
+}
 
 // Inherited from NetDevice base class
 void
@@ -203,14 +240,12 @@ OFSwitch13NetDevice::GetMtu (void) const
   return m_mtu;
 }
 
-
 bool
 OFSwitch13NetDevice::IsLinkUp (void) const
 {
   NS_LOG_FUNCTION_NOARGS ();
   return true;
 }
-
 
 void
 OFSwitch13NetDevice::AddLinkChangeCallback (Callback<void> callback)
@@ -325,8 +360,35 @@ OFSwitch13NetDevice::SupportsSendFrom () const
   return true;
 }
 
+
+/********** Protected methods **********/
+
+
+ void
+OFSwitch13NetDevice::DoDispose ()
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  for (Ports_t::iterator b = m_ports.begin (), e = m_ports.end (); b != e; b++)
+    {
+      // TODO: Notify the controller that this port has been deleted
+      // SendPortStatus (*b, OFPPR_DELETE);
+      b->netdev = 0;
+      ofl_structs_free_port (b->conf);
+      free (b->stats);
+    }
+  
+  m_ports.clear ();
+  m_channel = 0;
+  m_node = 0;
+ 
+  pipeline_destroy (m_pipeline);
+
+  NetDevice::DoDispose ();
+}
+
 ofs::Port*
-OFSwitch13NetDevice::GetPortFromNetDevice (Ptr<NetDevice> dev)
+OFSwitch13NetDevice::GetPortFromNetDevice (Ptr<CsmaNetDevice> dev)
 {
   for (size_t i = 0; i < m_ports.size (); i++)
     {
@@ -340,13 +402,16 @@ OFSwitch13NetDevice::GetPortFromNetDevice (Ptr<NetDevice> dev)
 
 
 void
-OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev, Ptr<const Packet> packet, uint16_t protocol, const Address& src, const Address& dst, PacketType packetType)
+OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev, Ptr<const Packet> packet, 
+    uint16_t protocol, const Address& src, const Address& dst, PacketType packetType)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  NS_LOG_DEBUG ("Switch " << this->GetNode()->GetId() << " -- Pkt UID: " << packet->GetUid ());
+  Ptr<CsmaNetDevice> csmaNetDev = netdev->GetObject<CsmaNetDevice> ();
   
   Mac48Address src48 = Mac48Address::ConvertFrom (src);
   Mac48Address dst48 = Mac48Address::ConvertFrom (dst);
+  
+  NS_LOG_DEBUG ("Switch " << this->GetNode()->GetId() << " -- Pkt UID: " << packet->GetUid ());
   NS_LOG_DEBUG ("Received packet type " << packetType << " from " << src48 << " looking for " << dst48);
 
   if (!m_promiscRxCallback.IsNull ())
@@ -354,7 +419,7 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev, Ptr<const Packet>
       m_promiscRxCallback (this, packet, protocol, src, dst, packetType);
     }
  
-  ofs::Port* inPort = GetPortFromNetDevice (netdev);
+  ofs::Port* inPort = GetPortFromNetDevice (csmaNetDev);
   NS_ASSERT_MSG (inPort != NULL, "This device is not registered as a switch port");
 
   if (packetType == PACKET_HOST && dst48 == m_address)
@@ -389,24 +454,30 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev, Ptr<const Packet>
           //
           // RunThroughFlowTable (packet_uid, i);
 
+          
+          
+          
+          
           ofs::SwitchPacketMetadata data;
           data.packet = packet->Copy ();
           
-          ofpbuf *buffer = BufferFromPacket (data.packet, src, dst, netdev->GetMtu (), protocol);
-          data.buffer = buffer;
+          ofpbuf *buffer = BufferFromPacket (data.packet, src48, dst48, netdev->GetMtu (), protocol);
+          // data.buffer = buffer;
           // uint32_t packet_uid = dp_buffers_save (); // FIXME Precisa resolver essa parada de salvar o buffer
           
           inPort->stats->rx_packets++;
           inPort->stats->rx_bytes += buffer->size;
 
-          data.protocolNumber = protocol;
-          data.src = Address (src);
-          data.dst = Address (dst);
+          // data.protocolNumber = protocol;
+          // data.src = Address (src);
+          // data.dst = Address (dst);
           // m_packetData.insert (std::make_pair (packet_uid, data));
+
+          // ProcessBuffer....
 
        
           // TODO processar o buffer pelo pipeline.... e liberar depois.... 
-          RunThroughPipeline (0, buffer, inPort);
+          PipelineProcessBuffer (0, buffer, inPort);
 
         }
     }
@@ -453,7 +524,7 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev, Ptr<const Packet>
 
 
 ofpbuf *
-OFSwitch13NetDevice::BufferFromPacket (Ptr<Packet> packet, Address src, Address dst, int mtu, uint16_t protocol)
+OFSwitch13NetDevice::BufferFromPacket (Ptr<Packet> packet, Mac48Address src, Mac48Address dst, int mtu, uint16_t protocol)
 {
   NS_LOG_INFO ("Creating Openflow buffer from packet.");
 
@@ -465,22 +536,78 @@ OFSwitch13NetDevice::BufferFromPacket (Ptr<Packet> packet, Address src, Address 
   const int headroom = 128 + 2;
   const int hard_header = VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofpbuf_new_with_headroom (hard_header + mtu, headroom);
-  
-  buffer->data = (char*)buffer->data + headroom + hard_header;
+
+  /**
+   * When the packet gets here, the Ethernet header has already been removed by
+   * CsmaNetDevice::Receive () method. So, we are going to include it again to
+   * properly buffer the packet. We will remove this header at TODO
+   */
+  AddEthernetHeaderBack (packet, src, dst, protocol);
+
+//  uint32_t psize = packet->GetSize ();
+//  uint8_t bu[psize];
+//  packet->CopyData (bu, psize); 
+//  for (uint32_t i = 0; i < psize; i++)
+//  {
+//    printf ("%02x ",bu[i]);
+//  }
+//  printf ("\n");
+
+//  packet->Print (std::cout);
+//  PacketMetadata::ItemIterator k = packet->BeginItem ();
+//  while (k.HasNext ())
+//  {
+//    struct PacketMetadata::Item item = k.Next ();
+//    if (item.type == PacketMetadata::Item::HEADER)
+//    {
+//      //Callback<ObjectBase *> constructor = item.tid.GetConstructor ();
+//      //HistoryHeaderBase *header = dynamic_cast<HistoryHeaderBase *> (constructor ());
+//      std::cout << item.tid << "\n";
+//      if (item.tid == ns3::EthernetHeader::GetTypeId ())
+//          NS_LOG_UNCOND ("Eth");
+//      else
+//          NS_LOG_UNCOND ("NAo achou");
+//      }
+//    }
+//
+  ofpbuf_put_uninit (buffer, packet->GetSize ());
+  packet->CopyData ((uint8_t*)buffer->data, packet->GetSize ());
+
+  uint32_t psize = packet->GetSize ();
+  uint8_t bu[psize];
+  packet->CopyData (bu, psize); 
+  for (uint32_t i = 0; i < psize; i++)
+  {
+    printf ("%02x ",bu[i]);
+  }
+  printf ("\n");
+
+
+
+//  TODO: Ainda estou na dúvida sobre este código aqui. Abaixo temos um parser
+//  básico para pacotes, onde os cabecalhos sao criados e depois inseridos no
+//  comeco do buffer... acredito que eu nao preciso disso agora.
+
+/*  buffer->data = (char*)buffer->data + headroom + hard_header;
 
   int l2_length = 0, l3_length = 0, l4_length = 0;
 
+  ArpHeader ah;
+  packet->PeekHeader (ah);
+  NS_LOG_DEBUG (ah);
 
   // Load Packet header into buffer
   // L2 header
-  EthernetHeader eth_hd;
-  if (packet->PeekHeader (eth_hd))
+  EthernetHeader ethHeader;
+  if (packet->PeekHeader (ethHeader))
     {
+      NS_LOG_DEBUG (ethHeader);
+      NS_LOG_DEBUG (ethHeader.GetSource ());
       buffer->l2 = new eth_header;
       eth_header* eth_h = (eth_header*)buffer->l2;
       dst.CopyTo (eth_h->eth_dst);              // Destination Mac Address
       src.CopyTo (eth_h->eth_src);              // Source Mac Address
-      eth_h->eth_type = htons (ETH_TYPE_IP);    // Ether Type
+      eth_h->eth_type = htons (ethHeader.GetLengthType ());    // Ether Type
       NS_LOG_INFO ("Parsed EthernetHeader");
       l2_length = ETH_HEADER_LEN;
     }
@@ -527,6 +654,7 @@ OFSwitch13NetDevice::BufferFromPacket (Ptr<Packet> packet, Address src, Address 
           NS_LOG_INFO ("Parsed ArpHeader");
           l3_length = ARP_ETH_HEADER_LEN;
         }
+
     }
   else
     {
@@ -598,16 +726,14 @@ OFSwitch13NetDevice::BufferFromPacket (Ptr<Packet> packet, Address src, Address 
       ofpbuf_push (buffer, buffer->l2, l2_length);
       delete (eth_header*)buffer->l2;
     }
-  
+*/  
   return buffer;
 }
 
-
 void
-OFSwitch13NetDevice::RunThroughPipeline (uint32_t packet_uid, struct ofpbuf* buffer, ofs::Port* inPort)
+OFSwitch13NetDevice::PipelineProcessBuffer (uint32_t packet_uid, struct ofpbuf* buffer, ofs::Port* inPort)
 {
   struct packet *pkt;
-  struct pipeline* pl; 
   struct flow_table *table, *next_table;
   struct flow_entry *entry;
  
@@ -616,33 +742,33 @@ OFSwitch13NetDevice::RunThroughPipeline (uint32_t packet_uid, struct ofpbuf* buf
     {
       NS_LOG_DEBUG ("This port is down or inoperating. Discarding packet");
       ofpbuf_delete (buffer);
+      // TODO: Aqui significa que a porta esta desligada. Então é preciso nao
+      // só deletar o buffer mas liberar tb o ofs::SwitchPacketMetadata 
       return;
     }
 
   // packet takes ownership of ofpbuf buffer
-  pkt = packet_create (m_dp, inPort->stats->port_no, buffer, false);
+  pkt = PacketCreate (inPort->stats->port_no, buffer, false);
   NS_LOG_DEBUG ("processing packet: " << packet_to_string (pkt));
 
   // o codigo abaixo é do pipeline_process_packet (m_dp->pipeline, pkt);
-  pl = m_dp->pipeline; 
 
-  // FIXME: esta indicando pacotes arp com ttl invalido e descartando
-  //if (!packet_handle_std_is_ttl_valid (pkt->handle_std)) 
-  //  {
-  //    if ((pl->dp->config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) 
-  //      {
-  //        NS_LOG_DEBUG ("Packet has invalid TTL, sending to controller.");
-  //        // send_packet_to_controller(pl, pkt, 0/*table_id*/, OFPR_INVALID_TTL);
-  //      } 
-  //    else 
-  //      {
-  //        NS_LOG_DEBUG ("Packet has invalid TTL, dropping.");
-  //      }
-  //    packet_destroy (pkt);
-  //    return;
-  //  }
+  if (!packet_handle_std_is_ttl_valid (pkt->handle_std)) 
+    {
+      if ((m_config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) 
+        {
+          NS_LOG_DEBUG ("Packet has invalid TTL, sending to controller.");
+          // TODO send_packet_to_controller(pl, pkt, 0/*table_id*/, OFPR_INVALID_TTL);
+        } 
+      else 
+        {
+          NS_LOG_DEBUG ("Packet has invalid TTL, dropping.");
+        }
+      packet_destroy (pkt);
+      return;
+    }
 
-  next_table = pl->tables[0];
+  next_table = m_pipeline->tables[0];
   while (next_table != NULL) 
     {
       NS_LOG_DEBUG ("trying table " << (short)next_table->stats->table_id);
@@ -652,7 +778,7 @@ OFSwitch13NetDevice::RunThroughPipeline (uint32_t packet_uid, struct ofpbuf* buf
       next_table = NULL;
 
       NS_LOG_DEBUG ("searching table entry for packet match: " <<  
-            ofl_structs_match_to_string ((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp));
+            ofl_structs_match_to_string ((struct ofl_match_header*)&(pkt->handle_std->match), NULL));
 
       entry = flow_table_lookup (table, pkt);
       if (entry != NULL) 
@@ -685,18 +811,46 @@ OFSwitch13NetDevice::RunThroughPipeline (uint32_t packet_uid, struct ofpbuf* buf
 }
 
 
-ofl_err
-OFSwitch13NetDevice::HandleFlowMod (struct ofl_msg_flow_mod *msg)
-{
-  struct sender *sender = (struct sender*)xmalloc (sizeof (struct sender));
-  sender->remote = (struct remote*)xmalloc (sizeof (struct remote));
-  sender->remote->role = OFPCR_ROLE_MASTER;
-
-  ofl_err ret = pipeline_handle_flow_mod (m_dp->pipeline, msg, sender);
-
-  free (sender);
-  return ret;
-}
+//ofl_err
+//OFSwitch13NetDevice::HandleFlowMod (struct ofl_msg_flow_mod *msg)
+//{
+//   struct sender *sender = (struct sender*)xmalloc (sizeof (struct sender));
+//   sender->remote = (struct remote*)xmalloc (sizeof (struct remote));
+//   sender->remote->role = OFPCR_ROLE_MASTER;
+// 
+// 
+// 
+// //struct ofl_msg_flow_mod mensagem =
+// //            {{.type = OFPT_FLOW_MOD},
+// //             .cookie = 0x0000000000000000ULL,
+// //             .cookie_mask = 0x0000000000000000ULL,
+// //             .table_id = 0x00,
+// //             .command = OFPFC_ADD,
+// //             .idle_timeout = OFP_FLOW_PERMANENT,
+// //             .hard_timeout = OFP_FLOW_PERMANENT,
+// //             .priority = OFP_DEFAULT_PRIORITY,
+// //             .buffer_id = 0xffffffff,
+// //             .out_port = OFPP_ANY,
+// //             .out_group = OFPG_ANY,
+// //             .flags = 0x0000,
+// //             .match = NULL,
+// //             .instructions_num = 0,
+// //             .instructions = NULL};
+// //
+// ////HandleFlowMod (&mensagem);
+// 
+// 
+// 
+// 
+//  
+// 
+//   ofl_err ret = pipeline_handle_flow_mod (m_dp->pipeline, msg, sender);
+// 
+//   free (sender);
+//   return ret;
+//  ofl_err ret;
+//  return ret;
+//}
 
 
 
@@ -766,6 +920,101 @@ OFSwitch13NetDevice::executarssaporra (struct pipeline *pl, struct flow_entry *e
 //         }
 //     }
 
+}
+
+
+
+
+
+struct flow_table *
+OFSwitch13NetDevice::FlowTableCreate (uint8_t table_id)
+{
+  struct flow_table *table;
+  struct ds string = DS_EMPTY_INITIALIZER;
+
+  ds_put_format (&string, "table_%u", table_id);
+
+  table = (struct flow_table*)xmalloc (sizeof (struct flow_table));
+  //table->dp = dp;
+  table->disabled = 0;
+  
+  /*Init table stats */
+  table->stats = (struct ofl_table_stats*)xmalloc (sizeof (struct ofl_table_stats));
+  table->stats->table_id      = table_id;
+  table->stats->active_count  = 0;
+  table->stats->lookup_count  = 0;
+  table->stats->matched_count = 0;
+
+  /* Init Table features */
+  table->features = (struct ofl_table_features*)xmalloc (sizeof (struct ofl_table_features));
+  table->features->table_id       = table_id;
+  table->features->name           = ds_cstr(&string);
+  table->features->metadata_match = 0xffffffffffffffff; 
+  table->features->metadata_write = 0xffffffffffffffff;
+  table->features->config         = OFPTC_TABLE_MISS_CONTROLLER;
+  table->features->max_entries    = FLOW_TABLE_MAX_ENTRIES;
+  table->features->properties_num = flow_table_features (table_id, table->features);
+
+  list_init (&table->match_entries);
+  list_init (&table->hard_entries);
+  list_init (&table->idle_entries);
+
+  return table;
+}
+
+struct packet *
+OFSwitch13NetDevice::PacketCreate (uint32_t in_port, struct ofpbuf *buf, bool packet_out) 
+{
+  struct packet *pkt;
+
+  pkt = (struct packet*)xmalloc (sizeof (struct packet));
+
+  pkt->dp         = NULL;
+  pkt->buffer     = buf;
+  pkt->in_port    = in_port;
+  pkt->action_set = (struct action_set*) xmalloc (sizeof (struct action_set));
+  list_init(&pkt->action_set->actions);
+
+  pkt->packet_out       = packet_out;
+  pkt->out_group        = OFPG_ANY;
+  pkt->out_port         = OFPP_ANY;
+  pkt->out_port_max_len = 0;
+  pkt->out_queue        = 0;
+  pkt->buffer_id        = NO_BUFFER;
+  pkt->table_id         = 0;
+
+  pkt->handle_std = packet_handle_std_create (pkt);
+  return pkt;
+}
+
+void
+OFSwitch13NetDevice::AddEthernetHeaderBack (Ptr<Packet> p, Mac48Address source, 
+    Mac48Address dest, uint16_t protocolNumber)
+{
+  NS_LOG_FUNCTION (p << source << dest << protocolNumber);
+
+  EthernetHeader header (false);
+  header.SetSource (source);
+  header.SetDestination (dest);
+
+  EthernetTrailer trailer;
+  if (p->GetSize () < 46)
+    {
+      uint8_t buffer[46];
+      memset (buffer, 0, 46);
+      Ptr<Packet> padd = Create<Packet> (buffer, 46 - p->GetSize ());
+      p->AddAtEnd (padd);
+    }
+
+  header.SetLengthType (protocolNumber);
+  p->AddHeader (header);
+
+  if (Node::ChecksumEnabled ())
+    {
+      trailer.EnableFcs (true);
+    }
+  trailer.CalcFcs (p);
+  p->AddTrailer (trailer);
 }
 
 
