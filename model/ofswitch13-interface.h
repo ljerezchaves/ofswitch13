@@ -13,18 +13,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Blake Hurd  <naimorai@gmail.com>
- *         Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
 /** \defgroup ofswitch13 OpenFlow 1.3 soft switch (ofsoftswitch13)
  * 
- * This module is an OpenFlow 1.3 compatible switch implementation
+ * This module is an OpenFlow 1.3 compatible switch datapath implementation
  * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
  * The module depends on the CPqD ofsoftswitch13
- * <https://github.com/ljerezchaves/ofsoftswitch13> implementation compiled as
- * a library. For a generic functional description, please refer to the ns-3
- * model library.
+ * <https://github.com/ljerezchaves/ofsoftswitch13> implementation compiled
+ * as a library (use ./configure --enable-ns3-lib). For a generic functional
+ * description, please refer to the ns-3 model library.
  */
 #ifndef OFSWITCH13_INTERFACE_H
 #define OFSWITCH13_INTERFACE_H
@@ -35,10 +34,10 @@
 #include "ns3/simulator.h"
 #include "ns3/log.h"
 #include "ns3/net-device.h"
-#include "ns3/packet.h"
-#include "ns3/address.h"
-#include "ns3/nstime.h"
-#include "ns3/mac48-address.h"
+// #include "ns3/packet.h"
+// #include "ns3/address.h"
+// #include "ns3/nstime.h"
+// #include "ns3/mac48-address.h"
 
 #include <set>
 #include <map>
@@ -54,6 +53,7 @@ extern "C"
 #define delete _delete
 #define list List
 
+#include "udatapath/action_set.h"
 #include "udatapath/packet.h"
 #include "udatapath/pipeline.h"
 #include "udatapath/datapath.h"
@@ -71,49 +71,45 @@ extern "C"
 #include "lib/packets.h"
 #include "lib/daemon.h"
 #include "lib/poll-loop.h"
+#include "lib/dynamic-string.h"
 
 #include "oflib/ofl-structs.h"
 
+// From flow_table.c
+int flow_table_features(uint8_t table_id, struct ofl_table_features *features);
+
+// From pipeline.c
 int inst_compare(const void *inst1, const void *inst2);
 
-// void execute_entry (struct pipeline *pl, struct flow_entry *entry, struct flow_table **next_table, struct packet **pkt);
 
 #undef list
 #undef private
 #undef delete
 }
 
+//#include "ofswitch13-net-device.h"
+
 namespace ns3 {
 
-class OFSwitch13NetDevice;
+//class OFSwitch13NetDevice;
 
 namespace ofs {
 
 /**
  * \brief Switch SwPort and its metadata.
- *
- * We need to store port metadata, as OpenFlow can use it to manage queues,
- * stats, etc. Otherwise, we'd refer to it via Ptr<NetDevice> everywhere.
- *
  * \attention Port numbers should start at 1
- *
  * \see ofsoftswitch13 udatapath/dp_ports.h
  */
 struct Port
 {
-  Port (struct datapath *dp_, Ptr<NetDevice> netdev_, uint32_t port_no_);
-  ~Port ();
+  Port (Ptr<NetDevice> dev, uint32_t port_no);
 
   uint32_t flags;                 ///< SWP_* flags.
-  struct datapath *dp;
   Ptr<NetDevice> netdev;
   struct ofl_port *conf;
   struct ofl_port_stats *stats;
-
-  uint16_t max_queues;
-  uint16_t num_queues;
-  struct sw_queue queues[NETDEV_MAX_QUEUES];  // FIXME trocar por uma queue do ns3
 };
+
 
 /**
  * \brief Packet Metadata, allows us to track the packet's metadata as it

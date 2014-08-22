@@ -13,28 +13,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Blake Hurd  <naimorai@gmail.com>
- *         Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 #ifdef NS3_OFSWITCH13
 
 #include "ofswitch13-interface.h"
-#include "ofswitch13-net-device.h"
+
 
 namespace ns3 {
 namespace ofs {
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 
-Port::Port (struct datapath *dp, Ptr<NetDevice> netdev, uint32_t port_no) : 
+// \see new_port () at udatapath/dp_ports.c
+Port::Port (Ptr<NetDevice> netdev, uint32_t port_no) : 
             flags (0),
-            dp (dp),
-            netdev (netdev),
-            conf (0),
-            stats (0),
-            max_queues (0),
-            num_queues (0)
-{
+            netdev (netdev)
+{   
     conf = (ofl_port*)xmalloc (sizeof (struct ofl_port));
     memset (conf, 0x00, sizeof (struct ofl_port));
     conf->port_no = port_no;
@@ -53,17 +48,6 @@ Port::Port (struct datapath *dp, Ptr<NetDevice> netdev, uint32_t port_no) :
     stats->port_no = port_no;
 
     flags |= SWP_USED;
-    max_queues = MIN (max_queues, NETDEV_MAX_QUEUES);
-    memset (queues, 0x00, sizeof (queues));
-}
-
-Port::~Port ()
-{
-  dp = NULL;
-  netdev = NULL;
-  // FIXME
-  //free (conf);
-  //free (stats);
 }
 
 
