@@ -76,6 +76,8 @@ extern "C"
 #include "oflib/ofl-structs.h"
 #include "oflib/oxm-match.h"
 
+#include "utilities/dpctl.h"
+
 // From flow_table.c
 int flow_table_features(uint8_t table_id, struct ofl_table_features *features);
 

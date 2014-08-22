@@ -84,6 +84,9 @@ protected:
 
   typedef std::set<Ptr<OFSwitch13NetDevice> > Switches_t;
   Switches_t m_switches;  ///< The collection of switches registered to this controller.
+
+private:
+  void CreateFlowModMsg ();
 };
 
 } // namespace ns3
