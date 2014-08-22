@@ -25,43 +25,35 @@
 namespace ns3 {
 
 class OFSwitch13NetDevice;
-
-namespace ofs {
-
 /**
- * \brief An interface for a Controller of OFSwitch13NetDevices
+ * \brief An ofs::Controller interface for OFSwitch13NetDevices OpenFlow 1.3
+ * switch NetDevice
  *
- * Follows the OpenFlow 1.3 specification for a controller.
+ * This controller should manage the OpenFlow 1.3 datapath. It does not need to
+ * be full-compliant with the protocol specification. 
  */
-class Controller : public Object
+class OFSwitch13Controller : public Object
 {
 public:
-  static TypeId GetTypeId (void)
-  {
-    static TypeId tid = TypeId ("ns3::ofs::Controller")
-      .SetParent<Object> ()
-      .AddConstructor<Controller> ()
-    ;
-    return tid;
-  }
+  OFSwitch13Controller ();
+  virtual ~OFSwitch13Controller ();
 
-  virtual ~Controller ()
-  {
-    m_switches.clear ();
-  }
-
+  // inherited from Object
+  static TypeId GetTypeId (void);
+  virtual void DoDispose ();
+ 
   /**
-   * Adds a switch to the controller.
+   * Register a switch to this controller.
    *
-   * \param swtch The switch to register.
+   * \param swtch The Ptr<OFSwitch13NetDevice> switch to register.
    */
   virtual void AddSwitch (Ptr<OFSwitch13NetDevice> swtch);
 
   /**
-   * A switch calls this method to pass a message on to the Controller.
+   * A registered switch can call this method to send a message to this Controller.
    *
    * \param swtch The switch the message was received from.
-   * \param buffer The message.
+   * \param buffer The pointer to the buffer containing the message.
    */
   virtual void ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer)
   {
@@ -71,11 +63,10 @@ protected:
   /**
    * \internal
    *
-   * However the controller is implemented, this method is to
-   * be used to pass a message on to a switch.
+   * However the controller is implemented, this method is used to send a message to a registered switch.
    *
    * \param swtch The switch to receive the message.
-   * \param msg The message to send.
+   * \param msg The message to send. //FIXME: should be an ofpbuf* ?
    * \param length The length of the message.
    */
   virtual void SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void * msg, size_t length);
@@ -95,8 +86,5 @@ protected:
   Switches_t m_switches;  ///< The collection of switches registered to this controller.
 };
 
-
-
-} // namespace ofs
 } // namespace ns3
 #endif /* OFSWITCH13_CONTROLLER_H */

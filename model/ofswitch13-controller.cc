@@ -19,14 +19,43 @@
 #ifdef NS3_OFSWITCH13
 
 #include "ofswitch13-controller.h"
+#include "ofswitch13-net-device.h"
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Controller");
 
 namespace ns3 {
-namespace ofs {
+
+NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller)
+  ;
+
+OFSwitch13Controller::OFSwitch13Controller ()
+{
+  NS_LOG_FUNCTION_NOARGS ();
+}
+
+OFSwitch13Controller::~OFSwitch13Controller ()
+{
+  NS_LOG_FUNCTION_NOARGS ();
+}
+
 
 void
-Controller::AddSwitch (Ptr<OFSwitch13NetDevice> swtch)
+OFSwitch13Controller::DoDispose ()
+{
+  m_switches.clear ();
+}
+
+TypeId 
+OFSwitch13Controller::GetTypeId (void) 
+{
+  static TypeId tid = TypeId ("ns3::OFSwitch13Controller") 
+    .SetParent<Object> ()
+    .AddConstructor<OFSwitch13Controller> ()
+    ;
+  return tid; 
+}
+void
+OFSwitch13Controller::AddSwitch (Ptr<OFSwitch13NetDevice> swtch)
 {
   if (m_switches.find (swtch) != m_switches.end ())
     {
@@ -34,12 +63,14 @@ Controller::AddSwitch (Ptr<OFSwitch13NetDevice> swtch)
     }
   else
     {
+      NS_LOG_INFO ("Registering switch " << swtch << " at controller " << this);
       m_switches.insert (swtch);
     }
 }
 
+
 void
-Controller::SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void * msg, size_t length)
+OFSwitch13Controller::SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void * msg, size_t length)
 {
   if (m_switches.find (swtch) == m_switches.end ())
     {
@@ -50,16 +81,17 @@ Controller::SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void * msg, size_t len
  // swtch->ForwardControlInput (msg, length);
 }
 
+
 uint8_t
-Controller::GetPacketType (ofpbuf* buffer)
+OFSwitch13Controller::GetPacketType (ofpbuf* buffer)
 {
-  ofp_header* hdr = (ofp_header*) ofpbuf_try_pull (buffer, sizeof (ofp_header));
+  ofp_header* hdr = (ofp_header*)ofpbuf_try_pull (buffer, sizeof (ofp_header));
   uint8_t type = hdr->type;
   ofpbuf_push_uninit (buffer, sizeof (ofp_header));
   return type;
 }
 
 
-} // namespace ofs
+
 } // namespace ns3
 #endif // NS3_OFSWITCH13
