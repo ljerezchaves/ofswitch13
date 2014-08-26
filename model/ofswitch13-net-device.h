@@ -40,15 +40,18 @@ class OFSwitch13Controller;
  * \brief A NetDevice that switches multiple LAN segments via OpenFlow protocol 
  *
  * The OFSwitch13NetDevice object aggregates multiple netdevices as ports
- * and acts like a switch. It implements OpenFlow compatibility,
+ * and acts like a switch. It implements OpenFlow datapath compatibility,
  * according to the OpenFlow Switch Specification v1.3.
  *
- * \attention Each NetDevice used as port must only be assigned a Mac Address,
- * adding it to an Ipv4 or Ipv6 layer will cause an error. It also must support
+ * \attention Each NetDevice used as port must only be assigned a Mac Address.
+ * adding an Ipv4 or Ipv6 layer to it will cause an error. It also must support
  * a SendFrom call.
  */
 class OFSwitch13NetDevice : public NetDevice
 {
+
+friend class OFSwitch13Controller;
+
 public:
   static TypeId GetTypeId (void);
 
@@ -106,7 +109,6 @@ public:
    */
   void SetController (Ptr<OFSwitch13Controller> c);
 
-
   // Inherited from NetDevice base class
   virtual void SetIfIndex (const uint32_t index);
   virtual uint32_t GetIfIndex (void) const;
@@ -142,7 +144,15 @@ protected:
    * \param sed The Ptr<CsmaNetDevice> pointer to device.
    * \return A pointer to the corresponding ofs::Port.
    */
-  ofs::Port* GetPortFromNetDevice (Ptr<CsmaNetDevice> dev);
+  ofs::Port* GetPortFromNetDevice (Ptr<NetDevice> dev);
+
+  /**
+   * \brief Search the switch ports looking for a specific port number
+   *
+   * \param no The port number (starting at 1) 
+   * \return A pointer to the corresponding ofs::Port.
+   */
+  ofs::Port* GetPortFromNumber (uint32_t no);
 
   /**
    * Called when a packet is received on one of the switch's ports.
@@ -156,13 +166,14 @@ protected:
    * \param dst The destination address of the Packet.
    * \param PacketType Type of the packet.
    */
-  void ReceiveFromDevice (Ptr<NetDevice> netdev, Ptr<const Packet> packet, uint16_t protocol, 
-      const Address& src, const Address& dst, PacketType packetType);
+  void ReceiveFromDevice (Ptr<NetDevice> netdev, Ptr<const Packet> packet,
+      uint16_t protocol, const Address& src, const Address& dst, PacketType
+      packetType);
 
 private:
   /**
-   * \internal
-   *
+   * \brief Create and OpenFlow buffer from ns3::Packet
+   * 
    * Takes a Ptr<Packet> and generates an OpenFlow buffer (ofpbuf*) from it,
    * loading the packet data as well as its headers into the buffer.
    * 
@@ -175,53 +186,11 @@ private:
    * \param protocol The L3 protocol defining the packet (as we are in L2).
    * \return The OpenFlow Buffer created from the packet.
    */
-  ofpbuf* BufferFromPacket (Ptr<Packet> packet, Mac48Address src, Mac48Address dst, int mtu, uint16_t protocol);
-
- /**
-   * \internal
-   *
-   * Run the packet through the pipeline. Looks up in the pipeline tables for a match.
-   * If it doesn't match, it forwards the packet to the registered controller, if the flag is set.
-   *
-   * \see ofsoftswitch function process_buffer at udatapath/dp_ports.c
-   * \see ofsoftswitch function pipeline_process_packet at udatapath/pipeline.c
-   *
-   * \param packet_uid Packet UID; used to fetch the packet and its metadata.
-   * \param port The port this packet was received over.
-   */
-  void PipelineProcessBuffer (uint32_t packet_uid, ofpbuf* buffer, ofs::Port* inPort);
+  ofpbuf* Of13BufferCreate (Ptr<Packet> packet, Mac48Address src, 
+      Mac48Address dst, int mtu, uint16_t protocol);
 
   /**
-   * \internal
-   *
-   * \brief Handles a flow_mod message 
-   * 
-   * Modifications to a flow table from the controller are done with the
-   * OFPT_FLOW_MOD message (including add, modify or delete).
-   *
-   * \see ofsoftswitch13 function pipeline_handle_flow_mod () at udatapath/pipeline.c
-   *
-   * \param msg The ofl_msg_flow_mod message 
-   * \return 0 if sucess or OpenFlow error code
-   */
-  ofl_err HandleFlowMod (struct ofl_msg_flow_mod *msg);
-
-  /**
-   * \internal
-   *
-   * \brief Creates a flow table 
-   * 
-   * \see ofsoftswitch13 function flow_table_create () at udatapath/flow_table.c
-   *
-   * \param table_id The table id.
-   * \return The pointer to the created table.
-   */
-  struct flow_table* FlowTableCreate (uint8_t table_id);
-
-  /**
-   * \internal
-   *
-   * \brief Creates an ofsoftswitch13 packet from buffer
+   * \brief Creates an OpenFlow packet from openflow buffer
    *
    * This packet in an internal ofsoftswitch13 structure to represent the
    * packet, and it is used to parse fields, lookup for flow matchs, etc.
@@ -230,14 +199,81 @@ private:
    *
    * \param in_port The id of the input port.
    * \param buf The openflow buffer with the packet
-   * \param packet_out True if the packet arrived in a packet out msg (from the contro
+   * \param packet_out True if the packet arrived in a packet out msg
    * \return The pointer to the created packet
    */
-  struct packet* PacketCreate (uint32_t in_port, struct ofpbuf *buf, bool packet_out);
+  struct packet* Of13PacketCreate (uint32_t in_port, struct ofpbuf *buf, 
+      bool packet_out);
+
 
   /**
-   * \internal
+   * Run the packet through the pipeline. Looks up in the pipeline tables for a
+   * match.  If it doesn't match, it forwards the packet to the registered
+   * controller, if the flag is set.
    *
+   * \see ofsoftswitch function process_buffer at udatapath/dp_ports.c
+   * \see ofsoftswitch function pipeline_process_packet at udatapath/pipeline.c
+   *
+   * \param packet_uid Packet UID; used to fetch the packet and its metadata.
+   * \param port The port this packet was received over.
+   */
+  void PipelineProcessBuffer (uint32_t packet_uid, ofpbuf* buffer, 
+      ofs::Port* inPort);
+
+  /**
+   * \brief Handles a flow_mod message received from controller 
+   * 
+   * Modifications to a flow table from the controller are do ne with the
+   * OFPT_FLOW_MOD message (including add, modify or delete).
+   *
+   * \see ofsoftswitch13 pipeline_handle_flow_mod () at udatapath/pipeline.c
+   * and flow_table_flow_mod () at udatapath/flow_table.c
+   *
+   * \param msg The ofl_msg_flow_mod message
+   * \return 0 if sucess or OpenFlow error code
+   */
+  ofl_err HandleFlowMod (struct ofl_msg_flow_mod *msg); 
+
+  /**
+   * \brief Handles a flow_mod message with OFPFC_ADD command. 
+   * 
+   * \attention new entries will be placed behind those with equal priority
+   *
+   * \see ofsoftswitch13 flow_table_add () at udatapath/flow_table.c
+   *
+   * \param table The table to add the flow
+   * \param mod The ofl_msg_flow_mod message
+   * \param check_overlap If true, prevents existing flow entry overlaps with
+   *        the match in the flow mod message
+   * \param match_kept Used by HandleFlowMod to proper free structs
+   * \param insts_kept Used by HandleFlowMod to proper free structs
+   * \return 0 if sucess or OpenFlow error code
+   */
+  ofl_err FlowTableAdd (struct flow_table *table, struct ofl_msg_flow_mod *mod, 
+      bool check_overlap, bool *match_kept, bool *insts_kept);
+
+  /**
+   * \brief Creates a new flow table 
+   * 
+   * \see ofsoftswitch13 flow_table_create () at udatapath/flow_table.c
+   *
+   * \param table_id The table id.
+   * \return The pointer to the created table.
+   */
+  struct flow_table* FlowTableCreate (uint8_t table_id);
+
+  /**
+   * \brief Validate actions before applying it
+   * 
+   * \see ofsoftswitch13 dp_actions_validade () at udatapath/dp_actions.c
+   *
+   * \param num The number of actions
+   * \param actions The actions structure
+   * \return 0 if sucess or OpenFlow error code
+   */
+  ofl_err ActionsValidate (size_t num, struct ofl_action_header **actions);
+
+  /**
    * \brief Add an Ethernet header and trailer to the packet
    *
    * This is an workaround to facilitate the creation of the openflow buffer.
@@ -250,15 +286,13 @@ private:
    *
    * \see CsmaNetDevice::AddHeader ()
    *
-   * \param p The packet.
-   * \param source The source address.
-   * \param dest The destination address.
+   * \param p The packet (will be modified).
+   * \param source The L2 source address.
+   * \param dest The L2 destination address.
    * \param protocolNumber The L3 protocol defining the packet
    */
-  void AddEthernetHeaderBack (Ptr<Packet> p, Mac48Address source, Mac48Address dest, uint16_t protocolNumber);
-  
-
-  // ExecuteEntry ()
+  void AddEthernetHeader (Ptr<Packet> p, Mac48Address source, 
+      Mac48Address dest, uint16_t protocolNumber);
 
 
   /**
@@ -294,5 +328,4 @@ private:
 };
 
 } // namespace ns3
-
 #endif /* OFSWITCH13_NET_DEVICE_H */

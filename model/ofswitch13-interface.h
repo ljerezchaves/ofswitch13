@@ -22,8 +22,7 @@
  * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
  * The module depends on the CPqD ofsoftswitch13
  * <https://github.com/ljerezchaves/ofsoftswitch13> implementation compiled
- * as a library (use ./configure --enable-ns3-lib). For a generic functional
- * description, please refer to the ns-3 model library.
+ * as a library (use ./configure --enable-ns3-lib).
  */
 #ifndef OFSWITCH13_INTERFACE_H
 #define OFSWITCH13_INTERFACE_H
@@ -53,66 +52,77 @@ extern "C"
 #define delete _delete
 #define list List
 
-#include "udatapath/action_set.h"
+#include "utilities/dpctl.h"
+
 #include "udatapath/packet.h"
 #include "udatapath/pipeline.h"
-#include "udatapath/datapath.h"
+#include "udatapath/flow_table.h"
 #include "udatapath/flow_entry.h"
 #include "udatapath/dp_ports.h"
-#include "udatapath/dp_buffers.h"
 #include "udatapath/dp_actions.h"
-#include "udatapath/meter_table.h"
 #include "udatapath/packet_handle_std.h"
+// #include "udatapath/datapath.h"
+// #include "udatapath/dp_buffers.h"
+// #include "udatapath/meter_table.h"
+// #include "udatapath/action_set.h"
 
 #include "lib/ofpbuf.h"
-#include "lib/fault.h"
-#include "lib/vlog.h"
-#include "lib/csum.h"
-#include "lib/packets.h"
-#include "lib/daemon.h"
-#include "lib/poll-loop.h"
 #include "lib/dynamic-string.h"
+// #include "lib/fault.h"
+// #include "lib/vlog.h"
+// #include "lib/csum.h"
+// #include "lib/packets.h"
+// #include "lib/daemon.h"
+// #include "lib/poll-loop.h"
 
 #include "oflib/ofl-structs.h"
 #include "oflib/oxm-match.h"
 
-#include "utilities/dpctl.h"
-
+// Some internal functions are not declared in header files...
 // From flow_table.c
 int flow_table_features(uint8_t table_id, struct ofl_table_features *features);
+void add_to_timeout_lists(struct flow_table *table, struct flow_entry *entry);
 
 // From pipeline.c
 int inst_compare(const void *inst1, const void *inst2);
 
+// From dpctl.c
+void parse_flow_mod_args (char *str, struct ofl_msg_flow_mod *req);
+void parse_match(char *str, struct ofl_match_header **match);
+void parse_inst(char *str, struct ofl_instruction_header **inst);
+void make_all_match(struct ofl_match_header **match);
 
 #undef list
 #undef private
 #undef delete
 }
 
-//#include "ofswitch13-net-device.h"
-
 namespace ns3 {
-
-//class OFSwitch13NetDevice;
-
 namespace ofs {
 
 /**
  * \brief Switch SwPort and its metadata.
- * \attention Port numbers should start at 1
  * \see ofsoftswitch13 udatapath/dp_ports.h
  */
 struct Port
 {
+  /**
+   * \brief Port constructor.
+   * 
+   * \see new_port () at udatapath/dp_ports.c
+   * \attention Port numbers should start at 1.
+   * 
+   * \param dev Pointer to NetDevice (port) at the switch.
+   * \param port_no Number for this port.
+   */
   Port (Ptr<NetDevice> dev, uint32_t port_no);
 
   uint32_t flags;                 ///< SWP_* flags.
-  Ptr<NetDevice> netdev;
-  struct ofl_port *conf;
-  struct ofl_port_stats *stats;
+  Ptr<NetDevice> netdev;          ///< Pointer to ns3::NetDevice
+  struct ofl_port *conf;          ///< Config information
+  struct ofl_port_stats *stats;   ///< Statiscts
+  uint32_t port_no;               ///< Port number
 };
-
 
 /**
  * \brief Packet Metadata, allows us to track the packet's metadata as it
@@ -126,8 +136,6 @@ struct SwitchPacketMetadata
   Address src;                ///< Source Address of the Packet when the Packet is received
   Address dst;                ///< Destination Address of the Packet when the Packet is received
 };
-
-
 
 } // namespace ofs
 } // namespace ns3

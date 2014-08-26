@@ -59,6 +59,10 @@ public:
   {
   }
 
+
+  void SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* textCmd);
+
+
 protected:
   /**
    * \internal
@@ -86,7 +90,11 @@ protected:
   Switches_t m_switches;  ///< The collection of switches registered to this controller.
 
 private:
-  void CreateFlowModMsg ();
+
+//void ParseFlowModArgs (char *str, struct ofl_msg_flow_mod *req);
+
+
+
 };
 
 } // namespace ns3
