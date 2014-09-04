@@ -50,30 +50,32 @@ public:
   virtual void AddSwitch (Ptr<OFSwitch13NetDevice> swtch);
 
   /**
-   * A registered switch can call this method to send a message to this Controller.
+   * \brief Create a flow_mod message using the same syntax from dpctl, and
+   * send it to the switch.
+   *
+   * \param swtch The Ptr<OFSwitch13NetDevice> switch to register.
+   * \param textCmd The dpctl flow_mod command to create the message.
+   */
+  void SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* textCmd);
+
+   /**
+   * \brief A registered switch can call this method to send a message to this
+   * Controller.
    *
    * \param swtch The switch the message was received from.
    * \param buffer The pointer to the buffer containing the message.
    */
-  virtual void ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer)
-  {
-  }
-
-
-  void SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* textCmd);
-
+  virtual void ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer);
 
 protected:
   /**
-   * \internal
-   *
-   * However the controller is implemented, this method is used to send a message to a registered switch.
+   * \brief This method is used to send a message to a registered switch. It
+   * will encapsulate the ofl_msg format into an ofpbuf wire format.
    *
    * \param swtch The switch to receive the message.
-   * \param msg The message to send. //FIXME: should be an ofpbuf* ?
-   * \param length The length of the message.
+   * \param msg The message to send.
    */
-  virtual void SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void * msg, size_t length);
+  void SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void *msg);
 
   /**
    * \internal
@@ -90,6 +92,7 @@ protected:
   Switches_t m_switches;  ///< The collection of switches registered to this controller.
 
 private:
+  static const uint32_t m_global_xid = 0xf0ff00f0;  // Same from dpctl
 
 //void ParseFlowModArgs (char *str, struct ofl_msg_flow_mod *req);
 

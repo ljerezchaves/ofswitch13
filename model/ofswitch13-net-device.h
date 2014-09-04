@@ -170,6 +170,29 @@ protected:
       uint16_t protocol, const Address& src, const Address& dst, PacketType
       packetType);
 
+  /**
+   * \brief The registered controller calls this method when sending a message
+   * to the switch.
+   *
+   * \param msg The message (ofpbuf) received from the controller.
+   * \param length Length of the message.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  int ReceiveFromController (ofpbuf* buffer, size_t length);
+
+  /**
+   * \brief Send a message to the controller. 
+   *
+   * This method is the key to communicating with the controller, it does the
+   * actual sending. The other Send methods call this one when they are ready
+   * to send a message.
+   *
+   * \param buffer Buffer of the message to send out.
+   * \return 0 if successful, otherwise an error number.
+   */
+  int SendToController (ofpbuf *buffer);
+
+
 private:
   /**
    * \brief Create and OpenFlow buffer from ns3::Packet
@@ -205,7 +228,6 @@ private:
   struct packet* Of13PacketCreate (uint32_t in_port, struct ofpbuf *buf, 
       bool packet_out);
 
-
   /**
    * Run the packet through the pipeline. Looks up in the pipeline tables for a
    * match.  If it doesn't match, it forwards the packet to the registered
@@ -219,6 +241,17 @@ private:
    */
   void PipelineProcessBuffer (uint32_t packet_uid, ofpbuf* buffer, 
       ofs::Port* inPort);
+
+  void ExecuteEntry (struct pipeline *pl, struct flow_entry *entry, 
+      struct flow_table **next_table, struct packet **pkt);
+
+  void ExecuteActionList (struct packet *pkt, size_t actions_num,
+    struct ofl_action_header **actions, uint64_t cookie);
+
+  void ActionsOutputPort (struct packet *pkt, uint32_t out_port,
+    uint32_t out_queue, uint16_t max_len, uint64_t cookie);
+
+  void PortOutput (struct packet *pkt, int out_port);
 
   /**
    * \brief Handles a flow_mod message received from controller 

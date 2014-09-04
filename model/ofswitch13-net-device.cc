@@ -53,7 +53,6 @@ GenerateId ()
 
 /********** Public methods **********/
 
-
 TypeId
 OFSwitch13NetDevice::GetTypeId (void)
 {
@@ -92,13 +91,12 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
     {
       m_pipeline->tables[i] = FlowTableCreate (i);
     }
- 
+
   // Switch configuration
   m_config.flags = OFPC_FRAG_NORMAL;
   m_config.miss_send_len = OFP_DEFAULT_MISS_SEND_LEN;
 
-  nblink_initialize(); // FIXME Vou mesmo usar o nblink?
-  ns3::Packet::EnablePrinting (); // FIXME: 
+  nblink_initialize(); 
 }
 
 OFSwitch13NetDevice::~OFSwitch13NetDevice ()
@@ -189,6 +187,7 @@ OFSwitch13NetDevice::SetController (Ptr<OFSwitch13Controller> c)
   m_controller = c;
   m_controller->AddSwitch (this);
 }
+
 
 // Inherited from NetDevice base class
 void
@@ -406,7 +405,7 @@ OFSwitch13NetDevice::GetPortFromNetDevice (Ptr<NetDevice> dev)
 ofs::Port*
 OFSwitch13NetDevice::GetPortFromNumber (uint32_t no)
 {
-  NS_LOG_FUNCTION ("Port number " << no);
+  NS_LOG_FUNCTION (no);
   NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Invalid port number");
 
   if (m_ports[no-1].port_no == no)
@@ -426,7 +425,6 @@ OFSwitch13NetDevice::GetPortFromNumber (uint32_t no)
   return NULL;
 }
 
-
 void
 OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev, 
     Ptr<const Packet> packet, uint16_t protocol, const Address& src, 
@@ -438,10 +436,8 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev,
   Mac48Address src48 = Mac48Address::ConvertFrom (src);
   Mac48Address dst48 = Mac48Address::ConvertFrom (dst);
   
-  NS_LOG_DEBUG ("Switch " << this->GetNode()->GetId() << 
-                " -- Pkt UID: " << packet->GetUid ());
-  NS_LOG_DEBUG ("Received packet type " << packetType << 
-                " from " << src48 << " looking for " << dst48);
+  NS_LOG_DEBUG ("Switch " << this->GetNode()->GetId() << " -- Pkt UID: " << packet->GetUid ());
+  NS_LOG_DEBUG ("Received packet type " << packetType << " from " << src48 << " looking for " << dst48);
 
   if (!m_promiscRxCallback.IsNull ())
     {
@@ -469,6 +465,7 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev,
             }
 
           ofs::SwitchPacketMetadata data;
+       //   m_packetData.insert (std::make_pair (packet_uid, data));
           data.packet = packet->Copy ();
           
           ofpbuf *buffer = Of13BufferCreate (data.packet, src48, dst48, netdev->GetMtu (), protocol);
@@ -480,7 +477,6 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev,
           data.protocolNumber = protocol;
           data.src = Address (src);
           data.dst = Address (dst);
-          // m_packetData.insert (std::make_pair (packet_uid, data));
 
           // TODO descobrir onde iremos liberar o buffer e o pacote 
           PipelineProcessBuffer (0, buffer, inPort);
@@ -527,6 +523,126 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev,
     }
 */
 }
+
+
+
+int
+OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer, size_t length)
+{
+  ofl_err error = 0;
+
+  if (buffer->size > length)
+    {
+      NS_LOG_ERROR (-EINVAL);
+    }
+  
+  struct ofl_msg_header *msg;
+  ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, NULL/*xid*/, NULL/*&ofl_exp*/);
+ 
+  char *str; 
+  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL/*&ofl_exp*/);
+  NS_LOG_DEBUG ("RECEIVING: " << str);
+  free (str);
+
+  switch (msg->type)
+    {
+      // TODO: implementar todas os outros tipos de mensagens
+      case OFPT_HELLO:
+        break;
+      case OFPT_ERROR:
+        break;
+      case OFPT_ECHO_REQUEST:
+      case OFPT_ECHO_REPLY:
+        break;
+      case OFPT_EXPERIMENTER:
+        //if (exp == NULL || exp->msg == NULL || exp->msg->unpack == NULL) 
+        if (exp == NULL) 
+          {
+            NS_LOG_WARN ("Received EXPERIMENTER message, but no callback was given.");
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+          }
+        break;
+
+      /* Switch configuration messages. */
+      case OFPT_FEATURES_REQUEST:
+        break;
+      case OFPT_FEATURES_REPLY:
+        break;
+      case OFPT_GET_CONFIG_REQUEST:
+        break;
+      case OFPT_GET_CONFIG_REPLY:
+        break;
+      case OFPT_SET_CONFIG:
+        break;
+
+      /* Asynchronous messages. */
+      case OFPT_PACKET_IN:
+        break;
+      case OFPT_FLOW_REMOVED:
+        break;
+      case OFPT_PORT_STATUS:
+        break;
+
+      /* Controller command messages. */
+      case OFPT_GET_ASYNC_REQUEST:
+        break;       
+      case OFPT_GET_ASYNC_REPLY:
+      case OFPT_SET_ASYNC:
+        break;
+      case OFPT_PACKET_OUT:
+        break;
+      case OFPT_FLOW_MOD:
+        error = HandleFlowMod ((struct ofl_msg_flow_mod*)msg); 
+        break;
+      case OFPT_GROUP_MOD:
+        break;
+      case OFPT_PORT_MOD:
+        break;
+      case OFPT_TABLE_MOD:
+        break;
+
+      /* Statistics messages. */
+      case OFPT_MULTIPART_REQUEST:
+        break;
+      case OFPT_MULTIPART_REPLY:
+        break;
+
+      /* Barrier messages. */
+      case OFPT_BARRIER_REQUEST:
+      case OFPT_BARRIER_REPLY:
+        break;
+      
+      /* Role messages. */
+      case OFPT_ROLE_REQUEST:
+      case OFPT_ROLE_REPLY:
+        break;
+
+      /* Queue Configuration messages. */
+      case OFPT_QUEUE_GET_CONFIG_REQUEST:
+        break;
+      case OFPT_QUEUE_GET_CONFIG_REPLY:
+        break;
+      case OFPT_METER_MOD:
+      	break;            
+      
+      default: 
+        error = ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
+    }
+  return error; 
+}
+
+int
+OFSwitch13NetDevice::SendToController (ofpbuf *buffer)
+{
+  if (m_controller != 0)
+    {
+      //update_openflow_length (buffer);
+      m_controller->ReceiveFromSwitch (this, buffer);
+    }
+
+  return 0;
+}
+
 
 
 ofpbuf *
@@ -638,7 +754,7 @@ OFSwitch13NetDevice::PipelineProcessBuffer (uint32_t packet_uid,
           NS_LOG_DEBUG ("found matching entry: " << ofl_structs_flow_stats_to_string (entry->stats, NULL));
        
           pkt->handle_std->table_miss = ((entry->stats->priority) == 0 && (entry->match->length <= 4));
-          // ExecuteEntry (pl, entry, &next_table, &pkt); //TODO: implementar a realização das ações...
+          ExecuteEntry (m_pipeline, entry, &next_table, &pkt); //TODO: implementar a realização das ações...
           
           /* Packet could be destroyed by a meter instruction */
           if (!pkt)
@@ -661,6 +777,332 @@ OFSwitch13NetDevice::PipelineProcessBuffer (uint32_t packet_uid,
     }
     NS_LOG_ERROR ("Reached outside of pipeline processing cycle.");
 }
+
+
+void
+OFSwitch13NetDevice::ExecuteEntry (struct pipeline *pl, struct flow_entry *entry, 
+      struct flow_table **next_table, struct packet **pkt)
+{
+  /** NOTE: instructions, when present, will be executed in
+   *       the following order:
+   *       Meter
+   *       Apply-Actions
+   *       Clear-Actions
+   *       Write-Actions
+   *       Write-Metadata
+   *       Goto-Table
+   **/
+  size_t i;
+  struct ofl_instruction_header *inst;
+
+  for (i=0; i < entry->stats->instructions_num; i++) 
+    {
+      /*Packet was dropped by some instruction or action*/
+
+      if(!(*pkt))
+        {
+          return;
+        }
+      
+      inst = entry->stats->instructions[i];
+      switch (inst->type) 
+        { // TODO: implementar outros tipos de acoes
+          case OFPIT_GOTO_TABLE: 
+            {
+              struct ofl_instruction_goto_table *gi = (struct ofl_instruction_goto_table *)inst;
+              *next_table = pl->tables[gi->table_id];
+              break;
+            }
+          case OFPIT_WRITE_METADATA: 
+            {
+//              struct ofl_instruction_write_metadata *wi = (struct ofl_instruction_write_metadata *)inst;
+//              struct  ofl_match_tlv *f;
+//
+//              /* NOTE: Hackish solution. If packet had multiple handles, metadata
+//               *       should be updated in all. */
+//              packet_handle_std_validate((*pkt)->handle_std);
+//              /* Search field on the description of the packet. */
+//              HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
+//                  hmap_node, hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std->match.match_fields){
+//                  uint64_t *metadata = (uint64_t*) f->value;
+//                  *metadata = (*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask);
+//                  VLOG_DBG_RL(LOG_MODULE, &rl, "Executing write metadata: %"PRIu64"", *metadata);
+//              }
+              break;
+            }
+          case OFPIT_WRITE_ACTIONS: 
+            {
+//              struct ofl_instruction_actions *wa = (struct ofl_instruction_actions *)inst;
+//              action_set_write_actions((*pkt)->action_set, wa->actions_num, wa->actions);
+              break;
+            }
+          case OFPIT_APPLY_ACTIONS: 
+            {
+              struct ofl_instruction_actions *ia = (struct ofl_instruction_actions *)inst;
+              ExecuteActionList ((*pkt), ia->actions_num, ia->actions, entry->stats->cookie);
+              break;
+            }
+          case OFPIT_CLEAR_ACTIONS: 
+            {
+//              action_set_clear_actions((*pkt)->action_set);
+//              break;
+            }
+          case OFPIT_METER: 
+            {
+//              struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)inst;
+//              meter_table_apply(pl->dp->meters, pkt , im->meter_id);
+              break;
+            }
+          case OFPIT_EXPERIMENTER: 
+            {
+//              dp_exp_inst((*pkt), (struct ofl_instruction_experimenter *)inst);
+              break;
+            }
+        }
+    }
+}
+
+
+void
+OFSwitch13NetDevice::ExecuteActionList (struct packet *pkt, size_t actions_num,
+    struct ofl_action_header **actions, uint64_t cookie) 
+{
+  NS_LOG_DEBUG ("Executing action list.");
+  
+  size_t i;
+  for (i=0; i < actions_num; i++) 
+    {
+      struct ofl_action_header *action = actions[i];
+      char *a = ofl_action_to_string(action, NULL/*pkt->dp->exp*/);
+      NS_LOG_DEBUG ("executing action " << a);
+      free(a);
+
+      switch (action->type) 
+        { // TODO: implementar outros tipos de acoes
+          case (OFPAT_SET_FIELD): 
+            {
+//              set_field(pkt,(struct ofl_action_set_field*) action);
+              break;
+            }
+           case (OFPAT_OUTPUT): 
+            {
+              output (pkt, (struct ofl_action_output *)action);
+              break;
+            }
+          case (OFPAT_COPY_TTL_OUT): 
+            {
+//              copy_ttl_out(pkt, action);
+              break;
+            }
+          case (OFPAT_COPY_TTL_IN):
+            {
+//              copy_ttl_in(pkt, action);
+              break;
+            }
+          case (OFPAT_SET_MPLS_TTL):
+            {
+//              set_mpls_ttl(pkt, (struct ofl_action_mpls_ttl *)action);
+              break;
+            }
+          case (OFPAT_DEC_MPLS_TTL): 
+            {
+//              dec_mpls_ttl(pkt, action);
+              break;
+            }
+          case (OFPAT_PUSH_VLAN): 
+            {
+//              push_vlan(pkt, (struct ofl_action_push *)action);
+              break;
+            }
+          case (OFPAT_POP_VLAN): 
+            {
+//              pop_vlan(pkt, action);
+              break;
+            }
+          case (OFPAT_PUSH_MPLS): 
+            {
+//              push_mpls(pkt, (struct ofl_action_push *)action);
+              break;
+            }
+          case (OFPAT_POP_MPLS): 
+            {
+//              pop_mpls(pkt, (struct ofl_action_pop_mpls *)action);
+              break;
+            }
+          case (OFPAT_SET_QUEUE): 
+            {
+//              set_queue(pkt, (struct ofl_action_set_queue *)action);
+              break;
+            }
+          case (OFPAT_GROUP): 
+            {
+//              group(pkt, (struct ofl_action_group *)action);
+              break;
+            }
+          case (OFPAT_SET_NW_TTL): 
+            {
+//              set_nw_ttl(pkt, (struct ofl_action_set_nw_ttl *)action);
+              break;
+            }
+          case (OFPAT_DEC_NW_TTL): 
+            {
+//              dec_nw_ttl(pkt, action);
+              break;
+            }
+          case (OFPAT_PUSH_PBB):{
+//              push_pbb(pkt, (struct ofl_action_push*)action);
+              break;
+            }
+          case (OFPAT_POP_PBB):{
+//              pop_pbb(pkt, action);
+              break;
+            }
+          case (OFPAT_EXPERIMENTER): 
+            {
+//          	dp_exp_action(pkt, (struct ofl_action_experimenter *)action);
+              break;
+            }
+
+          default: 
+            {
+              NS_LOG_WARN ("Trying to execute unknown action type " << action->type);
+            }
+        }
+     
+      char *p = packet_to_string(pkt);
+      NS_LOG_DEBUG ("Action result: "<< p);
+      free(p);
+      
+      if (pkt->out_group != OFPG_ANY) 
+        {
+          uint32_t group = pkt->out_group;
+          pkt->out_group = OFPG_ANY;
+          NS_LOG_DEBUG ("Group action; executing group " << group);
+//          group_table_execute(pkt->dp->groups, pkt, group);
+        } 
+      else if (pkt->out_port != OFPP_ANY) 
+        {
+          uint32_t port = pkt->out_port;
+          uint32_t queue = pkt->out_queue;
+          uint16_t max_len = pkt->out_port_max_len;
+          pkt->out_port = OFPP_ANY;
+          pkt->out_port_max_len = 0;
+          pkt->out_queue = 0;
+          NS_LOG_DEBUG ("Port action; sending to port " << port);
+          ActionsOutputPort (pkt, port, queue, max_len, cookie);
+        }
+    }
+}
+
+
+void
+OFSwitch13NetDevice::ActionsOutputPort (struct packet *pkt, uint32_t out_port,
+    uint32_t out_queue, uint16_t max_len, uint64_t cookie) 
+{
+    switch (out_port) 
+      {
+        case (OFPP_TABLE): 
+          {
+            if (pkt->packet_out) 
+              {
+                // NOTE: hackish; makes sure packet cannot be resubmit to pipeline again.
+                pkt->packet_out = false;
+                NS_FATAL_ERROR ("Should not get in here... check this!"); // FIXME gambiarra
+                // pipeline_process_packet (pkt->dp->pipeline, pkt);
+              } 
+            else 
+              {
+                NS_LOG_WARN ("Trying to resubmit packet to pipeline.");
+              }
+            break;
+          }
+        case (OFPP_IN_PORT): 
+          {
+//            dp_ports_output (pkt->dp, pkt->buffer, pkt->in_port, 0);
+            break;
+          }
+        case (OFPP_CONTROLLER): 
+          {
+//            struct ofl_msg_packet_in msg;
+//            msg.header.type = OFPT_PACKET_IN;
+//            msg.total_len   = pkt->buffer->size;
+//            msg.reason = pkt->handle_std->table_miss? OFPR_NO_MATCH:OFPR_ACTION;
+//            msg.table_id = pkt->table_id;
+//            msg.data        = pkt->buffer->data;
+//            msg.cookie = cookie;
+//
+//            if (pkt->dp->config.miss_send_len != OFPCML_NO_BUFFER){
+//                dp_buffers_save(pkt->dp->buffers, pkt);
+//                msg.buffer_id = pkt->buffer_id;
+//                msg.data_length = MIN(max_len, pkt->buffer->size);
+//            }
+//            else {
+//                msg.buffer_id = OFP_NO_BUFFER;
+//                msg.data_length =  pkt->buffer->size;
+//            }
+//
+//            if (!pkt->handle_std->valid){
+//                packet_handle_std_validate(pkt->handle_std);
+//            }
+//            /* In this implementation the fields in_port and in_phy_port
+//                always will be the same, because we are not considering logical
+//                ports*/
+//            msg.match = (struct ofl_match_header*) &pkt->handle_std->match;
+//            dp_send_message(pkt->dp, (struct ofl_msg_header *)&msg, NULL);
+            break;
+          }
+        case (OFPP_FLOOD):
+        case (OFPP_ALL): 
+          {
+//            dp_ports_output_all(pkt->dp, pkt->buffer, pkt->in_port, out_port == OFPP_FLOOD);
+            break;
+          }
+        case (OFPP_NORMAL):
+            // TODO Zoltan: Implement
+        case (OFPP_LOCAL):
+        default: 
+          {
+            if (pkt->in_port == out_port) 
+              {
+                NS_LOG_WARN ("can't directly forward to input port.");
+              } 
+            else 
+              {
+                NS_LOG_DEBUG ("Outputting packet on port " << out_port);
+                PortOutput (pkt, out_port);
+              }
+          }
+      }
+}
+
+
+void
+OFSwitch13NetDevice::PortOutput (struct packet *pkt, int out_port)
+{
+  if (out_port >= 0 && out_port < DP_MAX_PORTS)
+    {
+      ofs::Port *p = GetPortFromNumber (out_port);
+      if (p->netdev != 0 && p->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) 
+        {
+         // ofi::SwitchPacketMetadata data = m_packetData.find (packet_uid)->second;
+         // size_t bufsize = data.buffer->size;
+         // NS_LOG_INFO ("Sending packet " << data.packet->GetUid () << " over port " << out_port);
+         // if (p->netdev->SendFrom (data.packet->Copy (), data.src, data.dst, data.protocolNumber))
+         //   {
+         //     p->tx_packets++;
+         //     p->tx_bytes += bufsize;
+         //   }
+         // else
+         //   {
+         //     p->tx_dropped++;
+         //   }
+         // return;
+        }
+    }
+
+  NS_LOG_DEBUG ("can't forward to bad port " << out_port);
+}
+
 
 
 ofl_err
@@ -758,7 +1200,7 @@ OFSwitch13NetDevice::HandleFlowMod (struct ofl_msg_flow_mod *msg)
       //     NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << msg->buffer_id);
       //   }
     }
-  ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, NULL);
+  ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, NULL/*m_pipeline->dp->exp*/);
   return 0;
 }
 
@@ -779,7 +1221,7 @@ OFSwitch13NetDevice::FlowTableAdd (struct flow_table *table, struct ofl_msg_flow
       /* if the entry equals, replace the old one */
       if (flow_entry_matches (entry, mod, true/*strict*/, false/*check_cookie*/)) 
         {
-          new_entry = flow_entry_create (table->dp, table, mod);
+          new_entry = flow_entry_create (NULL/*table->dp*/, table, mod);
           *match_kept = true;
           *insts_kept = true;
 
@@ -804,7 +1246,7 @@ OFSwitch13NetDevice::FlowTableAdd (struct flow_table *table, struct ofl_msg_flow
     }
   table->stats->active_count++;
 
-  new_entry = flow_entry_create (table->dp, table, mod);
+  new_entry = flow_entry_create (NULL/*table->dp*/, table, mod);
   *match_kept = true;
   *insts_kept = true;
 
@@ -845,7 +1287,7 @@ OFSwitch13NetDevice::FlowTableCreate (uint8_t table_id)
   table->features->metadata_write = 0xffffffffffffffff;
   table->features->config         = OFPTC_TABLE_MISS_CONTROLLER;
   table->features->max_entries    = FLOW_TABLE_MAX_ENTRIES;
-  table->features->properties_num = flow_table_features (table_id, table->features);
+  table->features->properties_num = flow_table_features (table->features);
 
   list_init (&table->match_entries);
   list_init (&table->hard_entries);

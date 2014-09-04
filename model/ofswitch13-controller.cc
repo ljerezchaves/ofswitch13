@@ -21,7 +21,6 @@
 #include <wordexp.h>
 
 #include "ofswitch13-controller.h"
-//#include "ofswitch13-controller-dpctl.h"
 #include "ofswitch13-net-device.h"
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Controller");
@@ -41,7 +40,6 @@ OFSwitch13Controller::~OFSwitch13Controller ()
   NS_LOG_FUNCTION_NOARGS ();
 }
 
-
 void
 OFSwitch13Controller::DoDispose ()
 {
@@ -57,6 +55,7 @@ OFSwitch13Controller::GetTypeId (void)
     ;
   return tid; 
 }
+
 void
 OFSwitch13Controller::AddSwitch (Ptr<OFSwitch13NetDevice> swtch)
 {
@@ -70,31 +69,6 @@ OFSwitch13Controller::AddSwitch (Ptr<OFSwitch13NetDevice> swtch)
       m_switches.insert (swtch);
     }
 }
-
-
-void
-OFSwitch13Controller::SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void * msg, size_t length)
-{
-  if (m_switches.find (swtch) == m_switches.end ())
-    {
-      NS_LOG_ERROR ("Can't send to this switch, not registered to the Controller.");
-      return;
-    }
-
- // swtch->ForwardControlInput (msg, length);
-}
-
-
-uint8_t
-OFSwitch13Controller::GetPacketType (ofpbuf* buffer)
-{
-  ofp_header* hdr = (ofp_header*)ofpbuf_try_pull (buffer, sizeof (ofp_header));
-  uint8_t type = hdr->type;
-  ofpbuf_push_uninit (buffer, sizeof (ofp_header));
-  return type;
-}
-
-
 
 void
 OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* textCmd) 
@@ -144,7 +118,8 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* t
               it is an instruction or match.
               If the match is empty, the argv is modified
               causing errors to instructions parsing*/
-              char *cpy = (char*)malloc (strlen (cmd.we_wordv[1]));
+              char *cpy = (char*)malloc (strlen (cmd.we_wordv[1]) + 1);
+              memset (cpy, 0x00, strlen (cmd.we_wordv[1]) + 1);
               memcpy (cpy, cmd.we_wordv[1], strlen (cmd.we_wordv[1])); 
               parse_match (cpy, &(msg->match));
               free (cpy);
@@ -167,15 +142,59 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* t
     {
       make_all_match (&(msg->match));
     }
-//  dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
   wordfree (&cmd);
   
-  Switches_t::iterator it = m_switches.find (sw);
-  if (it != m_switches.end ())
-    {
-      (*it)->HandleFlowMod (msg);
-    }
+  SendToSwitch (sw, msg); 
 }
+
+
+void
+OFSwitch13Controller::SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void *msg)
+{
+  char *str;
+  struct ofpbuf *ofpbuf;
+  uint8_t *buf;
+  size_t buf_size;
+  int error;
+
+  if (m_switches.find (swtch) == m_switches.end ())
+    {
+      NS_LOG_ERROR ("Can't send to this switch, not registered to the Controller.");
+      return;
+    }
+  
+  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL);
+  NS_LOG_DEBUG ("SENDING: " << str);
+  free (str);
+
+  error = ofl_msg_pack ((ofl_msg_header*)msg, m_global_xid, &buf, &buf_size, NULL);
+  if (error)
+    {
+      NS_LOG_ERROR ("Error packing controller message.");
+    }
+
+  ofpbuf = ofpbuf_new (0);
+  ofpbuf_use (ofpbuf, buf, buf_size);
+  ofpbuf_put_uninit (ofpbuf, buf_size);
+
+  swtch->ReceiveFromController (ofpbuf, buf_size);
+}
+
+uint8_t
+OFSwitch13Controller::GetPacketType (ofpbuf* buffer)
+{
+  ofp_header* hdr = (ofp_header*)ofpbuf_try_pull (buffer, sizeof (ofp_header));
+  uint8_t type = hdr->type;
+  ofpbuf_push_uninit (buffer, sizeof (ofp_header));
+  return type;
+}
+
+void
+OFSwitch13Controller::ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer)
+{
+  
+}
+
 
 } // namespace ns3
 #endif // NS3_OFSWITCH13

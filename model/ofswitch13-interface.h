@@ -61,14 +61,15 @@ extern "C"
 #include "udatapath/dp_ports.h"
 #include "udatapath/dp_actions.h"
 #include "udatapath/packet_handle_std.h"
+#include "udatapath/dp_buffers.h"
 // #include "udatapath/datapath.h"
-// #include "udatapath/dp_buffers.h"
 // #include "udatapath/meter_table.h"
 // #include "udatapath/action_set.h"
 
 #include "lib/ofpbuf.h"
 #include "lib/dynamic-string.h"
-// #include "lib/fault.h"
+#include "lib/hash.h"
+// #include "lib/ofp.h"
 // #include "lib/vlog.h"
 // #include "lib/csum.h"
 // #include "lib/packets.h"
@@ -80,17 +81,20 @@ extern "C"
 
 // Some internal functions are not declared in header files...
 // From flow_table.c
-int flow_table_features(uint8_t table_id, struct ofl_table_features *features);
-void add_to_timeout_lists(struct flow_table *table, struct flow_entry *entry);
+int flow_table_features (struct ofl_table_features *features);
+void add_to_timeout_lists (struct flow_table *table, struct flow_entry *entry);
 
 // From pipeline.c
-int inst_compare(const void *inst1, const void *inst2);
+int inst_compare (const void *inst1, const void *inst2);
 
 // From dpctl.c
 void parse_flow_mod_args (char *str, struct ofl_msg_flow_mod *req);
-void parse_match(char *str, struct ofl_match_header **match);
-void parse_inst(char *str, struct ofl_instruction_header **inst);
-void make_all_match(struct ofl_match_header **match);
+void parse_match (char *str, struct ofl_match_header **match);
+void parse_inst (char *str, struct ofl_instruction_header **inst);
+void make_all_match (struct ofl_match_header **match);
+
+// From dp_actions.c
+void output (struct packet *pkt, struct ofl_action_output *action);
 
 #undef list
 #undef private
