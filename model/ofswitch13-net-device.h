@@ -352,6 +352,8 @@ private:
 
   // Considering the necessary datapath structs from ofsoftswitch13
   uint64_t m_id;                              ///< Unique identifier for this switch
+  Time m_lastTimeout;                         ///< Last datapath timeout
+  // struct dp_buffers* m_buffers;               ///< Datapath buffers
   struct ofl_config m_config;                 ///< Configuration, set from controller
   struct pipeline* m_pipeline;                ///< Pipeline with multi-tables
   // struct group_table* m_groups;            ///< Group tables

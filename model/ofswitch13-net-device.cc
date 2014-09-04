@@ -74,27 +74,50 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
     m_mtu (0xffff)
 {
   NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
 
+  // Switch internal channel
   m_channel = CreateObject<BridgeChannel> ();
   SetAddress (Mac48Address::Allocate ()); 
-  
-  m_ports.reserve (DP_MAX_PORTS);
-
-  // Initializing the datapath, as in dp_net at udatapath/datapath.c
-  NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
   NS_LOG_DEBUG ("Switch addr " << m_address);
+  
+  // Initializing the datapath, as in dp_net at udatapath/datapath.c
+  
+  // Switch ports
+  m_ports.reserve (DP_MAX_PORTS+1);
   
   // Create the pipeline
   time_init ();
   m_pipeline = (struct pipeline*)xmalloc (sizeof (struct pipeline));
-  for (int i=0; i<PIPELINE_TABLES; i++) 
+  for (size_t i=0; i<PIPELINE_TABLES; i++) 
     {
       m_pipeline->tables[i] = FlowTableCreate (i);
     }
 
+  // Create the buffers
+  // m_buffers = (struct dp_buffers*)xmalloc (sizeof (struct dp_buffers));
+  // m_buffers->dp = NULL;
+  // m_buffers->buffer_idx  = (size_t)-1;
+  // m_buffers->buffers_num = N_PKT_BUFFERS;
+  // for (size_t i=0; i<N_PKT_BUFFERS; i++) 
+  //   {
+  //     m_buffers->buffers[i].pkt     = NULL;
+  //     m_buffers->buffers[i].cookie  = UINT32_MAX;
+  //     m_buffers->buffers[i].timeout = 0;
+  //   }
+
   // Switch configuration
   m_config.flags = OFPC_FRAG_NORMAL;
   m_config.miss_send_len = OFP_DEFAULT_MISS_SEND_LEN;
+
+  m_lastTimeout = Simulator::Now ();
+  // TODO: configurar o timeout do pipeline e dos meter tables
+  /*    if (now != dp->last_timeout) {
+        dp->last_timeout = now;
+        meter_table_add_tokens(dp->meters);
+        pipeline_timeout(dp->pipeline);
+    }
+  */
 
   nblink_initialize(); 
 }
@@ -179,6 +202,7 @@ OFSwitch13NetDevice::GetNSwitchPorts (void) const
 void
 OFSwitch13NetDevice::SetController (Ptr<OFSwitch13Controller> c)
 {
+  // TODO implementar o controller como mais uma porta do switch
   if (m_controller != 0)
     {
       NS_LOG_ERROR ("Controller already set.");
@@ -447,8 +471,10 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev,
   ofs::Port* inPort = GetPortFromNetDevice (netdev);
   NS_ASSERT_MSG (inPort != NULL, "This device is not registered as a switch port");
 
+  // FIXME: acertar essa logica aqui
   if (packetType == PACKET_HOST && dst48 == m_address)
     {
+      // To this switch (maybe from controller???)
       m_rxCallback (this, packet, protocol, src);
     }
   else if (packetType == PACKET_BROADCAST || packetType == PACKET_MULTICAST || packetType == PACKET_OTHERHOST)
@@ -664,8 +690,8 @@ OFSwitch13NetDevice::Of13BufferCreate (Ptr<Packet> packet, Mac48Address src,
   Ptr<Packet> pktCopy = packet->Copy ();
   AddEthernetHeader (pktCopy, src, dst, protocol);
 
-  ofpbuf_put_uninit (buffer, pktCopy->GetSize ());
-  pktCopy->CopyData ((uint8_t*)buffer->data, pktCopy->GetSize ());
+  uint32_t pktSize = pktCopy->GetSize ();
+  pktCopy->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
 
   return buffer;
 }
