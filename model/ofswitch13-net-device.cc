@@ -108,7 +108,7 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
 
   // Switch configuration
   m_config.flags = OFPC_FRAG_NORMAL;
-  m_config.miss_send_len = OFP_DEFAULT_MISS_SEND_LEN;
+  m_config.miss_send_len = OFPCML_NO_BUFFER; // sent whole packet to the controller.
 
   m_lastTimeout = Simulator::Now ();
   // TODO: configurar o timeout do pipeline e dos meter tables
