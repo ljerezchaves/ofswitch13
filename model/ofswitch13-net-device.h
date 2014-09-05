@@ -209,7 +209,7 @@ private:
    * \param protocol The L3 protocol defining the packet (as we are in L2).
    * \return The OpenFlow Buffer created from the packet.
    */
-  ofpbuf* Of13BufferCreate (Ptr<Packet> packet, Mac48Address src, 
+  ofpbuf* Of13BufferCreate (Ptr<const Packet> packet, Mac48Address src, 
       Mac48Address dst, int mtu, uint16_t protocol);
 
   /**
@@ -239,15 +239,46 @@ private:
    * \param packet_uid Packet UID; used to fetch the packet and its metadata.
    * \param port The port this packet was received over.
    */
-  void PipelineProcessBuffer (uint32_t packet_uid, ofpbuf* buffer, 
+  void PipelineProcessPacket (uint32_t packet_uid, struct packet* pkt, 
       ofs::Port* inPort);
 
+  /**
+   * Executes the instructions associated with a flow entry
+   *
+   * \see ofsoftswitch function execute_entry at udatapath/pipeline.c
+   *
+   * \param pl The pipelipe
+   * \param entry The flow entry to execute
+   * \param next_table A pointer to next table (can be modified by entry)
+   * \param pkt The packet associated with this flow entry
+   */
   void ExecuteEntry (struct pipeline *pl, struct flow_entry *entry, 
       struct flow_table **next_table, struct packet **pkt);
 
+  /**
+   * Executes the list of OFPIT_APPLY_ACTIONS actions on the given packet
+   *
+   * \see ofsoftswitch dp_execute_action_list at udatapath/dp_actions.c
+   *
+   * \param pkt The packet associated with this action
+   * \param actions_num The number of actions to execute
+   * \param actions A pointer to the list of actions
+   * \param cookie The cookie that identifies the buffer ??? (not sure)
+   */
   void ExecuteActionList (struct packet *pkt, size_t actions_num,
     struct ofl_action_header **actions, uint64_t cookie);
 
+  /**
+   * Ouputs the packet on the given port
+   *
+   * \see ofsoftswitch dp_actions_output_port at udatapath/dp_actions.c
+   *
+   * \param pkt The packet associated with this action
+   * \param out_port The port number
+   * \param out_queue The queue to use (Can I remove this?)
+   * \param max_len The size of the packet to send
+   * \param cookie The cookie that identifies the buffer ??? (not sure)
+   */
   void ActionsOutputPort (struct packet *pkt, uint32_t out_port,
     uint32_t out_queue, uint16_t max_len, uint64_t cookie);
 
@@ -327,7 +358,6 @@ private:
   void AddEthernetHeader (Ptr<Packet> p, Mac48Address source, 
       Mac48Address dest, uint16_t protocolNumber);
 
-
   /**
    * NetDevice callbacks
    */
@@ -342,10 +372,11 @@ private:
   uint32_t m_ifIndex;                   ///< Interface Index
   uint16_t m_mtu;                       ///< Maximum Transmission Unit
    
+
   typedef std::vector<ofs::Port> Ports_t;
   Ports_t m_ports;                      ///< Switch's ports
 
-  typedef std::map<uint32_t, ofs::SwitchPacketMetadata> PacketData_t;
+  typedef std::map<uint64_t, ofs::SwitchPacketMetadata> PacketData_t;
   PacketData_t m_packetData;            ///< Packet data
 
   Ptr<OFSwitch13Controller> m_controller;     ///< Connection to controller
@@ -353,14 +384,15 @@ private:
   // Considering the necessary datapath structs from ofsoftswitch13
   uint64_t m_id;                              ///< Unique identifier for this switch
   Time m_lastTimeout;                         ///< Last datapath timeout
-  // struct dp_buffers* m_buffers;               ///< Datapath buffers
+  Time m_lookupDelay;                         ///< Flow Table Lookup Delay [overhead].
+  // struct dp_buffers* m_buffers;            ///< Datapath buffers
   struct ofl_config m_config;                 ///< Configuration, set from controller
   struct pipeline* m_pipeline;                ///< Pipeline with multi-tables
   // struct group_table* m_groups;            ///< Group tables
   // struct meter_table* m_meters;            ///< Meter tables
   // struct ofl_exp* exp;                     ///< Experimenter handling
 
-};
+  };
 
 } // namespace ns3
 #endif /* OFSWITCH13_NET_DEVICE_H */

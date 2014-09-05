@@ -134,7 +134,7 @@ struct Port
  */
 struct SwitchPacketMetadata
 {
-  Ptr<Packet> packet;         ///< The Packet itself
+  Ptr<Packet> packet;         ///< The original ns3 Packet
   ofpbuf* buffer;             ///< The OpenFlow buffer created from the Packet
   uint16_t protocolNumber;    ///< Protocol type of the Packet when the Packet is received
   Address src;                ///< Source Address of the Packet when the Packet is received

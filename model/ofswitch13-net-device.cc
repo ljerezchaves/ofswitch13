@@ -64,6 +64,11 @@ OFSwitch13NetDevice::GetTypeId (void)
                    UintegerValue (GenerateId ()),
                    MakeUintegerAccessor (&OFSwitch13NetDevice::m_id),
                    MakeUintegerChecker<uint64_t> ())
+    .AddAttribute ("FlowTableLookupDelay",
+                   "A real switch will have an overhead for looking up in the flow table. For default, we simulate a standard TCAM on an FPGA.",
+                   TimeValue (NanoSeconds (30)),
+                   MakeTimeAccessor (&OFSwitch13NetDevice::m_lookupDelay),
+                   MakeTimeChecker ())
   ;
   return tid;
 }
@@ -71,12 +76,12 @@ OFSwitch13NetDevice::GetTypeId (void)
 OFSwitch13NetDevice::OFSwitch13NetDevice ()
   : m_node (0),
     m_ifIndex (0),
-    m_mtu (0xffff)
+    m_mtu (0x0000)
 {
   NS_LOG_FUNCTION_NOARGS ();
   NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
 
-  // Switch internal channel
+  // Switch internal bridge channel
   m_channel = CreateObject<BridgeChannel> ();
   SetAddress (Mac48Address::Allocate ()); 
   NS_LOG_DEBUG ("Switch addr " << m_address);
@@ -157,6 +162,11 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
   NS_LOG_FUNCTION (this << switchPort);
   NS_LOG_DEBUG ("Adding port addr " << switchPort->GetAddress ());
   
+  if (m_ports.size () >= DP_MAX_PORTS)
+    {
+      return EXFULL;
+    }
+
   Ptr<CsmaNetDevice> csmaSwitchPort = switchPort->GetObject<CsmaNetDevice> ();
   if (!csmaSwitchPort)
     {
@@ -167,9 +177,10 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
       NS_FATAL_ERROR ("CsmaNetDevice must use DIX encapsulation.");
     }
 
-  if (m_ports.size () >= DP_MAX_PORTS)
+  // Update max mtu
+  if (switchPort->GetMtu () > GetMtu ())
     {
-      return EXFULL;
+      SetMtu (switchPort->GetMtu ());
     }
 
   int no = m_ports.size () + 1;
@@ -451,11 +462,10 @@ OFSwitch13NetDevice::GetPortFromNumber (uint32_t no)
 
 void
 OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev, 
-    Ptr<const Packet> packet, uint16_t protocol, const Address& src, 
-    const Address& dst, PacketType packetType)
+    Ptr<const Packet> packet, uint16_t protocol, const Address &src, 
+    const Address &dst, PacketType packetType)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  //Ptr<CsmaNetDevice> csmaNetDev = netdev->GetObject<CsmaNetDevice> ();
   
   Mac48Address src48 = Mac48Address::ConvertFrom (src);
   Mac48Address dst48 = Mac48Address::ConvertFrom (dst);
@@ -463,52 +473,79 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev,
   NS_LOG_DEBUG ("Switch " << this->GetNode()->GetId() << " -- Pkt UID: " << packet->GetUid ());
   NS_LOG_DEBUG ("Received packet type " << packetType << " from " << src48 << " looking for " << dst48);
 
+  // For all kinds of packetType we receive, we hit the promiscuous sniffer
   if (!m_promiscRxCallback.IsNull ())
     {
       m_promiscRxCallback (this, packet, protocol, src, dst, packetType);
     }
- 
+
+  /**
+   * This method is called after the Csma switch port received the packet. The
+   * CsmaNetDevice has already classified the packetType.
+   */
+  switch (packetType)
+    {
+      /**
+       * For PACKET_BROADCAST or PACKET_MULTICAST, forward the packet up let
+       * the pipeline process it to get it forwarded.
+       */
+      case PACKET_BROADCAST:
+      case PACKET_MULTICAST:
+        m_rxCallback (this, packet, protocol, src);
+        break;
+
+      /**
+       * For PACKET_OTHERHOST or PACKET_HOST check if it is addressed to this
+       * switch to forward it up OR let the pipeline process it.  
+       */
+      case PACKET_HOST:
+      case PACKET_OTHERHOST:
+        if (dst48 == m_address)
+          {
+            // Only packet addressed to this switch will skip OpenFlow pipeline.
+            m_rxCallback (this, packet, protocol, src);
+            return;
+          }
+        break;
+    }
+
+  /** Starting pipeline process... **/
+
+  // Get the input port and check configuration (if it is up)
   ofs::Port* inPort = GetPortFromNetDevice (netdev);
   NS_ASSERT_MSG (inPort != NULL, "This device is not registered as a switch port");
-
-  // FIXME: acertar essa logica aqui
-  if (packetType == PACKET_HOST && dst48 == m_address)
+  if (inPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) 
     {
-      // To this switch (maybe from controller???)
-      m_rxCallback (this, packet, protocol, src);
+      NS_LOG_DEBUG ("This port is down or inoperating. Discarding packet");
+      return;
     }
-  else if (packetType == PACKET_BROADCAST || packetType == PACKET_MULTICAST || packetType == PACKET_OTHERHOST)
-    {
-      if (packetType == PACKET_OTHERHOST && dst48 == m_address)
-        {
-          m_rxCallback (this, packet, protocol, src);
-        }
-      else
-        {
-          if (packetType != PACKET_OTHERHOST)
-            {
-              m_rxCallback (this, packet, protocol, src);
-            }
 
-          ofs::SwitchPacketMetadata data;
-       //   m_packetData.insert (std::make_pair (packet_uid, data));
-          data.packet = packet->Copy ();
-          
-          ofpbuf *buffer = Of13BufferCreate (data.packet, src48, dst48, netdev->GetMtu (), protocol);
-          data.buffer = buffer;
-          
-          inPort->stats->rx_packets++;
-          inPort->stats->rx_bytes += buffer->size;
+  // Buffering the packet and creating the internal openflow packet structure from buffer
+  struct ofpbuf *buffer = Of13BufferCreate (packet, src48, dst48, netdev->GetMtu (), protocol);
+  struct packet *pkt = Of13PacketCreate (inPort->stats->port_no, buffer, false);
 
-          data.protocolNumber = protocol;
-          data.src = Address (src);
-          data.dst = Address (dst);
+  // Update port stats
+  inPort->stats->rx_packets++;
+  inPort->stats->rx_bytes += buffer->size;
 
-          // TODO descobrir onde iremos liberar o buffer e o pacote 
-          PipelineProcessBuffer (0, buffer, inPort);
+  // Runs the packet through the pipeline
+  Simulator::Schedule (m_lookupDelay, &OFSwitch13NetDevice::PipelineProcessPacket, this, 0, pkt, inPort);
+  // PipelineProcessPacket (0, pkt, inPort);
 
-        }
-    }
+   
+ // Saving packet metadata
+  //static uint64_t metadataId = 0;
+  //ofs::SwitchPacketMetadata data;
+  //m_packetData.insert (std::make_pair (metadataId++, data));
+  
+  //data.packet = packet->Copy ();
+    //data.buffer = buffer;
+  //data.protocolNumber = protocol;
+  //data.src = Address (src);
+  //data.dst = Address (dst);
+
+   // TODO descobrir onde iremos liberar o buffer e o pacote 
+
 
 /*
   // Run periodic execution.
@@ -672,7 +709,7 @@ OFSwitch13NetDevice::SendToController (ofpbuf *buffer)
 
 
 ofpbuf *
-OFSwitch13NetDevice::Of13BufferCreate (Ptr<Packet> packet, Mac48Address src, 
+OFSwitch13NetDevice::Of13BufferCreate (Ptr<const Packet> packet, Mac48Address src, 
     Mac48Address dst, int mtu, uint16_t protocol)
 {
   NS_LOG_INFO ("Creating Openflow buffer from packet.");
@@ -686,7 +723,7 @@ OFSwitch13NetDevice::Of13BufferCreate (Ptr<Packet> packet, Mac48Address src,
   const int hard_header = VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofpbuf_new_with_headroom (hard_header + mtu, headroom);
 
-  // Adding the ethernet header
+  // Adding the ethernet header back (it was removed by CsmaNetDevice)
   Ptr<Packet> pktCopy = packet->Copy ();
   AddEthernetHeader (pktCopy, src, dst, protocol);
 
@@ -724,25 +761,12 @@ OFSwitch13NetDevice::Of13PacketCreate (uint32_t in_port, struct ofpbuf *buf,
 
 
 void
-OFSwitch13NetDevice::PipelineProcessBuffer (uint32_t packet_uid, 
-    struct ofpbuf* buffer, ofs::Port* inPort)
+OFSwitch13NetDevice::PipelineProcessPacket (uint32_t packet_uid, 
+    struct packet* pkt, ofs::Port* inPort)
 {
-  struct packet *pkt;
   struct flow_table *table, *next_table;
   struct flow_entry *entry;
  
-  /* Runs a datapath packet through the pipeline, if the port is not set to down. */
-  if (inPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) 
-    {
-      NS_LOG_DEBUG ("This port is down or inoperating. Discarding packet");
-      ofpbuf_delete (buffer);
-      // TODO: Aqui significa que a porta esta desligada. Então é preciso nao
-      // só deletar o buffer mas liberar tb o ofs::SwitchPacketMetadata 
-      return;
-    }
-  
-  // packet takes ownership of ofpbuf buffer
-  pkt = Of13PacketCreate (inPort->stats->port_no, buffer, false);
   NS_LOG_DEBUG ("processing packet: " << packet_to_string (pkt));
 
   // Check ttl

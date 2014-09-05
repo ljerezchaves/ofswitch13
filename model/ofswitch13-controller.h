@@ -25,7 +25,10 @@
 namespace ns3 {
 
 class OFSwitch13NetDevice;
+
 /**
+ * \ingroup ofswitch13
+ *
  * \brief An ofs::Controller interface for OFSwitch13NetDevices OpenFlow 1.3
  * switch NetDevice
  *
