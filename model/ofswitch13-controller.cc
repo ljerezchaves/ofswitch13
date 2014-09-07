@@ -44,6 +44,7 @@ void
 OFSwitch13Controller::DoDispose ()
 {
   m_switches.clear ();
+  Application::DoDispose ();
 }
 
 TypeId 
@@ -192,9 +193,21 @@ OFSwitch13Controller::GetPacketType (ofpbuf* buffer)
 void
 OFSwitch13Controller::ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer)
 {
-  
+  NS_LOG_FUNCTION_NOARGS ();
 }
 
+void
+OFSwitch13Controller::StartApplication ()
+{
+  NS_LOG_FUNCTION_NOARGS ();
+}
+
+
+void
+OFSwitch13Controller::StopApplication ()
+{
+  NS_LOG_FUNCTION_NOARGS ();
+}
 
 } // namespace ns3
 #endif // NS3_OFSWITCH13

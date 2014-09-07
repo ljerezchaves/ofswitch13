@@ -19,6 +19,7 @@
 #ifndef OFSWITCH13_CONTROLLER_H
 #define OFSWITCH13_CONTROLLER_H
 
+#include "ns3/application.h"
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
 
@@ -35,7 +36,7 @@ class OFSwitch13NetDevice;
  * This controller should manage the OpenFlow 1.3 datapath. It does not need to
  * be full-compliant with the protocol specification. 
  */
-class OFSwitch13Controller : public Object
+class OFSwitch13Controller : public Application
 {
 public:
   OFSwitch13Controller ();
@@ -95,7 +96,12 @@ protected:
   Switches_t m_switches;  ///< The collection of switches registered to this controller.
 
 private:
-  static const uint32_t m_global_xid = 0xf0ff00f0;  // Same from dpctl
+  static const uint32_t m_global_xid = 0xf0ff00f0;  ///!< Global ID (same from dpctl)
+
+  // inherited from Application
+  virtual void StartApplication (void);
+  virtual void StopApplication (void);
+
 
 //void ParseFlowModArgs (char *str, struct ofl_msg_flow_mod *req);
 
