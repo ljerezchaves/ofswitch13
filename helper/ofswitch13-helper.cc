@@ -23,7 +23,6 @@
 #include "ns3/internet-stack-helper.h"
 #include "ns3/application-container.h"
 #include "ns3/ipv4-address-helper.h"
-#include "ns3/csma-helper.h"
 #include "ns3/node.h"
 #include "ns3/log.h"
 
@@ -43,6 +42,9 @@ OFSwitch13Helper::OFSwitch13Helper ()
   NS_LOG_FUNCTION_NOARGS ();
   m_deviceFactory.SetTypeId ("ns3::OFSwitch13NetDevice");
   m_controllerFactory.SetTypeId ("ns3::OFSwitch13Controller");
+
+  m_csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
+  m_csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 }
 
 void
@@ -57,6 +59,12 @@ OFSwitch13Helper::SetControllerAttribute (std::string n1, const AttributeValue &
 {
   NS_LOG_FUNCTION_NOARGS ();
   m_controllerFactory.Set (n1, v1);
+}
+
+void
+OFSwitch13Helper::EnableOpenFlowPcap ()
+{
+  m_csmaHelper.EnablePcap ("controller-switches", m_controllerPort);
 }
 
 Ptr<OFSwitch13Controller> 
@@ -76,11 +84,8 @@ OFSwitch13Helper::InstallController (Ptr<Node> cNode)
       internet.Install (m_switches);
 
       // Create a gigabit csma channel connecting all switches to the controller
-      CsmaHelper csmaHelper;
-      csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
-      csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
       NetDeviceContainer switchControlDevs;
-      switchControlDevs = csmaHelper.Install (NodeContainer (cNode, m_switches));
+      switchControlDevs = m_csmaHelper.Install (NodeContainer (cNode, m_switches));
       m_controllerPort = switchControlDevs.Get (0);
 
       // Set IPv4 control and switch address
@@ -103,14 +108,12 @@ OFSwitch13Helper::InstallController (Ptr<Node> cNode)
 
         }
 
-      // Just for test...
+      // Just for test... FIXME
       // Create a ping application from controller to switch
       Ipv4Address switchAddr = controlIpIfaces.GetAddress (1);
       V4PingHelper pingControl = V4PingHelper (switchAddr);
       ApplicationContainer app = pingControl.Install (cNode);
       app.Start (Seconds (1.0));
-
-      csmaHelper.EnablePcap ("ctrl-switch", switchControlDevs.Get (0));
     }
 
   return m_app;
@@ -120,21 +123,18 @@ OFSwitch13Helper::InstallController (Ptr<Node> cNode)
 NetDeviceContainer
 OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer devs)
 {
-  NS_ASSERT_MSG (m_app == 0, "You should not use this function after installing the openflow controller");
-
-  NS_LOG_INFO ("**** Install switch device on node " << swNode->GetId ());
-
+  NS_ASSERT_MSG (m_app == 0, "Can't install more switches.");
+  NS_LOG_DEBUG ("Install switch device on node " << swNode->GetId ());
+  
   Ptr<OFSwitch13NetDevice> ofswitchNetDev = m_deviceFactory.Create<OFSwitch13NetDevice> ();
   m_switches.Add (swNode);
   m_devices.push_back (ofswitchNetDev);
   swNode->AddDevice (ofswitchNetDev);
-
   for (NetDeviceContainer::Iterator i = devs.Begin (); i != devs.End (); ++i)
     {
-      NS_LOG_INFO ("**** Add SwitchPort " << *i);
+      NS_LOG_INFO ("  Add SwitchPort " << *i);
       ofswitchNetDev->AddSwitchPort (*i);
     }
-
   return NetDeviceContainer (ofswitchNetDev);
 }
 

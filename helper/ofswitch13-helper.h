@@ -24,6 +24,7 @@
 #include "ns3/net-device-container.h"
 #include "ns3/node-container.h"
 #include "ns3/object-factory.h"
+#include "ns3/csma-helper.h"
 #include <string>
 
 namespace ns3 {
@@ -58,8 +59,7 @@ public:
    * \param n1 the name of the attribute to set
    * \param v1 the value of the attribute to set
    */
-  void 
-  SetDeviceAttribute (std::string n1, const AttributeValue &v1);
+  void SetDeviceAttribute (std::string n1, const AttributeValue &v1);
 
   /**
    * This method creates an ns3::OFSwitch13Controller application with the
@@ -69,11 +69,12 @@ public:
    * IPv4 network 10.100.150.0/24. Finally, it register the controller at each
    * switch. 
    *
+   * \attention This method should be invoked afert all InstallSwitch
+   *
    * \param cNode The node to install the controller
    * \returns The controller application
    */
-  Ptr<OFSwitch13Controller> 
-  InstallController (Ptr<Node> cNode);
+  Ptr<OFSwitch13Controller> InstallController (Ptr<Node> cNode);
 
   /**
    * This method creates an ns3::OFSwitch13NetDevice with the attributes
@@ -88,6 +89,10 @@ public:
   NetDeviceContainer
   InstallSwitch (Ptr<Node> swNode, NetDeviceContainer devs);
 
+  /**
+   * Enable openflow pacp traces between controller and switches
+   */
+  void EnableOpenFlowPcap ();
 
 private:
   ObjectFactory m_controllerFactory;    //!< Controller factory
@@ -97,8 +102,11 @@ private:
   Ptr<OFSwitch13Controller> m_app;      //!< Controller App
   Ptr<NetDevice> m_controllerPort;      //!< Controller csma device connected to switches
 
+  CsmaHelper m_csmaHelper;              //!< Helper to create the connection between controller and switches
+
   NodeContainer m_switches;             //!< Switches
-  std::vector<Ptr<OFSwitch13NetDevice> > m_devices;         //!< OFSwitch13NetDevices
+
+  std::vector<Ptr<OFSwitch13NetDevice> > m_devices; //!< OFSwitch13NetDevices
 };
 
 } // namespace ns3
