@@ -22,9 +22,12 @@
 #include "ns3/ofswitch13-interface.h"
 #include "ns3/ofswitch13-net-device.h"
 #include "ns3/net-device-container.h"
+#include "ns3/ipv4-interface-container.h"
 #include "ns3/node-container.h"
 #include "ns3/object-factory.h"
 #include "ns3/csma-helper.h"
+#include "ns3/inet-socket-address.h"
+#include "ns3/simple-ref-count.h"
 #include <string>
 
 namespace ns3 {
@@ -35,12 +38,15 @@ class OFSwitch13Controller;
 
 /**
  * \ingroup ofswitch13
- * \brief 
+ * 
+ * \brief Create and configure an OpenFlow 1.3 network with a single controller
+ * and multiple switches.
  */
-class OFSwitch13Helper
+class OFSwitch13Helper : public SimpleRefCount<OFSwitch13Helper>
 {
 public:
   OFSwitch13Helper ();
+  virtual ~OFSwitch13Helper ();
 
   /**
    * Set an attribute for the ns3::OFSwitch13Controller created by
@@ -49,32 +55,16 @@ public:
    * \param n1 the name of the attribute to set
    * \param v1 the value of the attribute to set
    */
-  void 
-  SetControllerAttribute (std::string n1, const AttributeValue &v1);
+  void SetControllerAttribute (std::string n1, const AttributeValue &v1);
 
   /**
    * Set an attribute on each ns3::OFSwitch13NetDevice created by
-   * OFSwitch13SwitchHelper::Install
+   * OFSwitch13Helper::InstallSwitch
    *
    * \param n1 the name of the attribute to set
    * \param v1 the value of the attribute to set
    */
   void SetDeviceAttribute (std::string n1, const AttributeValue &v1);
-
-  /**
-   * This method creates an ns3::OFSwitch13Controller application with the
-   * attributes configured by OFSwitch13Helper::SetControllerAttribute and add
-   * it to the cNode. Also, this method installs the TCP/IP stack both into
-   * cNode and all swNodes, and connect them with an csma gigabit link, using
-   * IPv4 network 10.100.150.0/24. Finally, it register the controller at each
-   * switch. 
-   *
-   * \attention This method should be invoked afert all InstallSwitch
-   *
-   * \param cNode The node to install the controller
-   * \returns The controller application
-   */
-  Ptr<OFSwitch13Controller> InstallController (Ptr<Node> cNode);
 
   /**
    * This method creates an ns3::OFSwitch13NetDevice with the attributes
@@ -83,30 +73,70 @@ public:
    * switch.
    *
    * \param swNode The node to install the device in
-   * \param devs Container of NetDevices to add as switch ports
-   * \returns A container holding the added net device.
+   * \param ports Container of NetDevices to add as switch ports
+   * \returns A container holding the OFSwitch13NetDevice net device.
    */
-  NetDeviceContainer
-  InstallSwitch (Ptr<Node> swNode, NetDeviceContainer devs);
+  NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
+  
+  /**
+   * This method creates an ns3::OFSwitch13Controller application with the
+   * attributes configured by OFSwitch13Helper::SetControllerAttribute and add
+   * it to cNode. It also installs the TCP/IP stack both into
+   * cNode and all switches, and connect them with a csma gigabit link, using
+   * IPv4 network 10.100.150.0/24. Finally, it register the controller at each
+   * switch. 
+   *
+   * \attention This method should be invoked after InstallSwitch
+   *
+   * \param cNode The node to install the controller
+   * \returns The controller application
+   */
+  Ptr<OFSwitch13Controller> InstallController (Ptr<Node> cNode);
 
   /**
-   * Enable openflow pacp traces between controller and switches
+   * Enable pacp traces at the OpenFlow channel between controller and switches
    */
   void EnableOpenFlowPcap ();
+   
+  /**
+   * Returns the objects in the containers from a specific index.
+   */
+  //\{
+  Ipv4Address GetSwitchAddress (uint32_t idx);
+  Ptr<OFSwitch13NetDevice> GetSwitchDevice (uint32_t idx);
+  Ptr<Node> GetSwitchNode (uint32_t idx);
+  //\}
+
+  /**
+   * Iterate over the containers looking for the specifc index matching the
+   * parameter. This index can be used to access other containers.
+   */
+  //\{
+  uint32_t GetContainerIndex (Ipv4Address addr);
+  uint32_t GetContainerIndex (Ptr<Node> node);
+  uint32_t GetContainerIndex (Ptr<OFSwitch13NetDevice> dev);
+  //\}
 
 private:
-  ObjectFactory m_controllerFactory;    //!< Controller factory
-  ObjectFactory m_deviceFactory;        //!< Device factory
+  ObjectFactory             m_ctrlFactory;  //!< Controller factory
+  ObjectFactory             m_ndevFactory;  //!< Device factory
+  CsmaHelper                m_csmaHelper;   //!< Helper for connecting controller to switches
 
-  Ptr<Node> m_controller;               //!< Controller Node
-  Ptr<OFSwitch13Controller> m_app;      //!< Controller App
-  Ptr<NetDevice> m_controllerPort;      //!< Controller csma device connected to switches
+  Ptr<Node>                 m_ctrlNode; //!< Controller Node
+  Ptr<OFSwitch13Controller> m_ctrlApp;  //!< Controller App
+  Ptr<NetDevice>            m_ctrlDev;  //!< Controller CsmaNetDevice (switch connection)
+  Address                   m_ctrlAddr; //!< Controller Addr 
 
-  CsmaHelper m_csmaHelper;              //!< Helper to create the connection between controller and switches
-
-  NodeContainer m_switches;             //!< Switches
-
-  std::vector<Ptr<OFSwitch13NetDevice> > m_devices; //!< OFSwitch13NetDevices
+  /**
+   * Containers used to store switche nodes, OFSwitch13NetDevice devices, and
+   * Ipv4Address. They use a relative position to associate these three objetcs
+   * to the same switch.
+   */
+  //\{
+  NodeContainer             m_switches; //!< Switch nodes
+  NetDeviceContainer        m_devices;  //!< OFSwitch13NetDevices
+  Ipv4InterfaceContainer    m_address;  //!< Switch address
+  //\}
 };
 
 } // namespace ns3

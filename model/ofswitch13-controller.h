@@ -20,21 +20,21 @@
 #define OFSWITCH13_CONTROLLER_H
 
 #include "ns3/application.h"
+#include "ns3/socket.h"
+#include "ns3/tcp-socket-factory.h"
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
 
 namespace ns3 {
 
 class OFSwitch13NetDevice;
+class OFSwitch13Helper;
 
 /**
  * \ingroup ofswitch13
- *
- * \brief An ofs::Controller interface for OFSwitch13NetDevices OpenFlow 1.3
- * switch NetDevice
- *
- * This controller should manage the OpenFlow 1.3 datapath. It does not need to
- * be full-compliant with the protocol specification. 
+ * \brief An OpenFlow 1.3 controller for OFSwitch13NetDevice devices
+ * \attention Currently, It is not full-compliant with the protocol
+ * specification. 
  */
 class OFSwitch13Controller : public Application
 {
@@ -45,45 +45,28 @@ public:
   // inherited from Object
   static TypeId GetTypeId (void);
   virtual void DoDispose ();
- 
+
   /**
-   * Register a switch to this controller.
-   *
-   * \param swtch The Ptr<OFSwitch13NetDevice> switch to register.
+   * \briefRegister the OFSwitch13Helper used to create the network.
+   * \param helper The helper pointer
    */
-  virtual void AddSwitch (Ptr<OFSwitch13NetDevice> swtch);
+  void SetOFSwitch13Helper (Ptr<OFSwitch13Helper> helper);
 
   /**
    * \brief Create a flow_mod message using the same syntax from dpctl, and
    * send it to the switch.
-   *
    * \param swtch The Ptr<OFSwitch13NetDevice> switch to register.
    * \param textCmd The dpctl flow_mod command to create the message.
    */
   void SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* textCmd);
 
-   /**
-   * \brief A registered switch can call this method to send a message to this
-   * Controller.
-   *
-   * \param swtch The switch the message was received from.
-   * \param buffer The pointer to the buffer containing the message.
-   */
-  virtual void ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer);
-
-protected:
-  /**
-   * \brief This method is used to send a message to a registered switch. It
-   * will encapsulate the ofl_msg format into an ofpbuf wire format.
-   *
-   * \param swtch The switch to receive the message.
-   * \param msg The message to send.
-   */
-  void SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void *msg);
+private:
+  // inherited from Application
+  virtual void StartApplication (void);
+  virtual void StopApplication (void);
 
   /**
    * \internal
-   *
    * Get the packet type on the buffer, which can then be used
    * to determine how to handle the buffer.
    *
@@ -92,21 +75,44 @@ protected:
    */
   uint8_t GetPacketType (ofpbuf* buffer);
 
-  typedef std::set<Ptr<OFSwitch13NetDevice> > Switches_t;
-  Switches_t m_switches;  ///< The collection of switches registered to this controller.
+  /**
+   * \internal
+   * \brief Handles any ofpbuf received from switch
+   * \param swtch The switch the message was received from.
+   * \param buffer The pointer to the buffer containing the message.
+   */
+  virtual void ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer);
 
-private:
-  static const uint32_t m_global_xid = 0xf0ff00f0;  ///!< Global ID (same from dpctl)
+  /**
+   * \internal
+   * Send a message to a registered switch. It will encapsulate the ofl_msg
+   * format into an ofpbuf wire format and send it over a TCP socekt to the
+   * proper switch IP address.
+   * \param swtch The switch NetDevice to receive the message.
+   * \param msg The message to send.
+   */
+  void SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void *msg);
 
-  // inherited from Application
-  virtual void StartApplication (void);
-  virtual void StopApplication (void);
-
-
-//void ParseFlowModArgs (char *str, struct ofl_msg_flow_mod *req);
-
-
-
+  /**
+   * Handlers used as socket callbacks to TCP communication between this
+   * controller and the switches.
+   */
+  //\{
+  void HandleRead       (Ptr<Socket> socket);                       //!< Receive packet from switch
+  bool HandleRequest    (Ptr<Socket> s, const Address& from);       //!< TCP request from switch
+  void HandleAccept     (Ptr<Socket> socket, const Address& from);  //!< TCP handshake succeeded
+  void HandlePeerClose  (Ptr<Socket> socket);                       //!< TCP connection closed
+  void HandlePeerError  (Ptr<Socket> socket);                       //!< TCP connection error
+  //\}
+  
+  static const uint32_t m_global_xid = 0xf0ff00f0;  //!< Global transaction idx
+  uint16_t              m_port;                     //!< Local controller tcp port
+  
+  Ptr<Socket>           m_serverSocket;             //!< Listening server socket
+  Ptr<OFSwitch13Helper> m_helper;                   //!< OpenFlow helper
+  
+  typedef std::map<uint32_t, Ptr<Socket> > SocketsMap_t;
+  SocketsMap_t m_socketsMap;                        //!< Map of accepted sockets from switches
 };
 
 } // namespace ns3

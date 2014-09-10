@@ -19,32 +19,29 @@
 #ifdef NS3_OFSWITCH13
 
 #include <wordexp.h>
-
+#include "ns3/uinteger.h"
 #include "ofswitch13-controller.h"
 #include "ofswitch13-net-device.h"
+#include "ns3/ofswitch13-helper.h"
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Controller");
 
 namespace ns3 {
 
-NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller)
-  ;
+NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller);
+
+
+/********** Public methods **********/
 
 OFSwitch13Controller::OFSwitch13Controller ()
 {
   NS_LOG_FUNCTION_NOARGS ();
+  m_serverSocket = 0;
 }
 
 OFSwitch13Controller::~OFSwitch13Controller ()
 {
   NS_LOG_FUNCTION_NOARGS ();
-}
-
-void
-OFSwitch13Controller::DoDispose ()
-{
-  m_switches.clear ();
-  Application::DoDispose ();
 }
 
 TypeId 
@@ -53,21 +50,31 @@ OFSwitch13Controller::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::OFSwitch13Controller") 
     .SetParent<Object> ()
     .AddConstructor<OFSwitch13Controller> ()
+    .AddAttribute ("Port",
+                   "Port on which we listen for incoming packets.",
+                   UintegerValue (6653),
+                   MakeUintegerAccessor (&OFSwitch13Controller::m_port),
+                   MakeUintegerChecker<uint16_t> ())
     ;
   return tid; 
 }
 
 void
-OFSwitch13Controller::AddSwitch (Ptr<OFSwitch13NetDevice> swtch)
+OFSwitch13Controller::DoDispose ()
 {
-  if (m_switches.find (swtch) != m_switches.end ())
+  m_serverSocket = 0;
+  m_helper = 0;
+  m_socketsMap.clear ();
+
+  Application::DoDispose ();
+}
+
+void
+OFSwitch13Controller::SetOFSwitch13Helper (Ptr<OFSwitch13Helper> helper)
+{
+  if (m_helper == 0)
     {
-      NS_LOG_INFO ("This Controller has already registered this switch!");
-    }
-  else
-    {
-      NS_LOG_INFO ("Registering switch " << swtch << " at controller " << this);
-      m_switches.insert (swtch);
+      m_helper = helper;
     }
 }
 
@@ -148,37 +155,47 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* t
   SendToSwitch (sw, msg); 
 }
 
+/********** Private methods **********/
 
 void
-OFSwitch13Controller::SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void *msg)
+OFSwitch13Controller::StartApplication ()
 {
-  char *str;
-  struct ofpbuf *ofpbuf;
-  uint8_t *buf;
-  size_t buf_size;
-  int error;
+  NS_LOG_FUNCTION (this << "Starting Controller application at port " << m_port);
 
-  if (m_switches.find (swtch) == m_switches.end ())
+  // Create the server listening socket
+  if (!m_serverSocket)
     {
-      NS_LOG_ERROR ("Can't send to this switch, not registered to the Controller.");
-      return;
-    }
-  
-  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL);
-  NS_LOG_DEBUG ("SENDING: " << str);
-  free (str);
-
-  error = ofl_msg_pack ((ofl_msg_header*)msg, m_global_xid, &buf, &buf_size, NULL);
-  if (error)
-    {
-      NS_LOG_ERROR ("Error packing controller message.");
+      m_serverSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+      m_serverSocket->Bind (InetSocketAddress (Ipv4Address::GetAny (), m_port));
+      m_serverSocket->Listen ();
     }
 
-  ofpbuf = ofpbuf_new (0);
-  ofpbuf_use (ofpbuf, buf, buf_size);
-  ofpbuf_put_uninit (ofpbuf, buf_size);
+  // Setting socket callbacks
+  m_serverSocket->SetRecvCallback (
+      MakeCallback (&OFSwitch13Controller::HandleRead, this));
+  m_serverSocket->SetAcceptCallback (
+      MakeCallback (&OFSwitch13Controller::HandleRequest, this),
+      MakeCallback (&OFSwitch13Controller::HandleAccept, this));
+  m_serverSocket->SetCloseCallbacks (
+      MakeCallback (&OFSwitch13Controller::HandlePeerClose, this),
+      MakeCallback (&OFSwitch13Controller::HandlePeerError, this));
+}
 
-  swtch->ReceiveFromController (ofpbuf, buf_size);
+void
+OFSwitch13Controller::StopApplication ()
+{
+  for (SocketsMap_t::iterator it = m_socketsMap.begin (); it != m_socketsMap.end (); it++)
+    {
+      it->second->Close ();
+      //Ptr<Socket> socket = it->second;
+      //socket->Close ();
+    }
+  if (m_serverSocket) 
+    {
+      m_serverSocket->Close ();
+      m_serverSocket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
+    } 
+  m_socketsMap.clear ();
 }
 
 uint8_t
@@ -193,21 +210,123 @@ OFSwitch13Controller::GetPacketType (ofpbuf* buffer)
 void
 OFSwitch13Controller::ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this << swtch);
 }
 
 void
-OFSwitch13Controller::StartApplication ()
+OFSwitch13Controller::SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void *msg)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this << swtch);
+  NS_ASSERT (m_helper);
+
+  uint32_t index = m_helper->GetContainerIndex (swtch);
+  if (index == UINT32_MAX)
+    {
+      NS_LOG_ERROR ("Can't send to this switch, not registered to this Controller.");
+      return;
+    }
+  
+  char *str;
+  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL);
+  NS_LOG_DEBUG ("SENDING: " << str);
+  free (str);
+
+  // Pack buffer to wire format
+  int error;
+  uint8_t *buf;
+  size_t buf_size;
+  error = ofl_msg_pack ((ofl_msg_header*)msg, m_global_xid, &buf, &buf_size, NULL);
+  if (error)
+    {
+      NS_LOG_ERROR ("Error packing controller message.");
+    }
+  
+  // Create ns3 packet and send over socket
+  Ptr<Packet> ns3Pkt = Create<Packet> (buf, buf_size);
+  SocketsMap_t::iterator sockIt = m_socketsMap.find (index);
+  if (sockIt == m_socketsMap.end ())
+    {
+      NS_LOG_ERROR ("Can't send to this switch, no socket found.");
+      return;
+    }
+  Ptr<Socket> switchSocket = sockIt->second;
+  error = switchSocket->Send (ns3Pkt);
+  NS_LOG_DEBUG (error << " bytes transmitted to switch");
 }
 
-
-void
-OFSwitch13Controller::StopApplication ()
+void 
+OFSwitch13Controller::HandleRead (Ptr<Socket> socket)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this << socket);
+  NS_ASSERT (m_helper);
+  
+  Ptr<Packet> packet;
+  Address from;
+  while ((packet = socket->RecvFrom (from)))
+    {
+      if (packet->GetSize () == 0)
+        { //EOF
+          break;
+        }
+      if (InetSocketAddress::IsMatchingType (from))
+        {
+          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
+                       << "s the OpenFlow Controller received "
+                       <<  packet->GetSize () << " bytes from switch "
+                       << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
+                       << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
+          
+          // Get the corresponding swith device
+          Ipv4Address ipv4Addr = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
+          uint32_t index = m_helper->GetContainerIndex (ipv4Addr);
+          Ptr<OFSwitch13NetDevice> swtch = m_helper->GetSwitchDevice (index);
+
+          // Creante an ofpbuffer from packet
+          uint32_t pktSize = packet->GetSize ();
+          struct ofpbuf *buffer = ofpbuf_new (pktSize);
+          packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
+
+          // Receive and process the openflow buffer
+          ReceiveFromSwitch (swtch, buffer);
+        }
+    }
 }
 
+bool
+OFSwitch13Controller::HandleRequest (Ptr<Socket> s, const Address& from)
+{
+  NS_LOG_FUNCTION (this << s << from);
+  NS_LOG_DEBUG ("Switch request connection from " << 
+      InetSocketAddress::ConvertFrom (from).GetIpv4 ());
+  return true;
+}
+
+void 
+OFSwitch13Controller::HandleAccept (Ptr<Socket> s, const Address& from)
+{
+  NS_LOG_FUNCTION (this << s << from);
+  NS_ASSERT (m_helper);
+
+  Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
+  uint32_t idx = m_helper->GetContainerIndex (ipv4);
+  NS_ASSERT_MSG (idx != UINT32_MAX, "Address not associated with registered switch.");
+  
+  NS_LOG_DEBUG ("Switch request connection accepted from " << ipv4);
+  s->SetRecvCallback (MakeCallback (&OFSwitch13Controller::HandleRead, this));
+  m_socketsMap[idx] = s;
+}
+
+void 
+OFSwitch13Controller::HandlePeerClose (Ptr<Socket> socket)
+{
+  NS_LOG_FUNCTION (this << socket);
+}
+ 
+void 
+OFSwitch13Controller::HandlePeerError (Ptr<Socket> socket)
+{
+  NS_LOG_WARN (this << socket);
+}
+ 
 } // namespace ns3
 #endif // NS3_OFSWITCH13

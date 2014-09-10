@@ -49,7 +49,6 @@ Port::Port (Ptr<NetDevice> netdev, uint32_t no) :
     flags |= SWP_USED;
 }
 
-
 } // namespace ofs
 } // namespace ns3
 #endif // NS3_OFSWITCH13

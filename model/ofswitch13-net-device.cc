@@ -34,13 +34,13 @@
 #include "ns3/udp-header.h"
 #include "ns3/ipv4-l3-protocol.h"
 #include "ns3/arp-l3-protocol.h"
+#include "ns3/inet-socket-address.h"
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13NetDevice");
 
 namespace ns3 {
 
-NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice)
-  ;
+NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
 
 static uint64_t
 GenerateId ()
@@ -81,11 +81,12 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   NS_LOG_FUNCTION_NOARGS ();
   NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
 
+  m_controllerAddr = Address ();
   // Switch internal bridge channel
   m_channel = CreateObject<BridgeChannel> ();
   SetAddress (Mac48Address::Allocate ()); 
   NS_LOG_DEBUG ("Switch addr " << m_address);
-  
+
   // Initializing the datapath, as in dp_net at udatapath/datapath.c
   
   // Switch ports
@@ -213,15 +214,40 @@ OFSwitch13NetDevice::GetNSwitchPorts (void) const
 void
 OFSwitch13NetDevice::SetController (Ptr<OFSwitch13Controller> c)
 {
-  // TODO implementar o controller como mais uma porta do switch
   if (m_controller != 0)
     {
       NS_LOG_ERROR ("Controller already set.");
       return;
     }
   m_controller = c;
-  m_controller->AddSwitch (this);
+  //m_controller->AddSwitch (this);
 }
+
+void
+OFSwitch13NetDevice::SetController (Address addr)
+{
+  if (m_controllerAddr.IsInvalid ())
+    {
+      m_controllerAddr = addr;
+      // Create a TCP connection to the controller
+      if (!m_ctrlSocket)
+        {
+          m_ctrlSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+          m_ctrlSocket->Bind ();
+          m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom(addr));
+        }
+      m_ctrlSocket->SetConnectCallback (
+          MakeCallback (&OFSwitch13NetDevice::HandleConnSucceeded, this),
+          MakeCallback (&OFSwitch13NetDevice::HandleConnFailed, this));
+      return;
+    }
+  NS_LOG_ERROR ("Controller already set.");
+  //m_controller->AddSwitch (this);
+}
+
+
+
+
 
 
 // Inherited from NetDevice base class
@@ -502,7 +528,7 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev,
       case PACKET_OTHERHOST:
         if (dst48 == m_address)
           {
-            // Only packet addressed to this switch will skip OpenFlow pipeline.
+            // Only packet specifically addressed to this switch will skip OpenFlow pipeline.
             m_rxCallback (this, packet, protocol, src);
             return;
           }
@@ -511,7 +537,7 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev,
 
   /** Starting pipeline process... **/
 
-  // Get the input port and check configuration (if it is up)
+  // Get the input port and check configuration
   ofs::Port* inPort = GetPortFromNetDevice (netdev);
   NS_ASSERT_MSG (inPort != NULL, "This device is not registered as a switch port");
   if (inPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) 
@@ -586,8 +612,6 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev,
     }
 */
 }
-
-
 
 int
 OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer, size_t length)
@@ -700,7 +724,7 @@ OFSwitch13NetDevice::SendToController (ofpbuf *buffer)
   if (m_controller != 0)
     {
       //update_openflow_length (buffer);
-      m_controller->ReceiveFromSwitch (this, buffer);
+//      m_controller->ReceiveFromSwitch (this, buffer);
     }
 
   return 0;
@@ -1408,6 +1432,54 @@ OFSwitch13NetDevice::AddEthernetHeader (Ptr<Packet> p, Mac48Address source,
   p->AddTrailer (trailer);
 }
 
+void 
+OFSwitch13NetDevice::HandleRead (Ptr<Socket> socket)
+{
+  NS_LOG_FUNCTION (this << socket);
+  Ptr<Packet> packet;
+  Address from;
+  while ((packet = socket->RecvFrom (from)))
+    {
+      if (packet->GetSize () == 0)
+        { //EOF
+          break;
+        }
+      if (InetSocketAddress::IsMatchingType (from))
+        {
+          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
+                       << "s the OpenFlow switch received "
+                       <<  packet->GetSize () << " bytes from controller "
+                       << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
+                       << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
+
+          // Creante an ofpbuffer from packet
+          uint32_t pktSize = packet->GetSize ();
+          struct ofpbuf *buffer = ofpbuf_new (pktSize);
+          packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
+          
+          // Process the openflow buffer
+          ReceiveFromController (buffer, (size_t)pktSize);
+        }
+    }
+}
+
+void
+OFSwitch13NetDevice::HandleConnSucceeded (Ptr<Socket> socket)
+{
+  NS_LOG_FUNCTION (this << socket);
+  NS_LOG_DEBUG ("Controller accepted connection request!");
+  //Ipv4Address temp = socket->GetNode()->GetObject<Ipv4>()->GetAddress(1,0).GetLocal();
+  //m_clientAddress = temp;
+  socket->SetRecvCallback (MakeCallback (&OFSwitch13NetDevice::HandleRead, this));
+  //SendRequest(socket, "main/object");
+}
+
+void
+OFSwitch13NetDevice::HandleConnFailed (Ptr<Socket> socket)
+{
+  NS_LOG_FUNCTION (this << socket);
+  NS_LOG_ERROR ("Controller did not accepted connection request!");
+}
 
 
 } // namespace ns3

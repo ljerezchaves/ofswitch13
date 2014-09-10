@@ -21,13 +21,10 @@
 #include "ofswitch13-helper.h"
 #include "ns3/ofswitch13-net-device.h"
 #include "ns3/internet-stack-helper.h"
-#include "ns3/application-container.h"
 #include "ns3/ipv4-address-helper.h"
+#include "ns3/uinteger.h"
 #include "ns3/node.h"
 #include "ns3/log.h"
-
-#include "ns3/applications-module.h"  //FIXME
-
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Helper");
 
@@ -36,108 +33,176 @@ namespace ns3 {
 class OFSwitch13Controller;
 
 OFSwitch13Helper::OFSwitch13Helper ()
-  : m_controller (0),
-    m_app (0)
+  : m_ctrlNode (0),
+    m_ctrlApp (0),
+    m_ctrlDev (0)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  m_deviceFactory.SetTypeId ("ns3::OFSwitch13NetDevice");
-  m_controllerFactory.SetTypeId ("ns3::OFSwitch13Controller");
+  m_ctrlFactory.SetTypeId ("ns3::OFSwitch13Controller");
+  m_ndevFactory.SetTypeId  ("ns3::OFSwitch13NetDevice");
 
   m_csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
   m_csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
+}
+
+OFSwitch13Helper::~OFSwitch13Helper ()
+{
+  m_ctrlNode = 0;
+  m_ctrlApp = 0;
+  m_ctrlDev = 0;
 }
 
 void
 OFSwitch13Helper::SetDeviceAttribute (std::string n1, const AttributeValue &v1)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  m_deviceFactory.Set (n1, v1);
+  m_ndevFactory.Set (n1, v1);
 }
 
 void
 OFSwitch13Helper::SetControllerAttribute (std::string n1, const AttributeValue &v1)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  m_controllerFactory.Set (n1, v1);
+  m_ctrlFactory.Set (n1, v1);
 }
 
-void
-OFSwitch13Helper::EnableOpenFlowPcap ()
+NetDeviceContainer
+OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {
-  m_csmaHelper.EnablePcap ("controller-switches", m_controllerPort);
+  NS_ASSERT_MSG (m_ctrlApp == 0, "Can't install more switches.");
+  NS_LOG_DEBUG ("Install switch device on node " << swNode->GetId ());
+  
+  Ptr<OFSwitch13NetDevice> dev = m_ndevFactory.Create<OFSwitch13NetDevice> ();
+  swNode->AddDevice (dev);
+  
+  m_switches.Add (swNode);
+  m_devices.Add (dev);
+
+  for (NetDeviceContainer::Iterator i = ports.Begin (); i != ports.End (); ++i)
+    {
+      NS_LOG_INFO ("Add SwitchPort " << *i);
+      dev->AddSwitchPort (*i);
+    }
+  return NetDeviceContainer (dev);
 }
 
 Ptr<OFSwitch13Controller> 
 OFSwitch13Helper::InstallController (Ptr<Node> cNode)
 {
-  if (m_app == 0)
-    {
-      // Install the controller App in the cNode
-      m_controller = cNode;
-      m_app = m_controllerFactory.Create<OFSwitch13Controller> ();
-      cNode->AddApplication (m_app);
-      m_app->SetStartTime (Seconds (0));
+  NS_ASSERT_MSG (m_switches.GetN (), "No OpenFlow switch yet.");
+  NS_LOG_DEBUG ("Install controller on node " << cNode->GetId ());
 
-      // Install the TCP/IP stak in the cNode and swNodes
+  if (m_ctrlApp == 0)
+    {
+      // Install the controller App in the controller node
+      m_ctrlNode = cNode;
+      m_ctrlApp = m_ctrlFactory.Create<OFSwitch13Controller> ();
+      m_ctrlNode->AddApplication (m_ctrlApp);
+      m_ctrlApp->SetOFSwitch13Helper (this);
+      m_ctrlApp->SetStartTime (Seconds (0));
+
+      // Install the TCP/IP stak in the controller and switches
       InternetStackHelper internet;
-      internet.Install (cNode);
+      internet.Install (m_ctrlNode);
       internet.Install (m_switches);
 
       // Create a gigabit csma channel connecting all switches to the controller
-      NetDeviceContainer switchControlDevs;
-      switchControlDevs = m_csmaHelper.Install (NodeContainer (cNode, m_switches));
-      m_controllerPort = switchControlDevs.Get (0);
-
-      // Set IPv4 control and switch address
-      Ipv4AddressHelper ipv4control;
-      Ipv4InterfaceContainer controlIpIfaces;
-      ipv4control.SetBase ("10.100.150.0", "255.255.255.0");
-      controlIpIfaces = ipv4control.Assign (switchControlDevs);
+      NetDeviceContainer switchControlDevs, switchDevs;
+      switchControlDevs = m_csmaHelper.Install (NodeContainer (m_ctrlNode, m_switches));
+      m_ctrlDev = switchControlDevs.Get (0);
+      for (uint32_t i = 1; i < switchControlDevs.GetN (); i++)
+        {
+          switchDevs.Add (switchControlDevs.Get (i));
+        }
+      
+      // Set IPv4 controller and switches address
+      Ipv4AddressHelper ipv4helper;
+      ipv4helper.SetBase ("10.100.150.0", "255.255.255.0");
+      Ipv4InterfaceContainer ctrlIface;
+      ctrlIface = ipv4helper.Assign (m_ctrlDev);
+      m_address = ipv4helper.Assign (switchDevs);
+      
+      UintegerValue port;
+      m_ctrlApp->GetAttribute ("Port", port);  
+      m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), port.Get ());
 
       // Registering the application to all switches
-      for (size_t i = 0; i < m_devices.size (); i++)
+      for (size_t i = 0; i < m_devices.GetN (); i++)
         {
-          Ptr<Node> sw = m_switches.Get (i);
-          //Ptr<OFSwitch13NetDevice> dev = dynamic_cast<OFSwitch13NetDevice *> (m_devices.Get (i));
-          Ptr<OFSwitch13NetDevice> dev = m_devices.at (i);
-          NS_ASSERT (dev->GetNode () == sw);
-          
-          NS_LOG_INFO ("**** Registering the controller to switch " << dev);
-          dev->SetController (m_app);
-          //dev->RegisterControllerPort (m_controllerPort);
-
+          Ptr<OFSwitch13NetDevice> dev = DynamicCast<OFSwitch13NetDevice> (m_devices.Get (i));
+          NS_LOG_INFO ("Registering the controller to switch " << dev);
+          dev->SetController (m_ctrlApp); // TODO Avoid this
+          dev->SetController (m_ctrlAddr);
         }
-
-      // Just for test... FIXME
-      // Create a ping application from controller to switch
-      Ipv4Address switchAddr = controlIpIfaces.GetAddress (1);
-      V4PingHelper pingControl = V4PingHelper (switchAddr);
-      ApplicationContainer app = pingControl.Install (cNode);
-      app.Start (Seconds (1.0));
     }
-
-  return m_app;
+  return m_ctrlApp;
 }
 
-
-NetDeviceContainer
-OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer devs)
+void
+OFSwitch13Helper::EnableOpenFlowPcap ()
 {
-  NS_ASSERT_MSG (m_app == 0, "Can't install more switches.");
-  NS_LOG_DEBUG ("Install switch device on node " << swNode->GetId ());
-  
-  Ptr<OFSwitch13NetDevice> ofswitchNetDev = m_deviceFactory.Create<OFSwitch13NetDevice> ();
-  m_switches.Add (swNode);
-  m_devices.push_back (ofswitchNetDev);
-  swNode->AddDevice (ofswitchNetDev);
-  for (NetDeviceContainer::Iterator i = devs.Begin (); i != devs.End (); ++i)
+  m_csmaHelper.EnablePcap ("openflow-channel", m_ctrlDev, true);
+}
+
+Ipv4Address 
+OFSwitch13Helper::GetSwitchAddress (uint32_t idx)
+{
+  return m_address.GetAddress (idx);
+}
+
+Ptr<OFSwitch13NetDevice> 
+OFSwitch13Helper::GetSwitchDevice (uint32_t idx)
+{
+  return DynamicCast<OFSwitch13NetDevice> (m_devices.Get (idx));
+}
+
+Ptr<Node> 
+OFSwitch13Helper::GetSwitchNode (uint32_t idx)
+{
+  return m_switches.Get (idx);
+}
+
+uint32_t
+OFSwitch13Helper::GetContainerIndex (Ipv4Address addr)
+{
+  for (uint32_t i = 0; i < m_address.GetN (); i++)
     {
-      NS_LOG_INFO ("  Add SwitchPort " << *i);
-      ofswitchNetDev->AddSwitchPort (*i);
+      if (addr.IsEqual (m_address.GetAddress (i)))
+        {
+          return i;
+        }
     }
-  return NetDeviceContainer (ofswitchNetDev);
+  NS_LOG_ERROR ("Switch address not found.");
+  return UINT32_MAX;
 }
 
+uint32_t
+OFSwitch13Helper::GetContainerIndex (Ptr<Node> node)
+{
+  for (uint32_t i = 0; i < m_switches.GetN (); i++)
+    {
+      if (node == m_switches.Get (i))
+        {
+          return i;
+        }
+    }
+  NS_LOG_ERROR ("Switch node not found.");
+  return UINT32_MAX;
 }
 
+uint32_t
+OFSwitch13Helper::GetContainerIndex (Ptr<OFSwitch13NetDevice> dev)
+{
+  for (uint32_t i = 0; i < m_devices.GetN (); i++)
+    {
+      if (dev == m_devices.Get (i))
+        {
+          return i;
+        }
+    }
+  NS_LOG_ERROR ("Switch device not found.");
+  return UINT32_MAX;
+}
+
+} // namespace ns3
 #endif // NS3_OFSWITCH13

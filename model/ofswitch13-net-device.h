@@ -50,7 +50,7 @@ class OFSwitch13Controller;
 class OFSwitch13NetDevice : public NetDevice
 {
 
-friend class OFSwitch13Controller;
+//friend class OFSwitch13Controller;
 
 public:
   static TypeId GetTypeId (void);
@@ -103,11 +103,15 @@ public:
   uint32_t GetNSwitchPorts (void) const;
 
   /**
-   * \brief Set up the switch's controller connection.
+   * \brief Set up the connection between switch and controller.
    *
-   * \param c Pointer to an OFSwitch13Controller.
+   * \param addr The controller address.
    */
   void SetController (Ptr<OFSwitch13Controller> c);
+  void SetController (Address addr);
+
+
+  void RegisterControllerPort (Ptr<NetDevice> controlPort);
 
   // Inherited from NetDevice base class
   virtual void SetIfIndex (const uint32_t index);
@@ -362,24 +366,38 @@ private:
    * NetDevice callbacks
    */
   //\{
-  NetDevice::ReceiveCallback m_rxCallback;
+  NetDevice::ReceiveCallback        m_rxCallback;
   NetDevice::PromiscReceiveCallback m_promiscRxCallback;
   //\}
 
-  Mac48Address m_address;               ///< Address of this device
-  Ptr<Node> m_node;                     ///< Node this device is installed on
-  Ptr<BridgeChannel> m_channel;         ///< Collection of port channels into the Switch Channel
-  uint32_t m_ifIndex;                   ///< Interface Index
-  uint16_t m_mtu;                       ///< Maximum Transmission Unit
+  /**
+   * Handlers used as socket callbacks to TCP communication between this
+   * switch and the controller.
+   */
+  //\{
+  void HandleRead           (Ptr<Socket> socket);   //!< Receive packet from controller
+  void HandleConnSucceeded  (Ptr<Socket> socket);   //!< TCP request accepted
+  void HandleConnFailed     (Ptr<Socket> socket);   //!< TCP request refused
+  //\}
+
+  Mac48Address m_address;                 ///< Address of this device
+  Ptr<Node> m_node;                       ///< Node this device is installed on
+  Ptr<BridgeChannel> m_channel;           ///< Collection of port channels into the Switch Channel
+  uint32_t m_ifIndex;                     ///< Interface Index
+  uint16_t m_mtu;                         ///< Maximum Transmission Unit
    
 
   typedef std::vector<ofs::Port> Ports_t;
-  Ports_t m_ports;                      ///< Switch's ports
+  Ports_t m_ports;                        ///< Switch's ports
 
-  typedef std::map<uint64_t, ofs::SwitchPacketMetadata> PacketData_t;
-  PacketData_t m_packetData;            ///< Packet data
+  //typedef std::map<uint64_t, ofs::SwitchPacketMetadata> PacketData_t;
+  //PacketData_t m_packetData;              ///< Packet data
 
-  Ptr<OFSwitch13Controller> m_controller;     ///< Connection to controller
+  Ptr<OFSwitch13Controller> m_controller; ///< Connection to controller
+  Address m_controllerAddr;               ///< Controller Address
+  Ptr<Socket> m_ctrlSocket;               ///< Tcp Socket to controller
+
+
 
   // Considering the necessary datapath structs from ofsoftswitch13
   uint64_t m_id;                              ///< Unique identifier for this switch

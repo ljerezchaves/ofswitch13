@@ -104,6 +104,8 @@ void output (struct packet *pkt, struct ofl_action_output *action);
 namespace ns3 {
 namespace ofs {
 
+class OFSwitch13NetDevice;
+
 /**
  * \brief Switch SwPort and its metadata.
  * \see ofsoftswitch13 udatapath/dp_ports.h
@@ -128,18 +130,18 @@ struct Port
   uint32_t port_no;               ///< Port number
 };
 
-/**
- * \brief Packet Metadata, allows us to track the packet's metadata as it
- * passes through the switch.
- */
-struct SwitchPacketMetadata
-{
-  Ptr<Packet> packet;         ///< The original ns3 Packet
-  ofpbuf* buffer;             ///< The OpenFlow buffer created from the Packet
-  uint16_t protocolNumber;    ///< Protocol type of the Packet when the Packet is received
-  Address src;                ///< Source Address of the Packet when the Packet is received
-  Address dst;                ///< Destination Address of the Packet when the Packet is received
-};
+// /**
+//  * \brief Packet Metadata, allows us to track the packet's metadata as it
+//  * passes through the switch.
+//  */
+// struct SwitchPacketMetadata
+// {
+//   Ptr<Packet> packet;         ///< The original ns3 Packet
+//   ofpbuf* buffer;             ///< The OpenFlow buffer created from the Packet
+//   uint16_t protocolNumber;    ///< Protocol type of the Packet when the Packet is received
+//   Address src;                ///< Source Address of the Packet when the Packet is received
+//   Address dst;                ///< Destination Address of the Packet when the Packet is received
+// };
 
 } // namespace ofs
 } // namespace ns3
