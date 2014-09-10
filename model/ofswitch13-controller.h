@@ -55,16 +55,26 @@ public:
   /**
    * \brief Create a flow_mod message using the same syntax from dpctl, and
    * send it to the switch.
-   * \param swtch The Ptr<OFSwitch13NetDevice> switch to register.
+   * \param swtch The switch to receive the message.
    * \param textCmd The dpctl flow_mod command to create the message.
+   * \return The number of bytes sent
    */
-  void SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* textCmd);
+  int SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char* textCmd);
+ 
+  /**
+   * \internal
+   * \brief Create an empty hello message and send it to the switch
+   * \param swtch The switch to receive the message.
+   * \return The number of bytes sent
+   */
+  int SendHelloMsg (Ptr<OFSwitch13NetDevice> swtch);
 
 private:
   // inherited from Application
   virtual void StartApplication (void);
   virtual void StopApplication (void);
 
+  Ptr<Packet> CreatePacket (void *msg);
   /**
    * \internal
    * Get the packet type on the buffer, which can then be used
@@ -88,10 +98,11 @@ private:
    * Send a message to a registered switch. It will encapsulate the ofl_msg
    * format into an ofpbuf wire format and send it over a TCP socekt to the
    * proper switch IP address.
-   * \param swtch The switch NetDevice to receive the message.
-   * \param msg The message to send.
+   * \param pkt The packet to send
+   * \param swtch The switch to receive the message.
+   * \return The number of bytes sent
    */
-  void SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void *msg);
+  int SendToSwitch (Ptr<Packet> pkt, Ptr<OFSwitch13NetDevice> swtch);
 
   /**
    * Handlers used as socket callbacks to TCP communication between this
@@ -105,14 +116,14 @@ private:
   void HandlePeerError  (Ptr<Socket> socket);                       //!< TCP connection error
   //\}
   
-  static const uint32_t m_global_xid = 0xf0ff00f0;  //!< Global transaction idx
-  uint16_t              m_port;                     //!< Local controller tcp port
+  uint32_t              m_xid;          //!< Global transaction idx
+  uint16_t              m_port;         //!< Local controller tcp port
   
-  Ptr<Socket>           m_serverSocket;             //!< Listening server socket
-  Ptr<OFSwitch13Helper> m_helper;                   //!< OpenFlow helper
+  Ptr<Socket>           m_serverSocket; //!< Listening server socket
+  Ptr<OFSwitch13Helper> m_helper;       //!< OpenFlow helper
   
   typedef std::map<uint32_t, Ptr<Socket> > SocketsMap_t;
-  SocketsMap_t m_socketsMap;                        //!< Map of accepted sockets from switches
+  SocketsMap_t m_socketsMap;            //!< Map of accepted sockets from switches
 };
 
 } // namespace ns3

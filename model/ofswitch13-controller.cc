@@ -37,6 +37,8 @@ OFSwitch13Controller::OFSwitch13Controller ()
 {
   NS_LOG_FUNCTION_NOARGS ();
   m_serverSocket = 0;
+  m_helper = 0;
+  m_xid = 0xf0ff0000;
 }
 
 OFSwitch13Controller::~OFSwitch13Controller ()
@@ -78,9 +80,24 @@ OFSwitch13Controller::SetOFSwitch13Helper (Ptr<OFSwitch13Helper> helper)
     }
 }
 
-void
-OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* textCmd) 
+int
+OFSwitch13Controller::SendHelloMsg (Ptr<OFSwitch13NetDevice> swtch)
 {
+  // Create the internal hello message
+  struct ofl_msg_header *msg;
+  msg = (struct ofl_msg_header*)xmalloc (sizeof (struct ofl_msg_header));
+  msg->type = OFPT_HELLO;
+
+  // Create packet, free memory and send
+  Ptr<Packet> pkt = CreatePacket ((void*)msg);
+  ofl_msg_free (msg, NULL/*struct ofl_exp *exp*/);
+  return SendToSwitch (pkt, swtch);
+}
+
+int
+OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char* textCmd) 
+{
+  // Create the internal flow_mod message
   struct ofl_msg_flow_mod *msg;
   msg = (struct ofl_msg_flow_mod*)xmalloc (sizeof (struct ofl_msg_flow_mod));
   msg->header.type = OFPT_FLOW_MOD;
@@ -99,6 +116,7 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* t
   msg->instructions_num = 0;
   msg->instructions = NULL;
 
+  // Parse flow_mod dpctl command
   wordexp_t cmd;
   wordexp (textCmd, &cmd, 0);
   
@@ -122,10 +140,11 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* t
             } 
           else 
             {
-              /*We copy the value because we don't know if
-              it is an instruction or match.
-              If the match is empty, the argv is modified
-              causing errors to instructions parsing*/
+              /**
+               * We copy the value because we don't know if it is an
+               * instruction or match.  If the match is empty, the argv is
+               * modified causing errors to instructions parsing
+               */
               char *cpy = (char*)malloc (strlen (cmd.we_wordv[1]) + 1);
               memset (cpy, 0x00, strlen (cmd.we_wordv[1]) + 1);
               memcpy (cpy, cmd.we_wordv[1], strlen (cmd.we_wordv[1])); 
@@ -151,8 +170,11 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> sw, const char* t
       make_all_match (&(msg->match));
     }
   wordfree (&cmd);
-  
-  SendToSwitch (sw, msg); 
+
+  // Create packet, free memory and send
+  Ptr<Packet> pkt = CreatePacket ((void*)msg);
+  ofl_msg_free_flow_mod (msg, true, true, NULL/*struct ofl_exp *exp*/);
+  return SendToSwitch (pkt, swtch); 
 }
 
 /********** Private methods **********/
@@ -187,8 +209,6 @@ OFSwitch13Controller::StopApplication ()
   for (SocketsMap_t::iterator it = m_socketsMap.begin (); it != m_socketsMap.end (); it++)
     {
       it->second->Close ();
-      //Ptr<Socket> socket = it->second;
-      //socket->Close ();
     }
   if (m_serverSocket) 
     {
@@ -197,6 +217,35 @@ OFSwitch13Controller::StopApplication ()
     } 
   m_socketsMap.clear ();
 }
+
+Ptr<Packet>
+OFSwitch13Controller::CreatePacket (void *msg)
+{
+  // Print debug information
+  char *str;
+  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL);
+  NS_LOG_INFO ("SENDING: " << str);
+  free (str);
+
+  // Pack message into ofpbuf using to wire format
+  int error;
+  uint8_t *buf;
+  size_t buf_size;
+  struct ofpbuf *ofpbuf = ofpbuf_new (0);
+  error = ofl_msg_pack ((ofl_msg_header*)msg, ++m_xid, &buf, &buf_size, NULL);
+  if (error)
+    {
+      NS_LOG_ERROR ("Error packing controller message.");
+    }
+  ofpbuf_use (ofpbuf, buf, buf_size);
+  ofpbuf_put_uninit (ofpbuf, buf_size);
+
+  // Create ns3 packet, free buffer and return
+  Ptr<Packet> ns3Pkt = Create<Packet> ((uint8_t*)ofpbuf->data, buf_size);
+  ofpbuf_delete (ofpbuf);
+  return ns3Pkt;
+}
+
 
 uint8_t
 OFSwitch13Controller::GetPacketType (ofpbuf* buffer)
@@ -211,47 +260,33 @@ void
 OFSwitch13Controller::ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer)
 {
   NS_LOG_FUNCTION (this << swtch);
+
+  // TODO: Não esquecer de liberar o buffer ao final
 }
 
-void
-OFSwitch13Controller::SendToSwitch (Ptr<OFSwitch13NetDevice> swtch, void *msg)
+int
+OFSwitch13Controller::SendToSwitch (Ptr<Packet> pkt, Ptr<OFSwitch13NetDevice> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
   NS_ASSERT (m_helper);
 
+  // Check for valid switch
   uint32_t index = m_helper->GetContainerIndex (swtch);
   if (index == UINT32_MAX)
     {
       NS_LOG_ERROR ("Can't send to this switch, not registered to this Controller.");
-      return;
+      return -1;
     }
-  
-  char *str;
-  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL);
-  NS_LOG_DEBUG ("SENDING: " << str);
-  free (str);
 
-  // Pack buffer to wire format
-  int error;
-  uint8_t *buf;
-  size_t buf_size;
-  error = ofl_msg_pack ((ofl_msg_header*)msg, m_global_xid, &buf, &buf_size, NULL);
-  if (error)
-    {
-      NS_LOG_ERROR ("Error packing controller message.");
-    }
-  
-  // Create ns3 packet and send over socket
-  Ptr<Packet> ns3Pkt = Create<Packet> (buf, buf_size);
+  // Get switch socket
   SocketsMap_t::iterator sockIt = m_socketsMap.find (index);
   if (sockIt == m_socketsMap.end ())
     {
       NS_LOG_ERROR ("Can't send to this switch, no socket found.");
-      return;
+      return -1;
     }
   Ptr<Socket> switchSocket = sockIt->second;
-  error = switchSocket->Send (ns3Pkt);
-  NS_LOG_DEBUG (error << " bytes transmitted to switch");
+  return switchSocket->Send (pkt);
 }
 
 void 
@@ -270,13 +305,13 @@ OFSwitch13Controller::HandleRead (Ptr<Socket> socket)
         }
       if (InetSocketAddress::IsMatchingType (from))
         {
-          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
+          NS_LOG_DEBUG ("At time " << Simulator::Now ().GetSeconds ()
                        << "s the OpenFlow Controller received "
                        <<  packet->GetSize () << " bytes from switch "
                        << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
                        << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
           
-          // Get the corresponding swith device
+          // Get the corresponding swith device from address
           Ipv4Address ipv4Addr = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
           uint32_t index = m_helper->GetContainerIndex (ipv4Addr);
           Ptr<OFSwitch13NetDevice> swtch = m_helper->GetSwitchDevice (index);
@@ -314,6 +349,7 @@ OFSwitch13Controller::HandleAccept (Ptr<Socket> s, const Address& from)
   NS_LOG_DEBUG ("Switch request connection accepted from " << ipv4);
   s->SetRecvCallback (MakeCallback (&OFSwitch13Controller::HandleRead, this));
   m_socketsMap[idx] = s;
+  SendHelloMsg (m_helper->GetSwitchDevice (idx));
 }
 
 void 

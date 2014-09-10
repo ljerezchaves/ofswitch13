@@ -628,7 +628,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer, size_t length)
  
   char *str; 
   str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL/*&ofl_exp*/);
-  NS_LOG_DEBUG ("RECEIVING: " << str);
+  NS_LOG_INFO ("RECEIVING: " << str);
   free (str);
 
   switch (msg->type)
@@ -736,7 +736,7 @@ ofpbuf *
 OFSwitch13NetDevice::Of13BufferCreate (Ptr<const Packet> packet, Mac48Address src, 
     Mac48Address dst, int mtu, uint16_t protocol)
 {
-  NS_LOG_INFO ("Creating Openflow buffer from packet.");
+  NS_LOG_DEBUG ("Creating Openflow buffer from packet.");
 
   /*
    * Allocate buffer with some headroom to add headers in forwarding
@@ -1446,7 +1446,7 @@ OFSwitch13NetDevice::HandleRead (Ptr<Socket> socket)
         }
       if (InetSocketAddress::IsMatchingType (from))
         {
-          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
+          NS_LOG_DEBUG ("At time " << Simulator::Now ().GetSeconds ()
                        << "s the OpenFlow switch received "
                        <<  packet->GetSize () << " bytes from controller "
                        << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
