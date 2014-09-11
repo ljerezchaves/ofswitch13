@@ -64,43 +64,56 @@ main (int argc, char *argv[])
 
   // Create the switches node
   NodeContainer switches;
-  switches.Create (1);
-  Ptr<Node> switchNode = switches.Get (0);
+  switches.Create (2);
+  Ptr<Node> switchNode0 = switches.Get (0);
+  Ptr<Node> switchNode1 = switches.Get (1);
 
   // Create the controller node
   NodeContainer controller;
   controller.Create (1);
   Ptr<Node> controllerNode = controller.Get (0);
 
-  // Connect the terminals to the switch using csma links
+  // Connect the terminals to the switches using csma links
   CsmaHelper csmaHelper;
   csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
   csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
   NetDeviceContainer terminalDevices;
-  NetDeviceContainer switchDevices;
-  for (size_t i = 0; i < terminals.GetN (); i++)
-    {
-      NetDeviceContainer link = csmaHelper.Install (NodeContainer (terminals.Get (i), switches));
-      terminalDevices.Add (link.Get (0));
-      switchDevices.Add (link.Get (1));
-    }
-
-  // Install the OFSwitch13NetDevice onto the switch
-  NetDeviceContainer of13Device;
+  NetDeviceContainer switch0Devices, switch1Devices;
+      
+  NetDeviceContainer link0 = csmaHelper.Install (NodeContainer (terminals.Get (0), switches.Get (0)));
+  NetDeviceContainer link1 = csmaHelper.Install (NodeContainer (terminals.Get (1), switches.Get (1)));
+  NetDeviceContainer link2 = csmaHelper.Install (NodeContainer (switches.Get (0), switches.Get (1)));
+  terminalDevices.Add (link0.Get (0));
+  terminalDevices.Add (link1.Get (0));
+  switch0Devices.Add (link0.Get (1));       // Switch 0 Port 1 to terminal 0
+  switch0Devices.Add (link2.Get (0));       // Switch 0 Port 2 to switch 1
+  switch1Devices.Add (link1.Get (1));       // Switch 1 Port 1 to terminal 1
+  switch1Devices.Add (link2.Get (1));       // Switch 1 Port 2 to switch 0
+ 
+   // Install the OFSwitch13NetDevice onto the switch
+  NetDeviceContainer of13Device0, of13Device1;
   Ptr<OFSwitch13Helper> ofHelper = Create<OFSwitch13Helper> ();
-  of13Device = ofHelper->InstallSwitch (switchNode, switchDevices);
+  of13Device0 = ofHelper->InstallSwitch (switchNode0, switch0Devices);
+  of13Device1 = ofHelper->InstallSwitch (switchNode1, switch1Devices);
 
   // Install the controller app (creating links between controller and switches)
   Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallController (controllerNode);
 
   // Some OpenFlow flow-mod commands for tests
-  Ptr<OFSwitch13NetDevice> ofswitchNetDev = of13Device.Get (0)->GetObject<OFSwitch13NetDevice> ();
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
-      "cmd=add,table=0,prio=0 apply:output=ctrl");
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
+  Ptr<OFSwitch13NetDevice> ofswitch0NetDev = of13Device0.Get (0)->GetObject<OFSwitch13NetDevice> ();
+  Ptr<OFSwitch13NetDevice> ofswitch1NetDev = of13Device1.Get (0)->GetObject<OFSwitch13NetDevice> ();
+
+//  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
+//      "cmd=add,table=0,prio=0 apply:output=ctrl");
+  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch0NetDev, 
       "cmd=add,table=0 in_port=1 apply:output=2");
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
+  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch0NetDev, 
       "cmd=add,table=0 in_port=2 apply:output=1");
+  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch1NetDev, 
+      "cmd=add,table=0 in_port=1 apply:output=2");
+  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch1NetDev, 
+      "cmd=add,table=0 in_port=2 apply:output=1");
+
 
   // Installing the tcp/ip stack onto terminals
   InternetStackHelper internet;
@@ -120,11 +133,12 @@ main (int argc, char *argv[])
 
   // Enable pcap traces
   ofHelper->EnableOpenFlowPcap ();
-  csmaHelper.EnablePcap ("ofswitch-p0", switchDevices.Get (0));
-  csmaHelper.EnablePcap ("ofswitch-p1", switchDevices.Get (1));
+  csmaHelper.EnablePcap ("ofswitch-l0", switch0Devices.Get (0));
+  csmaHelper.EnablePcap ("ofswitch-l1", switch1Devices.Get (0));
+  csmaHelper.EnablePcap ("ofswitch-l2", switch0Devices.Get (1));
 
   controlApp->SetStopTime (Seconds (10));
-
+ 
   // Run the simulation
   Simulator::Stop (Seconds (30));
   Simulator::Run ();
