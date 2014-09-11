@@ -96,7 +96,7 @@ main (int argc, char *argv[])
   // Some OpenFlow flow-mod commands for tests
   Ptr<OFSwitch13NetDevice> ofswitchNetDev = of13Device.Get (0)->GetObject<OFSwitch13NetDevice> ();
   Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
-      "cmd=add,table=0,prio=0 apply:output=ctrl");
+      "cmd=add,table=0,prio=0,idle=10 apply:output=ctrl");
   Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
       "cmd=add,table=0 in_port=1 apply:output=2");
   Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
@@ -123,10 +123,8 @@ main (int argc, char *argv[])
   csmaHelper.EnablePcap ("ofswitch-p0", switchDevices.Get (0));
   csmaHelper.EnablePcap ("ofswitch-p1", switchDevices.Get (1));
 
-  controlApp->SetStopTime (Seconds (10));
-
   // Run the simulation
-  Simulator::Stop (Seconds (30));
+  Simulator::Stop (Seconds (60));
   Simulator::Run ();
   Simulator::Destroy ();
 }

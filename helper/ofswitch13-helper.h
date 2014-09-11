@@ -99,7 +99,9 @@ public:
   void EnableOpenFlowPcap ();
    
   /**
-   * Returns the objects in the containers from a specific index.
+   * \name Get items methods
+   * \param idx The index at the container
+   * \return the objects in the container at a specific index.
    */
   //\{
   Ipv4Address GetSwitchAddress (uint32_t idx);
@@ -108,8 +110,10 @@ public:
   //\}
 
   /**
+   * \name GetIndex methods
    * Iterate over the containers looking for the specifc index matching the
    * parameter. This index can be used to access other containers.
+   * \return The index in the containers
    */
   //\{
   uint32_t GetContainerIndex (Ipv4Address addr);

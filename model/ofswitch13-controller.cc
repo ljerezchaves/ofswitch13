@@ -38,7 +38,7 @@ OFSwitch13Controller::OFSwitch13Controller ()
   NS_LOG_FUNCTION_NOARGS ();
   m_serverSocket = 0;
   m_helper = 0;
-  m_xid = 0xf0ff0000;
+  m_xid = 0xff000000;
 }
 
 OFSwitch13Controller::~OFSwitch13Controller ()
@@ -84,13 +84,18 @@ int
 OFSwitch13Controller::SendHelloMsg (Ptr<OFSwitch13NetDevice> swtch)
 {
   // Create the internal hello message
-  struct ofl_msg_header *msg;
-  msg = (struct ofl_msg_header*)xmalloc (sizeof (struct ofl_msg_header));
-  msg->type = OFPT_HELLO;
+  struct ofl_msg_header msg;
+  msg.type = OFPT_HELLO;
+
+  // Print debug information
+  char *str;
+  str = ofl_msg_to_string ((ofl_msg_header*)&msg, NULL);
+  NS_LOG_INFO ("SENDING: " << str);
+  free (str);
 
   // Create packet, free memory and send
-  Ptr<Packet> pkt = CreatePacket ((void*)msg);
-  ofl_msg_free (msg, NULL/*struct ofl_exp *exp*/);
+  struct ofpbuf *ofpbuf = ofs::PackFromMsg (&msg, ++m_xid);
+  Ptr<Packet> pkt = ofs::PacketFromBufferAndFree (ofpbuf);
   return SendToSwitch (pkt, swtch);
 }
 
@@ -98,23 +103,23 @@ int
 OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char* textCmd) 
 {
   // Create the internal flow_mod message
-  struct ofl_msg_flow_mod *msg;
-  msg = (struct ofl_msg_flow_mod*)xmalloc (sizeof (struct ofl_msg_flow_mod));
-  msg->header.type = OFPT_FLOW_MOD;
-  msg->cookie = 0x0000000000000000ULL;
-  msg->cookie_mask = 0x0000000000000000ULL;
-  msg->table_id = 0x00;
-  msg->command = OFPFC_ADD;
-  msg->idle_timeout = OFP_FLOW_PERMANENT;
-  msg->hard_timeout = OFP_FLOW_PERMANENT;
-  msg->priority = OFP_DEFAULT_PRIORITY;
-  msg->buffer_id = 0xffffffff;
-  msg->out_port = OFPP_ANY;
-  msg->out_group = OFPG_ANY;
-  msg->flags = 0x0000;
-  msg->match = NULL;
-  msg->instructions_num = 0;
-  msg->instructions = NULL;
+  struct ofl_msg_flow_mod msgLocal;
+  struct ofl_msg_flow_mod *msg = &msgLocal;
+  msgLocal.header.type = OFPT_FLOW_MOD;
+  msgLocal.cookie = 0x0000000000000000ULL;
+  msgLocal.cookie_mask = 0x0000000000000000ULL;
+  msgLocal.table_id = 0x00;
+  msgLocal.command = OFPFC_ADD;
+  msgLocal.idle_timeout = OFP_FLOW_PERMANENT;
+  msgLocal.hard_timeout = OFP_FLOW_PERMANENT;
+  msgLocal.priority = OFP_DEFAULT_PRIORITY;
+  msgLocal.buffer_id = 0xffffffff;
+  msgLocal.out_port = OFPP_ANY;
+  msgLocal.out_group = OFPG_ANY;
+  msgLocal.flags = 0x0000;
+  msgLocal.match = NULL;
+  msgLocal.instructions_num = 0;
+  msgLocal.instructions = NULL;
 
   // Parse flow_mod dpctl command
   wordexp_t cmd;
@@ -171,10 +176,16 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char
     }
   wordfree (&cmd);
 
+  // Print debug information
+  char *str;
+  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL);
+  NS_LOG_INFO ("SENDING: " << str);
+  free (str);
+
   // Create packet, free memory and send
-  Ptr<Packet> pkt = CreatePacket ((void*)msg);
-  ofl_msg_free_flow_mod (msg, true, true, NULL/*struct ofl_exp *exp*/);
-  return SendToSwitch (pkt, swtch); 
+  struct ofpbuf *ofpbuf = ofs::PackFromMsg ((ofl_msg_header*)msg, ++m_xid);
+  Ptr<Packet> pkt = ofs::PacketFromBufferAndFree (ofpbuf);
+  return SendToSwitch (pkt, swtch);
 }
 
 /********** Private methods **********/
@@ -217,32 +228,6 @@ OFSwitch13Controller::StopApplication ()
     } 
   m_socketsMap.clear ();
 }
-
-Ptr<Packet>
-OFSwitch13Controller::CreatePacket (void *msg)
-{
-  // Print debug information
-  char *str;
-  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL);
-  NS_LOG_INFO ("SENDING: " << str);
-  free (str);
-
-  // Pack message into ofpbuf using to wire format
-  int error;
-  uint8_t *buf;
-  size_t buf_size;
-  struct ofpbuf *ofpbuf = ofpbuf_new (0);
-  error = ofl_msg_pack ((ofl_msg_header*)msg, ++m_xid, &buf, &buf_size, NULL);
-  if (error)
-    {
-      NS_LOG_ERROR ("Error packing controller message.");
-    }
-  ofpbuf_use (ofpbuf, buf, buf_size);
-  ofpbuf_put_uninit (ofpbuf, buf_size);
-
-  return ofs::PacketFromBuffer (ofpbuf);
-}
-
 
 uint8_t
 OFSwitch13Controller::GetPacketType (ofpbuf* buffer)

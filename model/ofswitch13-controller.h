@@ -74,7 +74,6 @@ private:
   virtual void StartApplication (void);
   virtual void StopApplication (void);
 
-  Ptr<Packet> CreatePacket (void *msg);
   /**
    * \internal
    * Get the packet type on the buffer, which can then be used
@@ -105,8 +104,12 @@ private:
   int SendToSwitch (Ptr<Packet> pkt, Ptr<OFSwitch13NetDevice> swtch);
 
   /**
+   * \internal
+   * \name Socket callbacks
    * Handlers used as socket callbacks to TCP communication between this
-   * controller and the switches.
+   * switch and the controller.
+   * \param socket The TCP socket.
+   * \param from The source Address
    */
   //\{
   void HandleRead       (Ptr<Socket> socket);                       //!< Receive packet from switch

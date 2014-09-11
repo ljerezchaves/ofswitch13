@@ -131,8 +131,7 @@ OFSwitch13Helper::InstallController (Ptr<Node> cNode)
         {
           Ptr<OFSwitch13NetDevice> dev = DynamicCast<OFSwitch13NetDevice> (m_devices.Get (i));
           NS_LOG_INFO ("Registering the controller to switch " << dev);
-          dev->SetController (m_ctrlApp); // TODO Avoid this
-          dev->SetController (m_ctrlAddr);
+          dev->SetController (m_ctrlApp, m_ctrlAddr);
         }
     }
   return m_ctrlApp;

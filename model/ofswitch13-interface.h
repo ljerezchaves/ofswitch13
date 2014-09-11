@@ -166,13 +166,25 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t head
  * \brief Create an ns3::Packet from OpenFlow buffer
  * 
  * Takes a an OpenFlow buffer (ofpbuf*) and generates a Ptr<Packet> from it,
- * loading the data as well as its headers into the packet, and freeing the
- * buffer memory.
+ * load the data as well as its headers into the packet and free the buffer
+ * memory.
  * 
  * \param buffer The ofpbuf buffer
  * \return The ns3::Packet created.
  */
-Ptr<Packet> PacketFromBuffer (ofpbuf* buffer);
+Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer);
+
+/**
+ * \brief Create and OpenFlow ofpbuf from internal ofl_msg_*
+ * 
+ * Takes a ofl_msg_* structure and generates an OpenFlow buffer (ofpbuf*) from
+ * it, load the message data into the buffer.
+ * 
+ * \param msg The ofl_msg_* structure
+ * \param xid The transaction id to use.
+ * \return The OpenFlow Buffer created from the message
+ */
+ofpbuf* PackFromMsg (ofl_msg_header *msg, uint32_t xid);
 
 } // namespace ofs
 } // namespace ns3
