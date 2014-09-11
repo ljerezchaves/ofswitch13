@@ -546,8 +546,22 @@ OFSwitch13NetDevice::ReceiveFromDevice (Ptr<NetDevice> netdev,
       return;
     }
 
-  // Buffering the packet and creating the internal openflow packet structure from buffer
-  struct ofpbuf *buffer = Of13BufferCreate (packet, src48, dst48, netdev->GetMtu (), protocol);
+  /**
+   * Adding the ethernet header back. It was removed by CsmaNetDevice but we
+   * need this information here.
+   */
+  Ptr<Packet> pktCopy = packet->Copy ();
+  AddEthernetHeader (pktCopy, src48, dst48, protocol);
+
+  /**
+   * Buffering the packet and creating the internal openflow packet structure
+   * from buffer. Allocate buffer with some headroom to add headers in
+   * forwarding to the controller or adding a vlan tag, plus an extra 2 bytes
+   * to allow IP headers to be aligned on a 4-byte boundary.
+   */
+  uint32_t headRoom = 128 + 2;
+  uint32_t bodyRoom = netdev->GetMtu () + VLAN_ETH_HEADER_LEN;
+  struct ofpbuf *buffer = ofs::BufferFromPacket (pktCopy, bodyRoom, headRoom);
   struct packet *pkt = Of13PacketCreate (inPort->stats->port_no, buffer, false);
 
   // Update port stats
@@ -728,33 +742,6 @@ OFSwitch13NetDevice::SendToController (ofpbuf *buffer)
     }
 
   return 0;
-}
-
-
-
-ofpbuf *
-OFSwitch13NetDevice::Of13BufferCreate (Ptr<const Packet> packet, Mac48Address src, 
-    Mac48Address dst, int mtu, uint16_t protocol)
-{
-  NS_LOG_DEBUG ("Creating Openflow buffer from packet.");
-
-  /*
-   * Allocate buffer with some headroom to add headers in forwarding
-   * to the controller or adding a vlan tag, plus an extra 2 bytes to
-   * allow IP headers to be aligned on a 4-byte boundary.
-   */
-  const int headroom = 128 + 2;
-  const int hard_header = VLAN_ETH_HEADER_LEN;
-  ofpbuf *buffer = ofpbuf_new_with_headroom (hard_header + mtu, headroom);
-
-  // Adding the ethernet header back (it was removed by CsmaNetDevice)
-  Ptr<Packet> pktCopy = packet->Copy ();
-  AddEthernetHeader (pktCopy, src, dst, protocol);
-
-  uint32_t pktSize = pktCopy->GetSize ();
-  pktCopy->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
-
-  return buffer;
 }
 
 struct packet *

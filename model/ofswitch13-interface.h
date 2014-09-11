@@ -16,13 +16,17 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
-/** \defgroup ofswitch13 OpenFlow 1.3 soft switch (ofsoftswitch13)
+/** 
+ * \defgroup ofswitch13 OpenFlow 1.3 softswitch
+ * \brief An OpenFlow 1.3 compatible switch datapath implementation
  * 
- * This module is an OpenFlow 1.3 compatible switch datapath implementation
+ * This module follows the OpenFlow 1.3 switch specification
  * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
- * The module depends on the CPqD ofsoftswitch13
+ * It depends on the CPqD ofsoftswitch13
  * <https://github.com/ljerezchaves/ofsoftswitch13> implementation compiled
  * as a library (use ./configure --enable-ns3-lib).
+ *
+ * \atention Currently, only a subset of features are supported.
  */
 #ifndef OFSWITCH13_INTERFACE_H
 #define OFSWITCH13_INTERFACE_H
@@ -142,6 +146,33 @@ struct Port
 //   Address src;                ///< Source Address of the Packet when the Packet is received
 //   Address dst;                ///< Destination Address of the Packet when the Packet is received
 // };
+
+/**
+ * \brief Create and OpenFlow ofpbuf from ns3::Packet
+ * 
+ * Takes a Ptr<Packet> and generates an OpenFlow buffer (ofpbuf*) from it,
+ * loading the packet data as well as its headers into the buffer.
+ * 
+ * \see ofsoftswitch13 function netdev_recv () at lib/netdev.c
+ *
+ * \param packet The packet.
+ * \param bodyRoom The size to allocate for data.
+ * \param headRoom The size to allocate for headers (left unitialized).
+ * \return The OpenFlow Buffer created from the packet.
+ */
+ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom = 0);
+
+/**
+ * \brief Create an ns3::Packet from OpenFlow buffer
+ * 
+ * Takes a an OpenFlow buffer (ofpbuf*) and generates a Ptr<Packet> from it,
+ * loading the data as well as its headers into the packet, and freeing the
+ * buffer memory.
+ * 
+ * \param buffer The ofpbuf buffer
+ * \return The ns3::Packet created.
+ */
+Ptr<Packet> PacketFromBuffer (ofpbuf* buffer);
 
 } // namespace ofs
 } // namespace ns3

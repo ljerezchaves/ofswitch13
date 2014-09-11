@@ -240,10 +240,7 @@ OFSwitch13Controller::CreatePacket (void *msg)
   ofpbuf_use (ofpbuf, buf, buf_size);
   ofpbuf_put_uninit (ofpbuf, buf_size);
 
-  // Create ns3 packet, free buffer and return
-  Ptr<Packet> ns3Pkt = Create<Packet> ((uint8_t*)ofpbuf->data, buf_size);
-  ofpbuf_delete (ofpbuf);
-  return ns3Pkt;
+  return ofs::PacketFromBuffer (ofpbuf);
 }
 
 
@@ -316,12 +313,7 @@ OFSwitch13Controller::HandleRead (Ptr<Socket> socket)
           uint32_t index = m_helper->GetContainerIndex (ipv4Addr);
           Ptr<OFSwitch13NetDevice> swtch = m_helper->GetSwitchDevice (index);
 
-          // Creante an ofpbuffer from packet
-          uint32_t pktSize = packet->GetSize ();
-          struct ofpbuf *buffer = ofpbuf_new (pktSize);
-          packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
-
-          // Receive and process the openflow buffer
+          struct ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
           ReceiveFromSwitch (swtch, buffer);
         }
     }

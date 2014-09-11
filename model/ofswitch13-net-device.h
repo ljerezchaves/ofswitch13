@@ -199,24 +199,6 @@ protected:
 
 private:
   /**
-   * \brief Create and OpenFlow buffer from ns3::Packet
-   * 
-   * Takes a Ptr<Packet> and generates an OpenFlow buffer (ofpbuf*) from it,
-   * loading the packet data as well as its headers into the buffer.
-   * 
-   * \see ofsoftswitch13 function netdev_recv () at lib/netdev.c
-   *
-   * \param packet The packet.
-   * \param src The source address.
-   * \param dst The destination address.
-   * \param mtu The Maximum Transmission Unit (MTU).
-   * \param protocol The L3 protocol defining the packet (as we are in L2).
-   * \return The OpenFlow Buffer created from the packet.
-   */
-  ofpbuf* Of13BufferCreate (Ptr<const Packet> packet, Mac48Address src, 
-      Mac48Address dst, int mtu, uint16_t protocol);
-
-  /**
    * \brief Creates an OpenFlow packet from openflow buffer
    *
    * This packet in an internal ofsoftswitch13 structure to represent the

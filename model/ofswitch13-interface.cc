@@ -49,6 +49,27 @@ Port::Port (Ptr<NetDevice> netdev, uint32_t no) :
     flags |= SWP_USED;
 }
 
+ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  uint32_t pktSize = packet->GetSize ();
+  NS_ASSERT (pktSize <= bodyRoom); 
+
+  ofpbuf *buffer = ofpbuf_new_with_headroom (bodyRoom, headRoom);
+  packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
+  return buffer;
+}
+
+Ptr<Packet> PacketFromBuffer (ofpbuf* buffer)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+  
+  Ptr<Packet> packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
+  ofpbuf_delete (buffer);
+  return packet;
+}
+
 } // namespace ofs
 } // namespace ns3
 #endif // NS3_OFSWITCH13
