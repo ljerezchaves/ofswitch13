@@ -171,7 +171,7 @@ int
 OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
 {
   NS_LOG_FUNCTION (this << switchPort);
-  NS_LOG_DEBUG ("Adding port addr " << switchPort->GetAddress ());
+  NS_LOG_INFO ("Adding port addr " << switchPort->GetAddress ());
   
   if (m_ports.size () >= DP_MAX_PORTS)
     {
@@ -197,7 +197,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
   int no = m_ports.size () + 1;
   ofs::Port p (switchPort, no);
   m_ports.push_back (p);
-  NS_LOG_DEBUG ("Port # " << no);
+  NS_LOG_INFO ("Port # " << no);
   
   // Notify the controller that this port has been added
   if (m_ctrlSocket)
@@ -212,7 +212,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
       SendToController (packet);
     }
 
-  NS_LOG_DEBUG ("RegisterProtocolHandler for " << switchPort->GetInstanceTypeId ().GetName ());
+  NS_LOG_LOGIC ("RegisterProtocolHandler for " << switchPort->GetInstanceTypeId ().GetName ());
   m_node->RegisterProtocolHandler (MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this), 0, switchPort, true);
   m_channel->AddChannel (switchPort->GetChannel ());
   return 0;
@@ -273,7 +273,7 @@ OFSwitch13NetDevice::SetAddress (Address address)
 {
   NS_LOG_FUNCTION_NOARGS ();
   m_address = Mac48Address::ConvertFrom (address);
-  NS_LOG_DEBUG ("Switch addr " << m_address);
+  NS_LOG_INFO ("Switch addr " << m_address);
 }
 
 Address
@@ -452,10 +452,10 @@ OFSwitch13NetDevice::PortGetOfsPort (Ptr<NetDevice> dev)
     {
       if (m_ports[i].netdev == dev)
         {
-          NS_LOG_DEBUG ("Found port no " << m_ports[i].port_no);
           return &m_ports[i];
         }
     }
+  NS_LOG_ERROR ("No port found!");
   return NULL;
 }
 
@@ -467,7 +467,6 @@ OFSwitch13NetDevice::PortGetOfsPort (uint32_t no)
 
   if (m_ports[no-1].port_no == no)
     {
-      NS_LOG_DEBUG ("Found port no " << m_ports[no-1].port_no);
       return &m_ports[no-1];
     }
   
@@ -475,10 +474,10 @@ OFSwitch13NetDevice::PortGetOfsPort (uint32_t no)
     {
       if (m_ports[i].port_no == no)
         {
-          NS_LOG_DEBUG ("Found port no " << m_ports[i].port_no);
           return &m_ports[i];
         }
     }
+  NS_LOG_ERROR ("No port found!");
   return NULL;
 }
 
@@ -514,7 +513,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
  
   char *str; 
   str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL/*&ofl_exp*/);
-  NS_LOG_INFO ("RECEIVING: " << str);
+  NS_LOG_INFO ("RECEIVING from controller: " << str);
   free (str);
 
   // For not defined messages, default error ;)
@@ -621,7 +620,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   Mac48Address src48 = Mac48Address::ConvertFrom (src);
   Mac48Address dst48 = Mac48Address::ConvertFrom (dst);
   
-  NS_LOG_DEBUG ("Switch id " << this->GetNode()->GetId() << 
+  NS_LOG_LOGIC ("Switch id " << this->GetNode()->GetId() << 
                 " received packet type " << packetType << 
                 " with uid " << packet->GetUid () <<
                 " from " << src48 << " looking for " << dst48);
@@ -669,7 +668,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   NS_ASSERT_MSG (inPort != NULL, "This device is not registered as a switch port");
   if (inPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) 
     {
-      NS_LOG_DEBUG ("This port is down or inoperating. Discarding packet");
+      NS_LOG_WARN ("This port is down or inoperating. Discarding packet");
       return;
     }
 
@@ -705,7 +704,7 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, ofs::Port *port)
 {
   if (port == 0 || port->netdev == 0)
     {
-      NS_LOG_DEBUG ("can't forward to invalid port.");
+      NS_LOG_ERROR ("can't forward to invalid port.");
       return false;
     }
   
@@ -735,7 +734,7 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, ofs::Port *port)
         }
       return status;
     }
-  NS_LOG_DEBUG ("can't forward to bad port " << port->port_no);
+  NS_LOG_ERROR ("can't forward to bad port " << port->port_no);
   return false;
 }
 
@@ -752,13 +751,13 @@ OFSwitch13NetDevice::PipelineProcessPacket (struct packet* pkt)
     {
       if ((m_config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) 
         {
-          NS_LOG_DEBUG ("Packet has invalid TTL, sending to controller.");
+          NS_LOG_WARN ("Packet has invalid TTL, sending to controller.");
           Ptr<Packet> ns3pkt = CreatePacketIn (pkt, 0, OFPR_INVALID_TTL, UINT64_MAX);
           SendToController (ns3pkt);
         } 
       else 
         {
-          NS_LOG_DEBUG ("Packet has invalid TTL, dropping.");
+          NS_LOG_WARN ("Packet has invalid TTL, dropping.");
         }
       packet_destroy (pkt);
       return;
@@ -1559,7 +1558,7 @@ OFSwitch13NetDevice::HandleCtrlRead (Ptr<Socket> socket)
         }
       if (InetSocketAddress::IsMatchingType (from))
         {
-          NS_LOG_DEBUG ("At time " << Simulator::Now ().GetSeconds ()
+          NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds ()
                        << "s the OpenFlow switch received "
                        <<  packet->GetSize () << " bytes from controller "
                        << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
@@ -1581,7 +1580,7 @@ void
 OFSwitch13NetDevice::HandleCtrlSucceeded (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-  NS_LOG_DEBUG ("Controller accepted connection request!");
+  NS_LOG_LOGIC ("Controller accepted connection request!");
   socket->SetRecvCallback (MakeCallback (&OFSwitch13NetDevice::HandleCtrlRead, this));
 }
 

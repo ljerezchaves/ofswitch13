@@ -30,6 +30,15 @@ namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller);
 
+static void
+LogSendingMessage (struct ofl_msg_header *msg)
+{
+  char *str;
+  str = ofl_msg_to_string (msg, NULL);
+  NS_LOG_INFO ("SENDING to switch: " << str);
+  free (str);
+}
+
 
 /********** Public methods **********/
 
@@ -87,13 +96,8 @@ OFSwitch13Controller::SendHelloMsg (Ptr<OFSwitch13NetDevice> swtch)
   struct ofl_msg_header msg;
   msg.type = OFPT_HELLO;
 
-  // Print debug information
-  char *str;
-  str = ofl_msg_to_string ((ofl_msg_header*)&msg, NULL);
-  NS_LOG_INFO ("SENDING: " << str);
-  free (str);
-
   // Create packet, free memory and send
+  LogSendingMessage (&msg);
   struct ofpbuf *ofpbuf = ofs::PackFromMsg (&msg, ++m_xid);
   Ptr<Packet> pkt = ofs::PacketFromBufferAndFree (ofpbuf);
   return SendToSwitch (pkt, swtch);
@@ -176,13 +180,8 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char
     }
   wordfree (&cmd);
 
-  // Print debug information
-  char *str;
-  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL);
-  NS_LOG_INFO ("SENDING: " << str);
-  free (str);
-
   // Create packet, free memory and send
+  LogSendingMessage ((ofl_msg_header*)msg);
   struct ofpbuf *ofpbuf = ofs::PackFromMsg ((ofl_msg_header*)msg, ++m_xid);
   Ptr<Packet> pkt = ofs::PacketFromBufferAndFree (ofpbuf);
   return SendToSwitch (pkt, swtch);
@@ -287,7 +286,7 @@ OFSwitch13Controller::HandleRead (Ptr<Socket> socket)
         }
       if (InetSocketAddress::IsMatchingType (from))
         {
-          NS_LOG_DEBUG ("At time " << Simulator::Now ().GetSeconds ()
+          NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds ()
                        << "s the OpenFlow Controller received "
                        <<  packet->GetSize () << " bytes from switch "
                        << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
@@ -308,7 +307,7 @@ bool
 OFSwitch13Controller::HandleRequest (Ptr<Socket> s, const Address& from)
 {
   NS_LOG_FUNCTION (this << s << from);
-  NS_LOG_DEBUG ("Switch request connection from " << 
+  NS_LOG_LOGIC ("Switch request connection from " << 
       InetSocketAddress::ConvertFrom (from).GetIpv4 ());
   return true;
 }
@@ -323,7 +322,7 @@ OFSwitch13Controller::HandleAccept (Ptr<Socket> s, const Address& from)
   uint32_t idx = m_helper->GetContainerIndex (ipv4);
   NS_ASSERT_MSG (idx != UINT32_MAX, "Address not associated with registered switch.");
   
-  NS_LOG_DEBUG ("Switch request connection accepted from " << ipv4);
+  NS_LOG_LOGIC ("Switch request connection accepted from " << ipv4);
   s->SetRecvCallback (MakeCallback (&OFSwitch13Controller::HandleRead, this));
   m_socketsMap[idx] = s;
   SendHelloMsg (m_helper->GetSwitchDevice (idx));
