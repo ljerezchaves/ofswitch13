@@ -137,13 +137,15 @@ public:
 private:
   virtual void DoDispose (void);
 
+  ///\name Port methods
+  //\{
   /**
    * \brief Search the switch ports looking for a specific device
    *
    * \param sed The Ptr<CsmaNetDevice> pointer to device.
    * \return A pointer to the corresponding ofs::Port.
    */
-  ofs::Port* GetOfsPort (Ptr<NetDevice> dev);
+  ofs::Port* PortGetOfsPort (Ptr<NetDevice> dev);
 
   /**
    * \brief Search the switch ports looking for a specific port number
@@ -151,8 +153,22 @@ private:
    * \param no The port number (starting at 1) 
    * \return A pointer to the corresponding ofs::Port.
    */
-  ofs::Port* GetOfsPort (uint32_t no);
+  ofs::Port* PortGetOfsPort (uint32_t no);
 
+  /**
+   * \internal
+   * Update the port status field of the switch port. A non-zero return value
+   * indicates some field has changed.
+   *
+   * \param p Port to update its config and flag fields.
+   * \return true 0 if unchanged, any value otherwise.
+   */
+  int PortUpdateStatus (ofs::Port *p);
+  //\}
+
+
+  ///\name Send/Receive methods
+  //\{
   /**
    * \brief Called by the HandleRead when a packet is received from the
    * controller.
@@ -194,30 +210,21 @@ private:
   /**
    * \brief Send a message over a specific switch port
    *
-   * \param packet The packet to send
-   * \param netdev The netdevice to the output port
-   * \return The number of bytes transmitted
-   */
-  int SendToSwitchPort (Ptr<Packet> packet, Ptr<NetDevice> netdev);
-
-  void PortOutput (struct packet *pkt, int out_port);
-
-  /**
-   * \internal
-   * \brief Creates an OpenFlow packet from openflow buffer
+   * Check port configuration, create the ns3 packet, remove the ethernet
+   * header and trailer from packet (which will be included again by
+   * CsmaNetDevice), send the packet over the proper netdevice, and update port
+   * statistics.
    *
-   * This packet in an internal ofsoftswitch13 structure to represent the
-   * packet, and it is used to parse fields, lookup for flow matchs, etc.
-   * \see ofsoftswitch13 function packet_create () at udatapath/packet.c
-   *
-   * \param in_port The id of the input port.
-   * \param buf The openflow buffer with the packet
-   * \param packet_out True if the packet arrived in a packet out msg
-   * \return The pointer to the created packet
+   * \param pkt The internal packet to send
+   * \param port The Openflow port structure
+   * \return True if success, false otherwise
    */
-  struct packet* InternalPacketCreate (uint32_t in_port, struct ofpbuf *buf, 
-      bool packet_out);
+  bool SendToSwitchPort (struct packet *pkt, ofs::Port *port);
+  //\}
 
+
+  ///\name Pipeline methods
+  //\{
   /**
    * Run the packet through the pipeline. Looks up in the pipeline tables for a
    * match.  If it doesn't match, it forwards the packet to the registered
@@ -225,11 +232,9 @@ private:
    * \see ofsoftswitch function process_buffer at udatapath/dp_ports.c
    * \see ofsoftswitch function pipeline_process_packet at udatapath/pipeline.c
    *
-   * \param packet_uid Packet UID; used to fetch the packet and its metadata.
-   * \param port The port this packet was received over.
+   * \param pkt The internal openflow packet.
    */
-  void PipelineProcessPacket (uint32_t packet_uid, struct packet* pkt, 
-      ofs::Port* inPort);
+  void PipelineProcessPacket (struct packet* pkt);
 
   /**
    * Executes the instructions associated with a flow entry
@@ -240,9 +245,24 @@ private:
    * \param next_table A pointer to next table (can be modified by entry)
    * \param pkt The packet associated with this flow entry
    */
-  void ExecuteEntry (struct pipeline *pl, struct flow_entry *entry, 
+  void PipelineExecuteEntry (struct pipeline *pl, struct flow_entry *entry, 
       struct flow_table **next_table, struct packet **pkt);
 
+  /**
+   * \internal
+   * \brief Check if any flow in any table is timed out and update port
+   * status.
+   * 
+   * This method reschedules itself at every m_timout interval, to constantly
+   * check the pipeline for timed out flow entries and update port status.
+   * \see ofsoftswitch13 function pipeline_timeout () at udatapath/pipeline.c
+   */
+  void PipelineTimeout ();
+  //\}
+
+
+  ///\name Action methods
+  //\{
   /**
    * Executes the list of OFPIT_APPLY_ACTIONS actions on the given packet
    * \see ofsoftswitch dp_execute_action_list at udatapath/dp_actions.c
@@ -252,11 +272,15 @@ private:
    * \param actions A pointer to the list of actions
    * \param cookie The cookie that identifies the buffer ??? (not sure)
    */
-  void ExecuteActionList (struct packet *pkt, size_t actions_num,
+  void ActionListExecute (struct packet *pkt, size_t actions_num,
     struct ofl_action_header **actions, uint64_t cookie);
 
+  void ActionSetExecute (struct action_set *set, struct packet *pkt, 
+      uint64_t cookie);
+
+
   /**
-   * Ouputs the packet on the given port
+   * Execute the ouput action sending the packet to an output port
    * \see ofsoftswitch dp_actions_output_port at udatapath/dp_actions.c
    *
    * \param pkt The packet associated with this action
@@ -265,7 +289,7 @@ private:
    * \param max_len The size of the packet to send
    * \param cookie The cookie that identifies the buffer ??? (not sure)
    */
-  void ActionsOutputPort (struct packet *pkt, uint32_t out_port,
+  void ActionOutputPort (struct packet *pkt, uint32_t out_port,
     uint32_t out_queue, uint16_t max_len, uint64_t cookie);
 
   /**
@@ -276,8 +300,12 @@ private:
    * \param actions The actions structure
    * \return 0 if sucess or OpenFlow error code
    */
-  ofl_err ActionsValidate (size_t num, struct ofl_action_header **actions);
-
+  ofl_err ActionValidate (size_t num, struct ofl_action_header **actions);
+  //\}
+  
+  
+  ///\name Flow table methods
+  //\{
   /**
    * \brief Creates a new flow table 
    * \see ofsoftswitch13 flow_table_create () at udatapath/flow_table.c
@@ -302,6 +330,22 @@ private:
    */
   ofl_err FlowTableAdd (struct flow_table *table, struct ofl_msg_flow_mod *mod, 
       bool check_overlap, bool *match_kept, bool *insts_kept);
+  //\}
+
+
+  ///\name Flow entry methods
+  //\{
+  /**
+   * \internal
+   * Removes a flow entry with the given reason. A flow removed message is sent
+   * if needed. 
+   * \param entry The flow entry to remove.
+   * \param reason The reason to send to controller.
+   * \see ofsoftswitch13 flow_entry_remove () at udatapath/flow_entry.c
+   */
+  void FlowEntryRemove (struct flow_entry *entry, uint8_t reason);
+  //\}
+  
 
   /**
    * \brief Add an Ethernet header and trailer to the packet
@@ -323,36 +367,17 @@ private:
       Mac48Address dest, uint16_t protocolNumber);
 
   /**
-   * \internal
-   * \brief Check if any flow in any table is timed out and update port
-   * status.
-   * 
-   * This method reschedules itself at every m_timout interval, to constantly
-   * check the pipeline for timed out flow entries and update port status.
-   * \see ofsoftswitch13 function pipeline_timeout () at udatapath/pipeline.c
-   */
-  void PipelineTimeout ();
-
-  /**
-   * \internal
-   * Removes a flow entry with the given reason. A flow removed message is sent
-   * if needed. 
-   * \param entry The flow entry to remove.
-   * \param reason The reason to send to controller.
-   * \see ofsoftswitch13 flow_entry_remove () at udatapath/flow_entry.c
-   */
-  void FlowEntryRemove (struct flow_entry *entry, uint8_t reason);
-  
-  /**
-   * \internal
-   * Update the port status field of the switch port. A non-zero return value
-   * indicates some field has changed.
+   * \brief Create a packet_in to send to controller
    *
-   * \param p Port to update its config and flag fields.
-   * \return true 0 if unchanged, any value otherwise.
+   * \param pkt The internal packet to send
+   * \param tableId Table id with with entry match
+   * \param reason The reason to send this packet to controller
+   * \param cookie ??
+   * \return The ns3 packet created
    */
-  int UpdatePortStatus (ofs::Port *p);
-  
+  Ptr<Packet> CreatePacketIn (struct packet *pkt, uint8_t tableId,
+      ofp_packet_in_reason reason, uint64_t cookie);
+
   /**
    * \internal
    * \name OpenFlow message handlers
