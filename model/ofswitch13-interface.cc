@@ -52,7 +52,8 @@ Port::Port (Ptr<NetDevice> netdev, uint32_t no) :
     flags |= SWP_USED;
 }
 
-ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
+ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
+    size_t headRoom)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -62,6 +63,31 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t head
   ofpbuf *buffer = ofpbuf_new_with_headroom (bodyRoom, headRoom);
   packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
   return buffer;
+}
+
+struct packet * InternalPacketFromBuffer (uint32_t in_port, struct ofpbuf *buf,
+    bool packet_out) 
+{
+  NS_LOG_FUNCTION_NOARGS ();
+  struct packet *pkt;
+  pkt = (struct packet*)xmalloc (sizeof (struct packet));
+
+  pkt->dp         = NULL;
+  pkt->buffer     = buf;
+  pkt->in_port    = in_port;
+  pkt->action_set = (struct action_set*)xmalloc (sizeof (struct action_set));
+  list_init (&pkt->action_set->actions);
+
+  pkt->packet_out       = packet_out;
+  pkt->out_group        = OFPG_ANY;
+  pkt->out_port         = OFPP_ANY;
+  pkt->out_port_max_len = 0;
+  pkt->out_queue        = 0;
+  pkt->buffer_id        = NO_BUFFER;
+  pkt->table_id         = 0;
+
+  pkt->handle_std = packet_handle_std_create (pkt);
+  return pkt;
 }
 
 ofpbuf* PackFromMsg (ofl_msg_header *msg, uint32_t xid)
@@ -88,9 +114,16 @@ ofpbuf* PackFromMsg (ofl_msg_header *msg, uint32_t xid)
 Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  
   Ptr<Packet> packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
   ofpbuf_delete (buffer);
+  return packet;
+}
+
+Ptr<Packet> PacketFromInternalPacket (struct packet *pkt)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+  struct ofpbuf *buffer = pkt->buffer;
+  Ptr<Packet> packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
   return packet;
 }
 

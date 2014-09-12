@@ -160,19 +160,24 @@ struct Port
  * \param headRoom The size to allocate for headers (left unitialized).
  * \return The OpenFlow Buffer created from the packet.
  */
-ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom = 0);
+ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
+    size_t headRoom = 0);
 
 /**
- * \brief Create an ns3::Packet from OpenFlow buffer
- * 
- * Takes a an OpenFlow buffer (ofpbuf*) and generates a Ptr<Packet> from it,
- * load the data as well as its headers into the packet and free the buffer
- * memory.
- * 
- * \param buffer The ofpbuf buffer
- * \return The ns3::Packet created.
+ * \brief Creates an OpenFlow internal packet from openflow buffer
+ *
+ * This packet in an internal ofsoftswitch13 structure to represent the
+ * packet, and it is used to parse fields, lookup for flow matchs, etc.
+ *
+ * \see ofsoftswitch13 function packet_create () at udatapath/packet.c
+ *
+ * \param in_port The id of the input port.
+ * \param buf The openflow buffer with the packet
+ * \param packet_out True if the packet arrived in a packet out msg
+ * \return The pointer to the created packet
  */
-Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer);
+struct packet* InternalPacketFromBuffer (uint32_t in_port, struct ofpbuf *buf,
+    bool packet_out);
 
 /**
  * \brief Create and OpenFlow ofpbuf from internal ofl_msg_*
@@ -185,6 +190,30 @@ Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer);
  * \return The OpenFlow Buffer created from the message
  */
 ofpbuf* PackFromMsg (ofl_msg_header *msg, uint32_t xid);
+
+/**
+ * \brief Create an ns3::Packet from OpenFlow buffer
+ * 
+ * Takes an OpenFlow buffer (ofpbuf*) and generates a Ptr<Packet> from it,
+ * load the data as well as its headers into the packet and free the buffer
+ * memory.
+ * 
+ * \param buffer The ofpbuf buffer
+ * \return The ns3::Packet created.
+ */
+Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer);
+
+/**
+ * \brief Create an ns3::Packet from internal OpenFlow packet 
+ * 
+ * Takes an internal OpenFlow packet (struct packet*) and generates a Ptr<Packet> from it,
+ * load the data as well as its headers into the packet.
+ * 
+ * \param pkt The internal openflow packet
+ * \return The ns3::Packet created.
+ */
+Ptr<Packet> PacketFromInternalPacket (struct packet *pkt);
+
 
 } // namespace ofs
 } // namespace ns3
