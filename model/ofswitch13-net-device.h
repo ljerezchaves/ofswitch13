@@ -274,12 +274,26 @@ private:
    */
   void ActionListExecute (struct packet *pkt, size_t actions_num,
     struct ofl_action_header **actions, uint64_t cookie);
-
-  void ActionSetExecute (struct action_set *set, struct packet *pkt, 
+ 
+  /**
+   * Executes the set of OFPIT_WRITE_ACTIONS actions on the given packet
+   * \see ofsoftswitch action_set_execute at udatapath/action_set.c
+   *
+   * \param pkt The packet associated with this action set
+   * \param set A pointer to the set of actions
+   * \param cookie The cookie that identifies the buffer ??? (not sure)
+   */
+  void ActionSetExecute (struct packet *pkt, struct action_set *set,  
       uint64_t cookie);
 
+  /**
+   * Executes a single action on the given packet
+   * \see ofsoftswitch dp_execute_action at udatapath/dp_actions.c
+   *
+   * \param pkt The packet associated with this action
+   * \param set A pointer to the action
+   */
   void ActionExecute (struct packet *pkt, struct ofl_action_header *action);
-
 
   /**
    * Execute the ouput action sending the packet to an output port

@@ -780,7 +780,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (struct packet* pkt)
 
           if (next_table == NULL) 
             {
-              ActionSetExecute (pkt->action_set, pkt, UINT64_MAX);
+              ActionSetExecute (pkt, pkt->action_set, UINT64_MAX);
               packet_destroy (pkt);
               return;
             }
@@ -861,6 +861,7 @@ OFSwitch13NetDevice::PipelineExecuteEntry (struct pipeline *pl, struct flow_entr
             }
           case OFPIT_METER: 
             {
+              // FIXME No support to meter by now
               // struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)inst;
               // meter_table_apply(pl->dp->meters, pkt , im->meter_id);
               break;
@@ -970,8 +971,8 @@ OFSwitch13NetDevice::ActionListExecute (struct packet *pkt, size_t actions_num,
 }
 
 void
-OFSwitch13NetDevice::ActionSetExecute (struct action_set *set, 
-    struct packet *pkt, uint64_t cookie)
+OFSwitch13NetDevice::ActionSetExecute (struct packet *pkt, 
+    struct action_set *set, uint64_t cookie)
 {
   struct action_set_entry *entry, *next;
 
@@ -1078,7 +1079,6 @@ OFSwitch13NetDevice::ActionExecute (struct packet *pkt,
   NS_LOG_DEBUG ("Action result: "<< p);
   free (p);
 }
-
 
 void
 OFSwitch13NetDevice::ActionOutputPort (struct packet *pkt, uint32_t out_port,
