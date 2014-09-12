@@ -278,6 +278,8 @@ private:
   void ActionSetExecute (struct action_set *set, struct packet *pkt, 
       uint64_t cookie);
 
+  void ActionExecute (struct packet *pkt, struct ofl_action_header *action);
+
 
   /**
    * Execute the ouput action sending the packet to an output port
