@@ -74,6 +74,7 @@ extern "C"
 #include "lib/ofpbuf.h"
 #include "lib/dynamic-string.h"
 #include "lib/hash.h"
+// #include "lib/hmap.h"
 // #include "lib/ofp.h"
 // #include "lib/vlog.h"
 // #include "lib/csum.h"
@@ -83,6 +84,7 @@ extern "C"
 
 #include "oflib/ofl-structs.h"
 #include "oflib/oxm-match.h"
+#include "oflib/ofl-utils.h"
 
 // Some internal functions are not declared in header files...
 // From flow_table.c

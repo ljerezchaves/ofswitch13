@@ -50,6 +50,19 @@ GenerateId ()
   return eth_addr_to_uint64 (ea);
 }
 
+static uint32_t 
+HashInt (uint32_t x, uint32_t basis)
+{
+  x -= x << 6;
+  x ^= x >> 17;
+  x -= x << 9;
+  x ^= x << 4;
+  x += basis;
+  x -= x << 3;
+  x ^= x << 10;
+  x ^= x >> 15;
+  return x;
+}
 
 /********** Public methods **********/
 
@@ -780,6 +793,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (struct packet* pkt)
 
           if (next_table == NULL) 
             {
+              // Pipeline end. Execute actions and free packet
               ActionSetExecute (pkt, pkt->action_set, UINT64_MAX);
               packet_destroy (pkt);
               return;
@@ -827,19 +841,20 @@ OFSwitch13NetDevice::PipelineExecuteEntry (struct pipeline *pl, struct flow_entr
             }
           case OFPIT_WRITE_METADATA: 
             {
-              // struct ofl_instruction_write_metadata *wi = (struct ofl_instruction_write_metadata *)inst;
-              // struct  ofl_match_tlv *f;
+              struct ofl_instruction_write_metadata *wi = (struct ofl_instruction_write_metadata *)inst;
+              struct ofl_match_tlv *f;
 
-              // /* NOTE: Hackish solution. If packet had multiple handles, metadata
-              //  *       should be updated in all. */
-              // packet_handle_std_validate((*pkt)->handle_std);
-              // /* Search field on the description of the packet. */
-              // HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
-              //     hmap_node, hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std->match.match_fields){
-              //     uint64_t *metadata = (uint64_t*) f->value;
-              //     *metadata = (*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask);
-              //     VLOG_DBG_RL(LOG_MODULE, &rl, "Executing write metadata: %"PRIu64"", *metadata);
-              // }
+              /* NOTE: Hackish solution. If packet had multiple handles, metadata should be updated in all. */
+              packet_handle_std_validate ((*pkt)->handle_std);
+              
+              /* Search field on the description of the packet. */
+              HMAP_FOR_EACH_WITH_HASH (f, struct ofl_match_tlv, hmap_node, HashInt (OXM_OF_METADATA, 0), 
+                                       &(*pkt)->handle_std->match.match_fields)
+                {
+                  uint64_t *metadata = (uint64_t*) f->value;
+                  *metadata = (*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask);
+                  NS_LOG_DEBUG ("Executing write metadata: " << *metadata);
+                }
               break;
             }
           case OFPIT_WRITE_ACTIONS: 
@@ -1240,7 +1255,7 @@ OFSwitch13NetDevice::FlowTableAdd (struct flow_table *table, struct ofl_msg_flow
           list_replace (&new_entry->match_node, &entry->match_node);
           list_remove (&entry->hard_node);
           list_remove (&entry->idle_node);
-          flow_entry_destroy (entry);
+          FlowEntryDestroy (entry);
           add_to_timeout_lists (table, new_entry);
           return 0;
         }
@@ -1263,6 +1278,54 @@ OFSwitch13NetDevice::FlowTableAdd (struct flow_table *table, struct ofl_msg_flow
 
   list_insert (&entry->match_node, &new_entry->match_node);
   add_to_timeout_lists (table, new_entry);
+
+  return 0;
+}
+
+ofl_err 
+OFSwitch13NetDevice::FlowTableDelete (struct flow_table *table, 
+    struct ofl_msg_flow_mod *mod, bool strict)
+{
+  struct flow_entry *entry, *next;
+
+  LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, match_node, &table->match_entries) 
+    {
+      if ((mod->out_port  == OFPP_ANY || flow_entry_has_out_port (entry, mod->out_port)) &&
+          (mod->out_group == OFPG_ANY || flow_entry_has_out_group (entry, mod->out_group)) &&
+           flow_entry_matches (entry, mod, strict, true/*check_cookie*/)) 
+        {
+           FlowEntryRemove (entry, OFPRR_DELETE);
+        }
+    }
+  return 0;
+}
+
+ofl_err 
+OFSwitch13NetDevice::FlowTableModify (struct flow_table *table, 
+    struct ofl_msg_flow_mod *mod, bool strict, bool *insts_kept)
+{
+  struct flow_entry *entry;
+
+  LIST_FOR_EACH (entry, struct flow_entry, match_node, &table->match_entries) 
+    {
+      if (flow_entry_matches (entry, mod, strict, true/*check_cookie*/)) 
+        {
+          /* Code from flow_entry_replace_instructions (entry, mod->instructions_num, mod->instructions); */
+          {
+            size_t instructions_num = mod->instructions_num;
+            struct ofl_instruction_header **instructions = mod->instructions;
+            // FIXME No support to group by now
+            // del_group_refs(entry);
+            OFL_UTILS_FREE_ARR_FUN2 (entry->stats->instructions, entry->stats->instructions_num, 
+                ofl_structs_free_instruction, NULL/*entry->dp->exp*/);
+            entry->stats->instructions_num = instructions_num;
+            entry->stats->instructions = instructions;
+            // init_group_refs(entry);
+          }
+          flow_entry_modify_stats (entry, mod);
+          *insts_kept = true;
+        }
+    }
 
   return 0;
 }
@@ -1293,6 +1356,16 @@ OFSwitch13NetDevice::FlowEntryRemove (struct flow_entry *entry, uint8_t reason)
   list_remove (&entry->idle_node);
   entry->table->stats->active_count--;
   
+  // del_group_refs (entry);
+  // del_meter_refs (entry);
+  ofl_structs_free_flow_stats (entry->stats, NULL/*entry->dp->exp*/);
+  free (entry);
+}
+
+void 
+OFSwitch13NetDevice::FlowEntryDestroy (struct flow_entry *entry)
+{
+  // FIXME No support to meter and group by now
   // del_group_refs (entry);
   // del_meter_refs (entry);
   ofl_structs_free_flow_stats (entry->stats, NULL/*entry->dp->exp*/);
@@ -1417,27 +1490,27 @@ OFSwitch13NetDevice::HandleMsgFlowMod (struct ofl_msg_flow_mod *msg)
       case (OFPFC_ADD): 
         {
           bool overlap = ((msg->flags & OFPFF_CHECK_OVERLAP) != 0);
-          FlowTableAdd (table, msg, overlap, &match_kept, &insts_kept);
+          error = FlowTableAdd (table, msg, overlap, &match_kept, &insts_kept);
           break;
         }
       case (OFPFC_MODIFY): 
         {
-      //    error =  flow_table_modify (table, msg, false, &insts_kept);
-           break;
+          error =  FlowTableModify (table, msg, false, &insts_kept);
+          break;
         }
       case (OFPFC_MODIFY_STRICT): 
         {
-      //    error =  flow_table_modify (table, msg, true, &insts_kept);
-            break;
+          error =  FlowTableModify (table, msg, true, &insts_kept);
+          break;
         }
       case (OFPFC_DELETE): 
         {
-      //    error =  flow_table_delete (table, msg, false);
+          error = FlowTableDelete (table, msg, false);
           break;
         }
       case (OFPFC_DELETE_STRICT): 
         {
-      //    error =  flow_table_delete (table, msg, true);
+          error = FlowTableDelete (table, msg, true);
           break;
         }
       default: 

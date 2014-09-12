@@ -323,7 +323,7 @@ private:
   ///\name Flow table methods
   //\{
   /**
-   * \brief Creates a new flow table 
+   * Creates a new flow table 
    * \see ofsoftswitch13 flow_table_create () at udatapath/flow_table.c
    *
    * \param table_id The table id.
@@ -332,11 +332,11 @@ private:
   struct flow_table* FlowTableCreate (uint8_t table_id);
 
   /**
-   * \brief Handles a flow_mod message with OFPFC_ADD command. 
+   * Handles a flow_mod message with OFPFC_ADD command. 
    * \attention new entries will be placed behind those with equal priority
    * \see ofsoftswitch13 flow_table_add () at udatapath/flow_table.c
    *
-   * \param table The table to add the flow
+   * \param table The table to add the entry
    * \param mod The ofl_msg_flow_mod message
    * \param check_overlap If true, prevents existing flow entry overlaps with
    *        the match in the flow mod message
@@ -346,6 +346,30 @@ private:
    */
   ofl_err FlowTableAdd (struct flow_table *table, struct ofl_msg_flow_mod *mod, 
       bool check_overlap, bool *match_kept, bool *insts_kept);
+
+  /**
+   * Handles a flow_mod msg with OFPFC_DELETE or OFPFC_DELETE_STRICT command. 
+   * \see ofsoftswitch13 flow_table_delete () at udatapath/flow_table.c
+   *
+   * \param table The table to delete the entry
+   * \param mod The ofl_msg_flow_mod message
+   * \param strict If true, check for strict match
+   * \return 0 if sucess or OpenFlow error code
+   */
+  ofl_err FlowTableDelete (struct flow_table *table, struct ofl_msg_flow_mod *mod, 
+      bool strict); 
+
+  /**
+   * Handles a flow_mod msf with OFPFC_MODIFY or OFPFC_MODIFY_STRICT command. 
+   * \see ofsoftswitch13 flow_table_delete () at udatapath/flow_table.c
+   *
+   * \param table The table to modify the entry
+   * \param mod The ofl_msg_flow_mod message
+   * \param strict If true, check for strict match
+   * \return 0 if sucess or OpenFlow error code
+   */
+  ofl_err FlowTableModify (struct flow_table *table, struct ofl_msg_flow_mod *mod, 
+      bool strict, bool *insts_kept);
   //\}
 
 
@@ -360,6 +384,14 @@ private:
    * \see ofsoftswitch13 flow_entry_remove () at udatapath/flow_entry.c
    */
   void FlowEntryRemove (struct flow_entry *entry, uint8_t reason);
+
+  /**
+   * \internal
+   * \brief Destroy a flow entry. 
+   * \param entry The flow entry to destroy.
+   * \see ofsoftswitch13 flow_entry_destroy () at udatapath/flow_entry.c
+   */
+  void FlowEntryDestroy (struct flow_entry *entry);
   //\}
   
 
