@@ -120,8 +120,8 @@ main (int argc, char *argv[])
 
   // Enable pcap traces
   ofHelper->EnableOpenFlowPcap ();
-  csmaHelper.EnablePcap ("ofswitch-p0", switchDevices.Get (0));
-  csmaHelper.EnablePcap ("ofswitch-p1", switchDevices.Get (1));
+  csmaHelper.EnablePcap ("ofswitch", switchDevices, true);  // promisc
+  csmaHelper.EnablePcap ("terminals", terminalDevices);
 
   // Run the simulation
   Simulator::Stop (Seconds (60));
