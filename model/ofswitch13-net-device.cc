@@ -103,17 +103,21 @@ OFSwitch13NetDevice::GetTypeId (void)
                    TimeValue (Seconds (1)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_timeout),
                    MakeTimeChecker ())
+    .AddAttribute ("ControlerAddr",
+                   "The controller InetSocketAddress, used to TCP communication.",
+                   AddressValue (InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
+                   MakeAddressAccessor (&OFSwitch13NetDevice::m_ctrlAddr),
+                   MakeAddressChecker ())
   ;
   return tid;
 }
 
 OFSwitch13NetDevice::OFSwitch13NetDevice ()
-  : m_node (0),
+  : m_xid (0xff000000),
+    m_node (0),
     m_ctrlSocket (0),
-    m_ctrlApp (0),
     m_ifIndex (0),
-    m_mtu (0x0000),
-    m_xid (0x00ff0000)
+    m_mtu (0x0000)
 {
   NS_LOG_FUNCTION_NOARGS ();
   NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
@@ -240,24 +244,21 @@ OFSwitch13NetDevice::GetNSwitchPorts (void) const
 }
 
 void
-OFSwitch13NetDevice::SetController (Ptr<OFSwitch13Controller> c, Address addr)
+OFSwitch13NetDevice::StartControllerConnection ()
 {
-  if (m_ctrlAddr.IsInvalid ())
+  NS_ASSERT (!m_ctrlAddr.IsInvalid ());
+  
+  // Start a TCP connection to the controller
+  if (!m_ctrlSocket)
     {
-      m_ctrlApp = c;
-      m_ctrlAddr = addr;
-      // Create a TCP connection to the controller
-      if (!m_ctrlSocket)
-        {
-          m_ctrlSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-          m_ctrlSocket->Bind ();
-          m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom(addr));
-        }
+      m_ctrlSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+      m_ctrlSocket->Bind ();
+      m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom (m_ctrlAddr));
       m_ctrlSocket->SetConnectCallback (
           MakeCallback (&OFSwitch13NetDevice::HandleCtrlSucceeded, this),
           MakeCallback (&OFSwitch13NetDevice::HandleCtrlFailed, this));
       return;
-    }
+  }
   NS_LOG_ERROR ("Controller already set.");
 }
 
@@ -452,7 +453,6 @@ OFSwitch13NetDevice::DoDispose ()
   m_channel = 0;
   m_node = 0;
   m_ctrlSocket = 0;
-  m_ctrlApp = 0;
 
   // FIXME pipeline_destroy (m_pipeline);
 
@@ -1648,6 +1648,13 @@ OFSwitch13NetDevice::HandleCtrlSucceeded (Ptr<Socket> socket)
   NS_LOG_FUNCTION (this << socket);
   NS_LOG_LOGIC ("Controller accepted connection request!");
   socket->SetRecvCallback (MakeCallback (&OFSwitch13NetDevice::HandleCtrlRead, this));
+
+  // Send Hello message
+  struct ofl_msg_header msg;
+  msg.type = OFPT_HELLO;
+  LogOflMsg (&msg, false/*Tx*/);
+  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
+  SendToController (pkt);
 }
 
 void

@@ -126,12 +126,11 @@ OFSwitch13Helper::InstallController (Ptr<Node> cNode)
       m_ctrlApp->GetAttribute ("Port", port);  
       m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), port.Get ());
 
-      // Registering the application to all switches
+      // Starting Switch <--> controller TCP connection
       for (size_t i = 0; i < m_devices.GetN (); i++)
         {
           Ptr<OFSwitch13NetDevice> dev = DynamicCast<OFSwitch13NetDevice> (m_devices.Get (i));
-          NS_LOG_INFO ("Registering the controller to switch " << dev);
-          dev->SetController (m_ctrlApp, m_ctrlAddr);
+          dev->StartControllerConnection ();
         }
     }
   return m_ctrlApp;

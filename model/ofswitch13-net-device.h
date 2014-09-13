@@ -101,12 +101,9 @@ public:
   uint32_t GetNSwitchPorts (void) const;
 
   /**
-   * \brief Set up the connection between switch and controller.
-   *
-   * \param c The controller application.
-   * \param addr The controller address.
+   * \brief Set up the TCP connection between switch and controller.
    */
-  void SetController (Ptr<OFSwitch13Controller> c, Address addr);
+  void StartControllerConnection ();
 
   // Inherited from NetDevice base class
   virtual void SetIfIndex (const uint32_t index);
@@ -457,28 +454,22 @@ private:
   /// NetDevice callbacks
   NetDevice::ReceiveCallback        m_rxCallback;
   NetDevice::PromiscReceiveCallback m_promiscRxCallback;
-
-  Mac48Address              m_address;      //!< Address of this device
-  Ptr<BridgeChannel>        m_channel;      //!< Collection of port channels into the Switch Channel
-  Ptr<Node>                 m_node;         //!< Node this device is installed on
-  Address                   m_ctrlAddr;     //!< Controller Address
-  Ptr<Socket>               m_ctrlSocket;   //!< Tcp Socket to controller
-  Ptr<OFSwitch13Controller> m_ctrlApp;      //!< Connection to controller
-  uint32_t                  m_ifIndex;      //!< Interface Index
-  uint16_t                  m_mtu;          //!< Maximum Transmission Unit
-
+  
+  // Considering the necessary datapath structs from ofsoftswitch13
   typedef std::vector<ofs::Port> Ports_t;
   Ports_t m_ports;                          //!< Switch's ports
 
-  //typedef std::map<uint64_t, ofs::SwitchPacketMetadata> PacketData_t;
-  //PacketData_t m_packetData;              //!< Packet data
-
-  // Considering the necessary datapath structs from ofsoftswitch13
   uint32_t              m_xid;              //!< Global transaction idx
   uint64_t              m_id;               //!< Unique identifier for this switch
+  Mac48Address          m_address;          //!< Address of this device
+  Ptr<BridgeChannel>    m_channel;          //!< Collection of port channels into the Switch Channel
+  Ptr<Node>             m_node;             //!< Node this device is installed on
+  Address               m_ctrlAddr;         //!< Controller Address
+  Ptr<Socket>           m_ctrlSocket;       //!< Tcp Socket to controller
+  uint32_t              m_ifIndex;          //!< Interface Index
+  uint16_t              m_mtu;              //!< Maximum Transmission Unit
   Time                  m_timeout;          //!< Pipeline Timeout
   Time                  m_lookupDelay;      //!< Flow Table Lookup Delay [overhead].
-  
   Time                  m_lastTimeout;      //!< Last datapath timeout
   struct ofl_config     m_config;           //!< Configuration, set from controller
   struct pipeline*      m_pipeline;         //!< Pipeline with multi-tables
@@ -486,7 +477,6 @@ private:
   // struct group_table*   m_groups;           //!< Group tables
   // struct meter_table*   m_meters;           //!< Meter tables
   // struct ofl_exp*       exp;                //!< Experimenter handling
-
 }; // Class OFSwitch13NetDevice
 
 } // namespace ns3

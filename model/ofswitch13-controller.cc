@@ -53,7 +53,7 @@ OFSwitch13Controller::OFSwitch13Controller ()
   NS_LOG_FUNCTION_NOARGS ();
   m_serverSocket = 0;
   m_helper = 0;
-  m_xid = 0xff000000;
+  m_xid = 0x11000000;
 }
 
 OFSwitch13Controller::~OFSwitch13Controller ()
@@ -93,19 +93,6 @@ OFSwitch13Controller::SetOFSwitch13Helper (Ptr<OFSwitch13Helper> helper)
     {
       m_helper = helper;
     }
-}
-
-int
-OFSwitch13Controller::SendHelloMsg (Ptr<OFSwitch13NetDevice> swtch)
-{
-  // Create the internal hello message
-  struct ofl_msg_header msg;
-  msg.type = OFPT_HELLO;
-
-  // Create packet, free memory and send
-  LogOflMsg (&msg, false);
-  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
-  return SendToSwitch (pkt, swtch);
 }
 
 int
@@ -329,7 +316,13 @@ OFSwitch13Controller::HandleAccept (Ptr<Socket> s, const Address& from)
   NS_LOG_LOGIC ("Switch request connection accepted from " << ipv4);
   s->SetRecvCallback (MakeCallback (&OFSwitch13Controller::HandleRead, this));
   m_socketsMap[idx] = s;
-  SendHelloMsg (m_helper->GetSwitchDevice (idx));
+
+  // Send hello message
+  struct ofl_msg_header msg;
+  msg.type = OFPT_HELLO;
+  LogOflMsg (&msg, false/*Tx*/);
+  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
+  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
 }
 
 void 

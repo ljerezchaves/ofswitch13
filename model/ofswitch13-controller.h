@@ -61,13 +61,6 @@ public:
    */
   int SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char* textCmd);
  
-  /**
-   * \internal
-   * \brief Create an empty hello message and send it to the switch
-   * \param swtch The switch to receive the message.
-   * \return The number of bytes sent
-   */
-  int SendHelloMsg (Ptr<OFSwitch13NetDevice> swtch);
 
 private:
   // inherited from Application
