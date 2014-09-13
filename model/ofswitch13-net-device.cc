@@ -64,8 +64,24 @@ HashInt (uint32_t x, uint32_t basis)
   return x;
 }
 
-/********** Public methods **********/
+static void
+LogOflMsg (struct ofl_msg_header *msg, bool isRx)
+{
+  char *str;
+  str = ofl_msg_to_string (msg, NULL);
+  if (isRx)
+    {
+      NS_LOG_INFO ("RX (ctrl): " << str);
+    }
+  else
+    {
+      NS_LOG_INFO ("TX (ctrl): " << str);
+    }
+  free (str);
+}
 
+
+/********** Public methods **********/
 TypeId
 OFSwitch13NetDevice::GetTypeId (void)
 {
@@ -207,8 +223,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
       msg.reason = OFPPR_ADD;
       msg.desc = p.conf;
 
-      struct ofpbuf *buffer = ofs::PackFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-      Ptr<Packet> packet = ofs::PacketFromBufferAndFree (buffer);
+      Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
       SendToController (packet);
     }
 
@@ -506,98 +521,150 @@ OFSwitch13NetDevice::PortUpdateStatus (ofs::Port *p)
 int
 OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
 { 
+  NS_ASSERT (buffer);
+
   uint32_t xid;
   struct ofl_msg_header *msg;
-  ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, &xid, NULL/*&ofl_exp*/);
-  ofpbuf_delete (buffer);   // TODO validar se esse free não está causando problemas
- 
-  char *str; 
-  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL/*&ofl_exp*/);
-  NS_LOG_INFO ("RECEIVING from controller: " << str);
-  free (str);
-
-  // For not defined messages, default error ;)
-  ofl_err error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-  switch (msg->type)
+  ofl_err error;
+  
+  error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, &xid, NULL/*&ofl_exp*/);
+  if (!error)
     {
-      // TODO: implementar todas os outros tipos de Handle*Msg ()
-      case OFPT_HELLO:
-        break;
-      case OFPT_ERROR:
-        break;
-      case OFPT_ECHO_REQUEST:
-      case OFPT_ECHO_REPLY:
-        break;
-      case OFPT_EXPERIMENTER:
-        NS_LOG_WARN ("No support for EXPERIMENTER message.");
-        error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
-        break;
+      LogOflMsg ((ofl_msg_header*)msg, true/*Rx*/);
+      /* Dispatches control messages to appropriate handler functions. */
+      switch (msg->type)
+        {
+          case OFPT_HELLO:
+            ofl_msg_free (msg, NULL/*dp->exp*/);
+            break;
+          case OFPT_ERROR:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_ECHO_REQUEST:
+            //error = handle_control_echo_request (dp, (struct ofl_msg_echo *)msg, sender);
+          case OFPT_ECHO_REPLY:
+            //error = handle_control_echo_reply (dp, (struct ofl_msg_echo *)msg, sender);
+            break;
+          case OFPT_EXPERIMENTER:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+            break;
 
-      /* Switch configuration messages. */
-      case OFPT_FEATURES_REQUEST:
-        break;
-      case OFPT_FEATURES_REPLY:
-        break;
-      case OFPT_GET_CONFIG_REQUEST:
-        break;
-      case OFPT_GET_CONFIG_REPLY:
-        break;
-      case OFPT_SET_CONFIG:
-        break;
+          /* Switch configuration messages. */
+          case OFPT_FEATURES_REQUEST:
+            //error = handle_control_features_request (dp, msg, sender);
+            break;
+          case OFPT_FEATURES_REPLY:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_GET_CONFIG_REQUEST:
+            //error = handle_control_get_config_request (dp, msg, sender);
+            break;
+          case OFPT_GET_CONFIG_REPLY:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_SET_CONFIG:
+            //error = handle_control_set_config (dp, (struct ofl_msg_set_config *)msg, sender);
+            break;
 
-      /* Asynchronous messages. */
-      case OFPT_PACKET_IN:
-        break;
-      case OFPT_FLOW_REMOVED:
-        break;
-      case OFPT_PORT_STATUS:
-        break;
+          /* Asynchronous messages. */
+          case OFPT_PACKET_IN:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_FLOW_REMOVED:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_PORT_STATUS:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
 
-      /* Controller command messages. */
-      case OFPT_GET_ASYNC_REQUEST:
-        break;       
-      case OFPT_GET_ASYNC_REPLY:
-      case OFPT_SET_ASYNC:
-        break;
-      case OFPT_PACKET_OUT:
-        break;
-      case OFPT_FLOW_MOD:
-        error = HandleMsgFlowMod ((struct ofl_msg_flow_mod*)msg); 
-        break;
-      case OFPT_GROUP_MOD:
-        break;
-      case OFPT_PORT_MOD:
-        break;
-      case OFPT_TABLE_MOD:
-        break;
+          /* Controller command messages. */
+          case OFPT_GET_ASYNC_REQUEST:
+          case OFPT_SET_ASYNC:
+            //error = dp_handle_async_request (dp, (struct ofl_msg_async_config*)msg, sender);
+            break;       
+          case OFPT_GET_ASYNC_REPLY:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_PACKET_OUT:
+            //error = handle_control_packet_out (dp, (struct ofl_msg_packet_out *)msg, sender);
+            break;
+          case OFPT_FLOW_MOD:
+            error = HandleMsgFlowMod ((struct ofl_msg_flow_mod*)msg); 
+            break;
+          case OFPT_GROUP_MOD:
+            //error = roup_table_handle_group_mod (dp->groups, (struct ofl_msg_group_mod *)msg, sender);
+            break;
+          case OFPT_PORT_MOD:
+            //error = dp_ports_handle_port_mod (dp, (struct ofl_msg_port_mod *)msg, sender);
+            break;
+          case OFPT_TABLE_MOD:
+            //error = pipeline_handle_table_mod (dp->pipeline, (struct ofl_msg_table_mod *)msg, sender);
+            break;
 
-      /* Statistics messages. */
-      case OFPT_MULTIPART_REQUEST:
-        break;
-      case OFPT_MULTIPART_REPLY:
-        break;
+          /* Statistics messages. */
+          case OFPT_MULTIPART_REQUEST:
+            //error = handle_control_stats_request (dp, (struct ofl_msg_multipart_request_header *)msg, sender);
+            break;
+          case OFPT_MULTIPART_REPLY:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
 
-      /* Barrier messages. */
-      case OFPT_BARRIER_REQUEST:
-      case OFPT_BARRIER_REPLY:
-        break;
-      
-      /* Role messages. */
-      case OFPT_ROLE_REQUEST:
-      case OFPT_ROLE_REPLY:
-        break;
+          /* Barrier messages. */
+          case OFPT_BARRIER_REQUEST:
+            //error = handle_control_barrier_request (dp, msg, sender);
+            break;
+          case OFPT_BARRIER_REPLY:
+            ofl_msg_free (msg, NULL/*dp->exp*/);
+            break;
+          
+          /* Role messages. */
+          case OFPT_ROLE_REQUEST:
+            //error = dp_handle_role_request (dp, (struct ofl_msg_role_request*)msg, sender);
+            break;
+          case OFPT_ROLE_REPLY:
+            ofl_msg_free (msg, NULL/*dp->exp*/);
+            break;
 
-      /* Queue Configuration messages. */
-      case OFPT_QUEUE_GET_CONFIG_REQUEST:
-        break;
-      case OFPT_QUEUE_GET_CONFIG_REPLY:
-        break;
-      case OFPT_METER_MOD:
-        break;            
-      
-      default: 
-        error = ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
+          /* Queue Configuration messages. */
+          case OFPT_QUEUE_GET_CONFIG_REQUEST:
+            //error = dp_ports_handle_queue_get_config_request (dp, (struct ofl_msg_queue_get_config_request *)msg, sender);
+            break;
+          case OFPT_QUEUE_GET_CONFIG_REPLY:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_METER_MOD:
+            //error = meter_table_handle_meter_mod (dp->meters, (struct ofl_msg_meter_mod *)msg, sender);
+            break;            
+          
+          default: 
+            error = ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
+        }
+      if (error)
+      {
+        /**
+         * NOTE: It is assumed that if a handler returns with error, it did not
+         * use any part of the control message, thus it can be freed up. If no
+         * error is returned however, the message must be freed inside the
+         * handler (because the handler might keep parts of the message) 
+         */
+        ofl_msg_free (msg, NULL/*dp->exp*/);
+      }
     }
+  
+  if (error)
+    {
+      // Notify the controller
+      struct ofl_msg_error err;
+      err.header.type = OFPT_ERROR;
+      err.type = (ofp_error_type)ofl_error_type (error);
+      err.code = ofl_error_code (error);
+      err.data_length = buffer->size;
+      err.data = (uint8_t*)buffer->data;
+
+      Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&err, xid);
+      SendToController (packet);
+    }
+  ofpbuf_delete (buffer);
   return error; 
 }
 
@@ -875,7 +942,7 @@ OFSwitch13NetDevice::PipelineExecuteEntry (struct pipeline *pl, struct flow_entr
             }
           case OFPIT_METER: 
             {
-              // FIXME No support to meter by now
+              // FIXME No meter support by now
               // struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)inst;
               // meter_table_apply(pl->dp->meters, pkt , im->meter_id);
               break;
@@ -892,7 +959,7 @@ OFSwitch13NetDevice::PipelineExecuteEntry (struct pipeline *pl, struct flow_entr
 void
 OFSwitch13NetDevice::PipelineTimeout ()
 {
-  // FIXME No support for meter by now
+  // FIXME No meter support by now
   // meter_table_add_tokens(dp->meters);
       
   /**FIXME Disabled due to time incompatibility from simulator and ofsoftswitch13 
@@ -941,8 +1008,7 @@ OFSwitch13NetDevice::PipelineTimeout ()
           msg.reason = OFPPR_MODIFY;
           msg.desc = p->conf;
 
-          struct ofpbuf *buffer = ofs::PackFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-          Ptr<Packet> packet = ofs::PacketFromBufferAndFree (buffer);
+          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
           SendToController (packet);
         }
     }
@@ -966,7 +1032,7 @@ OFSwitch13NetDevice::ActionListExecute (struct packet *pkt, size_t actions_num,
           uint32_t group = pkt->out_group;
           pkt->out_group = OFPG_ANY;
           NS_LOG_DEBUG ("Group action; executing group " << group);
-          // FIXME No support for groups by now
+          // FIXME No group support by now
           // group_table_execute(pkt->dp->groups, pkt, group); 
           // ActionOutputGroup (?);
         } 
@@ -1000,7 +1066,7 @@ OFSwitch13NetDevice::ActionSetExecute (struct packet *pkt,
        * port action should be ignored */
       if (pkt->out_group != OFPG_ANY) 
         {
-          // FIXME No support for groups by now
+          // FIXME No group support by now
           // uint32_t group_id = pkt->out_group;
           // pkt->out_group = OFPG_ANY;
           // action_set_clear_actions (pkt->action_set);
@@ -1035,55 +1101,55 @@ OFSwitch13NetDevice::ActionExecute (struct packet *pkt,
   switch (action->type) 
     {
       case (OFPAT_SET_FIELD): 
-        // set_field (pkt,(struct ofl_action_set_field*) action);
+        set_field (pkt,(struct ofl_action_set_field*) action);
         break;
       case (OFPAT_OUTPUT): 
         output (pkt, (struct ofl_action_output *)action);
         break;
       case (OFPAT_COPY_TTL_OUT): 
-        // copy_ttl_out (pkt, action);
+        copy_ttl_out (pkt, action);
         break;
       case (OFPAT_COPY_TTL_IN):
-        // copy_ttl_in (pkt, action);
+        copy_ttl_in (pkt, action);
         break;
       case (OFPAT_SET_MPLS_TTL):
-        // set_mpls_ttl (pkt, (struct ofl_action_mpls_ttl *)action);
+        set_mpls_ttl (pkt, (struct ofl_action_mpls_ttl *)action);
         break;
       case (OFPAT_DEC_MPLS_TTL): 
-        // dec_mpls_ttl (pkt, action);
+        dec_mpls_ttl (pkt, action);
         break;
       case (OFPAT_PUSH_VLAN): 
-        // push_vlan (pkt, (struct ofl_action_push *)action);
+        push_vlan (pkt, (struct ofl_action_push *)action);
         break;
       case (OFPAT_POP_VLAN): 
-        // pop_vlan (pkt, action);
+        pop_vlan (pkt, action);
         break;
       case (OFPAT_PUSH_MPLS): 
-        // push_mpls (pkt, (struct ofl_action_push *)action);
+        push_mpls (pkt, (struct ofl_action_push *)action);
         break;
       case (OFPAT_POP_MPLS): 
-        // pop_mpls (pkt, (struct ofl_action_pop_mpls *)action);
+        pop_mpls (pkt, (struct ofl_action_pop_mpls *)action);
         break;
       case (OFPAT_SET_QUEUE): 
-        // set_queue (pkt, (struct ofl_action_set_queue *)action);
+        set_queue (pkt, (struct ofl_action_set_queue *)action);
         break;
       case (OFPAT_GROUP): 
-        // group (pkt, (struct ofl_action_group *)action);
+        group (pkt, (struct ofl_action_group *)action);
         break;
       case (OFPAT_SET_NW_TTL): 
-        // set_nw_ttl (pkt, (struct ofl_action_set_nw_ttl *)action);
+        set_nw_ttl (pkt, (struct ofl_action_set_nw_ttl *)action);
         break;
       case (OFPAT_DEC_NW_TTL): 
-        // dec_nw_ttl (pkt, action);
+        dec_nw_ttl (pkt, action);
         break;
       case (OFPAT_PUSH_PBB):
-        // push_pbb (pkt, (struct ofl_action_push*)action);
+        push_pbb (pkt, (struct ofl_action_push*)action);
         break;
       case (OFPAT_POP_PBB):
-        // pop_pbb (pkt, action);
+        pop_pbb (pkt, action);
         break;
       case (OFPAT_EXPERIMENTER): 
-        // dp_exp_action (pkt, (struct ofl_action_experimenter *)action);
+        dp_exp_action (pkt, (struct ofl_action_experimenter *)action);
         break;
       default: 
         NS_LOG_WARN ("Trying to execute unknown action type " << action->type);
@@ -1173,7 +1239,7 @@ OFSwitch13NetDevice::ActionValidate (size_t num, struct ofl_action_header **acti
             }
         }
       
-      /** FIXME No support for groups by now
+      /** FIXME No group support by now
       if (actions[i]->type == OFPAT_GROUP) 
         {
           struct ofl_action_group *ag = (struct ofl_action_group *)actions[i];
@@ -1313,7 +1379,7 @@ OFSwitch13NetDevice::FlowTableModify (struct flow_table *table,
           {
             size_t instructions_num = mod->instructions_num;
             struct ofl_instruction_header **instructions = mod->instructions;
-            // FIXME No support to group by now
+            // FIXME No group support by now
             // del_group_refs(entry);
             OFL_UTILS_FREE_ARR_FUN2 (entry->stats->instructions, entry->stats->instructions_num, 
                 ofl_structs_free_instruction, NULL/*entry->dp->exp*/);
@@ -1344,8 +1410,7 @@ OFSwitch13NetDevice::FlowEntryRemove (struct flow_entry *entry, uint8_t reason)
           msg.reason = (ofp_flow_removed_reason)reason;
           msg.stats  = entry->stats;
 
-          struct ofpbuf *buffer = ofs::PackFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-          Ptr<Packet> packet = ofs::PacketFromBufferAndFree (buffer);
+          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
           SendToController (packet);
         }
     }
@@ -1364,7 +1429,7 @@ OFSwitch13NetDevice::FlowEntryRemove (struct flow_entry *entry, uint8_t reason)
 void 
 OFSwitch13NetDevice::FlowEntryDestroy (struct flow_entry *entry)
 {
-  // FIXME No support to meter and group by now
+  // FIXME No meter/group support by now
   // del_group_refs (entry);
   // del_meter_refs (entry);
   ofl_structs_free_flow_stats (entry->stats, NULL/*entry->dp->exp*/);
@@ -1416,7 +1481,7 @@ OFSwitch13NetDevice::CreatePacketIn (struct packet *pkt, uint8_t tableId,
 
   if (m_config.miss_send_len != OFPCML_NO_BUFFER)
     {
-      // FIXME No support for buffers by now
+      // FIXME No buffers support by now
       // dp_buffers_save(pkt->dp->buffers, pkt);
       // msg.buffer_id = pkt->buffer_id;
       // msg.data_length = MIN(max_len, pkt->buffer->size);
@@ -1433,8 +1498,7 @@ OFSwitch13NetDevice::CreatePacketIn (struct packet *pkt, uint8_t tableId,
     }
   msg.match = (struct ofl_match_header*)&pkt->handle_std->match;
   
-  struct ofpbuf *ofpbuf = ofs::PackFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-  return ofs::PacketFromBufferAndFree (ofpbuf);
+  return ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
 }
 
 ofl_err
@@ -1447,7 +1511,7 @@ OFSwitch13NetDevice::HandleMsgFlowMod (struct ofl_msg_flow_mod *msg)
    * and flow_table_flow_mod () at udatapath/flow_table.c
    */
 
-  // FIXME No support for table_id = 0xff by now
+  // FIXME No table_id = 0xff support by now
   ofl_err error;
   size_t i;
   bool match_kept, insts_kept;
@@ -1526,7 +1590,7 @@ OFSwitch13NetDevice::HandleMsgFlowMod (struct ofl_msg_flow_mod *msg)
        msg->buffer_id != NO_BUFFER) 
     {
       NS_FATAL_ERROR ("Should not get in here... no buffers!");
-      // FIXME No support for buffers by now
+      // FIXME No buffers support by now
       // /* run buffered message through pipeline */
       // struct packet *pkt;
 
@@ -1540,6 +1604,8 @@ OFSwitch13NetDevice::HandleMsgFlowMod (struct ofl_msg_flow_mod *msg)
       //     NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << msg->buffer_id);
       //   }
     }
+
+  // All handlers must free the message when everything is ok
   ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, NULL/*m_pipeline->dp->exp*/);
   return 0;
 }

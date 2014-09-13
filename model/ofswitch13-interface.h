@@ -88,11 +88,11 @@ extern "C"
 
 // Some internal functions are not declared in header files...
 // From flow_table.c
-int flow_table_features (struct ofl_table_features *features);
-void add_to_timeout_lists (struct flow_table *table, struct flow_entry *entry);
+// int flow_table_features (struct ofl_table_features *features);
+// void add_to_timeout_lists (struct flow_table *table, struct flow_entry *entry);
 
 // From pipeline.c
-int inst_compare (const void *inst1, const void *inst2);
+// int inst_compare (const void *inst1, const void *inst2);
 
 // From dpctl.c
 void parse_flow_mod_args (char *str, struct ofl_msg_flow_mod *req);
@@ -101,7 +101,7 @@ void parse_inst (char *str, struct ofl_instruction_header **inst);
 void make_all_match (struct ofl_match_header **match);
 
 // From dp_actions.c
-void output (struct packet *pkt, struct ofl_action_output *action);
+// void output (struct packet *pkt, struct ofl_action_output *action);
 
 #undef list
 #undef private
@@ -137,19 +137,6 @@ struct Port
   uint32_t port_no;               ///< Port number
 };
 
-// /**
-//  * \brief Packet Metadata, allows us to track the packet's metadata as it
-//  * passes through the switch.
-//  */
-// struct SwitchPacketMetadata
-// {
-//   Ptr<Packet> packet;         ///< The original ns3 Packet
-//   ofpbuf* buffer;             ///< The OpenFlow buffer created from the Packet
-//   uint16_t protocolNumber;    ///< Protocol type of the Packet when the Packet is received
-//   Address src;                ///< Source Address of the Packet when the Packet is received
-//   Address dst;                ///< Destination Address of the Packet when the Packet is received
-// };
-
 /**
  * \brief Create and OpenFlow ofpbuf from ns3::Packet
  * 
@@ -165,6 +152,18 @@ struct Port
  */
 ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
     size_t headRoom = 0);
+
+/**
+ * \brief Create and OpenFlow ofpbuf from internal ofl_msg_*
+ * 
+ * Takes a ofl_msg_* structure and generates an OpenFlow buffer (ofpbuf*) from
+ * it, packing message data into the buffer using wire format
+ * 
+ * \param msg The ofl_msg_* structure
+ * \param xid The transaction id to use.
+ * \return The OpenFlow Buffer created from the message
+ */
+ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid);
 
 /**
  * \brief Creates an OpenFlow internal packet from openflow buffer
@@ -183,16 +182,16 @@ struct packet* InternalPacketFromBuffer (uint32_t in_port, struct ofpbuf *buf,
     bool packet_out);
 
 /**
- * \brief Create and OpenFlow ofpbuf from internal ofl_msg_*
+ * \brief Create an ns3::Packet from internal ofl_msg_*
  * 
- * Takes a ofl_msg_* structure and generates an OpenFlow buffer (ofpbuf*) from
- * it, load the message data into the buffer.
+ * Takes a ofl_msg_* structure and generates an Ptr<Packet> from
+ * it, packing message data into the packet using wire format
  * 
  * \param msg The ofl_msg_* structure
  * \param xid The transaction id to use.
- * \return The OpenFlow Buffer created from the message
+ * \return The ns3::Packet created.
  */
-ofpbuf* PackFromMsg (ofl_msg_header *msg, uint32_t xid);
+Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid);
 
 /**
  * \brief Create an ns3::Packet from OpenFlow buffer
@@ -216,7 +215,6 @@ Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer);
  * \return The ns3::Packet created.
  */
 Ptr<Packet> PacketFromInternalPacket (struct packet *pkt);
-
 
 } // namespace ofs
 } // namespace ns3

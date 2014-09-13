@@ -82,7 +82,7 @@ private:
    * \param buffer The packet in OpenFlow buffer format.
    * \return The packet type, as defined in the ofp_type struct.
    */
-  uint8_t GetPacketType (ofpbuf* buffer);
+  ofp_type GetPacketType (ofpbuf* buffer);
 
   /**
    * \internal

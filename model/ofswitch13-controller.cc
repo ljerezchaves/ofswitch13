@@ -31,14 +31,20 @@ namespace ns3 {
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller);
 
 static void
-LogSendingMessage (struct ofl_msg_header *msg)
+LogOflMsg (struct ofl_msg_header *msg, bool isRx)
 {
   char *str;
   str = ofl_msg_to_string (msg, NULL);
-  NS_LOG_INFO ("SENDING to switch: " << str);
+  if (isRx)
+    {
+      NS_LOG_INFO ("RX (swtc): " << str);
+    }
+  else
+    {
+      NS_LOG_INFO ("TX (swtc): " << str);
+    }
   free (str);
 }
-
 
 /********** Public methods **********/
 
@@ -97,9 +103,8 @@ OFSwitch13Controller::SendHelloMsg (Ptr<OFSwitch13NetDevice> swtch)
   msg.type = OFPT_HELLO;
 
   // Create packet, free memory and send
-  LogSendingMessage (&msg);
-  struct ofpbuf *ofpbuf = ofs::PackFromMsg (&msg, ++m_xid);
-  Ptr<Packet> pkt = ofs::PacketFromBufferAndFree (ofpbuf);
+  LogOflMsg (&msg, false);
+  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
   return SendToSwitch (pkt, swtch);
 }
 
@@ -181,9 +186,8 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char
   wordfree (&cmd);
 
   // Create packet, free memory and send
-  LogSendingMessage ((ofl_msg_header*)msg);
-  struct ofpbuf *ofpbuf = ofs::PackFromMsg ((ofl_msg_header*)msg, ++m_xid);
-  Ptr<Packet> pkt = ofs::PacketFromBufferAndFree (ofpbuf);
+  LogOflMsg ((ofl_msg_header*)msg, false);
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)msg, ++m_xid);
   return SendToSwitch (pkt, swtch);
 }
 
@@ -228,11 +232,11 @@ OFSwitch13Controller::StopApplication ()
   m_socketsMap.clear ();
 }
 
-uint8_t
+ofp_type
 OFSwitch13Controller::GetPacketType (ofpbuf* buffer)
 {
   ofp_header* hdr = (ofp_header*)ofpbuf_try_pull (buffer, sizeof (ofp_header));
-  uint8_t type = hdr->type;
+  ofp_type type = (ofp_type)hdr->type;
   ofpbuf_push_uninit (buffer, sizeof (ofp_header));
   return type;
 }
@@ -241,7 +245,7 @@ void
 OFSwitch13Controller::ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer)
 {
   NS_LOG_FUNCTION (this << swtch);
-
+  NS_LOG_INFO ("Pacote tipo " << GetPacketType (buffer));
   // TODO: Não esquecer de liberar o buffer ao final
 }
 

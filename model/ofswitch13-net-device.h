@@ -172,6 +172,8 @@ private:
   /**
    * \brief Called by the HandleRead when a packet is received from the
    * controller.
+   * \see remote_rconn_run () at udatapath/dp_control.c
+   * \see handle_control_msg () at udatapath/dp_control.c
    *
    * \param msg The message (ofpbuf) received from the controller.
    * \param length Length of the message.
