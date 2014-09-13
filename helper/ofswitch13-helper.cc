@@ -35,7 +35,8 @@ class OFSwitch13Controller;
 OFSwitch13Helper::OFSwitch13Helper ()
   : m_ctrlNode (0),
     m_ctrlApp (0),
-    m_ctrlDev (0)
+    m_ctrlDev (0),
+    m_dpId (0)
 {
   NS_LOG_FUNCTION_NOARGS ();
   m_ctrlFactory.SetTypeId ("ns3::OFSwitch13Controller");
@@ -71,7 +72,8 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {
   NS_ASSERT_MSG (m_ctrlApp == 0, "Can't install more switches.");
   NS_LOG_DEBUG ("Install switch device on node " << swNode->GetId ());
-  
+ 
+  SetDeviceAttribute ("ID", UintegerValue (++m_dpId));
   Ptr<OFSwitch13NetDevice> dev = m_ndevFactory.Create<OFSwitch13NetDevice> ();
   swNode->AddDevice (dev);
   

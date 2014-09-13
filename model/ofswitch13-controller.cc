@@ -37,11 +37,11 @@ LogOflMsg (struct ofl_msg_header *msg, bool isRx)
   str = ofl_msg_to_string (msg, NULL);
   if (isRx)
     {
-      NS_LOG_INFO ("RX (swtc): " << str);
+      NS_LOG_INFO ("RX from switch: " << str);
     }
   else
     {
-      NS_LOG_INFO ("TX (swtc): " << str);
+      NS_LOG_INFO ("TX to swtc: " << str);
     }
   free (str);
 }
@@ -317,12 +317,23 @@ OFSwitch13Controller::HandleAccept (Ptr<Socket> s, const Address& from)
   s->SetRecvCallback (MakeCallback (&OFSwitch13Controller::HandleRead, this));
   m_socketsMap[idx] = s;
 
+  {
   // Send hello message
   struct ofl_msg_header msg;
   msg.type = OFPT_HELLO;
   LogOflMsg (&msg, false/*Tx*/);
   Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
   SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+  }
+  
+  {
+  // Send features resquest message
+  struct ofl_msg_header msg;
+  msg.type = OFPT_FEATURES_REQUEST;
+  LogOflMsg (&msg, false/*Tx*/);
+  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
+  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+  }
 }
 
 void 

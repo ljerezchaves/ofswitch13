@@ -435,6 +435,7 @@ private:
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
+  ofl_err HandleMsgFeaturesRequest (struct ofl_msg_header *msg, uint64_t xid);
   ofl_err HandleMsgFlowMod (struct ofl_msg_flow_mod *msg); 
   //\}
 

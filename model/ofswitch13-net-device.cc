@@ -65,17 +65,17 @@ HashInt (uint32_t x, uint32_t basis)
 }
 
 static void
-LogOflMsg (struct ofl_msg_header *msg, bool isRx)
+LogOflMsg (struct ofl_msg_header *msg, bool isRx=false)
 {
   char *str;
   str = ofl_msg_to_string (msg, NULL);
   if (isRx)
     {
-      NS_LOG_INFO ("RX (ctrl): " << str);
+      NS_LOG_INFO ("RX from ctrl: " << str);
     }
   else
     {
-      NS_LOG_INFO ("TX (ctrl): " << str);
+      NS_LOG_INFO ("TX to ctrl: " << str);
     }
   free (str);
 }
@@ -228,6 +228,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
       msg.desc = p.conf;
 
       Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+      LogOflMsg ((ofl_msg_header*)&msg);
       SendToController (packet);
     }
 
@@ -551,7 +552,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
 
           /* Switch configuration messages. */
           case OFPT_FEATURES_REQUEST:
-            //error = handle_control_features_request (dp, msg, sender);
+            error = HandleMsgFeaturesRequest (msg, xid);
             break;
           case OFPT_FEATURES_REPLY:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
@@ -662,6 +663,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
       err.data = (uint8_t*)buffer->data;
 
       Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&err, xid);
+      LogOflMsg ((ofl_msg_header*)&msg);
       SendToController (packet);
     }
   ofpbuf_delete (buffer);
@@ -1009,6 +1011,7 @@ OFSwitch13NetDevice::PipelineTimeout ()
           msg.desc = p->conf;
 
           Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+          LogOflMsg ((ofl_msg_header*)&msg);
           SendToController (packet);
         }
     }
@@ -1411,6 +1414,7 @@ OFSwitch13NetDevice::FlowEntryRemove (struct flow_entry *entry, uint8_t reason)
           msg.stats  = entry->stats;
 
           Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+          LogOflMsg ((ofl_msg_header*)&msg);
           SendToController (packet);
         }
     }
@@ -1497,8 +1501,31 @@ OFSwitch13NetDevice::CreatePacketIn (struct packet *pkt, uint8_t tableId,
       packet_handle_std_validate (pkt->handle_std);
     }
   msg.match = (struct ofl_match_header*)&pkt->handle_std->match;
-  
+ 
+  LogOflMsg ((ofl_msg_header*)&msg);
   return ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+}
+
+
+ofl_err
+OFSwitch13NetDevice::HandleMsgFeaturesRequest (struct ofl_msg_header *msg, uint64_t xid)
+{
+  struct ofl_msg_features_reply reply =
+            {{.type = OFPT_FEATURES_REPLY},
+             .datapath_id  = m_id,
+             .n_buffers    = 0, // No buffer support by now
+             .n_tables     = PIPELINE_TABLES,
+             .auxiliary_id = 0, // No auxiliary connection support by now
+             .capabilities = DP_SUPPORTED_CAPABILITIES,
+             .reserved = 0x00000000};
+
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
+  LogOflMsg ((ofl_msg_header*)&reply);
+  SendToController (pkt);
+  
+  // All handlers must free the message when everything is ok
+  ofl_msg_free (msg, NULL/*dp->exp*/);
+  return 0;
 }
 
 ofl_err
@@ -1652,7 +1679,7 @@ OFSwitch13NetDevice::HandleCtrlSucceeded (Ptr<Socket> socket)
   // Send Hello message
   struct ofl_msg_header msg;
   msg.type = OFPT_HELLO;
-  LogOflMsg (&msg, false/*Tx*/);
+  LogOflMsg (&msg);
   Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
   SendToController (pkt);
 }

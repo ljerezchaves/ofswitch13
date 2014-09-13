@@ -130,6 +130,7 @@ private:
   Ptr<OFSwitch13Controller> m_ctrlApp;  //!< Controller App
   Ptr<NetDevice>            m_ctrlDev;  //!< Controller CsmaNetDevice (switch connection)
   Address                   m_ctrlAddr; //!< Controller Addr 
+  uint64_t                  m_dpId;     //!< Datapath (switch) ID
 
   /**
    * \name Network objetc containers 
