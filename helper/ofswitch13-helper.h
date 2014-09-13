@@ -99,7 +99,7 @@ public:
   void EnableOpenFlowPcap ();
    
   /**
-   * \name Get items methods
+   * \name Get item methods
    * \param idx The index at the container
    * \return the objects in the container at a specific index.
    */
@@ -110,9 +110,9 @@ public:
   //\}
 
   /**
-   * \name GetIndex methods
-   * Iterate over the containers looking for the specifc index matching the
-   * parameter. This index can be used to access other containers.
+   * \name Get index methods
+   * Iterate over the proper container looking for the parameter object to
+   * retrieve its index. This index can be used to access other containers.
    * \return The index in the containers
    */
   //\{
@@ -132,6 +132,7 @@ private:
   Address                   m_ctrlAddr; //!< Controller Addr 
 
   /**
+   * \name Network objetc containers 
    * Containers used to store switche nodes, OFSwitch13NetDevice devices, and
    * Ipv4Address. They use a relative position to associate these three objetcs
    * to the same switch.

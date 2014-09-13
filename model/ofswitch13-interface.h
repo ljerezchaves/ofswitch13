@@ -56,8 +56,6 @@ extern "C"
 #define delete _delete
 #define list List
 
-#include "utilities/dpctl.h"
-
 #include "udatapath/packet.h"
 #include "udatapath/pipeline.h"
 #include "udatapath/flow_table.h"
@@ -67,41 +65,30 @@ extern "C"
 #include "udatapath/packet_handle_std.h"
 #include "udatapath/dp_buffers.h"
 #include "udatapath/action_set.h"
-// #include "udatapath/datapath.h"
-// #include "udatapath/meter_table.h"
-// #include "udatapath/action_set.h"
 
 #include "lib/ofpbuf.h"
 #include "lib/dynamic-string.h"
 #include "lib/hash.h"
-// #include "lib/hmap.h"
-// #include "lib/ofp.h"
-// #include "lib/vlog.h"
-// #include "lib/csum.h"
-// #include "lib/packets.h"
-// #include "lib/daemon.h"
-// #include "lib/poll-loop.h"
 
 #include "oflib/ofl-structs.h"
 #include "oflib/oxm-match.h"
 #include "oflib/ofl-utils.h"
 
-// Some internal functions are not declared in header files...
-// From flow_table.c
-// int flow_table_features (struct ofl_table_features *features);
-// void add_to_timeout_lists (struct flow_table *table, struct flow_entry *entry);
-
-// From pipeline.c
-// int inst_compare (const void *inst1, const void *inst2);
-
-// From dpctl.c
-void parse_flow_mod_args (char *str, struct ofl_msg_flow_mod *req);
-void parse_match (char *str, struct ofl_match_header **match);
-void parse_inst (char *str, struct ofl_instruction_header **inst);
-void make_all_match (struct ofl_match_header **match);
-
-// From dp_actions.c
-// void output (struct packet *pkt, struct ofl_action_output *action);
+#include "utilities/dpctl.h"
+// Some dpctl parse methods that are not in header
+void parse_flow_mod_args(char *str, struct ofl_msg_flow_mod *req);
+void parse_group_mod_args(char *str, struct ofl_msg_group_mod *req);
+void parse_meter_mod_args(char *str, struct ofl_msg_meter_mod *req);
+void parse_bucket(char *str, struct ofl_bucket *b);
+void parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req);
+void parse_match(char *str, struct ofl_match_header **match);
+void parse_inst(char *str, struct ofl_instruction_header **inst);
+void parse_actions(char *str, size_t *acts_num, struct ofl_action_header ***acts);
+void parse_config(char *str, struct ofl_config *config);
+void parse_port_mod(char *str, struct ofl_msg_port_mod *msg);
+void parse_table_mod(char *str, struct ofl_msg_table_mod *msg);
+void parse_band(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_header **b);
+void make_all_match(struct ofl_match_header **match);
 
 #undef list
 #undef private
@@ -114,6 +101,7 @@ namespace ofs {
 class OFSwitch13NetDevice;
 
 /**
+ * \ingroup ofswitch13
  * \brief Switch SwPort and its metadata.
  * \see ofsoftswitch13 udatapath/dp_ports.h
  */
@@ -133,11 +121,12 @@ struct Port
   uint32_t flags;                 ///< SWP_* flags.
   Ptr<NetDevice> netdev;          ///< Pointer to ns3::NetDevice
   struct ofl_port *conf;          ///< Config information
-  struct ofl_port_stats *stats;   ///< Statiscts
+  struct ofl_port_stats *stats;   ///< Statistics
   uint32_t port_no;               ///< Port number
 };
 
 /**
+ * \ingroup ofswitch13
  * \brief Create and OpenFlow ofpbuf from ns3::Packet
  * 
  * Takes a Ptr<Packet> and generates an OpenFlow buffer (ofpbuf*) from it,
@@ -154,6 +143,7 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
     size_t headRoom = 0);
 
 /**
+ * \ingroup ofswitch13
  * \brief Create and OpenFlow ofpbuf from internal ofl_msg_*
  * 
  * Takes a ofl_msg_* structure and generates an OpenFlow buffer (ofpbuf*) from
@@ -166,6 +156,7 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
 ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid);
 
 /**
+ * \ingroup ofswitch13
  * \brief Creates an OpenFlow internal packet from openflow buffer
  *
  * This packet in an internal ofsoftswitch13 structure to represent the
@@ -182,6 +173,7 @@ struct packet* InternalPacketFromBuffer (uint32_t in_port, struct ofpbuf *buf,
     bool packet_out);
 
 /**
+ * \ingroup ofswitch13
  * \brief Create an ns3::Packet from internal ofl_msg_*
  * 
  * Takes a ofl_msg_* structure and generates an Ptr<Packet> from
@@ -194,6 +186,7 @@ struct packet* InternalPacketFromBuffer (uint32_t in_port, struct ofpbuf *buf,
 Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid);
 
 /**
+ * \ingroup ofswitch13
  * \brief Create an ns3::Packet from OpenFlow buffer
  * 
  * Takes an OpenFlow buffer (ofpbuf*) and generates a Ptr<Packet> from it,
@@ -206,6 +199,7 @@ Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid);
 Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer);
 
 /**
+ * \ingroup ofswitch13
  * \brief Create an ns3::Packet from internal OpenFlow packet 
  * 
  * Takes an internal OpenFlow packet (struct packet*) and generates a Ptr<Packet> from it,
