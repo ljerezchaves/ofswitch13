@@ -1718,7 +1718,7 @@ OFSwitch13NetDevice::HandleMsgMultipartRequest (struct ofl_msg_multipart_request
         }
       case OFPMP_PORT_DESC:
         {
-          //return dp_ports_handle_port_desc_request(dp, msg, sender);        
+          return MultipartMsgPortDesc (msg, xid);        
         }
       case (OFPMP_EXPERIMENTER): 
         {
@@ -1735,27 +1735,26 @@ OFSwitch13NetDevice::HandleMsgMultipartRequest (struct ofl_msg_multipart_request
 ofl_err
 OFSwitch13NetDevice::MultipartMsgDesc (struct ofl_msg_multipart_request_header *msg, uint64_t xid)
 {
-
   char *mfrDesc = (char*)xmalloc (DESC_STR_LEN);
   char *hwDesc  = (char*)xmalloc (DESC_STR_LEN);
   char *swDesc  = (char*)xmalloc (DESC_STR_LEN);
   char *serDesc = (char*)xmalloc (DESC_STR_LEN);
   char *dpDesc  = (char*)xmalloc (DESC_STR_LEN);
   strcpy (mfrDesc, GetManufacturerDescription ());
-  strcpy (hwDesc, GetHardwareDescription ());
-  strcpy (swDesc, GetSoftwareDescription ());
+  strcpy (hwDesc,  GetHardwareDescription ());
+  strcpy (swDesc,  GetSoftwareDescription ());
   strcpy (serDesc, GetSerialNumber ());
-  strcpy (dpDesc, GetDatapathDescrtiption ());
+  strcpy (dpDesc,  GetDatapathDescrtiption ());
 
   struct ofl_msg_reply_desc reply;
   reply.header.header.type = OFPT_MULTIPART_REPLY;
   reply.header.type  = OFPMP_DESC;
   reply.header.flags = 0x0000;
-  reply.mfr_desc    = mfrDesc;
-  reply.hw_desc     = hwDesc;
-  reply.sw_desc     = swDesc;
-  reply.serial_num  = serDesc;
-  reply.dp_desc     = dpDesc;
+  reply.mfr_desc     = mfrDesc;
+  reply.hw_desc      = hwDesc;
+  reply.sw_desc      = swDesc;
+  reply.serial_num   = serDesc;
+  reply.dp_desc      = dpDesc;
 
   Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
   LogOflMsg ((ofl_msg_header*)&reply);
@@ -1771,6 +1770,36 @@ OFSwitch13NetDevice::MultipartMsgDesc (struct ofl_msg_multipart_request_header *
   ofl_msg_free ((struct ofl_msg_header *)msg, NULL/*dp->exp*/);
   return 0;
 }
+
+ofl_err
+OFSwitch13NetDevice::MultipartMsgPortDesc (struct ofl_msg_multipart_request_header *msg, uint64_t xid)
+{
+  ofs::Port *port;
+  size_t i = 0;
+
+  struct ofl_msg_multipart_reply_port_desc reply;
+  reply.header.header.type = OFPT_MULTIPART_REPLY;
+  reply.header.type  = OFPMP_PORT_DESC;
+  reply.header.flags = 0x0000;
+  reply.stats_num    = GetNSwitchPorts ();
+  reply.stats        = (ofl_port**)xmalloc (sizeof (struct ofl_port *) * reply.stats_num);
+
+  // Using port number (not position in vector)
+  for (i = 1; i <= GetNSwitchPorts (); i++)
+    {
+      port = PortGetOfsPort (i);
+      reply.stats[i-1] = port->conf;
+    }
+
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
+  LogOflMsg ((ofl_msg_header*)&reply);
+  SendToController (pkt);
+
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header *)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
 
 
 void 

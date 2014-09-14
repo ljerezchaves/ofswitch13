@@ -441,11 +441,12 @@ private:
   ofl_err HandleMsgGetConfigRequest (struct ofl_msg_header *msg, uint64_t xid);
   ofl_err HandleMsgFlowMod (struct ofl_msg_flow_mod *msg);
   ofl_err HandleMsgMultipartRequest (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
+  
+  ofl_err MultipartMsgDesc (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgPortDesc (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
   //\}
 
-  ofl_err MultipartMsgDesc (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
-
-  /**
+   /**
    * \internal
    * \name Socket callbacks
    * Handlers used as socket callbacks to TCP communication between this

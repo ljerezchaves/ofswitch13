@@ -33,7 +33,7 @@ Port::Port (Ptr<NetDevice> netdev, uint32_t no) :
     conf = (ofl_port*)xmalloc (sizeof (struct ofl_port));
     memset (conf, 0x00, sizeof (struct ofl_port));
     conf->name = (char*)xmalloc (4);
-    snprintf(conf->name, 3, "%d", no);
+    snprintf(conf->name, 8, "Port %d", no);
     conf->port_no = no;
     conf->config = 0x00000000;
     conf->state = 0x00000000 | OFPPS_LIVE;
