@@ -31,7 +31,7 @@ namespace ns3 {
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller);
 
 static void
-LogOflMsg (struct ofl_msg_header *msg, bool isRx)
+LogOflMsg (struct ofl_msg_header *msg, bool isRx=false)
 {
   char *str;
   str = ofl_msg_to_string (msg, NULL);
@@ -173,7 +173,7 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char
   wordfree (&cmd);
 
   // Create packet, free memory and send
-  LogOflMsg ((ofl_msg_header*)msg, false);
+  LogOflMsg ((ofl_msg_header*)msg);
   Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)msg, ++m_xid);
   return SendToSwitch (pkt, swtch);
 }
@@ -321,7 +321,7 @@ OFSwitch13Controller::HandleAccept (Ptr<Socket> s, const Address& from)
   // Send hello message
   struct ofl_msg_header msg;
   msg.type = OFPT_HELLO;
-  LogOflMsg (&msg, false/*Tx*/);
+  LogOflMsg (&msg);
   Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
   SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
   }
@@ -330,8 +330,40 @@ OFSwitch13Controller::HandleAccept (Ptr<Socket> s, const Address& from)
   // Send features resquest message
   struct ofl_msg_header msg;
   msg.type = OFPT_FEATURES_REQUEST;
-  LogOflMsg (&msg, false/*Tx*/);
+  LogOflMsg (&msg);
   Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
+  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+  }
+
+  // Send get config message
+  {
+  struct ofl_msg_header msg;
+  msg.type = OFPT_GET_CONFIG_REQUEST;
+  LogOflMsg (&msg);
+  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
+  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+  }
+
+  // Send switch desc message
+  {
+  struct ofl_msg_multipart_request_header msg;
+  msg.header.type = OFPT_MULTIPART_REQUEST;
+  msg.type = OFPMP_DESC; 
+  msg.flags = 0x0000;
+  LogOflMsg ((ofl_msg_header*)&msg);
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+  }
+
+
+  // Send port desc message
+  {
+  struct ofl_msg_multipart_request_header msg;
+  msg.header.type = OFPT_MULTIPART_REQUEST;
+  msg.type = OFPMP_PORT_DESC; 
+  msg.flags = 0x0000;
+  LogOflMsg ((ofl_msg_header*)&msg);
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
   SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
   }
 }

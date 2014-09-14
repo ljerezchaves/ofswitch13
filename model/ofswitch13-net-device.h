@@ -66,14 +66,15 @@ public:
    * There is a type of stats request that OpenFlow switches are supposed to
    * handle that returns the description of the OpenFlow switch. Currently
    * manufactured by "The ns-3 team", software description is "Simulated
-   * OpenFlow Switch datapath version 1.3", hardware description is "N/A" and
-   * serial number is 1.
+   * OpenFlow Switch datapath version 1.3", hardware description is "N/A",
+   * serial number is 1, and datapath description is "N/A".
    */
   //\{
   static const char * GetManufacturerDescription ();
   static const char * GetHardwareDescription ();
   static const char * GetSoftwareDescription ();
   static const char * GetSerialNumber ();
+  static const char * GetDatapathDescrtiption ();
   //\}
 
  /**
@@ -432,12 +433,17 @@ private:
    * message received from the controller.
    *
    * \param msg The OpenFlow message.
+   * \param xid The transaction id from the request message.
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
   ofl_err HandleMsgFeaturesRequest (struct ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgFlowMod (struct ofl_msg_flow_mod *msg); 
+  ofl_err HandleMsgGetConfigRequest (struct ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgFlowMod (struct ofl_msg_flow_mod *msg);
+  ofl_err HandleMsgMultipartRequest (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
   //\}
+
+  ofl_err MultipartMsgDesc (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
 
   /**
    * \internal

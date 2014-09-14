@@ -187,6 +187,12 @@ OFSwitch13NetDevice::GetSerialNumber ()
   return "1";
 }
 
+const char *
+OFSwitch13NetDevice::GetDatapathDescrtiption ()
+{
+  return "N/A";
+}
+
 int 
 OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
 {
@@ -558,7 +564,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
           case OFPT_GET_CONFIG_REQUEST:
-            //error = handle_control_get_config_request (dp, msg, sender);
+            error = HandleMsgGetConfigRequest (msg, xid);
             break;
           case OFPT_GET_CONFIG_REPLY:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
@@ -604,7 +610,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
 
           /* Statistics messages. */
           case OFPT_MULTIPART_REQUEST:
-            //error = handle_control_stats_request (dp, (struct ofl_msg_multipart_request_header *)msg, sender);
+            error = HandleMsgMultipartRequest ((struct ofl_msg_multipart_request_header*)msg, xid);
             break;
           case OFPT_MULTIPART_REPLY:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
@@ -1510,14 +1516,30 @@ OFSwitch13NetDevice::CreatePacketIn (struct packet *pkt, uint8_t tableId,
 ofl_err
 OFSwitch13NetDevice::HandleMsgFeaturesRequest (struct ofl_msg_header *msg, uint64_t xid)
 {
-  struct ofl_msg_features_reply reply =
-            {{.type = OFPT_FEATURES_REPLY},
-             .datapath_id  = m_id,
-             .n_buffers    = 0, // No buffer support by now
-             .n_tables     = PIPELINE_TABLES,
-             .auxiliary_id = 0, // No auxiliary connection support by now
-             .capabilities = DP_SUPPORTED_CAPABILITIES,
-             .reserved = 0x00000000};
+  struct ofl_msg_features_reply reply;
+  reply.header.type  = OFPT_FEATURES_REPLY;
+  reply.datapath_id  = m_id;
+  reply.n_buffers    = 0; // FIXME No buffer support by now
+  reply.n_tables     = PIPELINE_TABLES;
+  reply.auxiliary_id = 0; // FIXME No auxiliary connection support by now
+  reply.capabilities = DP_SUPPORTED_CAPABILITIES;
+  reply.reserved     = 0x00000000;
+
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
+  LogOflMsg ((ofl_msg_header*)&reply);
+  SendToController (pkt);
+  
+  // All handlers must free the message when everything is ok
+  ofl_msg_free (msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err
+OFSwitch13NetDevice::HandleMsgGetConfigRequest (struct ofl_msg_header *msg, uint64_t xid)
+{
+  struct ofl_msg_get_config_reply reply;
+  reply.header.type = OFPT_GET_CONFIG_REPLY;
+  reply.config      = &m_config;
 
   Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
   LogOflMsg ((ofl_msg_header*)&reply);
@@ -1636,6 +1658,120 @@ OFSwitch13NetDevice::HandleMsgFlowMod (struct ofl_msg_flow_mod *msg)
   ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, NULL/*m_pipeline->dp->exp*/);
   return 0;
 }
+
+ofl_err 
+OFSwitch13NetDevice::HandleMsgMultipartRequest (struct ofl_msg_multipart_request_header *msg, uint64_t xid)
+{
+  switch (msg->type) 
+    {
+      case (OFPMP_DESC): 
+        {
+          return MultipartMsgDesc (msg, xid);
+        }
+      case (OFPMP_FLOW): 
+        {
+          //return pipeline_handle_stats_request_flow(dp->pipeline, (struct ofl_msg_multipart_request_flow *)msg, sender);
+        }
+      case (OFPMP_AGGREGATE): 
+        {
+          //return pipeline_handle_stats_request_aggregate(dp->pipeline, (struct ofl_msg_multipart_request_flow *)msg, sender);
+        }
+      case (OFPMP_TABLE): 
+        {
+          //return pipeline_handle_stats_request_table(dp->pipeline, msg, sender);
+        }
+      case (OFPMP_TABLE_FEATURES):
+        {
+          //return pipeline_handle_stats_request_table_features_request(dp->pipeline, msg, sender);
+        }
+      case (OFPMP_PORT_STATS): 
+        {
+          //return dp_ports_handle_stats_request_port(dp, (struct ofl_msg_multipart_request_port *)msg, sender);
+        }
+      case (OFPMP_QUEUE): 
+        {
+          //return dp_ports_handle_stats_request_queue(dp, (struct ofl_msg_multipart_request_queue *)msg, sender);
+        }
+      case (OFPMP_GROUP): 
+        {
+          //return group_table_handle_stats_request_group(dp->groups, (struct ofl_msg_multipart_request_group *)msg, sender);
+        }
+      case (OFPMP_GROUP_DESC): 
+        {
+          //return group_table_handle_stats_request_group_desc(dp->groups, msg, sender);
+        }
+      case (OFPMP_GROUP_FEATURES):
+        {
+          //return group_table_handle_stats_request_group_features(dp->groups, msg, sender);			
+      	}		
+      case (OFPMP_METER):
+        {
+      	  //return meter_table_handle_stats_request_meter(dp->meters,(struct ofl_msg_multipart_meter_request*)msg, sender);
+        }
+      case (OFPMP_METER_CONFIG):
+        {
+          //return meter_table_handle_stats_request_meter_conf(dp->meters,(struct ofl_msg_multipart_meter_request*)msg, sender);        
+        }
+      case OFPMP_METER_FEATURES:
+        {
+          //return meter_table_handle_features_request(dp->meters, msg, sender);
+        }
+      case OFPMP_PORT_DESC:
+        {
+          //return dp_ports_handle_port_desc_request(dp, msg, sender);        
+        }
+      case (OFPMP_EXPERIMENTER): 
+        {
+          //return dp_exp_stats(dp, (struct ofl_msg_multipart_request_experimenter *)msg, sender);
+        }
+      default: 
+        {
+          return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_MULTIPART);
+        }
+    }
+}
+
+
+ofl_err
+OFSwitch13NetDevice::MultipartMsgDesc (struct ofl_msg_multipart_request_header *msg, uint64_t xid)
+{
+
+  char *mfrDesc = (char*)xmalloc (DESC_STR_LEN);
+  char *hwDesc  = (char*)xmalloc (DESC_STR_LEN);
+  char *swDesc  = (char*)xmalloc (DESC_STR_LEN);
+  char *serDesc = (char*)xmalloc (DESC_STR_LEN);
+  char *dpDesc  = (char*)xmalloc (DESC_STR_LEN);
+  strcpy (mfrDesc, GetManufacturerDescription ());
+  strcpy (hwDesc, GetHardwareDescription ());
+  strcpy (swDesc, GetSoftwareDescription ());
+  strcpy (serDesc, GetSerialNumber ());
+  strcpy (dpDesc, GetDatapathDescrtiption ());
+
+  struct ofl_msg_reply_desc reply;
+  reply.header.header.type = OFPT_MULTIPART_REPLY;
+  reply.header.type  = OFPMP_DESC;
+  reply.header.flags = 0x0000;
+  reply.mfr_desc    = mfrDesc;
+  reply.hw_desc     = hwDesc;
+  reply.sw_desc     = swDesc;
+  reply.serial_num  = serDesc;
+  reply.dp_desc     = dpDesc;
+
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
+  LogOflMsg ((ofl_msg_header*)&reply);
+  SendToController (pkt);
+
+  free (mfrDesc);
+  free (hwDesc);
+  free (swDesc);
+  free (serDesc);
+  free (dpDesc);
+
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header *)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
 
 void 
 OFSwitch13NetDevice::HandleCtrlRead (Ptr<Socket> socket)

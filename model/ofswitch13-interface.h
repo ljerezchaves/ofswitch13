@@ -95,7 +95,7 @@ void make_all_match(struct ofl_match_header **match);
 #undef delete
 }
 
-// Capabilities supported by this implementation
+// Capabilities supported by this implementation (from dp_capabilities.h)
 #define DP_SUPPORTED_CAPABILITIES ( \
     OFPC_FLOW_STATS     \
   | OFPC_TABLE_STATS    \
@@ -105,23 +105,6 @@ void make_all_match(struct ofl_match_header **match);
 /*| OFPC_QUEUE_STATS */   
 /*| OFPC_PORT_BLOCKED */   
     
-// Groups supported by this implementation
-// No group support by now
-// #define DP_SUPPORTED_GROUPS ( \
-    OFPGT_ALL      \
-  | OFPGT_SELECT   \
-  | OFPGT_INDIRECT \
-  | OFPGT_FF       )
-
-// Group capabilities supported by this implementation
-// No group support by now
-// #define DP_SUPPORTED_GROUP_CAPABILITIES ( \
-    OFPGFC_SELECT_WEIGHT      \
-/*| OFPGFC_SELECT_LIVENESS    \
-  | OFPGFC_CHAINING           \
-  | OFPGFC_CHAINING_CHECKS */ )
-
-
 namespace ns3 {
 namespace ofs {
 
