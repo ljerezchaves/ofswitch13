@@ -232,7 +232,7 @@ void
 OFSwitch13Controller::ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer)
 {
   NS_LOG_FUNCTION (this << swtch);
-  NS_LOG_INFO ("Pacote tipo " << GetPacketType (buffer));
+  NS_LOG_DEBUG ("Pacote tipo " << GetPacketType (buffer));
   // TODO: Não esquecer de liberar o buffer ao final
 }
 
@@ -361,6 +361,31 @@ OFSwitch13Controller::HandleAccept (Ptr<Socket> s, const Address& from)
   struct ofl_msg_multipart_request_header msg;
   msg.header.type = OFPT_MULTIPART_REQUEST;
   msg.type = OFPMP_PORT_DESC; 
+  msg.flags = 0x0000;
+  LogOflMsg ((ofl_msg_header*)&msg);
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+  }
+
+  // Send port stats message
+  {
+  int pNo = 2;
+  //int pNo = OFPP_ANY;
+  struct ofl_msg_multipart_request_port msg;
+  msg.header.header.type = OFPT_MULTIPART_REQUEST;
+  msg.header.type = OFPMP_PORT_STATS;
+  msg.header.flags = 0x0000;
+  msg.port_no = pNo;
+  LogOflMsg ((ofl_msg_header*)&msg);
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+  }
+
+  // Send stats table message
+  {
+  struct ofl_msg_multipart_request_header msg;
+  msg.header.type = OFPT_MULTIPART_REQUEST;
+  msg.type = OFPMP_TABLE;
   msg.flags = 0x0000;
   LogOflMsg ((ofl_msg_header*)&msg);
   Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);

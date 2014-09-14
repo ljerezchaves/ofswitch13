@@ -444,6 +444,10 @@ private:
   
   ofl_err MultipartMsgDesc (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err MultipartMsgPortDesc (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgPortStats (struct ofl_msg_multipart_request_port *msg, uint64_t xid);
+  ofl_err MultipartMsgTable (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
+
+
   //\}
 
    /**
