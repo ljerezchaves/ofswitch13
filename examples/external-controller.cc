@@ -26,14 +26,13 @@
 #include "ns3/csma-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
-#include "ns3/tap-bridge-module.h"
 #include "ns3/log.h"
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Tap");
 
 using namespace ns3;
 
-#ifdef NS3_OFSWITCH13
+#if defined (NS3_OFSWITCH13) && (ENABLE_TAP)
 #include "ns3/ofswitch13-module.h"
 
 int 
@@ -101,12 +100,7 @@ main (int argc, char *argv[])
   of13Device1 = ofHelper->InstallSwitch (switchNode1, switch1Devices);
 
   // Install the controller app (creating links between controller and switches)
-  Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallController (controllerNode);
-
-  TapBridgeHelper tapBridge;
-  tapBridge.SetAttribute ("Mode", StringValue ("ConfigureLocal"));
-  tapBridge.SetAttribute ("DeviceName", StringValue (tapName));
-  tapBridge.Install (controllerNode, ofHelper->GetCtrlOpenFlowDevice ());
+  ofHelper->InstallExternalController (controllerNode);
 
   // Installing the tcp/ip stack onto terminals
   InternetStackHelper internet;
@@ -130,8 +124,6 @@ main (int argc, char *argv[])
   csmaHelper.EnablePcap ("ofswitch-l1", switch1Devices.Get (0));
   csmaHelper.EnablePcap ("ofswitch-l2", switch0Devices.Get (1));
 
-  controlApp->SetStopTime (Seconds (10));
- 
   // Run the simulation
   Simulator::Stop (Seconds (600));
   Simulator::Run ();
@@ -143,7 +135,7 @@ main (int argc, char *argv[])
 int
 main (int argc, char *argv[])
 {
-  NS_LOG_UNCOND ("OpenFlow 1.3 not enabled! Aborting...");
+  NS_LOG_UNCOND ("This example requires both OpenFlow 1.3 and TapBridge modules! Aborting...");
 }
 
 #endif // NS3_OFSWITCH13

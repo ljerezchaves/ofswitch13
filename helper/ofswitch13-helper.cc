@@ -24,7 +24,9 @@
 #include "ns3/ipv4-address-helper.h"
 #include "ns3/uinteger.h"
 #include "ns3/node.h"
+#include "ns3/tap-bridge-module.h"
 #include "ns3/log.h"
+#include "ns3/string.h"
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Helper");
 
@@ -139,16 +141,62 @@ OFSwitch13Helper::InstallController (Ptr<Node> cNode)
   return m_ctrlApp;
 }
 
+#ifdef ENABLE_TAP 
+void
+OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
+{
+  NS_ASSERT_MSG (m_switches.GetN (), "No OpenFlow switch yet.");
+  NS_LOG_DEBUG ("Configuring controller to node " << cNode->GetId ());
+
+  m_ctrlNode = cNode;
+
+  // Install the TCP/IP stak in the controller and switches
+  InternetStackHelper internet;
+  internet.Install (m_ctrlNode);
+  internet.Install (m_switches);
+
+  // Create a gigabit csma channel connecting all switches to the controller
+  NetDeviceContainer switchControlDevs, switchDevs;
+  switchControlDevs = m_csmaHelper.Install (NodeContainer (m_ctrlNode, m_switches));
+  m_ctrlDev = switchControlDevs.Get (0);
+  for (uint32_t i = 1; i < switchControlDevs.GetN (); i++)
+    {
+      switchDevs.Add (switchControlDevs.Get (i));
+    }
+  
+  // Set IPv4 controller and switches address
+  Ipv4AddressHelper ipv4helper;
+  ipv4helper.SetBase ("10.100.150.0", "255.255.255.0");
+  Ipv4InterfaceContainer ctrlIface;
+  ctrlIface = ipv4helper.Assign (m_ctrlDev);
+  m_address = ipv4helper.Assign (switchDevs);
+  
+  m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), 6633);
+
+  TapBridgeHelper tapBridge;
+  tapBridge.SetAttribute ("Mode", StringValue ("ConfigureLocal"));
+  tapBridge.SetAttribute ("DeviceName", StringValue ("ctrl"));
+  tapBridge.Install (m_ctrlNode, m_ctrlDev);
+
+  // Starting Switch <--> controller TCP connection
+  for (size_t i = 0; i < m_devices.GetN (); i++)
+    {
+      Ptr<OFSwitch13NetDevice> dev = DynamicCast<OFSwitch13NetDevice> (m_devices.Get (i));
+      dev->StartControllerConnection ();
+    }
+}
+#else
+void
+OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
+{
+  NS_FATAL_ERROR ("External controller requires TapBridge module.");
+}
+#endif
+
 void
 OFSwitch13Helper::EnableOpenFlowPcap ()
 {
   m_csmaHelper.EnablePcap ("openflow-channel", m_ctrlDev, true);
-}
-
-Ptr<NetDevice>
-OFSwitch13Helper::GetCtrlOpenFlowDevice ()
-{
-  return m_ctrlDev;
 }
 
 Ipv4Address 

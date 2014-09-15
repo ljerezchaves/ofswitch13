@@ -93,12 +93,13 @@ public:
    */
   Ptr<OFSwitch13Controller> InstallController (Ptr<Node> cNode);
 
+  void InstallExternalController (Ptr<Node> cNode);
+
   /**
    * Enable pacp traces at the OpenFlow channel between controller and switches
    */
   void EnableOpenFlowPcap ();
 
-  Ptr<NetDevice> GetCtrlOpenFlowDevice ();
    
   /**
    * \name Get item methods
