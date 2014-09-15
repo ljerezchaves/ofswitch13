@@ -47,11 +47,11 @@ main (int argc, char *argv[])
 
   if (verbose)
     {
-      LogComponentEnable ("OFSwitch13Example", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13NetDevice", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
+      //LogComponentEnable ("OFSwitch13Example", LOG_LEVEL_ALL);
+      //LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13NetDevice", LOG_INFO);
+      //LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Controller", LOG_INFO);
     }
     
   // Enabling Checksum computations
@@ -124,7 +124,7 @@ main (int argc, char *argv[])
   csmaHelper.EnablePcap ("terminals", terminalDevices);
 
   // Run the simulation
-  Simulator::Stop (Seconds (60));
+  Simulator::Stop (Seconds (5));
   Simulator::Run ();
   Simulator::Destroy ();
 }
