@@ -37,10 +37,7 @@
 #include "ns3/simulator.h"
 #include "ns3/log.h"
 #include "ns3/net-device.h"
-// #include "ns3/packet.h"
-// #include "ns3/address.h"
-// #include "ns3/nstime.h"
-// #include "ns3/mac48-address.h"
+#include "ns3/csma-module.h"
 
 #include <set>
 #include <map>
@@ -128,6 +125,13 @@ struct Port
    */
   Port (Ptr<NetDevice> dev, uint32_t port_no);
 
+  /**
+   * Get netdev data rate and set Openflow port features config
+   * \param netdev Switch port device
+   * \return the configure port features
+   */
+  uint32_t GetFeatures (Ptr<CsmaNetDevice> netdev);
+  
   uint32_t flags;                 ///< SWP_* flags.
   Ptr<NetDevice> netdev;          ///< Pointer to ns3::NetDevice
   struct ofl_port *conf;          ///< Config information

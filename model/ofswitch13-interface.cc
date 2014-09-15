@@ -36,26 +36,69 @@ Port::Port (Ptr<NetDevice> netdev, uint32_t no) :
     snprintf(conf->name, 8, "Port %d", no);
     conf->port_no = no;
     conf->config = 0x00000000;
-    conf->state = 0x00000000;
+    conf->state = 0x00000000 | OFPPS_LIVE;
     netdev->GetAddress ().CopyTo (conf->hw_addr);
-    // FIXME There are some other information not set
-
-    if ((conf->state & OFPPS_LINK_DOWN) || (conf->config & OFPPC_PORT_DOWN)) 
-      {
-        /* Port not live */
-        conf->state &= ~OFPPS_LIVE;
-      } 
-    else 
-      {
-        /* Port is live */
-        conf->state |= OFPPS_LIVE;
-      }
-
+    
+    conf->curr       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+    conf->advertised = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+    conf->supported  = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+    // conf->peer       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+    conf->curr_speed = port_speed (conf->curr);
+    conf->max_speed  = port_speed (conf->supported);
+    
     stats = (ofl_port_stats*)xmalloc (sizeof (struct ofl_port_stats));
     memset (stats, 0x00, sizeof (struct ofl_port_stats));
     stats->port_no = no;
 
     flags |= SWP_USED;
+}
+
+uint32_t 
+Port::GetFeatures (Ptr<CsmaNetDevice> netdev)
+{
+  DataRateValue drv;
+  DataRate dr;
+  Ptr<CsmaChannel> channel = DynamicCast<CsmaChannel> (netdev->GetChannel ());
+  channel->GetAttribute("DataRate", drv);
+  dr = drv.Get ();
+
+  uint32_t feat = 0x00000000;
+  feat |= OFPPF_COPPER;
+  feat |= OFPPF_AUTONEG;
+
+  if (dr == DataRate ("10Mbps"))
+    {
+      feat |= OFPPF_10MB_FD;
+    }
+  else if (dr == DataRate ("100Mbps"))
+    {
+      feat |= OFPPF_100MB_FD;
+    }
+  else if (dr == DataRate ("1Gbps"))
+    {
+      feat |= OFPPF_1GB_FD;
+    }
+  else if (dr == DataRate ("10Gbps"))
+    {
+      feat |= OFPPF_10GB_FD;
+    }
+  else if (dr == DataRate ("40Gbps"))
+    {
+      feat |= OFPPF_40GB_FD;
+    }
+  else if (dr == DataRate ("100Gbps"))
+    {
+      feat |= OFPPF_100GB_FD;
+    }
+  else if (dr == DataRate ("1Tbps"))
+    {
+      feat |= OFPPF_1TB_FD;
+    }
+  else
+    {
+      feat |= OFPPF_OTHER;
+    }
+  return feat;
 }
 
 ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
