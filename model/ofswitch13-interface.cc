@@ -36,9 +36,20 @@ Port::Port (Ptr<NetDevice> netdev, uint32_t no) :
     snprintf(conf->name, 8, "Port %d", no);
     conf->port_no = no;
     conf->config = 0x00000000;
-    conf->state = 0x00000000 | OFPPS_LIVE;
+    conf->state = 0x00000000;
     netdev->GetAddress ().CopyTo (conf->hw_addr);
     // FIXME There are some other information not set
+
+    if ((conf->state & OFPPS_LINK_DOWN) || (conf->config & OFPPC_PORT_DOWN)) 
+      {
+        /* Port not live */
+        conf->state &= ~OFPPS_LIVE;
+      } 
+    else 
+      {
+        /* Port is live */
+        conf->state |= OFPPS_LIVE;
+      }
 
     stats = (ofl_port_stats*)xmalloc (sizeof (struct ofl_port_stats));
     memset (stats, 0x00, sizeof (struct ofl_port_stats));

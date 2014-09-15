@@ -170,7 +170,7 @@ private:
   /**
    * \brief Called by the HandleRead when a packet is received from the
    * controller.
-   * \see remote_rconn_run () at udatapath/dp_control.c
+   * \see remote_rconn_run () at udatapath/datapath.c
    * \see handle_control_msg () at udatapath/dp_control.c
    *
    * \param msg The message (ofpbuf) received from the controller.
@@ -437,17 +437,28 @@ private:
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  ofl_err HandleMsgFeaturesRequest (struct ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgHello            (struct ofl_msg_header *msg);
+  ofl_err HandleMsgEchoRequest      (struct ofl_msg_echo *msg, uint64_t xid);
+  ofl_err HandleMsgEchoReply        (struct ofl_msg_echo *msg);
+  ofl_err HandleMsgFeaturesRequest  (struct ofl_msg_header *msg, uint64_t xid);
   ofl_err HandleMsgGetConfigRequest (struct ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgFlowMod (struct ofl_msg_flow_mod *msg);
+  ofl_err HandleMsgSetConfig        (struct ofl_msg_set_config *msg);
+  ofl_err HandleMsgPacketOut        (struct ofl_msg_packet_out *msg);
+  ofl_err HandleMsgFlowMod          (struct ofl_msg_flow_mod *msg);
+  ofl_err HandleMsgPortMod          (struct ofl_msg_port_mod *msg);
+  ofl_err HandleMsgTableMod         (struct ofl_msg_table_mod *msg);
   ofl_err HandleMsgMultipartRequest (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
-  
-  ofl_err MultipartMsgDesc (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgPortDesc (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgPortStats (struct ofl_msg_multipart_request_port *msg, uint64_t xid);
-  ofl_err MultipartMsgTable (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err HandleMsgBarrierRequest   (struct ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgBarrierReply     (struct ofl_msg_header *msg);
+  ofl_err HandleMsgAsyncRequest     (struct ofl_msg_async_config *msg, uint64_t xid);
 
-
+  ofl_err MultipartMsgDesc          (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgFlow          (struct ofl_msg_multipart_request_flow   *msg, uint64_t xid);
+  ofl_err MultipartMsgAggregate     (struct ofl_msg_multipart_request_flow   *msg, uint64_t xid);
+  ofl_err MultipartMsgTable         (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgTableFeatures (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgPortStats     (struct ofl_msg_multipart_request_port   *msg, uint64_t xid);
+  ofl_err MultipartMsgPortDesc      (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
   //\}
 
    /**
@@ -458,9 +469,9 @@ private:
    * \param socket The TCP socket.
    */
   //\{
-  void HandleCtrlRead       (Ptr<Socket> socket);   //!< Receive packet from controller
-  void HandleCtrlSucceeded  (Ptr<Socket> socket);   //!< TCP request accepted
-  void HandleCtrlFailed     (Ptr<Socket> socket);   //!< TCP request refused
+  void SocketCtrlRead       (Ptr<Socket> socket);   //!< Receive packet from controller
+  void SocketCtrlSucceeded  (Ptr<Socket> socket);   //!< TCP request accepted
+  void SocketCtrlFailed     (Ptr<Socket> socket);   //!< TCP request refused
   //\}
 
   /// NetDevice callbacks
@@ -471,24 +482,25 @@ private:
   typedef std::vector<ofs::Port> Ports_t;
   Ports_t m_ports;                          //!< Switch's ports
 
-  uint32_t              m_xid;              //!< Global transaction idx
-  uint64_t              m_id;               //!< Unique identifier for this switch
-  Mac48Address          m_address;          //!< Address of this device
-  Ptr<BridgeChannel>    m_channel;          //!< Collection of port channels into the Switch Channel
-  Ptr<Node>             m_node;             //!< Node this device is installed on
-  Address               m_ctrlAddr;         //!< Controller Address
-  Ptr<Socket>           m_ctrlSocket;       //!< Tcp Socket to controller
-  uint32_t              m_ifIndex;          //!< Interface Index
-  uint16_t              m_mtu;              //!< Maximum Transmission Unit
-  Time                  m_timeout;          //!< Pipeline Timeout
-  Time                  m_lookupDelay;      //!< Flow Table Lookup Delay [overhead].
-  Time                  m_lastTimeout;      //!< Last datapath timeout
-  struct ofl_config     m_config;           //!< Configuration, set from controller
-  struct pipeline*      m_pipeline;         //!< Pipeline with multi-tables
-  // struct dp_buffers*    m_buffers;          //!< Datapath buffers
-  // struct group_table*   m_groups;           //!< Group tables
-  // struct meter_table*   m_meters;           //!< Meter tables
-  // struct ofl_exp*       exp;                //!< Experimenter handling
+  uint32_t                m_xid;              //!< Global transaction idx
+  uint64_t                m_id;               //!< Unique identifier for this switch
+  Mac48Address            m_address;          //!< Address of this device
+  Ptr<BridgeChannel>      m_channel;          //!< Collection of port channels into the Switch Channel
+  Ptr<Node>               m_node;             //!< Node this device is installed on
+  Address                 m_ctrlAddr;         //!< Controller Address
+  Ptr<Socket>             m_ctrlSocket;       //!< Tcp Socket to controller
+  uint32_t                m_ifIndex;          //!< Interface Index
+  uint16_t                m_mtu;              //!< Maximum Transmission Unit
+  Time                    m_timeout;          //!< Pipeline Timeout
+  Time                    m_lookupDelay;      //!< Flow Table Lookup Delay [overhead].
+  Time                    m_lastTimeout;      //!< Last datapath timeout
+  struct ofl_async_config m_asyncConfig;      //!< Asynchronous messages configuration
+  struct ofl_config       m_config;           //!< Configuration, set from controller
+  struct pipeline*        m_pipeline;         //!< Pipeline with multi-tables
+  // struct dp_buffers*      m_buffers;          //!< Datapath buffers
+  // struct group_table*     m_groups;           //!< Group tables
+  // struct meter_table*     m_meters;           //!< Meter tables
+  // struct ofl_exp*         m_exp;                //!< Experimenter handling
 }; // Class OFSwitch13NetDevice
 
 } // namespace ns3
