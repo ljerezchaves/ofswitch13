@@ -29,7 +29,7 @@
 #include "ns3/tap-bridge-module.h"
 #include "ns3/log.h"
 
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13Example");
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13Tap");
 
 using namespace ns3;
 
@@ -40,15 +40,16 @@ int
 main (int argc, char *argv[])
 {
   bool verbose = true;
+  std::string tapName = "thetap";
 
   CommandLine cmd;
   cmd.AddValue ("verbose", "Tell application to log if true", verbose);
-
-  cmd.Parse (argc,argv);
+  cmd.AddValue ("tapName", "Name of the OS tap device", tapName);
+  cmd.Parse (argc, argv);
 
   if (verbose)
     {
-      LogComponentEnable ("OFSwitch13Example", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Tap", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13NetDevice", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
@@ -56,6 +57,7 @@ main (int argc, char *argv[])
     }
     
   // Enabling Checksum computations
+  GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));
   GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
   // ns3::Packet::EnablePrinting ();
 
@@ -94,6 +96,7 @@ main (int argc, char *argv[])
    // Install the OFSwitch13NetDevice onto the switch
   NetDeviceContainer of13Device0, of13Device1;
   Ptr<OFSwitch13Helper> ofHelper = Create<OFSwitch13Helper> ();
+  ofHelper->SetDeviceAttribute ("ControllerAddr", AddressValue (InetSocketAddress (Ipv4Address ("10.100.150.1"), 6633)));
   of13Device0 = ofHelper->InstallSwitch (switchNode0, switch0Devices);
   of13Device1 = ofHelper->InstallSwitch (switchNode1, switch1Devices);
 
@@ -101,13 +104,9 @@ main (int argc, char *argv[])
   Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallController (controllerNode);
 
   TapBridgeHelper tapBridge;
-  tapBridge.SetAttribute ("Mode", "ConfigureLocal");
-  tapBridge.SetAttribute ("DeviceName", "tap0");
+  tapBridge.SetAttribute ("Mode", StringValue ("ConfigureLocal"));
+  tapBridge.SetAttribute ("DeviceName", StringValue (tapName));
   tapBridge.Install (controllerNode, ofHelper->GetCtrlOpenFlowDevice ());
-
-  // Some OpenFlow flow-mod commands for tests
-  // Ptr<OFSwitch13NetDevice> ofswitch0NetDev = of13Device0.Get (0)->GetObject<OFSwitch13NetDevice> ();
-  // Ptr<OFSwitch13NetDevice> ofswitch1NetDev = of13Device1.Get (0)->GetObject<OFSwitch13NetDevice> ();
 
   // Installing the tcp/ip stack onto terminals
   InternetStackHelper internet;
@@ -123,7 +122,7 @@ main (int argc, char *argv[])
   Ipv4Address destAddr = internetIpIfaces.GetAddress (1);
   V4PingHelper ping = V4PingHelper (destAddr);
   ApplicationContainer apps = ping.Install (terminals.Get (0));
-  apps.Start (Seconds (1.0));
+  apps.Start (Seconds (10.0));
 
   // Enable pcap traces
   ofHelper->EnableOpenFlowPcap ();
@@ -134,7 +133,7 @@ main (int argc, char *argv[])
   controlApp->SetStopTime (Seconds (10));
  
   // Run the simulation
-  Simulator::Stop (Seconds (30));
+  Simulator::Stop (Seconds (600));
   Simulator::Run ();
   Simulator::Destroy ();
 }

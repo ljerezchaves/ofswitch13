@@ -103,7 +103,7 @@ OFSwitch13NetDevice::GetTypeId (void)
                    TimeValue (Seconds (1)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_timeout),
                    MakeTimeChecker ())
-    .AddAttribute ("ControlerAddr",
+    .AddAttribute ("ControllerAddr",
                    "The controller InetSocketAddress, used to TCP communication.",
                    AddressValue (InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
                    MakeAddressAccessor (&OFSwitch13NetDevice::m_ctrlAddr),

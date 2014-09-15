@@ -127,6 +127,7 @@ OFSwitch13Helper::InstallController (Ptr<Node> cNode)
       UintegerValue port;
       m_ctrlApp->GetAttribute ("Port", port);  
       m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), port.Get ());
+      m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), 6633);
 
       // Starting Switch <--> controller TCP connection
       for (size_t i = 0; i < m_devices.GetN (); i++)

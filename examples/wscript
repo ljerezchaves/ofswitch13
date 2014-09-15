@@ -7,4 +7,6 @@ def build(bld):
     obj = bld.create_ns3_program('ofswitch13-duplo', ['ofswitch13', 'csma', 'network', 'applications', 'internet'])
     obj.source = 'ofswitch13-duplo.cc'
 
+    obj = bld.create_ns3_program('external-controller', ['ofswitch13', 'csma', 'network', 'internet', 'tap-bridge'])
+    obj.source = 'external-controller.cc'
 
