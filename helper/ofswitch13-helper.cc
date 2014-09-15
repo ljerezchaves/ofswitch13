@@ -144,6 +144,12 @@ OFSwitch13Helper::EnableOpenFlowPcap ()
   m_csmaHelper.EnablePcap ("openflow-channel", m_ctrlDev, true);
 }
 
+Ptr<NetDevice>
+OFSwitch13Helper::GetCtrlOpenFlowDevice ()
+{
+  return m_ctrlDev;
+}
+
 Ipv4Address 
 OFSwitch13Helper::GetSwitchAddress (uint32_t idx)
 {
