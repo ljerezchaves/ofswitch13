@@ -20,11 +20,10 @@
 
 #include "ofswitch13-helper.h"
 #include "ns3/ofswitch13-net-device.h"
-#include "ns3/internet-stack-helper.h"
-#include "ns3/ipv4-address-helper.h"
 #include "ns3/uinteger.h"
 #include "ns3/node.h"
 #include "ns3/log.h"
+#include "ns3/string.h"
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Helper");
 
@@ -40,10 +39,14 @@ OFSwitch13Helper::OFSwitch13Helper ()
 {
   NS_LOG_FUNCTION_NOARGS ();
   m_ctrlFactory.SetTypeId ("ns3::OFSwitch13Controller");
-  m_ndevFactory.SetTypeId  ("ns3::OFSwitch13NetDevice");
+  m_ndevFactory.SetTypeId ("ns3::OFSwitch13NetDevice");
+  m_chanFactory.SetTypeId ("ns3::CsmaChannel");
+    
+  m_ipv4helper.SetBase ("10.100.150.0", "255.255.255.0");
 
-  m_csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
-  m_csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
+  m_chanFactory.Set ("DataRate", DataRateValue (DataRate ("1Gbps")));
+  m_chanFactory.Set ("Delay", TimeValue (MilliSeconds (2)));
+  m_csmaChannel = m_chanFactory.Create ()->GetObject<CsmaChannel> ();
 }
 
 OFSwitch13Helper::~OFSwitch13Helper ()
@@ -51,6 +54,7 @@ OFSwitch13Helper::~OFSwitch13Helper ()
   m_ctrlNode = 0;
   m_ctrlApp = 0;
   m_ctrlDev = 0;
+  m_csmaChannel = 0;
 }
 
 void
@@ -70,72 +74,85 @@ OFSwitch13Helper::SetControllerAttribute (std::string n1, const AttributeValue &
 NetDeviceContainer
 OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {
-  NS_ASSERT_MSG (m_ctrlApp == 0, "Can't install more switches.");
-  NS_LOG_DEBUG ("Install switch device on node " << swNode->GetId ());
- 
-  SetDeviceAttribute ("ID", UintegerValue (++m_dpId));
-  Ptr<OFSwitch13NetDevice> dev = m_ndevFactory.Create<OFSwitch13NetDevice> ();
-  swNode->AddDevice (dev);
+  NS_LOG_DEBUG ("Installing OpenFlow switch device on node " << swNode->GetId ());
   
-  m_switches.Add (swNode);
-  m_devices.Add (dev);
-
+  SetDeviceAttribute ("ID", UintegerValue (++m_dpId));
+  Ptr<OFSwitch13NetDevice> openFlowDev = m_ndevFactory.Create<OFSwitch13NetDevice> ();
+  swNode->AddDevice (openFlowDev);
+  
   for (NetDeviceContainer::Iterator i = ports.Begin (); i != ports.End (); ++i)
     {
-      NS_LOG_INFO ("Add SwitchPort " << *i);
-      dev->AddSwitchPort (*i);
+      NS_LOG_INFO (" Adding switch port " << *i);
+      openFlowDev->AddSwitchPort (*i);
     }
-  return NetDeviceContainer (dev);
+
+  // Connecting the switch to csma network
+  m_internet.Install (swNode);
+  NetDeviceContainer swDev = m_csmaHelper.Install (swNode, m_csmaChannel);
+  Ipv4InterfaceContainer swIface = m_ipv4helper.Assign (swDev);
+
+  // Updating containers
+  m_switches.Add (swNode);
+  m_devices.Add (openFlowDev);
+  m_address.Add (swIface);
+
+  // If controller address already set, start switch <--> controller connection
+  if (!m_ctrlAddr.IsInvalid ())
+    {
+      openFlowDev->SetAttribute ("ControllerAddr", AddressValue (m_ctrlAddr));
+      openFlowDev->StartControllerConnection ();
+    }
+  return NetDeviceContainer (openFlowDev);
 }
 
 Ptr<OFSwitch13Controller> 
-OFSwitch13Helper::InstallController (Ptr<Node> cNode)
+OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
 {
-  NS_ASSERT_MSG (m_switches.GetN (), "No OpenFlow switch yet.");
-  NS_LOG_DEBUG ("Install controller on node " << cNode->GetId ());
+  NS_LOG_DEBUG ("Installing OpenFlow controller on node " << cNode->GetId ());
 
   if (m_ctrlApp == 0)
     {
       // Install the controller App in the controller node
-      m_ctrlNode = cNode;
       m_ctrlApp = m_ctrlFactory.Create<OFSwitch13Controller> ();
-      m_ctrlNode->AddApplication (m_ctrlApp);
+      cNode->AddApplication (m_ctrlApp);
       m_ctrlApp->SetOFSwitch13Helper (this);
       m_ctrlApp->SetStartTime (Seconds (0));
+    }
+  
+  InstallExternalController (cNode);
 
-      // Install the TCP/IP stak in the controller and switches
-      InternetStackHelper internet;
-      internet.Install (m_ctrlNode);
-      internet.Install (m_switches);
+  return m_ctrlApp;
+}
 
-      // Create a gigabit csma channel connecting all switches to the controller
-      NetDeviceContainer switchControlDevs, switchDevs;
-      switchControlDevs = m_csmaHelper.Install (NodeContainer (m_ctrlNode, m_switches));
-      m_ctrlDev = switchControlDevs.Get (0);
-      for (uint32_t i = 1; i < switchControlDevs.GetN (); i++)
+Ptr<NetDevice>
+OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
+{
+  if (m_ctrlNode == 0)
+    {
+      m_ctrlNode = cNode;
+      m_internet.Install (m_ctrlNode);
+      NetDeviceContainer controlDev = m_csmaHelper.Install (m_ctrlNode, m_csmaChannel);
+      Ipv4InterfaceContainer ctrlIface = m_ipv4helper.Assign (controlDev);
+      m_ctrlDev = controlDev.Get (0);
+      
+      uint16_t port = 6653;
+      if (m_ctrlApp)
         {
-          switchDevs.Add (switchControlDevs.Get (i));
-        }
-      
-      // Set IPv4 controller and switches address
-      Ipv4AddressHelper ipv4helper;
-      ipv4helper.SetBase ("10.100.150.0", "255.255.255.0");
-      Ipv4InterfaceContainer ctrlIface;
-      ctrlIface = ipv4helper.Assign (m_ctrlDev);
-      m_address = ipv4helper.Assign (switchDevs);
-      
-      UintegerValue port;
-      m_ctrlApp->GetAttribute ("Port", port);  
-      m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), port.Get ());
+          UintegerValue portValue;
+          m_ctrlApp->GetAttribute ("Port", portValue);
+          port = portValue.Get ();
+        } 
+      m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), port);
 
-      // Starting Switch <--> controller TCP connection
+      // Start switch <--> controller connection
       for (size_t i = 0; i < m_devices.GetN (); i++)
         {
-          Ptr<OFSwitch13NetDevice> dev = DynamicCast<OFSwitch13NetDevice> (m_devices.Get (i));
-          dev->StartControllerConnection ();
+          Ptr<OFSwitch13NetDevice> openFlowDev = DynamicCast<OFSwitch13NetDevice> (m_devices.Get (i));
+          openFlowDev->SetAttribute ("ControllerAddr", AddressValue (m_ctrlAddr));
+          openFlowDev->StartControllerConnection ();
         }
     }
-  return m_ctrlApp;
+  return m_ctrlDev;
 }
 
 void

@@ -103,7 +103,7 @@ OFSwitch13NetDevice::GetTypeId (void)
                    TimeValue (Seconds (1)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_timeout),
                    MakeTimeChecker ())
-    .AddAttribute ("ControlerAddr",
+    .AddAttribute ("ControllerAddr",
                    "The controller InetSocketAddress, used to TCP communication.",
                    AddressValue (InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
                    MakeAddressAccessor (&OFSwitch13NetDevice::m_ctrlAddr),
@@ -258,14 +258,27 @@ OFSwitch13NetDevice::StartControllerConnection ()
   // Start a TCP connection to the controller
   if (!m_ctrlSocket)
     {
+      int error = 0; 
       m_ctrlSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-      m_ctrlSocket->Bind ();
-      m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom (m_ctrlAddr));
+      error = m_ctrlSocket->Bind ();
+      if (error)
+        {
+          NS_LOG_ERROR ("Error binding socket " << error);
+          return;
+        }
+      
+      error = m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom (m_ctrlAddr));
+      if (error)
+        {
+          NS_LOG_ERROR ("Error connecting socket " << error);
+          return;
+        }
+
       m_ctrlSocket->SetConnectCallback (
           MakeCallback (&OFSwitch13NetDevice::SocketCtrlSucceeded, this),
           MakeCallback (&OFSwitch13NetDevice::SocketCtrlFailed, this));
       return;
-  }
+    }
   NS_LOG_ERROR ("Controller already set.");
 }
 

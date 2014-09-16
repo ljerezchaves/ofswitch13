@@ -25,10 +25,11 @@
 #include "ns3/network-module.h"
 #include "ns3/csma-module.h"
 #include "ns3/internet-module.h"
+#include "ns3/tap-bridge-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/log.h"
 
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13Example");
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13Tap");
 
 using namespace ns3;
 
@@ -39,24 +40,24 @@ int
 main (int argc, char *argv[])
 {
   bool verbose = true;
+  std::string tapName = "thetap";
 
   CommandLine cmd;
   cmd.AddValue ("verbose", "Tell application to log if true", verbose);
-
-  cmd.Parse (argc,argv);
+  cmd.Parse (argc, argv);
 
   if (verbose)
     {
-      LogComponentEnable ("OFSwitch13Example", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Tap", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13NetDevice", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
     }
     
-  // Enabling Checksum computations
+  // Enabling Checksum computations and setting realtime simulator
+  GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));
   GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
-  // ns3::Packet::EnablePrinting ();
 
   // Create the terminal nodes
   NodeContainer terminals;
@@ -85,22 +86,20 @@ main (int argc, char *argv[])
       switchDevices.Add (link.Get (1));
     }
 
-  // Install the OFSwitch13NetDevice onto the switch
+  // Configure OpenFlow network with external controller
   NetDeviceContainer of13Device;
   Ptr<OFSwitch13Helper> ofHelper = Create<OFSwitch13Helper> ();
+  Ptr<NetDevice> ctrlDev = ofHelper->InstallExternalController (controllerNode);
+ 
+  // TapBridge to local machine
+  // The default configuration expects a controller on you local machine at port 6653
+  TapBridgeHelper tapBridge;
+  tapBridge.SetAttribute ("Mode", StringValue ("ConfigureLocal"));
+  tapBridge.SetAttribute ("DeviceName", StringValue ("ctrl"));
+  tapBridge.Install (controllerNode, ctrlDev);
+  
+  // Then install the switches (now they will start a connection to controller)
   of13Device = ofHelper->InstallSwitch (switchNode, switchDevices);
-
-  // Install the controller app (creating links between controller and switches)
-  Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallController (controllerNode);
-
-  // Some OpenFlow flow-mod commands for tests
-  Ptr<OFSwitch13NetDevice> ofswitchNetDev = of13Device.Get (0)->GetObject<OFSwitch13NetDevice> ();
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
-      "cmd=add,table=0,prio=0,idle=10 apply:output=ctrl");
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
-      "cmd=add,table=0 in_port=1 apply:output=2");
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
-      "cmd=add,table=0 in_port=2 apply:output=1");
 
   // Installing the tcp/ip stack onto terminals
   InternetStackHelper internet;
@@ -116,7 +115,7 @@ main (int argc, char *argv[])
   Ipv4Address destAddr = internetIpIfaces.GetAddress (1);
   V4PingHelper ping = V4PingHelper (destAddr);
   ApplicationContainer apps = ping.Install (terminals.Get (0));
-  apps.Start (Seconds (1.0));
+  apps.Start (Seconds (10.0));
 
   // Enable pcap traces
   ofHelper->EnableOpenFlowPcap ();
@@ -124,7 +123,7 @@ main (int argc, char *argv[])
   csmaHelper.EnablePcap ("terminals", terminalDevices);
 
   // Run the simulation
-  Simulator::Stop (Seconds (60));
+  Simulator::Stop (Seconds (30));
   Simulator::Run ();
   Simulator::Destroy ();
 }

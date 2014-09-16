@@ -23,6 +23,8 @@
 #include "ns3/ofswitch13-net-device.h"
 #include "ns3/net-device-container.h"
 #include "ns3/ipv4-interface-container.h"
+#include "ns3/internet-stack-helper.h"
+#include "ns3/ipv4-address-helper.h"
 #include "ns3/node-container.h"
 #include "ns3/object-factory.h"
 #include "ns3/csma-helper.h"
@@ -68,9 +70,11 @@ public:
 
   /**
    * This method creates an ns3::OFSwitch13NetDevice with the attributes
-   * configured by OFSwitch13Helper::SetDeviceAttribute, adds the device
-   * to the swNode, and attaches the given NetDevices as ports of the
-   * switch.
+   * configured by OFSwitch13Helper::SetDeviceAttribute, adds the device to the
+   * swNode, and attaches the given NetDevices as ports of the switch. It also
+   * installs the TCP/IP stack into swNode, and connect it to the csma gigabit
+   * network using IPv4 network 10.100.150.0/24. Finally, if the controller has
+   * been already set, start the switch <--> controller connection.
    *
    * \param swNode The node to install the device in
    * \param ports Container of NetDevices to add as switch ports
@@ -81,17 +85,28 @@ public:
   /**
    * This method creates an ns3::OFSwitch13Controller application with the
    * attributes configured by OFSwitch13Helper::SetControllerAttribute and add
-   * it to cNode. It also installs the TCP/IP stack both into
-   * cNode and all switches, and connect them with a csma gigabit link, using
-   * IPv4 network 10.100.150.0/24. Finally, it register the controller at each
-   * switch. 
-   *
-   * \attention This method should be invoked after InstallSwitch
+   * it to cNode. It also installs the TCP/IP stack into cNode, and connect it
+   * to the csma gigabit network, using IPv4 network 10.100.150.0/24. Finally,
+   * start the switch <--> controller connection for all already registered
+   * switches. 
    *
    * \param cNode The node to install the controller
    * \returns The controller application
    */
-  Ptr<OFSwitch13Controller> InstallController (Ptr<Node> cNode);
+  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode);
+
+  /**
+   * This method configures the cNode with TCP/IP stack, and connect it to the
+   * csma gigabit network, using IPv4 network 10.100.150.0/24. Finally, start
+   * the switch <--> controller connection for all already registered switches.
+   * 
+   * \atention It is expected that this method is used with TabBridge to
+   * provide an external controller.
+   *
+   * \param cNode The node to install the controller
+   * \returns The CsmaNetDevice to bind to TapBridge
+   */
+  Ptr<NetDevice> InstallExternalController (Ptr<Node> cNode);
 
   /**
    * Enable pacp traces at the OpenFlow channel between controller and switches
@@ -122,15 +137,20 @@ public:
   //\}
 
 private:
-  ObjectFactory             m_ctrlFactory;  //!< Controller factory
-  ObjectFactory             m_ndevFactory;  //!< Device factory
+  ObjectFactory             m_ctrlFactory;  //!< Controller App factory
+  ObjectFactory             m_ndevFactory;  //!< OpenFlow device factory
+  ObjectFactory             m_chanFactory;  //!< Csma channel factory
+
+  InternetStackHelper       m_internet;     //!< Helper for installing TCP/IP
+  Ipv4AddressHelper         m_ipv4helper;   //!< Helper for assigning IP
   CsmaHelper                m_csmaHelper;   //!< Helper for connecting controller to switches
 
-  Ptr<Node>                 m_ctrlNode; //!< Controller Node
-  Ptr<OFSwitch13Controller> m_ctrlApp;  //!< Controller App
-  Ptr<NetDevice>            m_ctrlDev;  //!< Controller CsmaNetDevice (switch connection)
-  Address                   m_ctrlAddr; //!< Controller Addr 
-  uint64_t                  m_dpId;     //!< Datapath (switch) ID
+  Ptr<CsmaChannel>          m_csmaChannel;  //!< Channel connecting switches to controller
+  Ptr<Node>                 m_ctrlNode;     //!< Controller Node
+  Ptr<OFSwitch13Controller> m_ctrlApp;      //!< Controller App
+  Ptr<NetDevice>            m_ctrlDev;      //!< Controller CsmaNetDevice (switch connection)
+  Address                   m_ctrlAddr;     //!< Controller Addr 
+  uint64_t                  m_dpId;         //!< Datapath (switch) ID
 
   /**
    * \name Network objetc containers 
