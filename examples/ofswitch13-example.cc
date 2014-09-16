@@ -91,7 +91,7 @@ main (int argc, char *argv[])
   of13Device = ofHelper->InstallSwitch (switchNode, switchDevices);
 
   // Install the controller app (creating links between controller and switches)
-  Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallController (controllerNode);
+  Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallControllerApp (controllerNode);
 
   // Some OpenFlow flow-mod commands for tests
   Ptr<OFSwitch13NetDevice> ofswitchNetDev = of13Device.Get (0)->GetObject<OFSwitch13NetDevice> ();
@@ -124,7 +124,7 @@ main (int argc, char *argv[])
   csmaHelper.EnablePcap ("terminals", terminalDevices);
 
   // Run the simulation
-  Simulator::Stop (Seconds (5));
+  Simulator::Stop (Seconds (10));
   Simulator::Run ();
   Simulator::Destroy ();
 }

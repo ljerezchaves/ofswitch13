@@ -90,14 +90,12 @@ main (int argc, char *argv[])
   switch1Devices.Add (link1.Get (1));       // Switch 1 Port 1 to terminal 1
   switch1Devices.Add (link2.Get (1));       // Switch 1 Port 2 to switch 0
  
-   // Install the OFSwitch13NetDevice onto the switch
+  // Install the OFSwitch13NetDevice onto the switch
   NetDeviceContainer of13Device0, of13Device1;
   Ptr<OFSwitch13Helper> ofHelper = Create<OFSwitch13Helper> ();
+  Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallControllerApp (controllerNode);
   of13Device0 = ofHelper->InstallSwitch (switchNode0, switch0Devices);
   of13Device1 = ofHelper->InstallSwitch (switchNode1, switch1Devices);
-
-  // Install the controller app (creating links between controller and switches)
-  Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallController (controllerNode);
 
   // Some OpenFlow flow-mod commands for tests
   Ptr<OFSwitch13NetDevice> ofswitch0NetDev = of13Device0.Get (0)->GetObject<OFSwitch13NetDevice> ();
@@ -140,7 +138,7 @@ main (int argc, char *argv[])
   controlApp->SetStopTime (Seconds (10));
  
   // Run the simulation
-  Simulator::Stop (Seconds (30));
+  Simulator::Stop (Seconds (10));
   Simulator::Run ();
   Simulator::Destroy ();
 }
