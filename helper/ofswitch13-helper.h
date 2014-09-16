@@ -104,9 +104,9 @@ public:
    * provide an external controller.
    *
    * \param cNode The node to install the controller
-   * \returns The controller application
+   * \returns The CsmaNetDevice to bind to TapBridge
    */
-  void InstallExternalController (Ptr<Node> cNode);
+  Ptr<NetDevice> InstallExternalController (Ptr<Node> cNode);
 
   /**
    * Enable pacp traces at the OpenFlow channel between controller and switches

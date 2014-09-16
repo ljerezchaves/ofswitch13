@@ -124,7 +124,7 @@ OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
   return m_ctrlApp;
 }
 
-void
+Ptr<NetDevice>
 OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
 {
   if (m_ctrlNode == 0)
@@ -135,7 +135,7 @@ OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
       Ipv4InterfaceContainer ctrlIface = m_ipv4helper.Assign (controlDev);
       m_ctrlDev = controlDev.Get (0);
       
-      uint16_t port = 6633;
+      uint16_t port = 6653;
       if (m_ctrlApp)
         {
           UintegerValue portValue;
@@ -152,6 +152,7 @@ OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
           openFlowDev->StartControllerConnection ();
         }
     }
+  return m_ctrlDev;
 }
 
 void
