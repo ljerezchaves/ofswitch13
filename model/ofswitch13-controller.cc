@@ -81,7 +81,7 @@ OFSwitch13Controller::DoDispose ()
 {
   m_serverSocket = 0;
   m_helper = 0;
-  m_socketsMap.clear ();
+  m_switchesMap.clear ();
 
   Application::DoDispose ();
 }
@@ -175,7 +175,8 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char
   // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)msg);
   Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)msg, ++m_xid);
-  return SendToSwitch (pkt, swtch);
+  //return SendToSwitch (pkt, swtch);
+  return 0;
 }
 
 /********** Private methods **********/
@@ -195,28 +196,28 @@ OFSwitch13Controller::StartApplication ()
 
   // Setting socket callbacks
   m_serverSocket->SetRecvCallback (
-      MakeCallback (&OFSwitch13Controller::HandleRead, this));
+      MakeCallback (&OFSwitch13Controller::SocketRead, this));
   m_serverSocket->SetAcceptCallback (
-      MakeCallback (&OFSwitch13Controller::HandleRequest, this),
-      MakeCallback (&OFSwitch13Controller::HandleAccept, this));
+      MakeCallback (&OFSwitch13Controller::SocketRequest, this),
+      MakeCallback (&OFSwitch13Controller::SocketAccept, this));
   m_serverSocket->SetCloseCallbacks (
-      MakeCallback (&OFSwitch13Controller::HandlePeerClose, this),
-      MakeCallback (&OFSwitch13Controller::HandlePeerError, this));
+      MakeCallback (&OFSwitch13Controller::SocketPeerClose, this),
+      MakeCallback (&OFSwitch13Controller::SocketPeerError, this));
 }
 
 void
 OFSwitch13Controller::StopApplication ()
 {
-  for (SocketsMap_t::iterator it = m_socketsMap.begin (); it != m_socketsMap.end (); it++)
+  for (SwitchsMap_t::iterator it = m_switchesMap.begin (); it != m_switchesMap.end (); it++)
     {
-      it->second->Close ();
+      it->second.socket->Close ();
     }
   if (m_serverSocket) 
     {
       m_serverSocket->Close ();
       m_serverSocket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
     } 
-  m_socketsMap.clear ();
+  m_switchesMap.clear ();
 }
 
 ofp_type
@@ -228,41 +229,160 @@ OFSwitch13Controller::GetPacketType (ofpbuf* buffer)
   return type;
 }
 
-void
-OFSwitch13Controller::ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer)
+int
+OFSwitch13Controller::ReceiveFromSwitch (SwInfo swtch, ofpbuf* buffer)
 {
-  NS_LOG_FUNCTION (this << swtch);
-  NS_LOG_DEBUG ("Pacote tipo " << GetPacketType (buffer));
-  // TODO: Não esquecer de liberar o buffer ao final
+  NS_ASSERT (buffer);
+
+  uint32_t xid;
+  struct ofl_msg_header *msg;
+  ofl_err error;
+  
+  error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, &xid, NULL/*&ofl_exp*/);
+  if (!error)
+    {
+      LogOflMsg ((ofl_msg_header*)msg, true/*Rx*/);
+      /* Dispatches control messages to appropriate handler functions. */
+      switch (msg->type)
+        {
+          case OFPT_HELLO:
+            error = HandleMsgHello (msg, swtch, xid);
+            break;
+//          case OFPT_ERROR:
+//            error = HandleMsgError (msg, xid);
+//            break;
+          case OFPT_ECHO_REQUEST:
+            error = HandleMsgEchoRequest ((struct ofl_msg_echo*)msg, swtch, xid);
+            break;
+//          case OFPT_ECHO_REPLY:
+//            error = HandleMsgEchoReply ((struct ofl_msg_echo*)msg, xid);
+//            break;
+//          case OFPT_EXPERIMENTER:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+//            break;
+//
+//          /* Switch configuration messages. */
+//          case OFPT_FEATURES_REQUEST:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//          case OFPT_FEATURES_REPLY:
+//            error = HandleMsgFeaturesReply (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//          case OFPT_GET_CONFIG_REQUEST:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//          case OFPT_GET_CONFIG_REPLY:
+//            error = HandleMsgGetConfigReply (msg, xid);
+//            break;
+//          case OFPT_SET_CONFIG:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//
+//          /* Asynchronous messages. */
+//          case OFPT_PACKET_IN:
+//            error = HandleMsgPacketIn (msg, xid);
+//            break;
+//          case OFPT_FLOW_REMOVED:
+//            error = HandleMsgFlowRemoved (msg, xid);
+//            break;
+//          case OFPT_PORT_STATUS:
+//            error = HandleMsgPortStatus (msg, xid);
+//            break;
+//
+//          /* Controller command messages. */
+//          case OFPT_GET_ASYNC_REQUEST:
+//          case OFPT_SET_ASYNC:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;       
+//          case OFPT_GET_ASYNC_REPLY:
+//            error = HandleMsgAsyncReply ((struct ofl_msg_async_config*)msg, xid);
+//            break;
+//          case OFPT_PACKET_OUT:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//          case OFPT_FLOW_MOD:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//          case OFPT_GROUP_MOD:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//          case OFPT_PORT_MOD:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//          case OFPT_TABLE_MOD:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//
+//          /* Statistics messages. */
+//          case OFPT_MULTIPART_REQUEST:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//          case OFPT_MULTIPART_REPLY:
+//            error = HandleMsgMultipartReply ((struct ofl_msg_multipart_request_header*)msg, xid);
+//            break;
+//
+//          /* Barrier messages. */
+//          case OFPT_BARRIER_REQUEST:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//          case OFPT_BARRIER_REPLY:
+//            error = HandleMsgBarrierReply (msg, xid);
+//            break;
+//          
+//          /* Role messages. */
+//          case OFPT_ROLE_REQUEST:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//          case OFPT_ROLE_REPLY:
+//            error = HandleMsgRoleReply (msg, xid);
+//            break;
+//
+//          /* Queue Configuration messages. */
+//          case OFPT_QUEUE_GET_CONFIG_REQUEST:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;
+//          case OFPT_QUEUE_GET_CONFIG_REPLY:
+//            error = HandleMsgQueueGetConfigReply (msg, xid);
+//            break;
+//          case OFPT_METER_MOD:
+//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+//            break;            
+//          
+          default: 
+            error = ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
+        }
+      if (error)
+      {
+        /**
+         * NOTE: It is assumed that if a handler returns with error, it did not
+         * use any part of the control message, thus it can be freed up. If no
+         * error is returned however, the message must be freed inside the
+         * handler (because the handler might keep parts of the message) 
+         */
+        ofl_msg_free (msg, NULL/*dp->exp*/);
+      }
+    }
+  
+  if (error)
+    {
+      NS_LOG_WARN ("Error processing OpenFlow message received from switch " << swtch.ipv4);
+    }
+  ofpbuf_delete (buffer);
+  return error; 
 }
 
 int
-OFSwitch13Controller::SendToSwitch (Ptr<Packet> pkt, Ptr<OFSwitch13NetDevice> swtch)
+OFSwitch13Controller::SendToSwitch (Address toAddr, Ptr<Packet> pkt)
 {
-  NS_LOG_FUNCTION (this << swtch);
-  NS_ASSERT (m_helper);
-
-  // Check for valid switch
-  uint32_t index = m_helper->GetContainerIndex (swtch);
-  if (index == UINT32_MAX)
-    {
-      NS_LOG_ERROR ("Can't send to this switch, not registered to this Controller.");
-      return -1;
-    }
-
-  // Get switch socket
-  SocketsMap_t::iterator sockIt = m_socketsMap.find (index);
-  if (sockIt == m_socketsMap.end ())
-    {
-      NS_LOG_ERROR ("Can't send to this switch, no socket found.");
-      return -1;
-    }
-  Ptr<Socket> switchSocket = sockIt->second;
+  SwitchsMap_t::iterator it = m_switchesMap.find (toAddr);
+  NS_ASSERT_MSG (it != m_switchesMap.end (), "Unknown switch " << toAddr); 
+  
+  Ptr<Socket> switchSocket = it->second.socket;
   return switchSocket->Send (pkt);
 }
 
 void 
-OFSwitch13Controller::HandleRead (Ptr<Socket> socket)
+OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
   NS_ASSERT (m_helper);
@@ -283,19 +403,16 @@ OFSwitch13Controller::HandleRead (Ptr<Socket> socket)
                        << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
                        << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
           
-          // Get the corresponding swith device from address
-          Ipv4Address ipv4Addr = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
-          uint32_t index = m_helper->GetContainerIndex (ipv4Addr);
-          Ptr<OFSwitch13NetDevice> swtch = m_helper->GetSwitchDevice (index);
-
+          SwitchsMap_t::iterator it = m_switchesMap.find (from);
+          NS_ASSERT_MSG (it != m_switchesMap.end (), "Unknown switch " << from); 
           struct ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
-          ReceiveFromSwitch (swtch, buffer);
+          ReceiveFromSwitch (it->second, buffer);
         }
     }
 }
 
 bool
-OFSwitch13Controller::HandleRequest (Ptr<Socket> s, const Address& from)
+OFSwitch13Controller::SocketRequest (Ptr<Socket> s, const Address& from)
 {
   NS_LOG_FUNCTION (this << s << from);
   NS_LOG_LOGIC ("Switch request connection from " << 
@@ -304,103 +421,177 @@ OFSwitch13Controller::HandleRequest (Ptr<Socket> s, const Address& from)
 }
 
 void 
-OFSwitch13Controller::HandleAccept (Ptr<Socket> s, const Address& from)
+OFSwitch13Controller::SocketAccept (Ptr<Socket> s, const Address& from)
 {
   NS_LOG_FUNCTION (this << s << from);
+  
   NS_ASSERT (m_helper);
-
   Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
   uint32_t idx = m_helper->GetContainerIndex (ipv4);
   NS_ASSERT_MSG (idx != UINT32_MAX, "Address not associated with registered switch.");
   
   NS_LOG_LOGIC ("Switch request connection accepted from " << ipv4);
-  s->SetRecvCallback (MakeCallback (&OFSwitch13Controller::HandleRead, this));
-  m_socketsMap[idx] = s;
+  s->SetRecvCallback (MakeCallback (&OFSwitch13Controller::SocketRead, this));
+  
+  // Insert this switch into our database
+  struct SwInfo sw; 
+  sw.addr   = from;
+  sw.ipv4   = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
+  sw.netdev = m_helper->GetSwitchDevice (idx);
+  sw.node   = m_helper->GetSwitchNode (idx);
+  sw.socket = s;
+  
+  std::pair <SwitchsMap_t::iterator, bool> ret;
+  ret =  m_switchesMap.insert (std::pair<Address, struct SwInfo> (from, sw));
+  if (ret.second == false) 
+    {
+      NS_LOG_ERROR ("This switch is already registered with this controller");
+    }
 
-  {
   // Send hello message
+  SendHello (sw);
+  //SendEchoRequest (sw, 128);
+ 
+//  // Send echo request message
+//  SendToSwitch (CreateMsgEchoRequest (1024), m_helper->GetSwitchDevice (idx));
+   
+//  {
+//  // Send features resquest message
+//  struct ofl_msg_header msg;
+//  msg.type = OFPT_FEATURES_REQUEST;
+//  LogOflMsg (&msg);
+//  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
+//  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+//  }
+//
+//  // Send get config message
+//  {
+//  struct ofl_msg_header msg;
+//  msg.type = OFPT_GET_CONFIG_REQUEST;
+//  LogOflMsg (&msg);
+//  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
+//  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+//  }
+//
+//  // Send switch desc message
+//  {
+//  struct ofl_msg_multipart_request_header msg;
+//  msg.header.type = OFPT_MULTIPART_REQUEST;
+//  msg.type = OFPMP_DESC; 
+//  msg.flags = 0x0000;
+//  LogOflMsg ((ofl_msg_header*)&msg);
+//  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+//  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+//  }
+//
+//
+//  // Send port desc message
+//  {
+//  struct ofl_msg_multipart_request_header msg;
+//  msg.header.type = OFPT_MULTIPART_REQUEST;
+//  msg.type = OFPMP_PORT_DESC; 
+//  msg.flags = 0x0000;
+//  LogOflMsg ((ofl_msg_header*)&msg);
+//  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+//  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+//  }
+//
+//  // Send port stats message
+//  {
+//  int pNo = 2;
+//  //int pNo = OFPP_ANY;
+//  struct ofl_msg_multipart_request_port msg;
+//  msg.header.header.type = OFPT_MULTIPART_REQUEST;
+//  msg.header.type = OFPMP_PORT_STATS;
+//  msg.header.flags = 0x0000;
+//  msg.port_no = pNo;
+//  LogOflMsg ((ofl_msg_header*)&msg);
+//  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+//  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+//  }
+//
+//  // Send stats table message
+//  {
+//  struct ofl_msg_multipart_request_header msg;
+//  msg.header.type = OFPT_MULTIPART_REQUEST;
+//  msg.type = OFPMP_TABLE;
+//  msg.flags = 0x0000;
+//  LogOflMsg ((ofl_msg_header*)&msg);
+//  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+//  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
+//  }
+}
+
+void
+OFSwitch13Controller::SendHello (SwInfo swtch)
+{
   struct ofl_msg_header msg;
   msg.type = OFPT_HELLO;
-  LogOflMsg (&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
-  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
-  }
   
-  {
-  // Send features resquest message
-  struct ofl_msg_header msg;
-  msg.type = OFPT_FEATURES_REQUEST;
   LogOflMsg (&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
-  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
-  }
+  SendToSwitch (swtch.addr, ofs::PacketFromMsg (&msg, ++m_xid));
+}
 
-  // Send get config message
-  {
-  struct ofl_msg_header msg;
-  msg.type = OFPT_GET_CONFIG_REQUEST;
-  LogOflMsg (&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
-  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
-  }
+void
+OFSwitch13Controller::SendEchoRequest (SwInfo swtch, size_t payloadSize)
+{
+  struct ofl_msg_echo msg;
+  msg.header.type = OFPT_ECHO_REQUEST;
+  msg.data_length = payloadSize;
+  msg.data        = 0;
 
-  // Send switch desc message
-  {
-  struct ofl_msg_multipart_request_header msg;
-  msg.header.type = OFPT_MULTIPART_REQUEST;
-  msg.type = OFPMP_DESC; 
-  msg.flags = 0x0000;
+  if (payloadSize)
+    {
+      msg.data        = (uint8_t*)xmalloc (payloadSize);
+      random_bytes (msg.data, payloadSize);
+    }
+
+  // TODO: Armazenar em algum lugar os pings que foram enviados...
   LogOflMsg ((ofl_msg_header*)&msg);
   Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
-  }
+  if (payloadSize)
+    {
+  free (msg.data);
+    } 
+  SendToSwitch (swtch.addr, pkt);
+}
 
+ofl_err
+OFSwitch13Controller::HandleMsgHello (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid) 
+{
+  // TODO Check for OpenFlow version
+  // All handlers must free the message when everything is ok
+  ofl_msg_free (msg, NULL/*dp->exp*/);
+  return 0;
+}
 
-  // Send port desc message
-  {
-  struct ofl_msg_multipart_request_header msg;
-  msg.header.type = OFPT_MULTIPART_REQUEST;
-  msg.type = OFPMP_PORT_DESC; 
-  msg.flags = 0x0000;
-  LogOflMsg ((ofl_msg_header*)&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
-  }
+ofl_err
+OFSwitch13Controller::HandleMsgEchoRequest (struct ofl_msg_echo *msg, SwInfo swtch, uint64_t xid) 
+{
+  struct ofl_msg_echo reply;
+  reply.header.type = OFPT_ECHO_REPLY;
+  reply.data_length = msg->data_length;
+  reply.data        = msg->data;
+  
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
+  LogOflMsg ((ofl_msg_header*)&reply);
 
-  // Send port stats message
-  {
-  int pNo = 2;
-  //int pNo = OFPP_ANY;
-  struct ofl_msg_multipart_request_port msg;
-  msg.header.header.type = OFPT_MULTIPART_REQUEST;
-  msg.header.type = OFPMP_PORT_STATS;
-  msg.header.flags = 0x0000;
-  msg.port_no = pNo;
-  LogOflMsg ((ofl_msg_header*)&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
-  }
+  // TODO: Send the echo reply
+  SendToSwitch (swtch.addr, pkt); 
 
-  // Send stats table message
-  {
-  struct ofl_msg_multipart_request_header msg;
-  msg.header.type = OFPT_MULTIPART_REQUEST;
-  msg.type = OFPMP_TABLE;
-  msg.flags = 0x0000;
-  LogOflMsg ((ofl_msg_header*)&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-  SendToSwitch (pkt, m_helper->GetSwitchDevice (idx));
-  }
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
 }
 
 void 
-OFSwitch13Controller::HandlePeerClose (Ptr<Socket> socket)
+OFSwitch13Controller::SocketPeerClose (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
 }
  
 void 
-OFSwitch13Controller::HandlePeerError (Ptr<Socket> socket)
+OFSwitch13Controller::SocketPeerError (Ptr<Socket> socket)
 {
   NS_LOG_WARN (this << socket);
 }

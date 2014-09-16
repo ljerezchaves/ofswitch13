@@ -162,7 +162,7 @@ struct packet * InternalPacketFromBuffer (uint32_t in_port, struct ofpbuf *buf,
 
 Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
 {
-  return PacketFromBufferAndFree(BufferFromMsg (msg, xid));
+  return PacketFromBufferAndFree (BufferFromMsg (msg, xid));
 }
 
 Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer)

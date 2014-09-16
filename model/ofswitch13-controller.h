@@ -32,6 +32,19 @@ class OFSwitch13Helper;
 
 /**
  * \ingroup ofswitch13
+ * \brief Group of switch metadata used by controller internal handling
+ */
+struct SwInfo
+{
+  Address addr;                     //!< Switch address
+  Ipv4Address ipv4;                 //!< Switch ipv4 address
+  Ptr<OFSwitch13NetDevice> netdev;  //!< OpenFlow NetDevice
+  Ptr<Node> node;                   //!< Switch node
+  Ptr<Socket> socket;               //!< TCP socket connected to controller
+};
+
+/**
+ * \ingroup ofswitch13
  * \brief An OpenFlow 1.3 controller for OFSwitch13NetDevice devices
  * \attention Currently, It is not full-compliant with the protocol
  * specification. 
@@ -83,7 +96,7 @@ private:
    * \param swtch The switch the message was received from.
    * \param buffer The pointer to the buffer containing the message.
    */
-  virtual void ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer);
+  int ReceiveFromSwitch (SwInfo swtch, ofpbuf* buffer);
 
   /**
    * \internal
@@ -94,7 +107,25 @@ private:
    * \param swtch The switch to receive the message.
    * \return The number of bytes sent
    */
-  int SendToSwitch (Ptr<Packet> pkt, Ptr<OFSwitch13NetDevice> swtch);
+  int SendToSwitch (Address toAddr, Ptr<Packet> pkt);
+
+  void SendHello (SwInfo swtch);
+  void SendEchoRequest (SwInfo swtch, size_t payloadSize = 0);
+  
+  ofl_err HandleMsgHello (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgError (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+  ofl_err HandleMsgEchoRequest (struct ofl_msg_echo *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgEchoReply (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgFeaturesReply (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgGetConfigReply (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgPacketIn (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgFlowRemoved (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgPortStatus (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgAsyncReply (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgMultipartReply (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgBarrierReply (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgRoleReply (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
+//  ofl_err HandleMsgQueueGetConfigReply (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid);
 
   /**
    * \internal
@@ -105,11 +136,11 @@ private:
    * \param from The source Address
    */
   //\{
-  void HandleRead       (Ptr<Socket> socket);                       //!< Receive packet from switch
-  bool HandleRequest    (Ptr<Socket> s, const Address& from);       //!< TCP request from switch
-  void HandleAccept     (Ptr<Socket> socket, const Address& from);  //!< TCP handshake succeeded
-  void HandlePeerClose  (Ptr<Socket> socket);                       //!< TCP connection closed
-  void HandlePeerError  (Ptr<Socket> socket);                       //!< TCP connection error
+  void SocketRead       (Ptr<Socket> socket);                       //!< Receive packet from switch
+  bool SocketRequest    (Ptr<Socket> s, const Address& from);       //!< TCP request from switch
+  void SocketAccept     (Ptr<Socket> socket, const Address& from);  //!< TCP handshake succeeded
+  void SocketPeerClose  (Ptr<Socket> socket);                       //!< TCP connection closed
+  void SocketPeerError  (Ptr<Socket> socket);                       //!< TCP connection error
   //\}
   
   uint32_t              m_xid;          //!< Global transaction idx
@@ -118,8 +149,12 @@ private:
   Ptr<Socket>           m_serverSocket; //!< Listening server socket
   Ptr<OFSwitch13Helper> m_helper;       //!< OpenFlow helper
   
-  typedef std::map<uint32_t, Ptr<Socket> > SocketsMap_t;
-  SocketsMap_t m_socketsMap;            //!< Map of accepted sockets from switches
+//  typedef std::map<uint32_t, Ptr<Socket> > SocketsMap_t;
+//  SocketsMap_t m_socketsMap;            //!< Map of accepted sockets from switches
+
+  
+  typedef std::map<Address, struct SwInfo> SwitchsMap_t;
+  SwitchsMap_t m_switchesMap;
 };
 
 } // namespace ns3

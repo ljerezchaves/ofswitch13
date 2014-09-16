@@ -18,8 +18,12 @@
 
 /** 
  * \defgroup ofswitch13 OpenFlow 1.3 softswitch
- * \brief An OpenFlow 1.3 compatible switch datapath implementation
- * 
+ * This section documents the API of ns3 OpenFlow 1.3 compatible switch
+ * datapath implementation.
+ */
+
+/** 
+ * \ingroup ofswitch13
  * This module follows the OpenFlow 1.3 switch specification
  * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
  * It depends on the CPqD ofsoftswitch13
@@ -66,6 +70,7 @@ extern "C"
 #include "lib/ofpbuf.h"
 #include "lib/dynamic-string.h"
 #include "lib/hash.h"
+#include "lib/random.h"
 
 #include "oflib/ofl-structs.h"
 #include "oflib/oxm-match.h"
