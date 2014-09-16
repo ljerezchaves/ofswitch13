@@ -428,6 +428,15 @@ private:
 
   /**
    * \internal
+   * \brief Send an echo request message to controller.
+   *
+   * This method reschedules itself at every m_echo interval, to constantly
+   * check the connection between switch and controller.
+   */
+  void SendEchoRequest ();
+
+  /**
+   * \internal
    * \name OpenFlow message handlers
    * Handlers used by ReceiveFromController to proccess each type of OpenFlow
    * message received from the controller.
@@ -437,27 +446,26 @@ private:
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  ofl_err HandleMsgHello            (struct ofl_msg_header *msg);
+  ofl_err HandleMsgHello            (struct ofl_msg_header *msg, uint64_t xid);
   ofl_err HandleMsgEchoRequest      (struct ofl_msg_echo *msg, uint64_t xid);
-  ofl_err HandleMsgEchoReply        (struct ofl_msg_echo *msg);
+  ofl_err HandleMsgEchoReply        (struct ofl_msg_echo *msg, uint64_t xid);
   ofl_err HandleMsgFeaturesRequest  (struct ofl_msg_header *msg, uint64_t xid);
   ofl_err HandleMsgGetConfigRequest (struct ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgSetConfig        (struct ofl_msg_set_config *msg);
-  ofl_err HandleMsgPacketOut        (struct ofl_msg_packet_out *msg);
-  ofl_err HandleMsgFlowMod          (struct ofl_msg_flow_mod *msg);
-  ofl_err HandleMsgPortMod          (struct ofl_msg_port_mod *msg);
-  ofl_err HandleMsgTableMod         (struct ofl_msg_table_mod *msg);
+  ofl_err HandleMsgSetConfig        (struct ofl_msg_set_config *msg, uint64_t xid);
+  ofl_err HandleMsgPacketOut        (struct ofl_msg_packet_out *msg, uint64_t xid);
+  ofl_err HandleMsgFlowMod          (struct ofl_msg_flow_mod *msg, uint64_t xid);
+  ofl_err HandleMsgPortMod          (struct ofl_msg_port_mod *msg, uint64_t xid);
+  ofl_err HandleMsgTableMod         (struct ofl_msg_table_mod *msg, uint64_t xid);
   ofl_err HandleMsgMultipartRequest (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err HandleMsgBarrierRequest   (struct ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgBarrierReply     (struct ofl_msg_header *msg);
   ofl_err HandleMsgAsyncRequest     (struct ofl_msg_async_config *msg, uint64_t xid);
 
   ofl_err MultipartMsgDesc          (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgFlow          (struct ofl_msg_multipart_request_flow   *msg, uint64_t xid);
-  ofl_err MultipartMsgAggregate     (struct ofl_msg_multipart_request_flow   *msg, uint64_t xid);
+  ofl_err MultipartMsgFlow          (struct ofl_msg_multipart_request_flow *msg, uint64_t xid);
+  ofl_err MultipartMsgAggregate     (struct ofl_msg_multipart_request_flow *msg, uint64_t xid);
   ofl_err MultipartMsgTable         (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err MultipartMsgTableFeatures (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgPortStats     (struct ofl_msg_multipart_request_port   *msg, uint64_t xid);
+  ofl_err MultipartMsgPortStats     (struct ofl_msg_multipart_request_port *msg, uint64_t xid);
   ofl_err MultipartMsgPortDesc      (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
   //\}
 
@@ -491,6 +499,7 @@ private:
   Ptr<Socket>             m_ctrlSocket;       //!< Tcp Socket to controller
   uint32_t                m_ifIndex;          //!< Interface Index
   uint16_t                m_mtu;              //!< Maximum Transmission Unit
+  Time                    m_echo;             //!< Echo request interval
   Time                    m_timeout;          //!< Pipeline Timeout
   Time                    m_lookupDelay;      //!< Flow Table Lookup Delay [overhead].
   Time                    m_lastTimeout;      //!< Last datapath timeout

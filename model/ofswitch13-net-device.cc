@@ -103,6 +103,11 @@ OFSwitch13NetDevice::GetTypeId (void)
                    TimeValue (Seconds (1)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_timeout),
                    MakeTimeChecker ())
+    .AddAttribute ("EchoInterval",
+                   "The interval between successive echo requests from switch.",
+                   TimeValue (Seconds (20)),
+                   MakeTimeAccessor (&OFSwitch13NetDevice::m_echo),
+                   MakeTimeChecker ())
     .AddAttribute ("ControllerAddr",
                    "The controller InetSocketAddress, used to TCP communication.",
                    AddressValue (InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
@@ -553,7 +558,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
       switch (msg->type)
         {
           case OFPT_HELLO:
-            error = HandleMsgHello (msg);
+            error = HandleMsgHello (msg, xid);
             break;
           case OFPT_ERROR:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
@@ -561,7 +566,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
           case OFPT_ECHO_REQUEST:
             error = HandleMsgEchoRequest ((struct ofl_msg_echo*)msg, xid);
           case OFPT_ECHO_REPLY:
-            error = HandleMsgEchoReply ((struct ofl_msg_echo*)msg);
+            error = HandleMsgEchoReply ((struct ofl_msg_echo*)msg, xid);
             break;
           case OFPT_EXPERIMENTER:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
@@ -581,7 +586,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
           case OFPT_SET_CONFIG:
-            error = HandleMsgSetConfig ((struct ofl_msg_set_config*)msg);
+            error = HandleMsgSetConfig ((struct ofl_msg_set_config*)msg, xid);
             break;
 
           /* Asynchronous messages. */
@@ -604,19 +609,19 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
           case OFPT_PACKET_OUT:
-            error = HandleMsgPacketOut ((struct ofl_msg_packet_out*)msg);
+            error = HandleMsgPacketOut ((struct ofl_msg_packet_out*)msg, xid);
             break;
           case OFPT_FLOW_MOD:
-            error = HandleMsgFlowMod ((struct ofl_msg_flow_mod*)msg); 
+            error = HandleMsgFlowMod ((struct ofl_msg_flow_mod*)msg, xid); 
             break;
-          case OFPT_GROUP_MOD:
-            //error = group_table_handle_group_mod (dp->groups, (struct ofl_msg_group_mod *)msg, sender);
-            break;
+          //case OFPT_GROUP_MOD:
+          //  error = group_table_handle_group_mod (dp->groups, (struct ofl_msg_group_mod *)msg, sender);
+          //  break;
           case OFPT_PORT_MOD:
-            error = HandleMsgPortMod ((struct ofl_msg_port_mod*)msg);
+            error = HandleMsgPortMod ((struct ofl_msg_port_mod*)msg, xid);
             break;
           case OFPT_TABLE_MOD:
-            error = HandleMsgTableMod ((struct ofl_msg_table_mod*)msg);
+            error = HandleMsgTableMod ((struct ofl_msg_table_mod*)msg, xid);
             break;
 
           /* Statistics messages. */
@@ -632,27 +637,27 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             error = HandleMsgBarrierRequest (msg, xid);
             break;
           case OFPT_BARRIER_REPLY:
-            error = HandleMsgBarrierReply (msg);
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
           
           /* Role messages. */
-          case OFPT_ROLE_REQUEST:
-            //error = dp_handle_role_request (dp, (struct ofl_msg_role_request*)msg, sender);
-            break;
+          //case OFPT_ROLE_REQUEST:
+          //  error = dp_handle_role_request (dp, (struct ofl_msg_role_request*)msg, sender);
+          //  break;
           case OFPT_ROLE_REPLY:
-            ofl_msg_free (msg, NULL/*dp->exp*/);
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
 
           /* Queue Configuration messages. */
-          case OFPT_QUEUE_GET_CONFIG_REQUEST:
-            //error = dp_ports_handle_queue_get_config_request (dp, (struct ofl_msg_queue_get_config_request *)msg, sender);
-            break;
+          //case OFPT_QUEUE_GET_CONFIG_REQUEST:
+          //  error = dp_ports_handle_queue_get_config_request (dp, (struct ofl_msg_queue_get_config_request *)msg, sender);
+          //  break;
           case OFPT_QUEUE_GET_CONFIG_REPLY:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
-          case OFPT_METER_MOD:
-            //error = meter_table_handle_meter_mod (dp->meters, (struct ofl_msg_meter_mod *)msg, sender);
-            break;            
+          //case OFPT_METER_MOD:
+          //  error = meter_table_handle_meter_mod (dp->meters, (struct ofl_msg_meter_mod *)msg, sender);
+          //  break;            
           
           default: 
             error = ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
@@ -671,6 +676,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
   
   if (error)
     {
+      NS_LOG_WARN ("Error processing OpenFlow message received from controller.");
       // Notify the controller
       struct ofl_msg_error err;
       err.header.type = OFPT_ERROR;
@@ -1523,9 +1529,28 @@ OFSwitch13NetDevice::CreatePacketIn (struct packet *pkt, uint8_t tableId,
   return ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
 }
 
-ofl_err
-OFSwitch13NetDevice::HandleMsgHello (struct ofl_msg_header *msg) 
+void
+OFSwitch13NetDevice::SendEchoRequest ()
 {
+  // Send echo message
+  struct ofl_msg_echo msg;
+  msg.header.type = OFPT_ECHO_REQUEST;
+  msg.data_length = 0;
+  msg.data        = 0;
+  
+  LogOflMsg ((ofl_msg_header*)&msg);
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+  SendToController (pkt);
+
+  // TODO: start a timer and wait for a reply
+
+  Simulator::Schedule (m_echo, &OFSwitch13NetDevice::SendEchoRequest, this);
+}
+
+ofl_err
+OFSwitch13NetDevice::HandleMsgHello (struct ofl_msg_header *msg, uint64_t xid) 
+{
+  // TODO Check for OpenFlow version
   // All handlers must free the message when everything is ok
   ofl_msg_free (msg, NULL/*dp->exp*/);
   return 0;
@@ -1549,7 +1574,7 @@ OFSwitch13NetDevice::HandleMsgEchoRequest (struct ofl_msg_echo *msg, uint64_t xi
 }
 
 ofl_err
-OFSwitch13NetDevice::HandleMsgEchoReply (struct ofl_msg_echo *msg) 
+OFSwitch13NetDevice::HandleMsgEchoReply (struct ofl_msg_echo *msg, uint64_t xid) 
 {
   // All handlers must free the message when everything is ok
   ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
@@ -1594,7 +1619,7 @@ OFSwitch13NetDevice::HandleMsgGetConfigRequest (struct ofl_msg_header *msg, uint
 }
 
 ofl_err
-OFSwitch13NetDevice::HandleMsgSetConfig (struct ofl_msg_set_config *msg)
+OFSwitch13NetDevice::HandleMsgSetConfig (struct ofl_msg_set_config *msg, uint64_t xid)
 {
   uint16_t flags;
 
@@ -1613,7 +1638,7 @@ OFSwitch13NetDevice::HandleMsgSetConfig (struct ofl_msg_set_config *msg)
 }
 
 ofl_err
-OFSwitch13NetDevice::HandleMsgPacketOut (struct ofl_msg_packet_out *msg) 
+OFSwitch13NetDevice::HandleMsgPacketOut (struct ofl_msg_packet_out *msg, uint64_t xid) 
 {
   struct packet *pkt;
   int error;
@@ -1654,7 +1679,7 @@ OFSwitch13NetDevice::HandleMsgPacketOut (struct ofl_msg_packet_out *msg)
 }
 
 ofl_err
-OFSwitch13NetDevice::HandleMsgFlowMod (struct ofl_msg_flow_mod *msg)
+OFSwitch13NetDevice::HandleMsgFlowMod (struct ofl_msg_flow_mod *msg, uint64_t xid)
 {
   /**
    * Modifications to a flow table from the controller are do ne with the
@@ -1763,7 +1788,7 @@ OFSwitch13NetDevice::HandleMsgFlowMod (struct ofl_msg_flow_mod *msg)
 }
 
 ofl_err
-OFSwitch13NetDevice::HandleMsgPortMod (struct ofl_msg_port_mod *msg) 
+OFSwitch13NetDevice::HandleMsgPortMod (struct ofl_msg_port_mod *msg, uint64_t xid) 
 {
   ofs::Port *p = PortGetOfsPort (msg->port_no);
   if (p == NULL) 
@@ -1811,7 +1836,7 @@ OFSwitch13NetDevice::HandleMsgPortMod (struct ofl_msg_port_mod *msg)
 }
 
 ofl_err
-OFSwitch13NetDevice::HandleMsgTableMod (struct ofl_msg_table_mod *msg) 
+OFSwitch13NetDevice::HandleMsgTableMod (struct ofl_msg_table_mod *msg, uint64_t xid) 
 {
   if (msg->table_id == 0xff) 
     {
@@ -1899,14 +1924,6 @@ OFSwitch13NetDevice::HandleMsgBarrierRequest (struct ofl_msg_header *msg, uint64
   LogOflMsg (&reply);
   SendToController (pkt);
 
-  // All handlers must free the message when everything is ok
-  ofl_msg_free (msg, NULL/*dp->exp*/);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::HandleMsgBarrierReply (struct ofl_msg_header *msg) 
-{
   // All handlers must free the message when everything is ok
   ofl_msg_free (msg, NULL/*dp->exp*/);
   return 0;
@@ -2180,13 +2197,8 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
                        << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
                        << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
 
-          // Creante an ofpbuffer from packet
-          uint32_t pktSize = packet->GetSize ();
-          struct ofpbuf *buffer = ofpbuf_new (pktSize);
-          packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
-          
-          // Process the openflow buffer
-          NS_ASSERT (buffer->size == pktSize);
+          // Create and process the openflow buffer
+          struct ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
           ReceiveFromController (buffer);
         }
     }
@@ -2205,6 +2217,9 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
   LogOflMsg (&msg);
   Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
   SendToController (pkt);
+  
+  // Schedule first echo message
+  Simulator::Schedule (m_echo, &OFSwitch13NetDevice::SendEchoRequest, this);
 }
 
 void
