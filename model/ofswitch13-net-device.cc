@@ -603,8 +603,10 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
 
           /* Controller command messages. */
           case OFPT_GET_ASYNC_REQUEST:
+            error = HandleMsgGetAsyncRequest ((ofl_msg_async_config*)msg, xid);
+            break;     
           case OFPT_SET_ASYNC:
-            error = HandleMsgAsyncRequest ((ofl_msg_async_config*)msg, xid);
+            error = HandleMsgSetAsync ((ofl_msg_async_config*)msg, xid);
             break;       
           case OFPT_GET_ASYNC_REPLY:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
@@ -1550,7 +1552,7 @@ OFSwitch13NetDevice::SendEchoRequest ()
 ofl_err
 OFSwitch13NetDevice::HandleMsgHello (ofl_msg_header *msg, uint64_t xid) 
 {
-  // TODO Check for OpenFlow version
+  // The ofsoftswitch13 check the OpenFlow version when unpacking the message
   // All handlers must free the message when everything is ok
   ofl_msg_free (msg, NULL/*dp->exp*/);
   return 0;
@@ -1576,6 +1578,7 @@ OFSwitch13NetDevice::HandleMsgEchoRequest (ofl_msg_echo *msg, uint64_t xid)
 ofl_err
 OFSwitch13NetDevice::HandleMsgEchoReply (ofl_msg_echo *msg, uint64_t xid) 
 {
+  // TODO: Implement
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
   return 0;
@@ -1915,7 +1918,7 @@ OFSwitch13NetDevice::HandleMsgBarrierRequest (ofl_msg_header *msg, uint64_t xid)
 {
   /**
    * Note: the implementation is single-threaded, so a barrier request can
-   * simply be replied. 
+   * simply be replied. FIXME Really ???
    */
   ofl_msg_header reply;
   reply.type = OFPT_BARRIER_REPLY;
@@ -1930,31 +1933,28 @@ OFSwitch13NetDevice::HandleMsgBarrierRequest (ofl_msg_header *msg, uint64_t xid)
 }
 
 ofl_err
-OFSwitch13NetDevice::HandleMsgAsyncRequest (ofl_msg_async_config *msg, uint64_t xid) 
+OFSwitch13NetDevice::HandleMsgGetAsyncRequest (ofl_msg_async_config *msg, uint64_t xid) 
 {
-  uint16_t async_type = msg->header.type;
-  switch (async_type)
-    {
-      case (OFPT_GET_ASYNC_REQUEST):
-        {
-          ofl_msg_async_config reply;
-          reply.header.type = OFPT_GET_ASYNC_REPLY;
-          reply.config = &m_asyncConfig;
+  ofl_msg_async_config reply;
+  reply.header.type = OFPT_GET_ASYNC_REPLY;
+  reply.config = &m_asyncConfig;
 
-          Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-          LogOflMsg ((ofl_msg_header*)&reply);
-          SendToController (pkt);
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
+  LogOflMsg ((ofl_msg_header*)&reply);
+  SendToController (pkt);
 
-           // All handlers must free the message when everything is ok
-          ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
-          break;
-        }
-      case (OFPT_SET_ASYNC):
-        {
-          memcpy (&m_asyncConfig, msg->config, sizeof (ofl_async_config));
-          break;
-        }
-    }
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err
+OFSwitch13NetDevice::HandleMsgSetAsync (ofl_msg_async_config *msg, uint64_t xid) 
+{
+  memcpy (&m_asyncConfig, msg->config, sizeof (ofl_async_config));
+
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
   return 0;
 }
 
@@ -2076,7 +2076,7 @@ OFSwitch13NetDevice::MultipartMsgTable (ofl_msg_multipart_request_header *msg, u
   reply.header.type = OFPMP_TABLE;
   reply.header.flags = 0x0000;
   reply.stats_num = PIPELINE_TABLES;
-  reply.stats     = (ofl_table_stats**)xmalloc (sizeof (ofl_table_stats*) * PIPELINE_TABLES);
+  reply.stats = (ofl_table_stats**)xmalloc (sizeof (ofl_table_stats*) * PIPELINE_TABLES);
 
   for (size_t i = 0; i < PIPELINE_TABLES; i++) 
     {

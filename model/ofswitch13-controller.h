@@ -67,6 +67,8 @@ public:
    */
   void RegisterSwitchMetadata (SwitchInfo swInfo);
 
+  //int ExecuteDpctlCommand (const char* command);
+
   /**
    * \brief Create a flow_mod message using the same syntax from dpctl, and
    * send it to the switch.
@@ -77,6 +79,71 @@ public:
   int SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char* textCmd);
 
 protected:
+  /**
+   * Send a ns3 packet to a registered switch. 
+   * \param swtch The switch to receive the message
+   * \param pkt The packet to send
+   * \return The number of bytes sent
+   */
+  int SendToSwitch (SwitchInfo swtch, Ptr<Packet> pkt);
+
+  /**
+   * \name OpenFlow symmetric messages
+   * Methods to send messages withou solicitation
+   * \param swtch The target switch metadata
+   * \return The number of transmitted bytes.
+   */
+  //\{
+  int SendHello (SwitchInfo swtch);               //!< Send a hello message (upon connection establishment)
+  int SendEchoRequest (SwitchInfo swtch, size_t payloadSize = 0); //!< Send an echo request message
+  //\}
+
+  /**
+   * \name OpenFlow controller-to-switch messages
+   * Request methods to query the switch for configuration, description or statistics.
+   * \param swtch The target switch metadata
+   * \return The number of transmitted bytes.
+   */
+  //\{
+  int SendBarrierRequest (SwitchInfo swtch);      //!< Send a barrier request
+  int RequestAsync (SwitchInfo swtch);            //!< Query the asynchronous messages that it wants to receive
+  int RequestFeatures (SwitchInfo swtch);         //!< Query switch features (during handshake)
+  int RequestConfig (SwitchInfo swtch);           //!< Query switch configuration
+  int RequestSwitchDesc (SwitchInfo swtch);       //!< Query switch datapath description
+  int RequestFlowStats (SwitchInfo swtch);        //!< Query flow entry statistics
+  int RequestFlowAggregStats (SwitchInfo swtch);  //!< Query aggregate flow entry statistics
+  int RequestTableStats (SwitchInfo swtch);       //!< Query table statistics
+  int RequestPortStats (SwitchInfo swtch, uint32_t port = OFPP_ANY); //!< Query port statistcs (default: all ports)
+  int RequestTableFeatures (SwitchInfo swtch);    //!< Query table features
+  int RequestPortDesc (SwitchInfo swtch);         //!< Query port description
+  //\}
+
+  /**
+   * \name OpenFlow message handlers
+   * Handlers used by ReceiveFromSwitch to proccess each type of OpenFlow
+   * message received from the switch.
+   * \attention Handlers must free the received message when everything is ok.
+   * \param msg The OpenFlow message.
+   * \param swtch The source switch metadata.
+   * \param xid The transaction id from the request message.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  //\{
+          ofl_err HandleMsgHello (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgError (ofl_msg_error *msg, SwitchInfo swtch, uint64_t xid);
+          ofl_err HandleMsgEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
+          ofl_err HandleMsgEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgPortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint64_t xid);
+          ofl_err HandleMsgBarrierReply (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
+  //\}
 
 private:
   // inherited from Application
@@ -85,63 +152,12 @@ private:
 
   /**
    * \internal
-   * Get the packet type on the buffer, which can then be used
-   * to determine how to handle the buffer.
-   *
-   * \param buffer The packet in OpenFlow buffer format.
-   * \return The packet type, as defined in the ofp_type struct.
-   */
-  ofp_type GetPacketType (ofpbuf* buffer);
-
-  /**
-   * \internal
-   * \brief Handles any ofpbuf received from switch
+   * \brief Called by the SocketRead when a packet is received from the switch.
+   * Dispatches control messages to appropriate handler functions.
    * \param swtch The switch the message was received from.
    * \param buffer The pointer to the buffer containing the message.
    */
   int ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer);
-
-  /**
-   * \internal
-   * Send a message to a registered switch. It will encapsulate the ofl_msg
-   * format into an ofpbuf wire format and send it over a TCP socekt to the
-   * proper switch IP address.
-   * \param pkt The packet to send
-   * \param swtch The switch to receive the message.
-   * \return The number of bytes sent
-   */
-  int SendToSwitch (SwitchInfo swtch, Ptr<Packet> pkt);
-
-  void SendHello (SwitchInfo swtch);
-  void SendEchoRequest (SwitchInfo swtch, size_t payloadSize = 0);
- 
-   /**
-   * \internal
-   * \name OpenFlow message handlers
-   * Handlers used by ReceiveFromSwitch to proccess each type of OpenFlow
-   * message received from the switch.
-   *
-   * \param msg The OpenFlow message.
-   * \param swtch The switch information.
-   * \param xid The transaction id from the request message.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  //\{
-  ofl_err HandleMsgHello (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgError (ofl_msg_error *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgPortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgBarrierReply (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
-  //\}
 
   /**
    * \internal
@@ -164,7 +180,7 @@ private:
   Ptr<Socket>           m_serverSocket; //!< Listening server socket
   
   typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
-  SwitchsMap_t m_switchesMap;           //!< Registered switch metadata (key is Ipv4Addres)
+  SwitchsMap_t m_switchesMap;           //!< Registered switch metadata
 };
 
 } // namespace ns3

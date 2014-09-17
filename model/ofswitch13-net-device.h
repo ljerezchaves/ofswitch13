@@ -168,8 +168,9 @@ private:
   ///\name Send/Receive methods
   //\{
   /**
-   * \brief Called by the HandleRead when a packet is received from the
-   * controller.
+   * \brief Called by the SocketRead when a packet is received from the
+   * controller. Dispatches control messages to appropriate handler
+   * functions.
    * \see remote_rconn_run () at udatapath/datapath.c
    * \see handle_control_msg () at udatapath/dp_control.c
    *
@@ -457,7 +458,8 @@ private:
   ofl_err HandleMsgTableMod         (ofl_msg_table_mod *msg, uint64_t xid);
   ofl_err HandleMsgMultipartRequest (ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err HandleMsgBarrierRequest   (ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgAsyncRequest     (ofl_msg_async_config *msg, uint64_t xid);
+  ofl_err HandleMsgGetAsyncRequest  (ofl_msg_async_config *msg, uint64_t xid);
+  ofl_err HandleMsgSetAsync         (ofl_msg_async_config *msg, uint64_t xid);
 
   ofl_err MultipartMsgDesc          (ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err MultipartMsgFlow          (ofl_msg_multipart_request_flow *msg, uint64_t xid);
