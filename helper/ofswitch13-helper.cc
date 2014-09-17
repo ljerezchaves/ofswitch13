@@ -20,6 +20,7 @@
 
 #include "ofswitch13-helper.h"
 #include "ns3/ofswitch13-net-device.h"
+#include "ns3/learning-controller.h"
 #include "ns3/uinteger.h"
 #include "ns3/node.h"
 #include "ns3/log.h"
@@ -38,7 +39,7 @@ OFSwitch13Helper::OFSwitch13Helper ()
     m_dpId (0)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  m_ctrlFactory.SetTypeId ("ns3::OFSwitch13Controller");
+  m_ctrlFactory.SetTypeId ("ns3::LearningController");
   m_ndevFactory.SetTypeId ("ns3::OFSwitch13NetDevice");
   m_chanFactory.SetTypeId ("ns3::CsmaChannel");
     
@@ -65,12 +66,12 @@ OFSwitch13Helper::SetDeviceAttribute (std::string n1, const AttributeValue &v1)
   m_ndevFactory.Set (n1, v1);
 }
 
-void
-OFSwitch13Helper::SetControllerAttribute (std::string n1, const AttributeValue &v1)
-{
-  NS_LOG_FUNCTION_NOARGS ();
-  m_ctrlFactory.Set (n1, v1);
-}
+// void
+// OFSwitch13Helper::SetControllerAttribute (std::string n1, const AttributeValue &v1)
+// {
+//   NS_LOG_FUNCTION_NOARGS ();
+//   m_ctrlFactory.Set (n1, v1);
+// }
 
 NetDeviceContainer
 OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
@@ -119,16 +120,16 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 }
 
 Ptr<OFSwitch13Controller> 
-OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
+OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller)
 {
   NS_LOG_DEBUG ("Installing OpenFlow controller on node " << cNode->GetId ());
 
   if (m_ctrlApp == 0)
     {
       // Install the controller App in the controller node
-      m_ctrlApp = m_ctrlFactory.Create<OFSwitch13Controller> ();
-      cNode->AddApplication (m_ctrlApp);
+      m_ctrlApp = controller;
       m_ctrlApp->SetStartTime (Seconds (0));
+      cNode->AddApplication (m_ctrlApp);
       
       // Registering previous configured switches
       if (!m_unregSw.empty ())
@@ -140,10 +141,15 @@ OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
           m_unregSw.clear ();
         }
     }
-  
   InstallExternalController (cNode);
-
   return m_ctrlApp;
+}
+
+Ptr<OFSwitch13Controller> 
+OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
+{
+  Ptr<LearningController> ctrl = m_ctrlFactory.Create<LearningController> ();
+  return InstallControllerApp (cNode, ctrl);
 }
 
 Ptr<NetDevice>

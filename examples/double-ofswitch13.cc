@@ -98,14 +98,14 @@ main (int argc, char *argv[])
   // Some OpenFlow flow-mod commands for tests
   Ptr<OFSwitch13NetDevice> ofswitch0NetDev = of13Device0.Get (0)->GetObject<OFSwitch13NetDevice> ();
   Ptr<OFSwitch13NetDevice> ofswitch1NetDev = of13Device1.Get (0)->GetObject<OFSwitch13NetDevice> ();
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch0NetDev, 
-      "cmd=add,table=0 in_port=1 apply:output=2");
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch0NetDev, 
-      "cmd=add,table=0 in_port=2 apply:output=1");
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch1NetDev, 
-      "cmd=add,table=0 in_port=1 apply:output=2");
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch1NetDev, 
-      "cmd=add,table=0 in_port=2 apply:output=1");
+  //Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch0NetDev, 
+  //    "cmd=add,table=0 in_port=1 apply:output=2");
+  //Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch0NetDev, 
+  //    "cmd=add,table=0 in_port=2 apply:output=1");
+  //Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch1NetDev, 
+  //    "cmd=add,table=0 in_port=1 apply:output=2");
+  //Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch1NetDev, 
+  //    "cmd=add,table=0 in_port=2 apply:output=1");
 
   // Installing the tcp/ip stack onto terminals
   InternetStackHelper internet;

@@ -47,9 +47,9 @@ struct SwitchInfo
 
 /**
  * \ingroup ofswitch13
- * \brief An OpenFlow 1.3 controller for OFSwitch13NetDevice devices
+ * \brief An OpenFlow 1.3 controller base class for OFSwitch13NetDevice devices
  * \attention Currently, It is not full-compliant with the protocol
- * specification. 
+ * specification.
  */
 class OFSwitch13Controller : public Application
 {
@@ -66,19 +66,12 @@ public:
    * \param swInfo The switch metadata
    */
   void RegisterSwitchMetadata (SwitchInfo swInfo);
-
-  //int ExecuteDpctlCommand (const char* command);
-
-  /**
-   * \brief Create a flow_mod message using the same syntax from dpctl, and
-   * send it to the switch.
-   * \param swtch The switch to receive the message.
-   * \param textCmd The dpctl flow_mod command to create the message.
-   * \return The number of bytes sent
-   */
-  int SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char* textCmd);
-
+ 
 protected:
+  // inherited from Application
+  virtual void StartApplication (void);
+  virtual void StopApplication (void);
+
   /**
    * Send a ns3 packet to a registered switch. 
    * \param swtch The switch to receive the message
@@ -97,6 +90,16 @@ protected:
   int SendHello (SwitchInfo swtch);               //!< Send a hello message (upon connection establishment)
   int SendEchoRequest (SwitchInfo swtch, size_t payloadSize = 0); //!< Send an echo request message
   //\}
+
+  /**
+   * \brief Create a flow_mod message using the same syntax from dpctl, and
+   * send it to the switch.
+   * \param swtch The target switch metadata
+   * \param textCmd The dpctl flow_mod command to create the message.
+   * \return The number of bytes sent
+   */
+  int SendFlowModMsg (SwitchInfo swtch, const char* textCmd);
+
 
   /**
    * \name OpenFlow controller-to-switch messages
@@ -129,13 +132,14 @@ protected:
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
+  virtual ofl_err HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid) = 0;
+  
           ofl_err HandleMsgHello (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgError (ofl_msg_error *msg, SwitchInfo swtch, uint64_t xid);
           ofl_err HandleMsgEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
           ofl_err HandleMsgEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
-  virtual ofl_err HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgPortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint64_t xid);
@@ -145,11 +149,10 @@ protected:
   virtual ofl_err HandleMsgQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
   //\}
 
+  typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
+  SwitchsMap_t m_switchesMap;           //!< Registered switch metadata
 private:
-  // inherited from Application
-  virtual void StartApplication (void);
-  virtual void StopApplication (void);
-
+ 
   /**
    * \internal
    * \brief Called by the SocketRead when a packet is received from the switch.
@@ -179,8 +182,7 @@ private:
   uint16_t              m_port;         //!< Local controller tcp port
   Ptr<Socket>           m_serverSocket; //!< Listening server socket
   
-  typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
-  SwitchsMap_t m_switchesMap;           //!< Registered switch metadata
+
 };
 
 } // namespace ns3

@@ -22,7 +22,6 @@
 #include "ns3/uinteger.h"
 #include "ofswitch13-controller.h"
 #include "ofswitch13-net-device.h"
-#include "ns3/ofswitch13-helper.h"
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Controller");
 
@@ -72,7 +71,7 @@ OFSwitch13Controller::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Controller") 
     .SetParent<Object> ()
-    .AddConstructor<OFSwitch13Controller> ()
+//    .AddConstructor<OFSwitch13Controller> ()
     .AddAttribute ("Port",
                    "Port on which we listen for incoming packets.",
                    UintegerValue (6653),
@@ -105,7 +104,7 @@ OFSwitch13Controller::RegisterSwitchMetadata (SwitchInfo swInfo)
 }
 
 int
-OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char* textCmd) 
+OFSwitch13Controller::SendFlowModMsg (SwitchInfo swtch, const char* textCmd) 
 {
   // Create the internal flow_mod message
   ofl_msg_flow_mod msgLocal;
@@ -183,9 +182,7 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char
 
   // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)msg, ++m_xid);
-  //return SendToSwitch (pkt, swtch);
-  return 0;
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)msg, ++m_xid));
 }
 
 
@@ -474,16 +471,6 @@ OFSwitch13Controller::HandleMsgGetConfigReply (ofl_msg_get_config_reply *msg, Sw
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
-  return 0;
-}
-
-ofl_err 
-OFSwitch13Controller::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid)
-{
-  NS_LOG_FUNCTION (swtch.ipv4 << xid);
-  // TODO: Make this pure virtual and implement in subclass
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
   return 0;

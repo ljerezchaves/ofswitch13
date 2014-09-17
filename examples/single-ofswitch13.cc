@@ -51,6 +51,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13NetDevice", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
+      LogComponentEnable ("LearningController", LOG_LEVEL_ALL);
     }
     
   // Enabling Checksum computations
@@ -91,10 +92,10 @@ main (int argc, char *argv[])
 
   // Some OpenFlow flow-mod commands for tests
   Ptr<OFSwitch13NetDevice> ofswitchNetDev = of13Device.Get (0)->GetObject<OFSwitch13NetDevice> ();
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
-      "cmd=add,table=0 in_port=1 apply:output=2");
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
-      "cmd=add,table=0 in_port=2 apply:output=1");
+  //Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
+  //    "cmd=add,table=0 in_port=1 apply:output=2");
+  //Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
+  //    "cmd=add,table=0 in_port=2 apply:output=1");
 
   // Installing the tcp/ip stack onto terminals
   InternetStackHelper internet;

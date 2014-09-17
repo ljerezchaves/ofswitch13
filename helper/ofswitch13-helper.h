@@ -51,14 +51,14 @@ public:
   OFSwitch13Helper ();
   virtual ~OFSwitch13Helper ();
 
-  /**
-   * Set an attribute for the ns3::OFSwitch13Controller created by
-   * OFSwitch13Helper::InstallController
-   *
-   * \param n1 the name of the attribute to set
-   * \param v1 the value of the attribute to set
-   */
-  void SetControllerAttribute (std::string n1, const AttributeValue &v1);
+  // /**
+  //  * Set an attribute for the ns3::LearningController created by
+  //  * OFSwitch13Helper::InstallControllerApp
+  //  *
+  //  * \param n1 the name of the attribute to set
+  //  * \param v1 the value of the attribute to set
+  //  */
+  // void SetControllerAttribute (std::string n1, const AttributeValue &v1);
 
   /**
    * Set an attribute on each ns3::OFSwitch13NetDevice created by
@@ -84,17 +84,30 @@ public:
   NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
   
   /**
-   * This method creates an ns3::OFSwitch13Controller application with the
-   * attributes configured by OFSwitch13Helper::SetControllerAttribute and add
+   * This method creates a new ns3::LearningController application and add
    * it to cNode. It also installs the TCP/IP stack into cNode, and connect it
    * to the csma gigabit network, using IPv4 network 10.100.150.0/24. Finally,
    * start the switch <--> controller connection for all already registered
    * switches. 
    *
-   * \param cNode The node to install the controller
-   * \returns The controller application
+   * \param cNode The node to configure as controller
+   * \returns The LearningController application created (installed into cNode)
    */
   Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode);
+
+  /**
+   * This method installs the given ns3::OFSwitch13Controller application into
+   * cNode. It also installs the TCP/IP stack into cNode, and connect it
+   * to the csma gigabit network, using IPv4 network 10.100.150.0/24. Finally,
+   * start the switch <--> controller connection for all already registered
+   * switches. 
+   *
+   * \param cNode The node to configure as controller
+   * \param controller The controller application to install into cNode
+   * \returns The controller application (same as input)
+   */
+  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode,
+      Ptr<OFSwitch13Controller> controller);
 
   /**
    * This method configures the cNode with TCP/IP stack, and connect it to the
