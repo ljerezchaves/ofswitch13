@@ -46,6 +46,18 @@ LogOflMsg (struct ofl_msg_header *msg, bool isRx=false)
   free (str);
 }
 
+Ipv4Address
+SwInfo::GetIpv4 ()
+{
+  return InetSocketAddress::ConvertFrom (addr).GetIpv4 ();
+}
+
+InetSocketAddress
+SwInfo::GetInet ()
+{
+  return InetSocketAddress::ConvertFrom (addr);
+}
+
 /********** Public methods **********/
 
 OFSwitch13Controller::OFSwitch13Controller ()
@@ -248,106 +260,106 @@ OFSwitch13Controller::ReceiveFromSwitch (SwInfo swtch, ofpbuf* buffer)
           case OFPT_HELLO:
             error = HandleMsgHello (msg, swtch, xid);
             break;
-//          case OFPT_ERROR:
-//            error = HandleMsgError (msg, xid);
-//            break;
+          case OFPT_ERROR:
+            error = HandleMsgError ((struct ofl_msg_error*)msg, swtch, xid);
+            break;
           case OFPT_ECHO_REQUEST:
             error = HandleMsgEchoRequest ((struct ofl_msg_echo*)msg, swtch, xid);
             break;
-//          case OFPT_ECHO_REPLY:
-//            error = HandleMsgEchoReply ((struct ofl_msg_echo*)msg, xid);
-//            break;
-//          case OFPT_EXPERIMENTER:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
-//            break;
-//
-//          /* Switch configuration messages. */
-//          case OFPT_FEATURES_REQUEST:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//          case OFPT_FEATURES_REPLY:
-//            error = HandleMsgFeaturesReply (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//          case OFPT_GET_CONFIG_REQUEST:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//          case OFPT_GET_CONFIG_REPLY:
-//            error = HandleMsgGetConfigReply (msg, xid);
-//            break;
-//          case OFPT_SET_CONFIG:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//
-//          /* Asynchronous messages. */
-//          case OFPT_PACKET_IN:
-//            error = HandleMsgPacketIn (msg, xid);
-//            break;
-//          case OFPT_FLOW_REMOVED:
-//            error = HandleMsgFlowRemoved (msg, xid);
-//            break;
-//          case OFPT_PORT_STATUS:
-//            error = HandleMsgPortStatus (msg, xid);
-//            break;
-//
-//          /* Controller command messages. */
-//          case OFPT_GET_ASYNC_REQUEST:
-//          case OFPT_SET_ASYNC:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;       
-//          case OFPT_GET_ASYNC_REPLY:
-//            error = HandleMsgAsyncReply ((struct ofl_msg_async_config*)msg, xid);
-//            break;
-//          case OFPT_PACKET_OUT:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//          case OFPT_FLOW_MOD:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//          case OFPT_GROUP_MOD:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//          case OFPT_PORT_MOD:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//          case OFPT_TABLE_MOD:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//
-//          /* Statistics messages. */
-//          case OFPT_MULTIPART_REQUEST:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//          case OFPT_MULTIPART_REPLY:
-//            error = HandleMsgMultipartReply ((struct ofl_msg_multipart_request_header*)msg, xid);
-//            break;
-//
-//          /* Barrier messages. */
-//          case OFPT_BARRIER_REQUEST:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//          case OFPT_BARRIER_REPLY:
-//            error = HandleMsgBarrierReply (msg, xid);
-//            break;
-//          
-//          /* Role messages. */
-//          case OFPT_ROLE_REQUEST:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//          case OFPT_ROLE_REPLY:
-//            error = HandleMsgRoleReply (msg, xid);
-//            break;
-//
-//          /* Queue Configuration messages. */
-//          case OFPT_QUEUE_GET_CONFIG_REQUEST:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;
-//          case OFPT_QUEUE_GET_CONFIG_REPLY:
-//            error = HandleMsgQueueGetConfigReply (msg, xid);
-//            break;
-//          case OFPT_METER_MOD:
-//            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-//            break;            
-//          
+          case OFPT_ECHO_REPLY:
+            error = HandleMsgEchoReply ((struct ofl_msg_echo*)msg, swtch, xid);
+            break;
+          case OFPT_EXPERIMENTER:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+            break;
+
+          /* Switch configuration messages. */
+          case OFPT_FEATURES_REQUEST:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_FEATURES_REPLY:
+            error = HandleMsgFeaturesReply ((struct ofl_msg_features_reply*)msg, swtch, xid);
+            break;
+          case OFPT_GET_CONFIG_REQUEST:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_GET_CONFIG_REPLY:
+            error = HandleMsgGetConfigReply ((struct ofl_msg_get_config_reply*)msg, swtch, xid);
+            break;
+          case OFPT_SET_CONFIG:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+
+          /* Asynchronous messages. */
+          case OFPT_PACKET_IN:
+            error = HandleMsgPacketIn ((struct ofl_msg_packet_in*)msg, swtch, xid);
+            break;
+          case OFPT_FLOW_REMOVED:
+            error = HandleMsgFlowRemoved ((struct ofl_msg_flow_removed*)msg, swtch, xid);
+            break;
+          case OFPT_PORT_STATUS:
+            error = HandleMsgPortStatus ((struct ofl_msg_port_status*)msg, swtch, xid);
+            break;
+
+          /* Controller command messages. */
+          case OFPT_GET_ASYNC_REQUEST:
+          case OFPT_SET_ASYNC:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;       
+          case OFPT_GET_ASYNC_REPLY:
+            error = HandleMsgAsyncReply ((struct ofl_msg_async_config*)msg, swtch, xid);
+            break;
+          case OFPT_PACKET_OUT:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_FLOW_MOD:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_GROUP_MOD:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_PORT_MOD:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_TABLE_MOD:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+
+          /* Statistics messages. */
+          case OFPT_MULTIPART_REQUEST:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_MULTIPART_REPLY:
+            error = HandleMsgMultipartReply ((struct ofl_msg_multipart_reply_header*)msg, swtch, xid);
+            break;
+
+          /* Barrier messages. */
+          case OFPT_BARRIER_REQUEST:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_BARRIER_REPLY:
+            error = HandleMsgBarrierReply (msg, swtch, xid);
+            break;
+          
+          /* Role messages. */
+          case OFPT_ROLE_REQUEST:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_ROLE_REPLY:
+            error = HandleMsgRoleReply ((struct ofl_msg_role_request*)msg, swtch, xid);
+            break;
+
+          /* Queue Configuration messages. */
+          case OFPT_QUEUE_GET_CONFIG_REQUEST:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;
+          case OFPT_QUEUE_GET_CONFIG_REPLY:
+            error = HandleMsgQueueGetConfigReply ((struct ofl_msg_queue_get_config_reply*)msg, swtch, xid);
+            break;
+          case OFPT_METER_MOD:
+            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            break;            
+          
           default: 
             error = ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
         }
@@ -365,12 +377,150 @@ OFSwitch13Controller::ReceiveFromSwitch (SwInfo swtch, ofpbuf* buffer)
   
   if (error)
     {
-      NS_LOG_WARN ("Error processing OpenFlow message received from switch " << swtch.ipv4);
+      NS_LOG_WARN ("Error processing OpenFlow message received from switch " << swtch.GetIpv4 ());
     }
   ofpbuf_delete (buffer);
   return error; 
 }
 
+ofl_err
+OFSwitch13Controller::HandleMsgHello (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid) 
+{
+  // TODO Check for OpenFlow version
+
+  // All handlers must free the message when everything is ok
+  ofl_msg_free (msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err 
+OFSwitch13Controller::HandleMsgError (struct ofl_msg_error *msg, SwInfo swtch, uint64_t xid)
+{
+  NS_LOG_ERROR ("Openflow error message received from switch " << swtch.GetIpv4 ());
+  // TODO Implement logic
+  
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err
+OFSwitch13Controller::HandleMsgEchoRequest (struct ofl_msg_echo *msg, SwInfo swtch, uint64_t xid) 
+{
+  struct ofl_msg_echo reply;
+  reply.header.type = OFPT_ECHO_REPLY;
+  reply.data_length = msg->data_length;
+  reply.data        = msg->data;
+  
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
+  LogOflMsg ((ofl_msg_header*)&reply);
+
+  // TODO: Send the echo reply
+  SendToSwitch (swtch.addr, pkt); 
+
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err
+OFSwitch13Controller::HandleMsgEchoReply (struct ofl_msg_echo *msg, SwInfo swtch, uint64_t xid) 
+{
+  
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err
+OFSwitch13Controller::HandleMsgFeaturesReply (struct ofl_msg_features_reply *msg, SwInfo swtch, uint64_t xid)
+{
+
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err
+OFSwitch13Controller::HandleMsgGetConfigReply (struct ofl_msg_get_config_reply *msg, SwInfo swtch, uint64_t xid)
+{
+  
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err 
+OFSwitch13Controller::HandleMsgPacketIn (struct ofl_msg_packet_in *msg, SwInfo swtch, uint64_t xid)
+{
+
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err 
+OFSwitch13Controller::HandleMsgFlowRemoved (struct ofl_msg_flow_removed *msg, SwInfo swtch, uint64_t xid)
+{
+
+  // All handlers must free the message when everything is ok
+  ofl_msg_free_flow_removed(msg, true, NULL);
+  return 0;
+}
+
+ofl_err 
+OFSwitch13Controller::HandleMsgPortStatus (struct ofl_msg_port_status *msg, SwInfo swtch, uint64_t xid)
+{
+  
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err 
+OFSwitch13Controller::HandleMsgAsyncReply (struct ofl_msg_async_config *msg, SwInfo swtch, uint64_t xid)
+{
+  
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err 
+OFSwitch13Controller::HandleMsgMultipartReply (struct ofl_msg_multipart_reply_header *msg, SwInfo swtch, uint64_t xid)
+{
+  
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err 
+OFSwitch13Controller::HandleMsgBarrierReply (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid)
+{
+  
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err 
+OFSwitch13Controller::HandleMsgRoleReply (struct ofl_msg_role_request *msg, SwInfo swtch, uint64_t xid)
+{
+
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+  
+ofl_err 
+OFSwitch13Controller::HandleMsgQueueGetConfigReply (struct ofl_msg_queue_get_config_reply *msg, SwInfo swtch, uint64_t xid)
+{
+
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
 int
 OFSwitch13Controller::SendToSwitch (Address toAddr, Ptr<Packet> pkt)
 {
@@ -424,8 +574,8 @@ void
 OFSwitch13Controller::SocketAccept (Ptr<Socket> s, const Address& from)
 {
   NS_LOG_FUNCTION (this << s << from);
-  
   NS_ASSERT (m_helper);
+
   Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
   uint32_t idx = m_helper->GetContainerIndex (ipv4);
   NS_ASSERT_MSG (idx != UINT32_MAX, "Address not associated with registered switch.");
@@ -436,7 +586,6 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> s, const Address& from)
   // Insert this switch into our database
   struct SwInfo sw; 
   sw.addr   = from;
-  sw.ipv4   = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
   sw.netdev = m_helper->GetSwitchDevice (idx);
   sw.node   = m_helper->GetSwitchNode (idx);
   sw.socket = s;
@@ -450,11 +599,8 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> s, const Address& from)
 
   // Send hello message
   SendHello (sw);
-  //SendEchoRequest (sw, 128);
+  SendEchoRequest (sw);
  
-//  // Send echo request message
-//  SendToSwitch (CreateMsgEchoRequest (1024), m_helper->GetSwitchDevice (idx));
-   
 //  {
 //  // Send features resquest message
 //  struct ofl_msg_header msg;
@@ -542,47 +688,21 @@ OFSwitch13Controller::SendEchoRequest (SwInfo swtch, size_t payloadSize)
 
   if (payloadSize)
     {
-      msg.data        = (uint8_t*)xmalloc (payloadSize);
+      msg.data = (uint8_t*)xmalloc (payloadSize);
       random_bytes (msg.data, payloadSize);
     }
 
   // TODO: Armazenar em algum lugar os pings que foram enviados...
   LogOflMsg ((ofl_msg_header*)&msg);
   Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+  
   if (payloadSize)
     {
-  free (msg.data);
+      free (msg.data);
     } 
   SendToSwitch (swtch.addr, pkt);
 }
 
-ofl_err
-OFSwitch13Controller::HandleMsgHello (struct ofl_msg_header *msg, SwInfo swtch, uint64_t xid) 
-{
-  // TODO Check for OpenFlow version
-  // All handlers must free the message when everything is ok
-  ofl_msg_free (msg, NULL/*dp->exp*/);
-  return 0;
-}
-
-ofl_err
-OFSwitch13Controller::HandleMsgEchoRequest (struct ofl_msg_echo *msg, SwInfo swtch, uint64_t xid) 
-{
-  struct ofl_msg_echo reply;
-  reply.header.type = OFPT_ECHO_REPLY;
-  reply.data_length = msg->data_length;
-  reply.data        = msg->data;
-  
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-
-  // TODO: Send the echo reply
-  SendToSwitch (swtch.addr, pkt); 
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((struct ofl_msg_header*)msg, NULL/*dp->exp*/);
-  return 0;
-}
 
 void 
 OFSwitch13Controller::SocketPeerClose (Ptr<Socket> socket)
