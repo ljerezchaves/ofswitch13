@@ -155,7 +155,7 @@ OFSwitch13Controller::SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char
         }
 
       msg->instructions_num = inst_num;
-      msg->instructions = (ofl_instruction_header**)xmalloc (sizeof (ofl_instruction_header *) * inst_num);
+      msg->instructions = (ofl_instruction_header**)xmalloc (sizeof (ofl_instruction_header*) * inst_num);
       for (i=0; i < inst_num; i++) 
         {
           parse_inst (cmd.we_wordv[j+i], &(msg->instructions[i]));

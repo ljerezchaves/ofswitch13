@@ -219,7 +219,7 @@ private:
    * \param port The Openflow port structure
    * \return True if success, false otherwise
    */
-  bool SendToSwitchPort (struct packet *pkt, ofs::Port *port);
+  bool SendToSwitchPort (packet *pkt, ofs::Port *port);
   //\}
 
 
@@ -234,7 +234,7 @@ private:
    *
    * \param pkt The internal openflow packet.
    */
-  void PipelineProcessPacket (struct packet* pkt);
+  void PipelineProcessPacket (packet* pkt);
 
   /**
    * Executes the instructions associated with a flow entry
@@ -245,8 +245,8 @@ private:
    * \param next_table A pointer to next table (can be modified by entry)
    * \param pkt The packet associated with this flow entry
    */
-  void PipelineExecuteEntry (struct pipeline *pl, struct flow_entry *entry, 
-      struct flow_table **next_table, struct packet **pkt);
+  void PipelineExecuteEntry (pipeline *pl, flow_entry *entry, 
+      flow_table **next_table, packet **pkt);
 
   /**
    * \internal
@@ -272,8 +272,8 @@ private:
    * \param actions A pointer to the list of actions
    * \param cookie The cookie that identifies the buffer ??? (not sure)
    */
-  void ActionListExecute (struct packet *pkt, size_t actions_num,
-    struct ofl_action_header **actions, uint64_t cookie);
+  void ActionListExecute (packet *pkt, size_t actions_num,
+    ofl_action_header **actions, uint64_t cookie);
  
   /**
    * Executes the set of OFPIT_WRITE_ACTIONS actions on the given packet
@@ -283,8 +283,7 @@ private:
    * \param set A pointer to the set of actions
    * \param cookie The cookie that identifies the buffer ??? (not sure)
    */
-  void ActionSetExecute (struct packet *pkt, struct action_set *set,  
-      uint64_t cookie);
+  void ActionSetExecute (packet *pkt, action_set *set, uint64_t cookie);
 
   /**
    * Executes a single action on the given packet
@@ -293,7 +292,7 @@ private:
    * \param pkt The packet associated with this action
    * \param set A pointer to the action
    */
-  void ActionExecute (struct packet *pkt, struct ofl_action_header *action);
+  void ActionExecute (packet *pkt, ofl_action_header *action);
 
   /**
    * Execute the ouput action sending the packet to an output port
@@ -305,8 +304,8 @@ private:
    * \param max_len The size of the packet to send
    * \param cookie The cookie that identifies the buffer ??? (not sure)
    */
-  void ActionOutputPort (struct packet *pkt, uint32_t out_port,
-    uint32_t out_queue, uint16_t max_len, uint64_t cookie);
+  void ActionOutputPort (packet *pkt, uint32_t out_port, uint32_t out_queue,
+          uint16_t max_len, uint64_t cookie);
 
   /**
    * \brief Validate actions before applying it
@@ -316,7 +315,7 @@ private:
    * \param actions The actions structure
    * \return 0 if sucess or OpenFlow error code
    */
-  ofl_err ActionValidate (size_t num, struct ofl_action_header **actions);
+  ofl_err ActionValidate (size_t num, ofl_action_header **actions);
   //\}
   
   
@@ -329,7 +328,7 @@ private:
    * \param table_id The table id.
    * \return The pointer to the created table.
    */
-  struct flow_table* FlowTableCreate (uint8_t table_id);
+  flow_table* FlowTableCreate (uint8_t table_id);
 
   /**
    * Handles a flow_mod message with OFPFC_ADD command. 
@@ -344,7 +343,7 @@ private:
    * \param insts_kept Used by HandleFlowMod to proper free structs
    * \return 0 if sucess or OpenFlow error code
    */
-  ofl_err FlowTableAdd (struct flow_table *table, struct ofl_msg_flow_mod *mod, 
+  ofl_err FlowTableAdd (flow_table *table, ofl_msg_flow_mod *mod, 
       bool check_overlap, bool *match_kept, bool *insts_kept);
 
   /**
@@ -356,7 +355,7 @@ private:
    * \param strict If true, check for strict match
    * \return 0 if sucess or OpenFlow error code
    */
-  ofl_err FlowTableDelete (struct flow_table *table, struct ofl_msg_flow_mod *mod, 
+  ofl_err FlowTableDelete (flow_table *table, ofl_msg_flow_mod *mod, 
       bool strict); 
 
   /**
@@ -368,7 +367,7 @@ private:
    * \param strict If true, check for strict match
    * \return 0 if sucess or OpenFlow error code
    */
-  ofl_err FlowTableModify (struct flow_table *table, struct ofl_msg_flow_mod *mod, 
+  ofl_err FlowTableModify (flow_table *table, ofl_msg_flow_mod *mod, 
       bool strict, bool *insts_kept);
   //\}
 
@@ -383,7 +382,7 @@ private:
    * \param reason The reason to send to controller.
    * \see ofsoftswitch13 flow_entry_remove () at udatapath/flow_entry.c
    */
-  void FlowEntryRemove (struct flow_entry *entry, uint8_t reason);
+  void FlowEntryRemove (flow_entry *entry, uint8_t reason);
 
   /**
    * \internal
@@ -391,7 +390,7 @@ private:
    * \param entry The flow entry to destroy.
    * \see ofsoftswitch13 flow_entry_destroy () at udatapath/flow_entry.c
    */
-  void FlowEntryDestroy (struct flow_entry *entry);
+  void FlowEntryDestroy (flow_entry *entry);
   //\}
   
 
@@ -406,12 +405,12 @@ private:
    * \attention This method only works for DIX encapsulation mode.
    * \see CsmaNetDevice::AddHeader ()
    *
-   * \param p The packet (will be modified).
+   * \param packt The packet (will be modified).
    * \param source The L2 source address.
    * \param dest The L2 destination address.
    * \param protocolNumber The L3 protocol defining the packet
    */
-  void AddEthernetHeader (Ptr<Packet> p, Mac48Address source, 
+  void AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
       Mac48Address dest, uint16_t protocolNumber);
 
   /**
@@ -423,8 +422,8 @@ private:
    * \param cookie ??
    * \return The ns3 packet created
    */
-  Ptr<Packet> CreatePacketIn (struct packet *pkt, uint8_t tableId,
-      ofp_packet_in_reason reason, uint64_t cookie);
+  Ptr<Packet> CreatePacketIn (packet *pkt, uint8_t tableId,
+          ofp_packet_in_reason reason, uint64_t cookie);
 
   /**
    * \internal
@@ -446,27 +445,27 @@ private:
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  ofl_err HandleMsgHello            (struct ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgEchoRequest      (struct ofl_msg_echo *msg, uint64_t xid);
-  ofl_err HandleMsgEchoReply        (struct ofl_msg_echo *msg, uint64_t xid);
-  ofl_err HandleMsgFeaturesRequest  (struct ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgGetConfigRequest (struct ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgSetConfig        (struct ofl_msg_set_config *msg, uint64_t xid);
-  ofl_err HandleMsgPacketOut        (struct ofl_msg_packet_out *msg, uint64_t xid);
-  ofl_err HandleMsgFlowMod          (struct ofl_msg_flow_mod *msg, uint64_t xid);
-  ofl_err HandleMsgPortMod          (struct ofl_msg_port_mod *msg, uint64_t xid);
-  ofl_err HandleMsgTableMod         (struct ofl_msg_table_mod *msg, uint64_t xid);
-  ofl_err HandleMsgMultipartRequest (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err HandleMsgBarrierRequest   (struct ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgAsyncRequest     (struct ofl_msg_async_config *msg, uint64_t xid);
+  ofl_err HandleMsgHello            (ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgEchoRequest      (ofl_msg_echo *msg, uint64_t xid);
+  ofl_err HandleMsgEchoReply        (ofl_msg_echo *msg, uint64_t xid);
+  ofl_err HandleMsgFeaturesRequest  (ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgGetConfigRequest (ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgSetConfig        (ofl_msg_set_config *msg, uint64_t xid);
+  ofl_err HandleMsgPacketOut        (ofl_msg_packet_out *msg, uint64_t xid);
+  ofl_err HandleMsgFlowMod          (ofl_msg_flow_mod *msg, uint64_t xid);
+  ofl_err HandleMsgPortMod          (ofl_msg_port_mod *msg, uint64_t xid);
+  ofl_err HandleMsgTableMod         (ofl_msg_table_mod *msg, uint64_t xid);
+  ofl_err HandleMsgMultipartRequest (ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err HandleMsgBarrierRequest   (ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgAsyncRequest     (ofl_msg_async_config *msg, uint64_t xid);
 
-  ofl_err MultipartMsgDesc          (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgFlow          (struct ofl_msg_multipart_request_flow *msg, uint64_t xid);
-  ofl_err MultipartMsgAggregate     (struct ofl_msg_multipart_request_flow *msg, uint64_t xid);
-  ofl_err MultipartMsgTable         (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgTableFeatures (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgPortStats     (struct ofl_msg_multipart_request_port *msg, uint64_t xid);
-  ofl_err MultipartMsgPortDesc      (struct ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgDesc          (ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgFlow          (ofl_msg_multipart_request_flow *msg, uint64_t xid);
+  ofl_err MultipartMsgAggregate     (ofl_msg_multipart_request_flow *msg, uint64_t xid);
+  ofl_err MultipartMsgTable         (ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgTableFeatures (ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgPortStats     (ofl_msg_multipart_request_port *msg, uint64_t xid);
+  ofl_err MultipartMsgPortDesc      (ofl_msg_multipart_request_header *msg, uint64_t xid);
   //\}
 
    /**
@@ -503,13 +502,14 @@ private:
   Time                    m_timeout;          //!< Pipeline Timeout
   Time                    m_lookupDelay;      //!< Flow Table Lookup Delay [overhead].
   Time                    m_lastTimeout;      //!< Last datapath timeout
-  struct ofl_async_config m_asyncConfig;      //!< Asynchronous messages configuration
-  struct ofl_config       m_config;           //!< Configuration, set from controller
-  struct pipeline*        m_pipeline;         //!< Pipeline with multi-tables
-  // struct dp_buffers*      m_buffers;          //!< Datapath buffers
-  // struct group_table*     m_groups;           //!< Group tables
-  // struct meter_table*     m_meters;           //!< Meter tables
-  // struct ofl_exp*         m_exp;                //!< Experimenter handling
+  ofl_async_config        m_asyncConfig;      //!< Asynchronous messages configuration
+  ofl_config              m_config;           //!< Configuration, set from controller
+  pipeline*               m_pipeline;         //!< Pipeline with multi-tables
+  // dp_buffers*             m_buffers;          //!< Datapath buffers
+  // group_table*            m_groups;           //!< Group tables
+  // meter_table*            m_meters;           //!< Meter tables
+  // ofl_exp*                m_exp;                //!< Experimenter handling
+
 }; // Class OFSwitch13NetDevice
 
 } // namespace ns3

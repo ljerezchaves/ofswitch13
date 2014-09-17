@@ -139,8 +139,8 @@ struct Port
   
   uint32_t flags;                 ///< SWP_* flags.
   Ptr<NetDevice> netdev;          ///< Pointer to ns3::NetDevice
-  struct ofl_port *conf;          ///< Config information
-  struct ofl_port_stats *stats;   ///< Statistics
+  ofl_port *conf;                 ///< Config information
+  ofl_port_stats *stats;          ///< Statistics
   uint32_t port_no;               ///< Port number
 };
 
@@ -188,7 +188,7 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid);
  * \param packet_out True if the packet arrived in a packet out msg
  * \return The pointer to the created packet
  */
-struct packet* InternalPacketFromBuffer (uint32_t in_port, struct ofpbuf *buf,
+packet* InternalPacketFromBuffer (uint32_t in_port, ofpbuf *buf,
     bool packet_out);
 
 /**
@@ -227,7 +227,7 @@ Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer);
  * \param pkt The internal openflow packet
  * \return The ns3::Packet created.
  */
-Ptr<Packet> PacketFromInternalPacket (struct packet *pkt);
+Ptr<Packet> PacketFromInternalPacket (packet *pkt);
 
 } // namespace ofs
 } // namespace ns3
