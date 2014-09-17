@@ -565,6 +565,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             break;
           case OFPT_ECHO_REQUEST:
             error = HandleMsgEchoRequest ((struct ofl_msg_echo*)msg, xid);
+            break;
           case OFPT_ECHO_REPLY:
             error = HandleMsgEchoReply ((struct ofl_msg_echo*)msg, xid);
             break;
