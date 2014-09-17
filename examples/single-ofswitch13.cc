@@ -85,9 +85,9 @@ main (int argc, char *argv[])
 
   // Configure OpenFlow network
   NetDeviceContainer of13Device;
-  Ptr<OFSwitch13Helper> ofHelper = Create<OFSwitch13Helper> ();
-  Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallControllerApp (controllerNode);
-  of13Device = ofHelper->InstallSwitch (switchNode, switchDevices);
+  OFSwitch13Helper ofHelper;
+  Ptr<OFSwitch13Controller> controlApp = ofHelper.InstallControllerApp (controllerNode);
+  of13Device = ofHelper.InstallSwitch (switchNode, switchDevices);
 
   // Some OpenFlow flow-mod commands for tests
   Ptr<OFSwitch13NetDevice> ofswitchNetDev = of13Device.Get (0)->GetObject<OFSwitch13NetDevice> ();
@@ -113,7 +113,7 @@ main (int argc, char *argv[])
   apps.Start (Seconds (1.0));
 
   // Enable pcap traces
-  ofHelper->EnableOpenFlowPcap ();
+  ofHelper.EnableOpenFlowPcap ();
   csmaHelper.EnablePcap ("ofswitch", switchDevices, true);  // promisc
   csmaHelper.EnablePcap ("terminals", terminalDevices);
 

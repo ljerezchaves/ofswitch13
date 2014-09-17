@@ -44,7 +44,8 @@ class OFSwitch13Controller;
  * \brief Create and configure an OpenFlow 1.3 network with a single controller
  * and multiple switches.
  */
-class OFSwitch13Helper : public SimpleRefCount<OFSwitch13Helper>
+//class OFSwitch13Helper : public SimpleRefCount<OFSwitch13Helper>
+class OFSwitch13Helper
 {
 public:
   OFSwitch13Helper ();
@@ -113,34 +114,12 @@ public:
    */
   void EnableOpenFlowPcap ();
    
-  /**
-   * \name Get item methods
-   * \param idx The index at the container
-   * \return the objects in the container at a specific index.
-   */
-  //\{
-  Ipv4Address GetSwitchAddress (uint32_t idx);
-  Ptr<OFSwitch13NetDevice> GetSwitchDevice (uint32_t idx);
-  Ptr<Node> GetSwitchNode (uint32_t idx);
-  //\}
-
-  /**
-   * \name Get index methods
-   * Iterate over the proper container looking for the parameter object to
-   * retrieve its index. This index can be used to access other containers.
-   * \return The index in the containers
-   */
-  //\{
-  uint32_t GetContainerIndex (Ipv4Address addr);
-  uint32_t GetContainerIndex (Ptr<Node> node);
-  uint32_t GetContainerIndex (Ptr<OFSwitch13NetDevice> dev);
-  //\}
-
 private:
   ObjectFactory             m_ctrlFactory;  //!< Controller App factory
   ObjectFactory             m_ndevFactory;  //!< OpenFlow device factory
   ObjectFactory             m_chanFactory;  //!< Csma channel factory
 
+  NetDeviceContainer        m_devices;      //!< OFSwitch13NetDevices
   InternetStackHelper       m_internet;     //!< Helper for installing TCP/IP
   Ipv4AddressHelper         m_ipv4helper;   //!< Helper for assigning IP
   CsmaHelper                m_csmaHelper;   //!< Helper for connecting controller to switches
@@ -152,17 +131,8 @@ private:
   Address                   m_ctrlAddr;     //!< Controller Addr 
   uint64_t                  m_dpId;         //!< Datapath (switch) ID
 
-  /**
-   * \name Network objetc containers 
-   * Containers used to store switche nodes, OFSwitch13NetDevice devices, and
-   * Ipv4Address. They use a relative position to associate these three objetcs
-   * to the same switch.
-   */
-  //\{
-  NodeContainer             m_switches; //!< Switch nodes
-  NetDeviceContainer        m_devices;  //!< OFSwitch13NetDevices
-  Ipv4InterfaceContainer    m_address;  //!< Switch address
-  //\}
+  typedef std::vector<SwitchInfo> SwitchInfoVector_t;
+  SwitchInfoVector_t        m_unregSw;      //!< OpenFlow switches not registered yet
 };
 
 } // namespace ns3
