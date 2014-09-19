@@ -104,6 +104,12 @@ OFSwitch13Controller::RegisterSwitchMetadata (SwitchInfo swInfo)
     }
 }
 
+void 
+OFSwitch13Controller::SetConnectionCallback (SwitchConnectionCallback_t cb)
+{
+  m_connectionCallback = cb;
+}
+
 int
 OFSwitch13Controller::SendFlowModMsg (SwitchInfo swtch, const char* textCmd) 
 {
@@ -811,6 +817,12 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> s, const Address& from)
   // Handshake
   SendHello (*sw);
   RequestFeatures (*sw);
+  RequestBarrier (*sw);
+
+  if (!m_connectionCallback.IsNull ())
+    {
+      m_connectionCallback (*sw);
+    }
 }
 
 void 

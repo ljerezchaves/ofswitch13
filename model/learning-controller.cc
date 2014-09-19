@@ -33,6 +33,7 @@ NS_OBJECT_ENSURE_REGISTERED (LearningController);
 LearningController::LearningController ()
 {
   NS_LOG_FUNCTION_NOARGS ();
+  SetConnectionCallback (MakeCallback (&LearningController::ConnectionStarted, this));
 }
 
 LearningController::~LearningController ()
@@ -67,19 +68,6 @@ LearningController::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
   return 0;
 }
 
-ofl_err
-LearningController::HandleMsgFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint64_t xid)
-{
-  NS_LOG_FUNCTION (swtch.ipv4 << xid);
-
-  // After a successfull handshake, let's install table-miss entry
-  SendFlowModMsg (swtch, "cmd=add,table=0,prio=0, apply:output=ctrl");
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
-  return 0;
-}
-
 /********** Private methods **********/
 void
 LearningController::StartApplication ()
@@ -91,6 +79,19 @@ void
 LearningController::StopApplication ()
 {
   OFSwitch13Controller::StopApplication ();
+}
+
+void 
+LearningController::ConnectionStarted (SwitchInfo swtch)
+{
+  NS_LOG_FUNCTION (this << swtch.ipv4);
+
+  // After a successfull handshake, let's install table-miss entry
+  SendFlowModMsg (swtch, "cmd=add,table=0,prio=0, apply:output=ctrl");
+
+  // Create the L2 switching table
+  // MacAddrPortMap_t l2Table
+
 }
 
 } // namespace ns3

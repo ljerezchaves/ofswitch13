@@ -41,12 +41,18 @@ public:
   
   // inherited from OFSwitch13Controller
   ofl_err HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint64_t xid);
 
 private:
   // inherited from Application
   void StartApplication (void);
   void StopApplication (void);
+
+  void ConnectionStarted (SwitchInfo swtch);
+
+  // L2 switching
+  typedef std::map<Mac48Address, uint16_t> MacAddrPortMap_t;  //!< Map MacAddress to port
+  typedef std::map<uint64_t, MacAddrPortMap_t> DpIdL2Map_t;   //!< Map datapath ID to L2 switching table
+  DpIdL2Map_t m_learnedInfo;
 };
 
 } // namespace ns3

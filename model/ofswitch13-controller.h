@@ -66,7 +66,20 @@ public:
    * \param swInfo The switch metadata
    */
   void RegisterSwitchMetadata (SwitchInfo swInfo);
- 
+
+  /**
+   * Switch TCP connection started callback
+   * \param The switch metadata that initiated a connection with controller
+   */
+  typedef Callback<void, SwitchInfo> SwitchConnectionCallback_t;
+
+  /**
+   * \brief Register a TCP connection callback
+   * \param cb Callback to invoke whenever a switch starts a TCP connection to
+   * this controller
+   */
+  void SetConnectionCallback (SwitchConnectionCallback_t cb);
+
 protected:
   // inherited from Application
   virtual void StartApplication (void);
@@ -87,8 +100,8 @@ protected:
    * \return The number of transmitted bytes.
    */
   //\{
-  int SendHello (SwitchInfo swtch);               //!< Send a hello message (upon connection establishment)
-  int SendEchoRequest (SwitchInfo swtch, size_t payloadSize = 0); //!< Send an echo request message
+  int SendHello (SwitchInfo swtch); //!< Send a hello message (upon connection establishment)
+  int SendEchoRequest (SwitchInfo swtch, size_t payloadSize = 0); //!< Send an echo request
   //\}
 
   /**
@@ -192,12 +205,13 @@ private:
   void SocketPeerClose  (Ptr<Socket> socket);                       //!< TCP connection closed
   void SocketPeerError  (Ptr<Socket> socket);                       //!< TCP connection error
   //\}
-  
+
   uint32_t              m_xid;          //!< Global transaction idx
   uint16_t              m_port;         //!< Local controller tcp port
   Ptr<Socket>           m_serverSocket; //!< Listening server socket
   
-  ofs::EchoMsgMap_t m_echoMap;   //!< Metadata for echo requests
+  ofs::EchoMsgMap_t m_echoMap;                     //!< Metadata for echo requests
+  SwitchConnectionCallback_t m_connectionCallback; //!< TCP connection callback
 };
 
 } // namespace ns3
