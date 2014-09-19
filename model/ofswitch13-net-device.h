@@ -489,7 +489,9 @@ private:
   
   // Considering the necessary datapath structs from ofsoftswitch13
   typedef std::vector<ofs::Port> Ports_t;
-  Ports_t m_ports;                          //!< Switch's ports
+  Ports_t                 m_ports;            //!< Switch's ports
+  
+  ofs::EchoMsgMap_t       m_echoMap;          //!< Metadata for echo requests
 
   uint32_t                m_xid;              //!< Global transaction idx
   uint64_t                m_id;               //!< Unique identifier for this switch

@@ -473,6 +473,7 @@ OFSwitch13NetDevice::DoDispose ()
       free (b->stats);
     }
   m_ports.clear ();
+  m_echoMap.clear ();
   
   m_channel = 0;
   m_node = 0;
@@ -1564,9 +1565,13 @@ OFSwitch13NetDevice::SendEchoRequest ()
   msg.header.type = OFPT_ECHO_REQUEST;
   msg.data_length = 0;
   msg.data        = 0;
-  
+ 
+  uint64_t xid = ++m_xid;
+  ofs::EchoInfo echo (InetSocketAddress::ConvertFrom (m_ctrlAddr).GetIpv4 ());
+  m_echoMap.insert (std::pair<uint64_t, ofs::EchoInfo> (xid, echo));
+
   LogOflMsg ((ofl_msg_header*)&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, xid);
   SendToController (pkt);
 
   // TODO: start a timer and wait for a reply
@@ -1609,7 +1614,20 @@ ofl_err
 OFSwitch13NetDevice::HandleMsgEchoReply (ofl_msg_echo *msg, uint64_t xid) 
 {
   NS_LOG_FUNCTION (this);
-  
+ 
+  ofs::EchoMsgMap_t::iterator it = m_echoMap.find (xid);
+  if (it == m_echoMap.end ())
+    {
+      NS_LOG_WARN ("Received echo response for unknonw echo request.");
+    }
+  else 
+    {
+      it->second.waiting = false;
+      it->second.recv = Simulator::Now ();
+      NS_LOG_DEBUG ("Received echo reply from " << it->second.destIp << 
+                    " with RTT " << it->second.GetRtt ().As (Time::MS));
+    }
+
   // TODO: Implement
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);

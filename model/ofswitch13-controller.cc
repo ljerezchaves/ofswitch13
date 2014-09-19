@@ -86,6 +86,7 @@ OFSwitch13Controller::DoDispose ()
 {
   m_serverSocket = 0;
   m_switchesMap.clear ();
+  m_echoMap.clear ();
 
   Application::DoDispose ();
 }
@@ -225,9 +226,12 @@ OFSwitch13Controller::SendEchoRequest (SwitchInfo swtch, size_t payloadSize)
       random_bytes (msg.data, payloadSize);
     }
 
-  // TODO: Armazenar em algum lugar os pings que foram enviados...
+  uint64_t xid = ++m_xid;
+  ofs::EchoInfo echo (swtch.ipv4);
+  m_echoMap.insert (std::pair<uint64_t, ofs::EchoInfo> (xid, echo));
+  
   LogOflMsg ((ofl_msg_header*)&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, xid);
   
   if (payloadSize)
     {
@@ -440,7 +444,19 @@ OFSwitch13Controller::HandleMsgEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, u
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   
-  // TODO Implement
+  ofs::EchoMsgMap_t::iterator it = m_echoMap.find (xid);
+  if (it == m_echoMap.end ())
+    {
+      NS_LOG_WARN ("Received echo response for unknonw echo request.");
+    }
+  else 
+    {
+      it->second.waiting = false;
+      it->second.recv = Simulator::Now ();
+      NS_LOG_DEBUG ("Received echo reply from " << it->second.destIp << 
+                    " with RTT " << it->second.GetRtt ().As (Time::MS));
+    }
+
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
   return 0;

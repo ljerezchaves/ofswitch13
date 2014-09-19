@@ -146,6 +146,23 @@ struct Port
 
 /**
  * \ingroup ofswitch13
+ * \brief Echo request metadata.
+ */
+struct EchoInfo
+{
+  bool waiting;       //!< True when waiting for reply
+  Time send;          //!< Send time
+  Time recv;          //!< Received time
+  Ipv4Address destIp; //!< Destination IPv4
+
+  EchoInfo (Ipv4Address ip);  //!< Constructor
+  Time GetRtt ();   //!< Compute the echo RTT
+};
+
+typedef std::map<uint64_t, EchoInfo> EchoMsgMap_t;
+
+/**
+ * \ingroup ofswitch13
  * \brief Create and OpenFlow ofpbuf from ns3::Packet
  * 
  * Takes a Ptr<Packet> and generates an OpenFlow buffer (ofpbuf*) from it,

@@ -101,6 +101,26 @@ Port::GetFeatures (Ptr<CsmaNetDevice> netdev)
   return feat;
 }
 
+EchoInfo::EchoInfo (Ipv4Address ip)
+{
+  waiting = true;
+  send = Simulator::Now ();
+  destIp = ip;
+}
+
+Time EchoInfo::GetRtt ()
+{
+  if (waiting)
+    {
+      return Time (-1);
+    }
+  else
+    {
+      Time rtt = recv - send;
+      return recv-send; 
+    }
+}
+
 ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
     size_t headRoom)
 {

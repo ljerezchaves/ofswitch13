@@ -197,7 +197,7 @@ private:
   uint16_t              m_port;         //!< Local controller tcp port
   Ptr<Socket>           m_serverSocket; //!< Listening server socket
   
-
+  ofs::EchoMsgMap_t m_echoMap;   //!< Metadata for echo requests
 };
 
 } // namespace ns3
