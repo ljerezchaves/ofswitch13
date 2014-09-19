@@ -49,10 +49,10 @@ private:
 
   void ConnectionStarted (SwitchInfo swtch);
 
-  // L2 switching
-  typedef std::map<Mac48Address, uint16_t> MacAddrPortMap_t;  //!< Map MacAddress to port
-  typedef std::map<uint64_t, MacAddrPortMap_t> DpIdL2Map_t;   //!< Map datapath ID to L2 switching table
-  DpIdL2Map_t m_learnedInfo;
+  // L2 switching structures
+  typedef std::map<Mac48Address, uint32_t> L2Table_t;     //!< L2SwitchingTable: map MacAddress to port
+  typedef std::map<uint64_t, L2Table_t>    DatapathMap_t; //!< Map datapathID to L2SwitchingTable
+  DatapathMap_t                            m_learnedInfo; //!< Switching information for all dapataths
 };
 
 } // namespace ns3

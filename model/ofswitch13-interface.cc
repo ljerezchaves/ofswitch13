@@ -176,6 +176,7 @@ packet * InternalPacketFromBuffer (uint32_t in_port, ofpbuf *buf,
   pkt->buffer_id        = NO_BUFFER;
   pkt->table_id         = 0;
 
+  // Note: here, the nblink will parse the packet
   pkt->handle_std = packet_handle_std_create (pkt);
   return pkt;
 }

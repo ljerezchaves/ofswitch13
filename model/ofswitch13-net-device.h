@@ -102,6 +102,11 @@ public:
   uint32_t GetNSwitchPorts (void) const;
 
   /**
+   * \return The datapath ID
+   */
+  uint64_t GetDatapathId (void) const;
+
+  /**
    * \brief Set up the TCP connection between switch and controller.
    */
   void StartControllerConnection ();

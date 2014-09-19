@@ -219,7 +219,7 @@ packet* InternalPacketFromBuffer (uint32_t in_port, ofpbuf *buf,
  * \param xid The transaction id to use.
  * \return The ns3::Packet created.
  */
-Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid);
+Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid = 0);
 
 /**
  * \ingroup ofswitch13

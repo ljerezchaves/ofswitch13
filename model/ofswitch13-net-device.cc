@@ -255,6 +255,12 @@ OFSwitch13NetDevice::GetNSwitchPorts (void) const
   return m_ports.size ();
 }
 
+uint64_t
+OFSwitch13NetDevice::GetDatapathId (void) const
+{
+  return m_id;
+}
+
 void
 OFSwitch13NetDevice::StartControllerConnection ()
 {
