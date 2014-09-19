@@ -103,12 +103,17 @@ protected:
 
   /**
    * \name OpenFlow controller-to-switch messages
-   * Request methods to query the switch for configuration, description or statistics.
+   * \brief Send request messages to switch
+   *
+   * These methods can be used by controller to query switch configuration,
+   * description or statistics. The response sen by switch will be received by
+   * handlers methods.
+   *
    * \param swtch The target switch metadata
    * \return The number of transmitted bytes.
    */
   //\{
-  int SendBarrierRequest (SwitchInfo swtch);      //!< Send a barrier request
+  int RequestBarrier (SwitchInfo swtch);          //!< Send a barrier request
   int RequestAsync (SwitchInfo swtch);            //!< Query the asynchronous messages that it wants to receive
   int RequestFeatures (SwitchInfo swtch);         //!< Query switch features (during handshake)
   int RequestConfig (SwitchInfo swtch);           //!< Query switch configuration
@@ -123,28 +128,38 @@ protected:
 
   /**
    * \name OpenFlow message handlers
-   * Handlers used by ReceiveFromSwitch to proccess each type of OpenFlow
-   * message received from the switch.
-   * \attention Handlers must free the received message when everything is ok.
+   * \brief Handlers used by ReceiveFromSwitch to proccess each type of
+   *
+   * OpenFlow message received from the switch. 
+   * Some handler methods can not be overwritten by derived class (hello, echo
+   * request/reply and barrier reply, as they must behave as already
+   * implemented. In constrast, packetIn must be implementd by the derived
+   * controller, to proper handle packets sent from switch to controller. The
+   * current implementation of other virtual methods does nothing: just free
+   * the received message and returns 0.
+   *
+   * \attention Handlers \em MUST free received msg when everything is ok.
+   *
    * \param msg The OpenFlow message.
    * \param swtch The source switch metadata.
    * \param xid The transaction id from the request message.
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
+  ofl_err HandleMsgHello (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
+  ofl_err HandleMsgEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
+  ofl_err HandleMsgEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
+  ofl_err HandleMsgBarrierReply (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
+  
   virtual ofl_err HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid) = 0;
   
-          ofl_err HandleMsgHello (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgError (ofl_msg_error *msg, SwitchInfo swtch, uint64_t xid);
-          ofl_err HandleMsgEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
-          ofl_err HandleMsgEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgPortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint64_t xid);
-          ofl_err HandleMsgBarrierReply (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint64_t xid);
   virtual ofl_err HandleMsgQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
   //\}

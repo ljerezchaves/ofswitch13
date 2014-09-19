@@ -124,7 +124,7 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
     m_ifIndex (0),
     m_mtu (0x0000)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
 
   m_ctrlAddr = Address ();
@@ -165,7 +165,7 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
 
 OFSwitch13NetDevice::~OFSwitch13NetDevice ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 }
 
 const char *
@@ -258,6 +258,7 @@ OFSwitch13NetDevice::GetNSwitchPorts (void) const
 void
 OFSwitch13NetDevice::StartControllerConnection ()
 {
+  NS_LOG_FUNCTION (this);
   NS_ASSERT (!m_ctrlAddr.IsInvalid ());
   
   // Start a TCP connection to the controller
@@ -291,28 +292,28 @@ OFSwitch13NetDevice::StartControllerConnection ()
 void
 OFSwitch13NetDevice::SetIfIndex (const uint32_t index)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_ifIndex = index;
 }
 
 uint32_t
 OFSwitch13NetDevice::GetIfIndex (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return m_ifIndex;
 }
 
 Ptr<Channel>
 OFSwitch13NetDevice::GetChannel (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return m_channel;
 }
 
 void
 OFSwitch13NetDevice::SetAddress (Address address)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_address = Mac48Address::ConvertFrom (address);
   NS_LOG_INFO ("Switch addr " << m_address);
 }
@@ -320,14 +321,14 @@ OFSwitch13NetDevice::SetAddress (Address address)
 Address
 OFSwitch13NetDevice::GetAddress (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return m_address;
 }
 
 bool
 OFSwitch13NetDevice::SetMtu (const uint16_t mtu)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_mtu = mtu;
   return true;
 }
@@ -335,14 +336,14 @@ OFSwitch13NetDevice::SetMtu (const uint16_t mtu)
 uint16_t
 OFSwitch13NetDevice::GetMtu (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return m_mtu;
 }
 
 bool
 OFSwitch13NetDevice::IsLinkUp (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return true;
 }
 
@@ -354,21 +355,21 @@ OFSwitch13NetDevice::AddLinkChangeCallback (Callback<void> callback)
 bool
 OFSwitch13NetDevice::IsBroadcast (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return true;
 }
 
 Address
 OFSwitch13NetDevice::GetBroadcast (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return Mac48Address ("ff:ff:ff:ff:ff:ff");
 }
 
 bool
 OFSwitch13NetDevice::IsMulticast (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return true;
 }
 
@@ -390,70 +391,70 @@ OFSwitch13NetDevice::GetMulticast (Ipv6Address addr) const
 bool
 OFSwitch13NetDevice::IsPointToPoint (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return false;
 }
 
 bool
 OFSwitch13NetDevice::IsBridge (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return true;
 }
 
 bool
 OFSwitch13NetDevice::Send (Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return SendFrom (packet, m_address, dest, protocolNumber);
 }
 
 bool
 OFSwitch13NetDevice::SendFrom (Ptr<Packet> packet, const Address& src, const Address& dest, uint16_t protocolNumber)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return true;
 }
 
 Ptr<Node>
 OFSwitch13NetDevice::GetNode (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return m_node;
 }
 
 void
 OFSwitch13NetDevice::SetNode (Ptr<Node> node)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_node = node;
 }
 
 bool
 OFSwitch13NetDevice::NeedsArp (void) const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return true;
 }
 
 void
 OFSwitch13NetDevice::SetReceiveCallback (NetDevice::ReceiveCallback cb)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_rxCallback = cb;
 }
 
 void
 OFSwitch13NetDevice::SetPromiscReceiveCallback (NetDevice::PromiscReceiveCallback cb)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_promiscRxCallback = cb;
 }
 
 bool
 OFSwitch13NetDevice::SupportsSendFrom () const
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   return true;
 }
 
@@ -462,7 +463,7 @@ OFSwitch13NetDevice::SupportsSendFrom () const
 void
 OFSwitch13NetDevice::DoDispose ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   
   // No need to notify the controller that this port has been deleted
   for (Ports_t::iterator b = m_ports.begin (), e = m_ports.end (); b != e; b++)
@@ -485,7 +486,7 @@ OFSwitch13NetDevice::DoDispose ()
 ofs::Port*
 OFSwitch13NetDevice::PortGetOfsPort (Ptr<NetDevice> dev)
 {
-  NS_LOG_FUNCTION (dev);
+  NS_LOG_FUNCTION (this << dev);
   for (size_t i = 0; i < m_ports.size (); i++)
     {
       if (m_ports[i].netdev == dev)
@@ -500,7 +501,7 @@ OFSwitch13NetDevice::PortGetOfsPort (Ptr<NetDevice> dev)
 ofs::Port*
 OFSwitch13NetDevice::PortGetOfsPort (uint32_t no)
 {
-  NS_LOG_FUNCTION (no);
+  NS_LOG_FUNCTION (this << no);
   NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Invalid port number");
 
   if (m_ports[no-1].port_no == no)
@@ -544,6 +545,7 @@ OFSwitch13NetDevice::PortUpdateStatus (ofs::Port *p)
 int
 OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
 { 
+  NS_LOG_FUNCTION (this);
   NS_ASSERT (buffer);
 
   uint32_t xid;
@@ -699,7 +701,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
 int
 OFSwitch13NetDevice::SendToController (Ptr<Packet> packet)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   NS_ASSERT (m_ctrlSocket);
 
   return m_ctrlSocket->Send (packet);
@@ -710,7 +712,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
     Ptr<const Packet> packet, uint16_t protocol, const Address &src, 
     const Address &dst, PacketType packetType)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   
   Mac48Address src48 = Mac48Address::ConvertFrom (src);
   Mac48Address dst48 = Mac48Address::ConvertFrom (dst);
@@ -797,6 +799,8 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
 bool
 OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
 {
+  NS_LOG_FUNCTION (this);
+  
   if (port == 0 || port->netdev == 0)
     {
       NS_LOG_ERROR ("can't forward to invalid port.");
@@ -908,7 +912,9 @@ void
 OFSwitch13NetDevice::PipelineExecuteEntry (pipeline *pl, flow_entry *entry,
     flow_table **next_table, packet **pkt)
 {
-  /** 
+   NS_LOG_FUNCTION (this);
+  
+ /** 
    * Instructions, when present, will be executed in the following order:
    * Meter, Apply-Actions, Clear-Actions, Write-Actions, Write-Metadata, and
    * Goto-Table.
@@ -1050,7 +1056,7 @@ void
 OFSwitch13NetDevice::ActionListExecute (packet *pkt, size_t actions_num,
     ofl_action_header **actions, uint64_t cookie) 
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   
   size_t i;
   for (i=0; i < actions_num; i++) 
@@ -1083,6 +1089,8 @@ void
 OFSwitch13NetDevice::ActionSetExecute (packet *pkt, action_set *set, 
     uint64_t cookie)
 {
+  NS_LOG_FUNCTION (this);
+  
   action_set_entry *entry, *next;
 
   LIST_FOR_EACH_SAFE (entry, next, action_set_entry, node, &set->actions) 
@@ -1122,6 +1130,8 @@ OFSwitch13NetDevice::ActionSetExecute (packet *pkt, action_set *set,
 void 
 OFSwitch13NetDevice::ActionExecute (packet *pkt, ofl_action_header *action)
 {
+  NS_LOG_FUNCTION (this);
+  
   char *a = ofl_action_to_string (action, NULL/*pkt->dp->exp*/);
   NS_LOG_DEBUG ("executing action " << a);
   free(a);
@@ -1192,6 +1202,8 @@ void
 OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
     uint32_t out_queue, uint16_t max_len, uint64_t cookie) 
 {
+  NS_LOG_FUNCTION (this);
+  
   switch (out_port) 
     {
       case (OFPP_TABLE): 
@@ -1254,6 +1266,8 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
 ofl_err 
 OFSwitch13NetDevice::ActionValidate (size_t num, ofl_action_header **actions)
 {
+  NS_LOG_FUNCTION (this);
+  
   for (size_t i = 0; i < num; i++) 
     {
       if (actions[i]->type == OFPAT_OUTPUT) 
@@ -1327,6 +1341,8 @@ ofl_err
 OFSwitch13NetDevice::FlowTableAdd (flow_table *table, ofl_msg_flow_mod *mod, 
     bool check_overlap, bool *match_kept, bool *insts_kept) 
 {
+  NS_LOG_FUNCTION (this);
+  
   // Note: new entries will be placed behind those with equal priority
   flow_entry *entry, *new_entry;
 
@@ -1379,6 +1395,8 @@ ofl_err
 OFSwitch13NetDevice::FlowTableDelete (flow_table *table, ofl_msg_flow_mod *mod,
     bool strict)
 {
+  NS_LOG_FUNCTION (this);
+  
   flow_entry *entry, *next;
 
   LIST_FOR_EACH_SAFE (entry, next, flow_entry, match_node, &table->match_entries) 
@@ -1397,6 +1415,8 @@ ofl_err
 OFSwitch13NetDevice::FlowTableModify (flow_table *table, ofl_msg_flow_mod *mod,
     bool strict, bool *insts_kept)
 {
+  NS_LOG_FUNCTION (this);
+  
   flow_entry *entry;
 
   LIST_FOR_EACH (entry, flow_entry, match_node, &table->match_entries) 
@@ -1426,7 +1446,7 @@ OFSwitch13NetDevice::FlowTableModify (flow_table *table, ofl_msg_flow_mod *mod,
 void
 OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 
   if (entry->send_removed)
     {
@@ -1458,6 +1478,8 @@ OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
 void 
 OFSwitch13NetDevice::FlowEntryDestroy (flow_entry *entry)
 {
+  NS_LOG_FUNCTION (this);
+  
   // FIXME No meter/group support by now
   // del_group_refs (entry);
   // del_meter_refs (entry);
@@ -1499,7 +1521,8 @@ Ptr<Packet>
 OFSwitch13NetDevice::CreatePacketIn (packet *pkt, uint8_t tableId,
     ofp_packet_in_reason reason, uint64_t cookie)
 {
-  NS_LOG_FUNCTION_NOARGS (); 
+  NS_LOG_FUNCTION (this); 
+  
   ofl_msg_packet_in msg;
   msg.header.type = OFPT_PACKET_IN;
   msg.total_len = pkt->buffer->size;
@@ -1534,6 +1557,8 @@ OFSwitch13NetDevice::CreatePacketIn (packet *pkt, uint8_t tableId,
 void
 OFSwitch13NetDevice::SendEchoRequest ()
 {
+  NS_LOG_FUNCTION (this);
+  
   // Send echo message
   ofl_msg_echo msg;
   msg.header.type = OFPT_ECHO_REQUEST;
@@ -1552,7 +1577,10 @@ OFSwitch13NetDevice::SendEchoRequest ()
 ofl_err
 OFSwitch13NetDevice::HandleMsgHello (ofl_msg_header *msg, uint64_t xid) 
 {
-  // The ofsoftswitch13 check the OpenFlow version when unpacking the message
+  NS_LOG_FUNCTION (this);
+  // Nothing to do: the ofsoftswitch13 already checks for OpenFlow version when
+  // unpacking the message
+  
   // All handlers must free the message when everything is ok
   ofl_msg_free (msg, NULL/*dp->exp*/);
   return 0;
@@ -1561,6 +1589,8 @@ OFSwitch13NetDevice::HandleMsgHello (ofl_msg_header *msg, uint64_t xid)
 ofl_err
 OFSwitch13NetDevice::HandleMsgEchoRequest (ofl_msg_echo *msg, uint64_t xid) 
 {
+  NS_LOG_FUNCTION (this);
+  
   ofl_msg_echo reply;
   reply.header.type = OFPT_ECHO_REPLY;
   reply.data_length = msg->data_length;
@@ -1578,6 +1608,8 @@ OFSwitch13NetDevice::HandleMsgEchoRequest (ofl_msg_echo *msg, uint64_t xid)
 ofl_err
 OFSwitch13NetDevice::HandleMsgEchoReply (ofl_msg_echo *msg, uint64_t xid) 
 {
+  NS_LOG_FUNCTION (this);
+  
   // TODO: Implement
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
@@ -1587,6 +1619,8 @@ OFSwitch13NetDevice::HandleMsgEchoReply (ofl_msg_echo *msg, uint64_t xid)
 ofl_err
 OFSwitch13NetDevice::HandleMsgFeaturesRequest (ofl_msg_header *msg, uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
   ofl_msg_features_reply reply;
   reply.header.type  = OFPT_FEATURES_REPLY;
   reply.datapath_id  = m_id;
@@ -1608,6 +1642,8 @@ OFSwitch13NetDevice::HandleMsgFeaturesRequest (ofl_msg_header *msg, uint64_t xid
 ofl_err
 OFSwitch13NetDevice::HandleMsgGetConfigRequest (ofl_msg_header *msg, uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
   ofl_msg_get_config_reply reply;
   reply.header.type = OFPT_GET_CONFIG_REPLY;
   reply.config      = &m_config;
@@ -1624,6 +1660,8 @@ OFSwitch13NetDevice::HandleMsgGetConfigRequest (ofl_msg_header *msg, uint64_t xi
 ofl_err
 OFSwitch13NetDevice::HandleMsgSetConfig (ofl_msg_set_config *msg, uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
   uint16_t flags;
 
   flags = msg->config->flags & OFPC_FRAG_MASK;
@@ -1643,6 +1681,8 @@ OFSwitch13NetDevice::HandleMsgSetConfig (ofl_msg_set_config *msg, uint64_t xid)
 ofl_err
 OFSwitch13NetDevice::HandleMsgPacketOut (ofl_msg_packet_out *msg, uint64_t xid) 
 {
+  NS_LOG_FUNCTION (this);
+  
   packet *pkt;
   int error;
 
@@ -1684,6 +1724,8 @@ OFSwitch13NetDevice::HandleMsgPacketOut (ofl_msg_packet_out *msg, uint64_t xid)
 ofl_err
 OFSwitch13NetDevice::HandleMsgFlowMod (ofl_msg_flow_mod *msg, uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
   /**
    * Modifications to a flow table from the controller are do ne with the
    * OFPT_FLOW_MOD message (including add, modify or delete).
@@ -1793,6 +1835,8 @@ OFSwitch13NetDevice::HandleMsgFlowMod (ofl_msg_flow_mod *msg, uint64_t xid)
 ofl_err
 OFSwitch13NetDevice::HandleMsgPortMod (ofl_msg_port_mod *msg, uint64_t xid) 
 {
+  NS_LOG_FUNCTION (this);
+  
   ofs::Port *p = PortGetOfsPort (msg->port_no);
   if (p == NULL) 
     {
@@ -1841,6 +1885,8 @@ OFSwitch13NetDevice::HandleMsgPortMod (ofl_msg_port_mod *msg, uint64_t xid)
 ofl_err
 OFSwitch13NetDevice::HandleMsgTableMod (ofl_msg_table_mod *msg, uint64_t xid) 
 {
+  NS_LOG_FUNCTION (this);
+  
   if (msg->table_id == 0xff) 
     {
       size_t i;
@@ -1861,6 +1907,8 @@ OFSwitch13NetDevice::HandleMsgTableMod (ofl_msg_table_mod *msg, uint64_t xid)
 ofl_err 
 OFSwitch13NetDevice::HandleMsgMultipartRequest (ofl_msg_multipart_request_header *msg, uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
   switch (msg->type) 
     {
       case (OFPMP_DESC): 
@@ -1916,6 +1964,8 @@ OFSwitch13NetDevice::HandleMsgMultipartRequest (ofl_msg_multipart_request_header
 ofl_err
 OFSwitch13NetDevice::HandleMsgBarrierRequest (ofl_msg_header *msg, uint64_t xid) 
 {
+  NS_LOG_FUNCTION (this);
+  
   /**
    * Note: the implementation is single-threaded, so a barrier request can
    * simply be replied. FIXME Really ???
@@ -1935,6 +1985,8 @@ OFSwitch13NetDevice::HandleMsgBarrierRequest (ofl_msg_header *msg, uint64_t xid)
 ofl_err
 OFSwitch13NetDevice::HandleMsgGetAsyncRequest (ofl_msg_async_config *msg, uint64_t xid) 
 {
+  NS_LOG_FUNCTION (this);
+  
   ofl_msg_async_config reply;
   reply.header.type = OFPT_GET_ASYNC_REPLY;
   reply.config = &m_asyncConfig;
@@ -1951,6 +2003,8 @@ OFSwitch13NetDevice::HandleMsgGetAsyncRequest (ofl_msg_async_config *msg, uint64
 ofl_err
 OFSwitch13NetDevice::HandleMsgSetAsync (ofl_msg_async_config *msg, uint64_t xid) 
 {
+  NS_LOG_FUNCTION (this);
+  
   memcpy (&m_asyncConfig, msg->config, sizeof (ofl_async_config));
 
   // All handlers must free the message when everything is ok
@@ -1961,6 +2015,8 @@ OFSwitch13NetDevice::HandleMsgSetAsync (ofl_msg_async_config *msg, uint64_t xid)
 ofl_err
 OFSwitch13NetDevice::MultipartMsgDesc (ofl_msg_multipart_request_header *msg, uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
   char *mfrDesc = (char*)xmalloc (DESC_STR_LEN);
   char *hwDesc  = (char*)xmalloc (DESC_STR_LEN);
   char *swDesc  = (char*)xmalloc (DESC_STR_LEN);
@@ -2000,6 +2056,8 @@ OFSwitch13NetDevice::MultipartMsgDesc (ofl_msg_multipart_request_header *msg, ui
 ofl_err
 OFSwitch13NetDevice::MultipartMsgFlow (ofl_msg_multipart_request_flow *msg, uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
   ofl_flow_stats **stats = (ofl_flow_stats**)xmalloc ( sizeof(ofl_flow_stats*));
   size_t stats_size = 1;
   size_t stats_num = 0;
@@ -2037,6 +2095,8 @@ OFSwitch13NetDevice::MultipartMsgFlow (ofl_msg_multipart_request_flow *msg, uint
 ofl_err
 OFSwitch13NetDevice::MultipartMsgAggregate (ofl_msg_multipart_request_flow *msg, uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
   ofl_msg_multipart_reply_aggregate reply;
   reply.header.header.type = OFPT_MULTIPART_REPLY;
   reply.header.type = OFPMP_AGGREGATE;
@@ -2071,6 +2131,8 @@ OFSwitch13NetDevice::MultipartMsgAggregate (ofl_msg_multipart_request_flow *msg,
 ofl_err
 OFSwitch13NetDevice::MultipartMsgTable (ofl_msg_multipart_request_header *msg, uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
   ofl_msg_multipart_reply_table reply;
   reply.header.header.type = OFPT_MULTIPART_REPLY;
   reply.header.type = OFPMP_TABLE;
@@ -2096,6 +2158,8 @@ OFSwitch13NetDevice::MultipartMsgTable (ofl_msg_multipart_request_header *msg, u
 ofl_err
 OFSwitch13NetDevice::MultipartMsgTableFeatures (ofl_msg_multipart_request_header *msg, uint64_t xid) 
 {
+  NS_LOG_FUNCTION (this);
+  
   // FIXME Implement this
   return ofl_error (OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_TABLE);
   //return 0;
@@ -2104,6 +2168,8 @@ OFSwitch13NetDevice::MultipartMsgTableFeatures (ofl_msg_multipart_request_header
 ofl_err
 OFSwitch13NetDevice::MultipartMsgPortStats (ofl_msg_multipart_request_port *msg, uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
   ofs::Port *port;
   size_t i = 0;
 
@@ -2150,6 +2216,8 @@ OFSwitch13NetDevice::MultipartMsgPortStats (ofl_msg_multipart_request_port *msg,
 ofl_err
 OFSwitch13NetDevice::MultipartMsgPortDesc (ofl_msg_multipart_request_header *msg, uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
   ofs::Port *port;
   size_t i = 0;
   

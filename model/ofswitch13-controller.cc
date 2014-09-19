@@ -56,14 +56,14 @@ SwitchInfo::GetInet ()
 
 OFSwitch13Controller::OFSwitch13Controller ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_serverSocket = 0;
   m_xid = 0x11000000;
 }
 
 OFSwitch13Controller::~OFSwitch13Controller ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 }
 
 TypeId 
@@ -106,6 +106,8 @@ OFSwitch13Controller::RegisterSwitchMetadata (SwitchInfo swInfo)
 int
 OFSwitch13Controller::SendFlowModMsg (SwitchInfo swtch, const char* textCmd) 
 {
+  NS_LOG_FUNCTION (swtch.ipv4);
+
   // Create the internal flow_mod message
   ofl_msg_flow_mod msgLocal;
   ofl_msg_flow_mod *msg = &msgLocal;
@@ -234,8 +236,9 @@ OFSwitch13Controller::SendEchoRequest (SwitchInfo swtch, size_t payloadSize)
   return SendToSwitch (swtch, pkt);
 }
 
+
 int
-OFSwitch13Controller::SendBarrierRequest (SwitchInfo swtch)
+OFSwitch13Controller::RequestBarrier (SwitchInfo swtch)
 {
   NS_LOG_FUNCTION (swtch.ipv4);
 
@@ -313,7 +316,7 @@ OFSwitch13Controller::RequestFlowStats (SwitchInfo swtch)
   msg.out_group = OFPG_ANY;
   msg.match = NULL;
 
-  // Parse arguments and match
+  //TODO Parse arguments and match
 
   LogOflMsg ((ofl_msg_header*)&msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
@@ -335,7 +338,7 @@ OFSwitch13Controller::RequestFlowAggregStats (SwitchInfo swtch)
   msg.out_group = OFPG_ANY;
   msg.match = NULL;
 
-  // Parse arguments and match
+  // TODO Parse arguments and match
 
   LogOflMsg ((ofl_msg_header*)&msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
@@ -405,25 +408,11 @@ ofl_err
 OFSwitch13Controller::HandleMsgHello (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid) 
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
+  // Nothing to do: the ofsoftswitch13 already checks for OpenFlow version when
+  // unpacking the message
 
-  // The ofsoftswitch13 check the OpenFlow version when unpacking the message
   // All handlers must free the message when everything is ok
   ofl_msg_free (msg, NULL/*dp->exp*/);
-  return 0;
-}
-
-ofl_err 
-OFSwitch13Controller::HandleMsgError (ofl_msg_error *msg, SwitchInfo swtch, uint64_t xid)
-{
-  NS_LOG_FUNCTION (swtch.ipv4 << xid);
-  
-  char *str;
-  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL);
-  NS_LOG_ERROR ("OpenFlow error: " << str);
-  free (str);
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
   return 0;
 }
 
@@ -432,6 +421,7 @@ OFSwitch13Controller::HandleMsgEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch,
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   
+  // Just reply with echo response
   ofl_msg_echo reply;
   reply.header.type = OFPT_ECHO_REPLY;
   reply.data_length = msg->data_length;
@@ -451,6 +441,32 @@ OFSwitch13Controller::HandleMsgEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, u
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   
   // TODO Implement
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err 
+OFSwitch13Controller::HandleMsgBarrierReply (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid)
+{
+  NS_LOG_FUNCTION (swtch.ipv4 << xid);
+  
+  // All handlers must free the message when everything is ok
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  return 0;
+}
+
+ofl_err 
+OFSwitch13Controller::HandleMsgError (ofl_msg_error *msg, SwitchInfo swtch, uint64_t xid)
+{
+  NS_LOG_FUNCTION (swtch.ipv4 << xid);
+ 
+  // This base controller only logs the error to user
+  char *str;
+  str = ofl_msg_to_string ((ofl_msg_header*)msg, NULL);
+  NS_LOG_ERROR ("OpenFlow error: " << str);
+  free (str);
+
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
   return 0;
@@ -510,16 +526,8 @@ ofl_err
 OFSwitch13Controller::HandleMsgMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint64_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
-  // TODO: There's a huge number of options... implement the switch case.. 
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
-  return 0;
-}
-
-ofl_err 
-OFSwitch13Controller::HandleMsgBarrierReply (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid)
-{
-  NS_LOG_FUNCTION (swtch.ipv4 << xid);
+  // There are several types of multipart replies. Derived controlleres can
+  // handle these messages as they wish.
   
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
