@@ -111,7 +111,7 @@ OFSwitch13Controller::SetConnectionCallback (SwitchConnectionCallback_t cb)
 }
 
 int
-OFSwitch13Controller::SendFlowModMsg (SwitchInfo swtch, const char* textCmd) 
+OFSwitch13Controller::DpctlFlowModCommand (SwitchInfo swtch, const std::string textCmd)
 {
   NS_LOG_FUNCTION (swtch.ipv4);
 
@@ -136,7 +136,7 @@ OFSwitch13Controller::SendFlowModMsg (SwitchInfo swtch, const char* textCmd)
 
   // Parse flow_mod dpctl command
   wordexp_t cmd;
-  wordexp (textCmd, &cmd, 0);
+  wordexp (textCmd.c_str (), &cmd, 0);
   
   parse_flow_mod_args (cmd.we_wordv[0], msg); 
   if (cmd.we_wordc > 1) 

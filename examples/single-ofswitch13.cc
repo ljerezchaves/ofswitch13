@@ -90,13 +90,6 @@ main (int argc, char *argv[])
   Ptr<OFSwitch13Controller> controlApp = ofHelper.InstallControllerApp (controllerNode);
   of13Device = ofHelper.InstallSwitch (switchNode, switchDevices);
 
-  // Some OpenFlow flow-mod commands for tests
-  Ptr<OFSwitch13NetDevice> ofswitchNetDev = of13Device.Get (0)->GetObject<OFSwitch13NetDevice> ();
-  //Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
-  //    "cmd=add,table=0 in_port=1 apply:output=2");
-  //Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitchNetDev, 
-  //    "cmd=add,table=0 in_port=2 apply:output=1");
-
   // Installing the tcp/ip stack onto terminals
   InternetStackHelper internet;
   internet.Install (terminals);
@@ -108,10 +101,20 @@ main (int argc, char *argv[])
   internetIpIfaces = ipv4switches.Assign (terminalDevices);
 
   // Create a ping application from terminal 0 to 1 
-  Ipv4Address destAddr = internetIpIfaces.GetAddress (1);
-  V4PingHelper ping = V4PingHelper (destAddr);
-  ApplicationContainer apps = ping.Install (terminals.Get (0));
-  apps.Start (Seconds (1.0));
+  Ipv4Address t0Addr = internetIpIfaces.GetAddress (0);
+  Ipv4Address t1Addr = internetIpIfaces.GetAddress (1);
+  V4PingHelper ping = V4PingHelper (t1Addr);
+  ApplicationContainer pingApp = ping.Install (terminals.Get (0));
+  pingApp.Start (Seconds (1.));
+
+  // Send TCP traffic from terminal 1 to 0 
+  BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (t0Addr, 50000));
+  senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+  ApplicationContainer senderApp  = senderHelper.Install (terminals.Get (1));
+  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 50000));
+  ApplicationContainer sinkApp = sinkHelper.Install (terminals.Get (0));
+  senderApp.Start (Seconds (1.));
+  sinkApp.Start (Seconds (1.));
 
   // Enable pcap traces
   ofHelper.EnableOpenFlowPcap ();
@@ -122,6 +125,9 @@ main (int argc, char *argv[])
   Simulator::Stop (Seconds (30));
   Simulator::Run ();
   Simulator::Destroy ();
+
+  Ptr<PacketSink> sink1 = DynamicCast<PacketSink> (sinkApp.Get (0));
+  std::cout << "Total Bytes Received: " << sink1->GetTotalRx () << std::endl;
 }
 
 #else

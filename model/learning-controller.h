@@ -43,16 +43,17 @@ public:
   ofl_err HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid);
 
 private:
-  // inherited from Application
-  void StartApplication (void);
-  void StopApplication (void);
-
+  //!< TCP connection callback
   void ConnectionStarted (SwitchInfo swtch);
 
-  // L2 switching structures
+  /** 
+   * \name L2 switching structures
+   */
+  //\{
   typedef std::map<Mac48Address, uint32_t> L2Table_t;     //!< L2SwitchingTable: map MacAddress to port
   typedef std::map<uint64_t, L2Table_t>    DatapathMap_t; //!< Map datapathID to L2SwitchingTable
   DatapathMap_t                            m_learnedInfo; //!< Switching information for all dapataths
+  //\}
 };
 
 } // namespace ns3

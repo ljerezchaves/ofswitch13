@@ -24,6 +24,7 @@
 #include "ns3/tcp-socket-factory.h"
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
+#include <string>
 
 namespace ns3 {
 
@@ -111,7 +112,7 @@ protected:
    * \param textCmd The dpctl flow_mod command to create the message.
    * \return The number of bytes sent
    */
-  int SendFlowModMsg (SwitchInfo swtch, const char* textCmd);
+  int DpctlFlowModCommand (SwitchInfo swtch, const std::string textCmd);
 
 
   /**

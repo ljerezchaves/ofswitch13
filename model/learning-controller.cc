@@ -26,10 +26,7 @@ namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED (LearningController);
 
-
 /********** Public methods ***********/
-
-
 LearningController::LearningController ()
 {
   NS_LOG_FUNCTION_NOARGS ();
@@ -54,6 +51,7 @@ LearningController::GetTypeId (void)
 void
 LearningController::DoDispose ()
 {
+  m_learnedInfo.clear ();
   OFSwitch13Controller::DoDispose ();
   Application::DoDispose ();
 }
@@ -63,7 +61,7 @@ LearningController::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
 
-  static int prio = 0;
+  static int prio = 100;
   uint32_t outPort = OFPP_FLOOD;
   uint64_t dpId = swtch.netdev->GetDatapathId ();
   enum ofp_packet_in_reason reason = msg->reason;
@@ -83,12 +81,13 @@ LearningController::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
       ofl_match_tlv *ethDst = oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->match);
       dst48.CopyFrom (ethDst->value);
  
+      // Get L2Table for this datapath
       DatapathMap_t::iterator it = m_learnedInfo.find (dpId);
       if (it != m_learnedInfo.end ())
         {
           L2Table_t *l2Table = &it->second;
 
-          // Looking for port based on destination address (except for broadcast)
+          // Looking for out port based on destination address (except for broadcast)
           if (!dst48.IsBroadcast ())
             {
               L2Table_t::iterator itDst = l2Table->find (dst48);
@@ -118,12 +117,13 @@ LearningController::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
                   // Send a flow-mod to switch creating this flow;
                   std::ostringstream cmd;
                   cmd << "cmd=add,table=0,prio=" << ++prio << " eth_dst=" << src48 << " apply:output="<< inPort;
-                  SendFlowModMsg (swtch, cmd.str().c_str());
+                  DpctlFlowModCommand (swtch, cmd.str());
                 }
             }
           else
             {
               NS_ASSERT_MSG (itSrc->second == inPort, "Inconsistent L2 switching table");
+              // TODO Should pdate existing entry?
             }
         }
       else 
@@ -131,13 +131,11 @@ LearningController::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
           NS_LOG_WARN ("No L2Table for this datapath id " << dpId);
         }
       
-      NS_UNUSED (outPort);
-      // TODO: create packet out and set proper actions
       // Lets send the packet out to switch.
       ofl_msg_packet_out reply;
       reply.header.type = OFPT_PACKET_OUT;
       reply.buffer_id = msg->buffer_id;
-      reply.in_port = OFPP_CONTROLLER;
+      reply.in_port = inPort;
       reply.data_length = msg->data_length;
       reply.data = msg->data;
 
@@ -145,7 +143,7 @@ LearningController::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
       ofl_action_output *a = (ofl_action_output*)xmalloc (sizeof (struct ofl_action_output));
       a->header.type = OFPAT_OUTPUT;
       a->port = outPort;
-      a->max_len = OFPCML_NO_BUFFER; // FIXME Should be 0?
+      a->max_len = 0;
       
       reply.actions_num = 1;
       reply.actions = (ofl_action_header**)&a;
@@ -163,32 +161,19 @@ LearningController::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
       NS_LOG_WARN ("This packet was sent to controller for a reason that we can't handle.");
     }
  
- 
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
   return 0;
 }
 
 /********** Private methods **********/
-void
-LearningController::StartApplication ()
-{
-  OFSwitch13Controller::StartApplication ();
-}
-
-void
-LearningController::StopApplication ()
-{
-  OFSwitch13Controller::StopApplication ();
-}
-
 void 
 LearningController::ConnectionStarted (SwitchInfo swtch)
 {
   NS_LOG_FUNCTION (this << swtch.ipv4);
 
-  // After a successfull handshake, let's install table-miss entry
-  SendFlowModMsg (swtch, "cmd=add,table=0,prio=0, apply:output=ctrl");
+  // After a successfull handshake, let's install the table-miss entry
+  DpctlFlowModCommand (swtch, "cmd=add,table=0,prio=0 apply:output=ctrl");
 
   // Create an empty L2SwitchingTable and insert it into m_learnedInfo
   L2Table_t l2Table;

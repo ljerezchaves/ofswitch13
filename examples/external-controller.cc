@@ -115,7 +115,7 @@ main (int argc, char *argv[])
   Ipv4Address destAddr = internetIpIfaces.GetAddress (1);
   V4PingHelper ping = V4PingHelper (destAddr);
   ApplicationContainer apps = ping.Install (terminals.Get (0));
-  apps.Start (Seconds (10.0));
+  apps.Start (Seconds (5.));
 
   // Enable pcap traces
   ofHelper.EnableOpenFlowPcap ();
