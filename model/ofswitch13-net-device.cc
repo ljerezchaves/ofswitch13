@@ -144,8 +144,8 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
     }
   
   m_config.flags = OFPC_FRAG_NORMAL;         // IP fragments with no special handling
-  m_config.miss_send_len = 128;
-  //m_config.miss_send_len = OFPCML_NO_BUFFER; // sent whole packet to the controller.
+  // m_config.miss_send_len = OFPCML_NO_BUFFER; // send whole packet to controller
+  m_config.miss_send_len = 128;              // send only first 128 bytes to controller (default)
   
   m_lastTimeout = Simulator::Now ();
   Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::PipelineTimeout, this);
@@ -1061,7 +1061,6 @@ OFSwitch13NetDevice::PipelineTimeout ()
 
 int32_t
 OFSwitch13NetDevice::BuffersSave (packet *pkt)
-//OFSwitch13NetDevice::BuffersSave (dp_buffers *dpb, packet *pkt)
 {
   NS_LOG_FUNCTION (this);
   

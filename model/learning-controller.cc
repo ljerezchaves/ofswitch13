@@ -136,9 +136,16 @@ LearningController::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
       reply.header.type = OFPT_PACKET_OUT;
       reply.buffer_id = msg->buffer_id;
       reply.in_port = inPort;
-      reply.data_length = msg->data_length;
-      reply.data = msg->data;
+      reply.data_length = 0;
+      reply.data = 0;
 
+      if (msg->buffer_id == NO_BUFFER)
+        {
+          // No packet buffer. Send data back to switch
+          reply.data_length = msg->data_length;
+          reply.data = msg->data;
+        }
+      
       // Create output action
       ofl_action_output *a = (ofl_action_output*)xmalloc (sizeof (struct ofl_action_output));
       a->header.type = OFPAT_OUTPUT;
