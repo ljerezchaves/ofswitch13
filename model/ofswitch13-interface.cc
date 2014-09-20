@@ -30,8 +30,8 @@ Port::Port (Ptr<NetDevice> netdev, uint32_t no) :
             netdev (netdev)
 {  
     port_no = no;
-    conf = (ofl_port*)xmalloc (sizeof (struct ofl_port));
-    memset (conf, 0x00, sizeof (struct ofl_port));
+    conf = (ofl_port*)xmalloc (sizeof (ofl_port));
+    memset (conf, 0x00, sizeof (ofl_port));
     conf->name = (char*)xmalloc (4);
     snprintf(conf->name, 8, "Port %d", no);
     conf->port_no = no;
@@ -46,8 +46,8 @@ Port::Port (Ptr<NetDevice> netdev, uint32_t no) :
     conf->curr_speed = port_speed (conf->curr);
     conf->max_speed  = port_speed (conf->supported);
     
-    stats = (ofl_port_stats*)xmalloc (sizeof (struct ofl_port_stats));
-    memset (stats, 0x00, sizeof (struct ofl_port_stats));
+    stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
+    memset (stats, 0x00, sizeof (ofl_port_stats));
     stats->port_no = no;
 
     flags |= SWP_USED;
@@ -101,6 +101,26 @@ Port::GetFeatures (Ptr<CsmaNetDevice> netdev)
   return feat;
 }
 
+EchoInfo::EchoInfo (Ipv4Address ip)
+{
+  waiting = true;
+  send = Simulator::Now ();
+  destIp = ip;
+}
+
+Time EchoInfo::GetRtt ()
+{
+  if (waiting)
+    {
+      return Time (-1);
+    }
+  else
+    {
+      Time rtt = recv - send;
+      return recv-send; 
+    }
+}
+
 ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
     size_t headRoom)
 {
@@ -121,10 +141,10 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid)
   int error;
   uint8_t *buf;
   size_t buf_size;
-  struct ofpbuf *ofpbuf = ofpbuf_new (0);
+  ofpbuf *ofpbuf = ofpbuf_new (0);
   
   // Pack message into ofpbuf using wire format
-  error = ofl_msg_pack (msg, xid, &buf, &buf_size, NULL/*struct ofl_exp *exp*/);
+  error = ofl_msg_pack (msg, xid, &buf, &buf_size, NULL/*ofl_exp *exp*/);
   if (error)
     {
       NS_LOG_ERROR ("Error packing message.");
@@ -135,17 +155,17 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid)
   return ofpbuf;
 }
 
-struct packet * InternalPacketFromBuffer (uint32_t in_port, struct ofpbuf *buf,
+packet * InternalPacketFromBuffer (uint32_t in_port, ofpbuf *buf,
     bool packet_out) 
 {
   NS_LOG_FUNCTION_NOARGS ();
-  struct packet *pkt;
-  pkt = (struct packet*)xmalloc (sizeof (struct packet));
+  packet *pkt;
+  pkt = (packet*)xmalloc (sizeof (packet));
 
   pkt->dp         = NULL;
   pkt->buffer     = buf;
   pkt->in_port    = in_port;
-  pkt->action_set = (struct action_set*)xmalloc (sizeof (struct action_set));
+  pkt->action_set = (action_set*)xmalloc (sizeof (action_set));
   list_init (&pkt->action_set->actions);
 
   pkt->packet_out       = packet_out;
@@ -156,13 +176,14 @@ struct packet * InternalPacketFromBuffer (uint32_t in_port, struct ofpbuf *buf,
   pkt->buffer_id        = NO_BUFFER;
   pkt->table_id         = 0;
 
+  // Note: here, the nblink will parse the packet
   pkt->handle_std = packet_handle_std_create (pkt);
   return pkt;
 }
 
 Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
 {
-  return PacketFromBufferAndFree(BufferFromMsg (msg, xid));
+  return PacketFromBufferAndFree (BufferFromMsg (msg, xid));
 }
 
 Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer)
@@ -173,10 +194,10 @@ Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer)
   return packet;
 }
 
-Ptr<Packet> PacketFromInternalPacket (struct packet *pkt)
+Ptr<Packet> PacketFromInternalPacket (packet *pkt)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  struct ofpbuf *buffer = pkt->buffer;
+  ofpbuf *buffer = pkt->buffer;
   Ptr<Packet> packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
   return packet;
 }

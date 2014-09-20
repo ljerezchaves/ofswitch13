@@ -78,9 +78,9 @@ main (int argc, char *argv[])
   NetDeviceContainer terminalDevices;
   NetDeviceContainer switch0Devices, switch1Devices;
       
-  NetDeviceContainer link0 = csmaHelper.Install (NodeContainer (terminals.Get (0), switches.Get (0)));
-  NetDeviceContainer link1 = csmaHelper.Install (NodeContainer (terminals.Get (1), switches.Get (1)));
-  NetDeviceContainer link2 = csmaHelper.Install (NodeContainer (switches.Get (0), switches.Get (1)));
+  NetDeviceContainer link0 = csmaHelper.Install (NodeContainer (terminals.Get (0), switchNode0));
+  NetDeviceContainer link1 = csmaHelper.Install (NodeContainer (terminals.Get (1), switchNode1));
+  NetDeviceContainer link2 = csmaHelper.Install (NodeContainer (switchNode0, switchNode1));
   terminalDevices.Add (link0.Get (0));
   terminalDevices.Add (link1.Get (0));
   switch0Devices.Add (link0.Get (1));       // Switch 0 Port 1 to terminal 0
@@ -90,22 +90,11 @@ main (int argc, char *argv[])
  
   // Configure OpenFlow network
   NetDeviceContainer of13Device0, of13Device1;
-  Ptr<OFSwitch13Helper> ofHelper = Create<OFSwitch13Helper> ();
-  Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallControllerApp (controllerNode);
-  of13Device0 = ofHelper->InstallSwitch (switchNode0, switch0Devices);
-  of13Device1 = ofHelper->InstallSwitch (switchNode1, switch1Devices);
-
-  // Some OpenFlow flow-mod commands for tests
-  Ptr<OFSwitch13NetDevice> ofswitch0NetDev = of13Device0.Get (0)->GetObject<OFSwitch13NetDevice> ();
-  Ptr<OFSwitch13NetDevice> ofswitch1NetDev = of13Device1.Get (0)->GetObject<OFSwitch13NetDevice> ();
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch0NetDev, 
-      "cmd=add,table=0 in_port=1 apply:output=2");
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch0NetDev, 
-      "cmd=add,table=0 in_port=2 apply:output=1");
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch1NetDev, 
-      "cmd=add,table=0 in_port=1 apply:output=2");
-  Simulator::Schedule (Seconds (1), &OFSwitch13Controller::SendFlowModMsg, controlApp, ofswitch1NetDev, 
-      "cmd=add,table=0 in_port=2 apply:output=1");
+  OFSwitch13Helper ofHelper;
+  Ptr<LearningController> learningApp = CreateObject<LearningController> ();
+  Ptr<OFSwitch13Controller> controlApp = ofHelper.InstallControllerApp (controllerNode, learningApp);
+  of13Device0 = ofHelper.InstallSwitch (switchNode0, switch0Devices);
+  of13Device1 = ofHelper.InstallSwitch (switchNode1, switch1Devices);
 
   // Installing the tcp/ip stack onto terminals
   InternetStackHelper internet;
@@ -118,13 +107,23 @@ main (int argc, char *argv[])
   internetIpIfaces = ipv4switches.Assign (terminalDevices);
 
   // Create a ping application from terminal 0 to 1 
-  Ipv4Address destAddr = internetIpIfaces.GetAddress (1);
-  V4PingHelper ping = V4PingHelper (destAddr);
-  ApplicationContainer apps = ping.Install (terminals.Get (0));
-  apps.Start (Seconds (1.0));
+  Ipv4Address t0Addr = internetIpIfaces.GetAddress (0);
+  Ipv4Address t1Addr = internetIpIfaces.GetAddress (1);
+  V4PingHelper ping = V4PingHelper (t1Addr);
+  ApplicationContainer pingApp = ping.Install (terminals.Get (0));
+  pingApp.Start (Seconds (1.));
+
+  // Send TCP traffic from terminal 1 to 0 
+  BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (t0Addr, 50000));
+  senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+  ApplicationContainer senderApp  = senderHelper.Install (terminals.Get (1));
+  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 50000));
+  ApplicationContainer sinkApp = sinkHelper.Install (terminals.Get (0));
+  senderApp.Start (Seconds (1.));
+  sinkApp.Start (Seconds (1.));
 
   // Enable pcap traces
-  ofHelper->EnableOpenFlowPcap ();
+  ofHelper.EnableOpenFlowPcap ();
   csmaHelper.EnablePcap ("ofswitch-l0", switch0Devices.Get (0));
   csmaHelper.EnablePcap ("ofswitch-l1", switch1Devices.Get (0));
   csmaHelper.EnablePcap ("ofswitch-l2", switch0Devices.Get (1));
@@ -134,6 +133,9 @@ main (int argc, char *argv[])
   Simulator::Stop (Seconds (30));
   Simulator::Run ();
   Simulator::Destroy ();
+
+  Ptr<PacketSink> sink1 = DynamicCast<PacketSink> (sinkApp.Get (0));
+  std::cout << "Total Bytes Received: " << sink1->GetTotalRx () << std::endl;
 }
 
 #else
