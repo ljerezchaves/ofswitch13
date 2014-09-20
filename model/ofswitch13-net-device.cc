@@ -1634,7 +1634,6 @@ OFSwitch13NetDevice::HandleMsgEchoReply (ofl_msg_echo *msg, uint64_t xid)
                     " with RTT " << it->second.GetRtt ().As (Time::MS));
     }
 
-  // TODO: Implement
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
   return 0;
@@ -2302,6 +2301,9 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
   NS_LOG_FUNCTION (this << socket);
   NS_LOG_LOGIC ("Controller accepted connection request!");
   socket->SetRecvCallback (MakeCallback (&OFSwitch13NetDevice::SocketCtrlRead, this));
+
+  // Randomize xid
+  m_xid = HashInt (m_xid, m_id & UINT32_MAX);
 
   // Send Hello message
   ofl_msg_header msg;
