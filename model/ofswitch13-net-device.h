@@ -246,13 +246,12 @@ private:
    * Executes the instructions associated with a flow entry
    * \see ofsoftswitch function execute_entry at udatapath/pipeline.c
    *
-   * \param pl The pipelipe
    * \param entry The flow entry to execute
    * \param next_table A pointer to next table (can be modified by entry)
    * \param pkt The packet associated with this flow entry
    */
-  void PipelineExecuteEntry (pipeline *pl, flow_entry *entry, 
-      flow_table **next_table, packet **pkt);
+  void PipelineExecuteEntry (flow_entry *entry, flow_table **next_table, 
+      packet **pkt);
 
   /**
    * \internal
@@ -266,6 +265,24 @@ private:
   void PipelineTimeout ();
   //\}
 
+  ///\name Buffer methods
+  //\{
+  /**
+   * \brief Saves the packet into the buffer. 
+   * \see ofsoftswitch13 function dp_buffers_save () at udatapath/dp_buffers.c
+   * \param pkt Internal packet to save
+   * \return The saved buffer ID, or NO_BUFFER if saving was not possible.
+   */
+  int32_t BuffersSave (packet *pkt);
+
+  /**
+   * \brief Check for valid buffered packet
+   * \see ofsoftswitch13 function dp_buffers_is_alive () at udatapath/dp_buffers.c
+   * \param id The buffer id of the packet to check
+   * \return True if the buffered packet is not timed out.
+   */
+  bool BuffersIsAlive (uint32_t id);
+  //\}
 
   ///\name Action methods
   //\{
@@ -431,6 +448,8 @@ private:
   Ptr<Packet> CreatePacketIn (packet *pkt, uint8_t tableId,
           ofp_packet_in_reason reason, uint64_t cookie);
 
+  void InternalPacketDestroy (packet *pkt);
+
   /**
    * \internal
    * \brief Send an echo request message to controller.
@@ -514,7 +533,7 @@ private:
   ofl_async_config        m_asyncConfig;      //!< Asynchronous messages configuration
   ofl_config              m_config;           //!< Configuration, set from controller
   pipeline*               m_pipeline;         //!< Pipeline with multi-tables
-  // dp_buffers*             m_buffers;          //!< Datapath buffers
+  dp_buffers*             m_buffers;          //!< Datapath buffers
   // group_table*            m_groups;           //!< Group tables
   // meter_table*            m_meters;           //!< Meter tables
   // ofl_exp*                m_exp;                //!< Experimenter handling

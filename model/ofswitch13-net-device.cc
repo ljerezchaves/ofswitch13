@@ -144,23 +144,23 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
     }
   
   m_config.flags = OFPC_FRAG_NORMAL;         // IP fragments with no special handling
-  m_config.miss_send_len = OFPCML_NO_BUFFER; // sent whole packet to the controller.
+  m_config.miss_send_len = 128;
+  //m_config.miss_send_len = OFPCML_NO_BUFFER; // sent whole packet to the controller.
   
   m_lastTimeout = Simulator::Now ();
   Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::PipelineTimeout, this);
 
-  // FIXME Remover isso se nao for preciso
   // Create the buffers
-  // m_buffers = (dp_buffers*)xmalloc (sizeof (dp_buffers));
-  // m_buffers->dp = NULL;
-  // m_buffers->buffer_idx  = (size_t)-1;
-  // m_buffers->buffers_num = N_PKT_BUFFERS;
-  // for (size_t i=0; i<N_PKT_BUFFERS; i++) 
-  //   {
-  //     m_buffers->buffers[i].pkt     = NULL;
-  //     m_buffers->buffers[i].cookie  = UINT32_MAX;
-  //     m_buffers->buffers[i].timeout = 0;
-  //   }
+  m_buffers = (dp_buffers*)xmalloc (sizeof (dp_buffers));
+  m_buffers->dp = NULL;
+  m_buffers->buffer_idx  = (size_t)-1;
+  m_buffers->buffers_num = N_PKT_BUFFERS;
+  for (size_t i=0; i<N_PKT_BUFFERS; i++) 
+    {
+      m_buffers->buffers[i].pkt     = NULL;
+      m_buffers->buffers[i].cookie  = UINT32_MAX;
+      m_buffers->buffers[i].timeout = 0;
+    }
 }
 
 OFSwitch13NetDevice::~OFSwitch13NetDevice ()
@@ -865,7 +865,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (packet* pkt)
         {
           NS_LOG_WARN ("Packet has invalid TTL, dropping.");
         }
-      packet_destroy (pkt);
+      InternalPacketDestroy (pkt);
       return;
     }
   
@@ -888,7 +888,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (packet* pkt)
           NS_LOG_DEBUG ("found matching entry: " << ofl_structs_flow_stats_to_string (entry->stats, NULL));
        
           pkt->handle_std->table_miss = ((entry->stats->priority) == 0 && (entry->match->length <= 4));
-          PipelineExecuteEntry (m_pipeline, entry, &next_table, &pkt);
+          PipelineExecuteEntry (entry, &next_table, &pkt);
           
           /* Packet could be destroyed by a meter instruction */
           if (!pkt)
@@ -900,7 +900,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (packet* pkt)
             {
               // Pipeline end. Execute actions and free packet
               ActionSetExecute (pkt, pkt->action_set, UINT64_MAX);
-              packet_destroy (pkt);
+              InternalPacketDestroy (pkt);
               return;
             }
         } 
@@ -908,7 +908,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (packet* pkt)
         {
           /* OpenFlow 1.3 default behavior on a table miss */
           NS_LOG_DEBUG ("No matching entry found. Dropping packet.");
-          packet_destroy (pkt);
+          InternalPacketDestroy (pkt);
           return;
         }
     }
@@ -916,7 +916,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (packet* pkt)
 }
 
 void
-OFSwitch13NetDevice::PipelineExecuteEntry (pipeline *pl, flow_entry *entry,
+OFSwitch13NetDevice::PipelineExecuteEntry (flow_entry *entry,
     flow_table **next_table, packet **pkt)
 {
    NS_LOG_FUNCTION (this);
@@ -943,7 +943,7 @@ OFSwitch13NetDevice::PipelineExecuteEntry (pipeline *pl, flow_entry *entry,
           case OFPIT_GOTO_TABLE: 
             {
               ofl_instruction_goto_table *gi = (ofl_instruction_goto_table*)inst;
-              *next_table = pl->tables[gi->table_id];
+              *next_table = m_pipeline->tables[gi->table_id];
               break;
             }
           case OFPIT_WRITE_METADATA: 
@@ -1057,6 +1057,68 @@ OFSwitch13NetDevice::PipelineTimeout ()
 
   Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::PipelineTimeout, this);
   m_lastTimeout = Simulator::Now ();
+}
+
+int32_t
+OFSwitch13NetDevice::BuffersSave (packet *pkt)
+//OFSwitch13NetDevice::BuffersSave (dp_buffers *dpb, packet *pkt)
+{
+  NS_LOG_FUNCTION (this);
+  
+  packet_buffer *p;
+  uint32_t id;
+
+  /* if packet is already in buffer, do not save again */
+  if (pkt->buffer_id != NO_BUFFER) 
+    {
+      if (BuffersIsAlive (pkt->buffer_id)) 
+        {
+          return pkt->buffer_id;
+        }
+    }
+
+  m_buffers->buffer_idx = (m_buffers->buffer_idx + 1) & PKT_BUFFER_MASK;
+
+  p = &m_buffers->buffers[m_buffers->buffer_idx];
+  if (p->pkt != NULL) 
+    {
+      return NO_BUFFER;
+      // FIXME: Solve this time problem
+      // if (time_now() < p->timeout) 
+      //   {
+      //     return NO_BUFFER;
+      //   } 
+      // else 
+      //   {
+      //     p->pkt->buffer_id = NO_BUFFER;
+      //     InternalPacketDestroy (p->pkt);
+      //   }
+    }
+
+  /* Don't use maximum cookie value since the all-bits-1 id is special. */
+  if (++p->cookie >= (1u << PKT_COOKIE_BITS) - 1)
+    {
+      p->cookie = 0;
+    }
+  p->pkt = pkt;
+  // p->timeout = time_now() + OVERWRITE_SECS;
+  id = m_buffers->buffer_idx | (p->cookie << PKT_BUFFER_BITS);
+
+  pkt->buffer_id  = id;
+
+  return id;
+}
+
+bool
+OFSwitch13NetDevice::BuffersIsAlive (uint32_t id)
+{
+  NS_LOG_FUNCTION (this);
+  
+  packet_buffer *p = &m_buffers->buffers [id & PKT_BUFFER_MASK];
+  return (p->cookie == id >> PKT_BUFFER_BITS);
+
+  //FIXME Incomplete due to time incompatibility from simulator and ofsoftswitch13
+  //return ((p->cookie == id >> PKT_BUFFER_BITS) && (time_now() < p->timeout));
 }
 
 void
@@ -1540,10 +1602,9 @@ OFSwitch13NetDevice::CreatePacketIn (packet *pkt, uint8_t tableId,
 
   if (m_config.miss_send_len != OFPCML_NO_BUFFER)
     {
-      // FIXME No buffers support by now
-      // dp_buffers_save(pkt->dp->buffers, pkt);
-      // msg.buffer_id = pkt->buffer_id;
-      // msg.data_length = MIN(max_len, pkt->buffer->size);
+      BuffersSave (pkt);
+      msg.buffer_id = pkt->buffer_id;
+      msg.data_length = MIN (m_config.miss_send_len, pkt->buffer->size);
     }
   else 
     {
@@ -1560,6 +1621,31 @@ OFSwitch13NetDevice::CreatePacketIn (packet *pkt, uint8_t tableId,
   LogOflMsg ((ofl_msg_header*)&msg);
   return ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
 }
+
+void 
+OFSwitch13NetDevice::InternalPacketDestroy (packet *pkt)
+{
+  /* If packet is saved in a buffer, do not destroy it,
+   * if buffer is still valid */
+   
+  if (pkt->buffer_id != NO_BUFFER) 
+    {
+      if (BuffersIsAlive (pkt->buffer_id)) 
+        {
+          return;
+        }
+      else 
+        {
+          dp_buffers_discard (m_buffers, pkt->buffer_id, false);
+        }
+    }
+
+  action_set_destroy (pkt->action_set);
+  ofpbuf_delete (pkt->buffer);
+  packet_handle_std_destroy (pkt->handle_std);
+  free (pkt);
+}
+
 
 void
 OFSwitch13NetDevice::SendEchoRequest ()
@@ -1648,7 +1734,7 @@ OFSwitch13NetDevice::HandleMsgFeaturesRequest (ofl_msg_header *msg, uint64_t xid
   ofl_msg_features_reply reply;
   reply.header.type  = OFPT_FEATURES_REPLY;
   reply.datapath_id  = m_id;
-  reply.n_buffers    = 0; // FIXME No buffer support by now
+  reply.n_buffers    = dp_buffers_size (m_buffers);
   reply.n_tables     = PIPELINE_TABLES;
   reply.auxiliary_id = 0; // FIXME No auxiliary connection support by now
   reply.capabilities = DP_SUPPORTED_CAPABILITIES;
@@ -1727,8 +1813,7 @@ OFSwitch13NetDevice::HandleMsgPacketOut (ofl_msg_packet_out *msg, uint64_t xid)
   else 
     {
       /* NOTE: in this case packet should not have data */
-      // FIXME No buffer support by now
-      // pkt = dp_buffers_retrieve (dp->buffers, msg->buffer_id);
+      pkt = dp_buffers_retrieve (m_buffers, msg->buffer_id);
     }
 
   if (pkt == NULL) 
@@ -1738,7 +1823,7 @@ OFSwitch13NetDevice::HandleMsgPacketOut (ofl_msg_packet_out *msg, uint64_t xid)
     }
   
   ActionListExecute (pkt, msg->actions_num, msg->actions, UINT64_MAX);
-  packet_destroy (pkt);
+  InternalPacketDestroy (pkt);
   
   // All handlers must free the message when everything is ok
   ofl_msg_free_packet_out (msg, false, NULL/*dp->exp*/);
@@ -1835,20 +1920,17 @@ OFSwitch13NetDevice::HandleMsgFlowMod (ofl_msg_flow_mod *msg, uint64_t xid)
   if ((msg->command == OFPFC_ADD || msg->command == OFPFC_MODIFY || msg->command == OFPFC_MODIFY_STRICT) && 
        msg->buffer_id != NO_BUFFER) 
     {
-      NS_FATAL_ERROR ("Should not get in here... no buffers!");
-      // FIXME No buffers support by now
-      // /* run buffered message through pipeline */
-      // packet *pkt;
-  
-      // pkt = dp_buffers_retrieve (m_pipeline->dp->buffers, msg->buffer_id);
-      // if (pkt != NULL) 
-      //   {
-      //     pipeline_process_packet (m_pipeline, pkt);
-      //   } 
-      // else 
-      //   {
-      //     NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << msg->buffer_id);
-      //   }
+      /* run buffered message through pipeline */
+      packet *pkt;
+      pkt = dp_buffers_retrieve (m_buffers, msg->buffer_id);
+      if (pkt != NULL) 
+        {
+          PipelineProcessPacket (pkt);
+        } 
+      else 
+        {
+          NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << msg->buffer_id);
+        }
     }
   
   // All handlers must free the message when everything is ok
