@@ -18,8 +18,12 @@
 
 /** 
  * \defgroup ofswitch13 OpenFlow 1.3 softswitch
- * \brief An OpenFlow 1.3 compatible switch datapath implementation
- * 
+ * This section documents the API of ns3 OpenFlow 1.3 compatible switch
+ * datapath implementation.
+ */
+
+/** 
+ * \ingroup ofswitch13
  * This module follows the OpenFlow 1.3 switch specification
  * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
  * It depends on the CPqD ofsoftswitch13
@@ -66,6 +70,7 @@ extern "C"
 #include "lib/ofpbuf.h"
 #include "lib/dynamic-string.h"
 #include "lib/hash.h"
+#include "lib/random.h"
 
 #include "oflib/ofl-structs.h"
 #include "oflib/oxm-match.h"
@@ -134,10 +139,27 @@ struct Port
   
   uint32_t flags;                 ///< SWP_* flags.
   Ptr<NetDevice> netdev;          ///< Pointer to ns3::NetDevice
-  struct ofl_port *conf;          ///< Config information
-  struct ofl_port_stats *stats;   ///< Statistics
+  ofl_port *conf;                 ///< Config information
+  ofl_port_stats *stats;          ///< Statistics
   uint32_t port_no;               ///< Port number
 };
+
+/**
+ * \ingroup ofswitch13
+ * \brief Echo request metadata.
+ */
+struct EchoInfo
+{
+  bool waiting;       //!< True when waiting for reply
+  Time send;          //!< Send time
+  Time recv;          //!< Received time
+  Ipv4Address destIp; //!< Destination IPv4
+
+  EchoInfo (Ipv4Address ip);  //!< Constructor
+  Time GetRtt ();   //!< Compute the echo RTT
+};
+
+typedef std::map<uint64_t, EchoInfo> EchoMsgMap_t;
 
 /**
  * \ingroup ofswitch13
@@ -183,7 +205,7 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid);
  * \param packet_out True if the packet arrived in a packet out msg
  * \return The pointer to the created packet
  */
-struct packet* InternalPacketFromBuffer (uint32_t in_port, struct ofpbuf *buf,
+packet* InternalPacketFromBuffer (uint32_t in_port, ofpbuf *buf,
     bool packet_out);
 
 /**
@@ -197,7 +219,7 @@ struct packet* InternalPacketFromBuffer (uint32_t in_port, struct ofpbuf *buf,
  * \param xid The transaction id to use.
  * \return The ns3::Packet created.
  */
-Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid);
+Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid = 0);
 
 /**
  * \ingroup ofswitch13
@@ -222,7 +244,7 @@ Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer);
  * \param pkt The internal openflow packet
  * \return The ns3::Packet created.
  */
-Ptr<Packet> PacketFromInternalPacket (struct packet *pkt);
+Ptr<Packet> PacketFromInternalPacket (packet *pkt);
 
 } // namespace ofs
 } // namespace ns3

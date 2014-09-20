@@ -20,6 +20,7 @@
 
 #include "ofswitch13-helper.h"
 #include "ns3/ofswitch13-net-device.h"
+#include "ns3/learning-controller.h"
 #include "ns3/uinteger.h"
 #include "ns3/node.h"
 #include "ns3/log.h"
@@ -37,8 +38,8 @@ OFSwitch13Helper::OFSwitch13Helper ()
     m_ctrlDev (0),
     m_dpId (0)
 {
-  NS_LOG_FUNCTION_NOARGS ();
-  m_ctrlFactory.SetTypeId ("ns3::OFSwitch13Controller");
+  NS_LOG_FUNCTION (this);
+  m_ctrlFactory.SetTypeId ("ns3::LearningController");
   m_ndevFactory.SetTypeId ("ns3::OFSwitch13NetDevice");
   m_chanFactory.SetTypeId ("ns3::CsmaChannel");
     
@@ -55,30 +56,33 @@ OFSwitch13Helper::~OFSwitch13Helper ()
   m_ctrlApp = 0;
   m_ctrlDev = 0;
   m_csmaChannel = 0;
+  m_unregSw.clear ();
 }
 
 void
 OFSwitch13Helper::SetDeviceAttribute (std::string n1, const AttributeValue &v1)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
   m_ndevFactory.Set (n1, v1);
 }
 
-void
-OFSwitch13Helper::SetControllerAttribute (std::string n1, const AttributeValue &v1)
-{
-  NS_LOG_FUNCTION_NOARGS ();
-  m_ctrlFactory.Set (n1, v1);
-}
+// void
+// OFSwitch13Helper::SetControllerAttribute (std::string n1, const AttributeValue &v1)
+// {
+//   NS_LOG_FUNCTION (this);
+//   m_ctrlFactory.Set (n1, v1);
+// }
 
 NetDeviceContainer
 OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {
+  NS_LOG_FUNCTION (this);
   NS_LOG_DEBUG ("Installing OpenFlow switch device on node " << swNode->GetId ());
   
   SetDeviceAttribute ("ID", UintegerValue (++m_dpId));
   Ptr<OFSwitch13NetDevice> openFlowDev = m_ndevFactory.Create<OFSwitch13NetDevice> ();
   swNode->AddDevice (openFlowDev);
+  m_devices.Add (openFlowDev);
   
   for (NetDeviceContainer::Iterator i = ports.Begin (); i != ports.End (); ++i)
     {
@@ -91,37 +95,64 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
   NetDeviceContainer swDev = m_csmaHelper.Install (swNode, m_csmaChannel);
   Ipv4InterfaceContainer swIface = m_ipv4helper.Assign (swDev);
 
-  // Updating containers
-  m_switches.Add (swNode);
-  m_devices.Add (openFlowDev);
-  m_address.Add (swIface);
-
   // If controller address already set, start switch <--> controller connection
   if (!m_ctrlAddr.IsInvalid ())
     {
       openFlowDev->SetAttribute ("ControllerAddr", AddressValue (m_ctrlAddr));
       openFlowDev->StartControllerConnection ();
     }
+
+  // Register switch metadata into controller or save for further registration
+  SwitchInfo swInfo; 
+  swInfo.ipv4   = swIface.GetAddress (0);
+  swInfo.netdev = openFlowDev;
+  swInfo.node   = swNode;
+  swInfo.socket = 0;
+  swInfo.port   = 0;
+  if (m_ctrlApp)
+    {
+      m_ctrlApp->RegisterSwitchMetadata (swInfo);
+    }
+  else
+    {
+      m_unregSw.push_back (swInfo); 
+    }
   return NetDeviceContainer (openFlowDev);
 }
 
 Ptr<OFSwitch13Controller> 
-OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
+OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller)
 {
+  NS_LOG_FUNCTION (this);
   NS_LOG_DEBUG ("Installing OpenFlow controller on node " << cNode->GetId ());
 
   if (m_ctrlApp == 0)
     {
       // Install the controller App in the controller node
-      m_ctrlApp = m_ctrlFactory.Create<OFSwitch13Controller> ();
-      cNode->AddApplication (m_ctrlApp);
-      m_ctrlApp->SetOFSwitch13Helper (this);
+      m_ctrlApp = controller;
       m_ctrlApp->SetStartTime (Seconds (0));
+      cNode->AddApplication (m_ctrlApp);
+      
+      // Registering previous configured switches
+      if (!m_unregSw.empty ())
+        {
+          for (SwitchInfoVector_t::iterator it = m_unregSw.begin (); it != m_unregSw.end (); it++)
+            {
+               m_ctrlApp->RegisterSwitchMetadata (*it);
+            }
+          m_unregSw.clear ();
+        }
     }
-  
   InstallExternalController (cNode);
-
   return m_ctrlApp;
+}
+
+Ptr<OFSwitch13Controller> 
+OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
+{
+  NS_LOG_FUNCTION (this);
+  Ptr<LearningController> ctrl = m_ctrlFactory.Create<LearningController> ();
+  return InstallControllerApp (cNode, ctrl);
 }
 
 Ptr<NetDevice>
@@ -158,67 +189,8 @@ OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
 void
 OFSwitch13Helper::EnableOpenFlowPcap ()
 {
+  NS_LOG_FUNCTION (this);
   m_csmaHelper.EnablePcap ("openflow-channel", m_ctrlDev, true);
-}
-
-Ipv4Address 
-OFSwitch13Helper::GetSwitchAddress (uint32_t idx)
-{
-  return m_address.GetAddress (idx);
-}
-
-Ptr<OFSwitch13NetDevice> 
-OFSwitch13Helper::GetSwitchDevice (uint32_t idx)
-{
-  return DynamicCast<OFSwitch13NetDevice> (m_devices.Get (idx));
-}
-
-Ptr<Node> 
-OFSwitch13Helper::GetSwitchNode (uint32_t idx)
-{
-  return m_switches.Get (idx);
-}
-
-uint32_t
-OFSwitch13Helper::GetContainerIndex (Ipv4Address addr)
-{
-  for (uint32_t i = 0; i < m_address.GetN (); i++)
-    {
-      if (addr.IsEqual (m_address.GetAddress (i)))
-        {
-          return i;
-        }
-    }
-  NS_LOG_ERROR ("Switch address not found.");
-  return UINT32_MAX;
-}
-
-uint32_t
-OFSwitch13Helper::GetContainerIndex (Ptr<Node> node)
-{
-  for (uint32_t i = 0; i < m_switches.GetN (); i++)
-    {
-      if (node == m_switches.Get (i))
-        {
-          return i;
-        }
-    }
-  NS_LOG_ERROR ("Switch node not found.");
-  return UINT32_MAX;
-}
-
-uint32_t
-OFSwitch13Helper::GetContainerIndex (Ptr<OFSwitch13NetDevice> dev)
-{
-  for (uint32_t i = 0; i < m_devices.GetN (); i++)
-    {
-      if (dev == m_devices.Get (i))
-        {
-          return i;
-        }
-    }
-  NS_LOG_ERROR ("Switch device not found.");
-  return UINT32_MAX;
 }
 
 } // namespace ns3

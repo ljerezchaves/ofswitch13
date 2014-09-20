@@ -24,6 +24,7 @@
 #include "ns3/tcp-socket-factory.h"
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
+#include <string>
 
 namespace ns3 {
 
@@ -32,9 +33,24 @@ class OFSwitch13Helper;
 
 /**
  * \ingroup ofswitch13
- * \brief An OpenFlow 1.3 controller for OFSwitch13NetDevice devices
+ * \brief Switch metadata used by internal controller handlers
+ */
+struct SwitchInfo
+{
+  Ipv4Address ipv4;                 //!< Switch IPv4 address
+  Ptr<OFSwitch13NetDevice> netdev;  //!< OpenFlow NetDevice
+  Ptr<Node> node;                   //!< Switch node
+  Ptr<Socket> socket;               //!< TCP socket connected to controller
+  uint16_t port;                    //!< Socket port
+
+  InetSocketAddress GetInet ();     //!< Get Inet address conversion
+};
+
+/**
+ * \ingroup ofswitch13
+ * \brief An OpenFlow 1.3 controller base class for OFSwitch13NetDevice devices
  * \attention Currently, It is not full-compliant with the protocol
- * specification. 
+ * specification.
  */
 class OFSwitch13Controller : public Application
 {
@@ -47,54 +63,133 @@ public:
   virtual void DoDispose ();
 
   /**
-   * \briefRegister the OFSwitch13Helper used to create the network.
-   * \param helper The helper pointer
+   * \brief Register switch metadata information on this controller.
+   * \param swInfo The switch metadata
    */
-  void SetOFSwitch13Helper (Ptr<OFSwitch13Helper> helper);
+  void RegisterSwitchMetadata (SwitchInfo swInfo);
 
   /**
-   * \brief Create a flow_mod message using the same syntax from dpctl, and
-   * send it to the switch.
-   * \param swtch The switch to receive the message.
-   * \param textCmd The dpctl flow_mod command to create the message.
-   * \return The number of bytes sent
+   * Switch TCP connection started callback
+   * \param The switch metadata that initiated a connection with controller
    */
-  int SendFlowModMsg (Ptr<OFSwitch13NetDevice> swtch, const char* textCmd);
- 
+  typedef Callback<void, SwitchInfo> SwitchConnectionCallback_t;
 
-private:
+  /**
+   * \brief Register a TCP connection callback
+   * \param cb Callback to invoke whenever a switch starts a TCP connection to
+   * this controller
+   */
+  void SetConnectionCallback (SwitchConnectionCallback_t cb);
+
+protected:
   // inherited from Application
   virtual void StartApplication (void);
   virtual void StopApplication (void);
 
   /**
-   * \internal
-   * Get the packet type on the buffer, which can then be used
-   * to determine how to handle the buffer.
-   *
-   * \param buffer The packet in OpenFlow buffer format.
-   * \return The packet type, as defined in the ofp_type struct.
+   * Send a ns3 packet to a registered switch. 
+   * \param swtch The switch to receive the message
+   * \param pkt The packet to send
+   * \return The number of bytes sent
    */
-  ofp_type GetPacketType (ofpbuf* buffer);
+  int SendToSwitch (SwitchInfo swtch, Ptr<Packet> pkt);
 
   /**
+   * \name OpenFlow symmetric messages
+   * Methods to send messages withou solicitation
+   * \param swtch The target switch metadata
+   * \return The number of transmitted bytes.
+   */
+  //\{
+  int SendHello (SwitchInfo swtch); //!< Send a hello message (upon connection establishment)
+  int SendEchoRequest (SwitchInfo swtch, size_t payloadSize = 0); //!< Send an echo request
+  //\}
+
+  /**
+   * \brief Create a flow_mod message using the same syntax from dpctl, and
+   * send it to the switch.
+   * \param swtch The target switch metadata
+   * \param textCmd The dpctl flow_mod command to create the message.
+   * \return The number of bytes sent
+   */
+  int DpctlFlowModCommand (SwitchInfo swtch, const std::string textCmd);
+
+
+  /**
+   * \name OpenFlow controller-to-switch messages
+   * \brief Send request messages to switch
+   *
+   * These methods can be used by controller to query switch configuration,
+   * description or statistics. The response sen by switch will be received by
+   * handlers methods.
+   *
+   * \param swtch The target switch metadata
+   * \return The number of transmitted bytes.
+   */
+  //\{
+  int RequestBarrier (SwitchInfo swtch);          //!< Send a barrier request
+  int RequestAsync (SwitchInfo swtch);            //!< Query the asynchronous messages that it wants to receive
+  int RequestFeatures (SwitchInfo swtch);         //!< Query switch features (during handshake)
+  int RequestConfig (SwitchInfo swtch);           //!< Query switch configuration
+  int RequestSwitchDesc (SwitchInfo swtch);       //!< Query switch datapath description
+  int RequestFlowStats (SwitchInfo swtch);        //!< Query flow entry statistics
+  int RequestFlowAggregStats (SwitchInfo swtch);  //!< Query aggregate flow entry statistics
+  int RequestTableStats (SwitchInfo swtch);       //!< Query table statistics
+  int RequestPortStats (SwitchInfo swtch, uint32_t port = OFPP_ANY); //!< Query port statistcs (default: all ports)
+  int RequestTableFeatures (SwitchInfo swtch);    //!< Query table features
+  int RequestPortDesc (SwitchInfo swtch);         //!< Query port description
+  //\}
+
+  /**
+   * \name OpenFlow message handlers
+   * \brief Handlers used by ReceiveFromSwitch to proccess each type of
+   *
+   * OpenFlow message received from the switch. 
+   * Some handler methods can not be overwritten by derived class (hello, echo
+   * request/reply and barrier reply, as they must behave as already
+   * implemented. In constrast, packetIn must be implementd by the derived
+   * controller, to proper handle packets sent from switch to controller. The
+   * current implementation of other virtual methods does nothing: just free
+   * the received message and returns 0.
+   *
+   * \attention Handlers \em MUST free received msg when everything is ok.
+   *
+   * \param msg The OpenFlow message.
+   * \param swtch The source switch metadata.
+   * \param xid The transaction id from the request message.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  //\{
+  ofl_err HandleMsgHello (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
+  ofl_err HandleMsgEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
+  ofl_err HandleMsgEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
+  ofl_err HandleMsgBarrierReply (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
+  
+  virtual ofl_err HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid) = 0;
+  
+  virtual ofl_err HandleMsgError (ofl_msg_error *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgPortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMsgQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
+  //\}
+
+  typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
+  SwitchsMap_t m_switchesMap;           //!< Registered switch metadata
+private:
+ 
+  /**
    * \internal
-   * \brief Handles any ofpbuf received from switch
+   * \brief Called by the SocketRead when a packet is received from the switch.
+   * Dispatches control messages to appropriate handler functions.
    * \param swtch The switch the message was received from.
    * \param buffer The pointer to the buffer containing the message.
    */
-  virtual void ReceiveFromSwitch (Ptr<OFSwitch13NetDevice> swtch, ofpbuf* buffer);
-
-  /**
-   * \internal
-   * Send a message to a registered switch. It will encapsulate the ofl_msg
-   * format into an ofpbuf wire format and send it over a TCP socekt to the
-   * proper switch IP address.
-   * \param pkt The packet to send
-   * \param swtch The switch to receive the message.
-   * \return The number of bytes sent
-   */
-  int SendToSwitch (Ptr<Packet> pkt, Ptr<OFSwitch13NetDevice> swtch);
+  int ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer);
 
   /**
    * \internal
@@ -105,21 +200,19 @@ private:
    * \param from The source Address
    */
   //\{
-  void HandleRead       (Ptr<Socket> socket);                       //!< Receive packet from switch
-  bool HandleRequest    (Ptr<Socket> s, const Address& from);       //!< TCP request from switch
-  void HandleAccept     (Ptr<Socket> socket, const Address& from);  //!< TCP handshake succeeded
-  void HandlePeerClose  (Ptr<Socket> socket);                       //!< TCP connection closed
-  void HandlePeerError  (Ptr<Socket> socket);                       //!< TCP connection error
+  void SocketRead       (Ptr<Socket> socket);                       //!< Receive packet from switch
+  bool SocketRequest    (Ptr<Socket> s, const Address& from);       //!< TCP request from switch
+  void SocketAccept     (Ptr<Socket> socket, const Address& from);  //!< TCP handshake succeeded
+  void SocketPeerClose  (Ptr<Socket> socket);                       //!< TCP connection closed
+  void SocketPeerError  (Ptr<Socket> socket);                       //!< TCP connection error
   //\}
-  
+
   uint32_t              m_xid;          //!< Global transaction idx
   uint16_t              m_port;         //!< Local controller tcp port
-  
   Ptr<Socket>           m_serverSocket; //!< Listening server socket
-  Ptr<OFSwitch13Helper> m_helper;       //!< OpenFlow helper
   
-  typedef std::map<uint32_t, Ptr<Socket> > SocketsMap_t;
-  SocketsMap_t m_socketsMap;            //!< Map of accepted sockets from switches
+  ofs::EchoMsgMap_t m_echoMap;                     //!< Metadata for echo requests
+  SwitchConnectionCallback_t m_connectionCallback; //!< TCP connection callback
 };
 
 } // namespace ns3
