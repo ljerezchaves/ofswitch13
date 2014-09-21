@@ -1510,6 +1510,40 @@ OFSwitch13NetDevice::FlowTableModify (flow_table *table, ofl_msg_flow_mod *mod,
   return 0;
 }
 
+ofl_err 
+OFSwitch13NetDevice::FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod, 
+      bool *match_kept, bool *insts_kept)
+{
+  switch (mod->command) 
+    {
+      case (OFPFC_ADD): 
+        {
+          bool overlap = ((mod->flags & OFPFF_CHECK_OVERLAP) != 0);
+          return FlowTableAdd (table, mod, overlap, match_kept, insts_kept);
+        }
+      case (OFPFC_MODIFY): 
+        {
+          return FlowTableModify (table, mod, false, insts_kept);
+        }
+      case (OFPFC_MODIFY_STRICT): 
+        {
+          return FlowTableModify (table, mod, true, insts_kept);
+        }
+      case (OFPFC_DELETE): 
+        {
+          return FlowTableDelete (table, mod, false);
+        }
+      case (OFPFC_DELETE_STRICT): 
+        {
+          return FlowTableDelete (table, mod, true);
+        }
+      default: 
+        {
+          return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_COMMAND);
+        }
+    }
+}
+
 void
 OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
 {
@@ -1833,7 +1867,7 @@ OFSwitch13NetDevice::HandleMsgFlowMod (ofl_msg_flow_mod *msg, uint64_t xid)
   NS_LOG_FUNCTION (this);
   
   /**
-   * Modifications to a flow table from the controller are do ne with the
+   * Modifications to a flow table from the controller are done with the
    * OFPT_FLOW_MOD message (including add, modify or delete).
    * \see ofsoftswitch13 pipeline_handle_flow_mod () at udatapath/pipeline.c
    * and flow_table_flow_mod () at udatapath/flow_table.c
@@ -1874,65 +1908,69 @@ OFSwitch13NetDevice::HandleMsgFlowMod (ofl_msg_flow_mod *msg, uint64_t xid)
         }
     }
   
-  // Execute flow modification at proper table
-  flow_table *table = m_pipeline->tables[msg->table_id];
-  switch (msg->command) 
+  if (msg->table_id == 0xff) 
     {
-      case (OFPFC_ADD): 
+      /** 
+       * Note: the result of using table_id = 0xff is undefined in the spec.
+       * For now it is accepted for delete commands, meaning to delete from
+       * all tables 
+       */
+      if (msg->command == OFPFC_DELETE || msg->command == OFPFC_DELETE_STRICT) 
         {
-          bool overlap = ((msg->flags & OFPFF_CHECK_OVERLAP) != 0);
-          error = FlowTableAdd (table, msg, overlap, &match_kept, &insts_kept);
-          break;
+          size_t i;
+          error = 0;
+          for (i = 0; i < PIPELINE_TABLES; i++) 
+            {
+              error = FlowTableFlowMod (m_pipeline->tables[i], msg, &match_kept, &insts_kept);
+              if (error) 
+                {
+                  break;
+                }
+            }
+          if (error) 
+            {
+              return error;
+            } 
+          else 
+            {
+              ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, NULL/*pl->dp->exp*/);
+              return 0;
+            }
         }
-      case (OFPFC_MODIFY): 
+      else
         {
-          error =  FlowTableModify (table, msg, false, &insts_kept);
-          break;
-        }
-      case (OFPFC_MODIFY_STRICT): 
-        {
-          error =  FlowTableModify (table, msg, true, &insts_kept);
-          break;
-        }
-      case (OFPFC_DELETE): 
-        {
-          error = FlowTableDelete (table, msg, false);
-          break;
-        }
-      case (OFPFC_DELETE_STRICT): 
-        {
-          error = FlowTableDelete (table, msg, true);
-          break;
-        }
-      default: 
-        {
-          return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_COMMAND);
+          return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
         }
     }
-  if (error) 
+  else
     {
-      return error;
-    }
-  
-  if ((msg->command == OFPFC_ADD || msg->command == OFPFC_MODIFY || msg->command == OFPFC_MODIFY_STRICT) && 
-       msg->buffer_id != NO_BUFFER) 
-    {
-      /* run buffered message through pipeline */
-      packet *pkt;
-      pkt = dp_buffers_retrieve (m_buffers, msg->buffer_id);
-      if (pkt != NULL) 
+      // Execute flow modification at proper table
+      error = FlowTableFlowMod (m_pipeline->tables[msg->table_id], msg, &match_kept, &insts_kept); 
+      if (error) 
         {
-          PipelineProcessPacket (pkt);
-        } 
-      else 
-        {
-          NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << msg->buffer_id);
+          return error;
         }
+      
+      if ((msg->command == OFPFC_ADD || msg->command == OFPFC_MODIFY || msg->command == OFPFC_MODIFY_STRICT) && 
+           msg->buffer_id != NO_BUFFER) 
+        {
+          /* run buffered message through pipeline */
+          packet *pkt;
+          pkt = dp_buffers_retrieve (m_buffers, msg->buffer_id);
+          if (pkt != NULL) 
+            {
+              PipelineProcessPacket (pkt);
+            } 
+          else 
+            {
+              NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << msg->buffer_id);
+            }
+        }
+      
+      // All handlers must free the message when everything is ok
+      ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, NULL/*m_pipeline->dp->exp*/);
+      return 0;
     }
-  
-  // All handlers must free the message when everything is ok
-  ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, NULL/*m_pipeline->dp->exp*/);
-  return 0;
 }
 
 ofl_err

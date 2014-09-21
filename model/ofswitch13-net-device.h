@@ -354,7 +354,7 @@ private:
   flow_table* FlowTableCreate (uint8_t table_id);
 
   /**
-   * Handles a flow_mod message with OFPFC_ADD command. 
+   * Handles a flow_mod msg with OFPFC_ADD command. 
    * \attention new entries will be placed behind those with equal priority
    * \see ofsoftswitch13 flow_table_add () at udatapath/flow_table.c
    *
@@ -362,8 +362,8 @@ private:
    * \param mod The ofl_msg_flow_mod message
    * \param check_overlap If true, prevents existing flow entry overlaps with
    *        the match in the flow mod message
-   * \param match_kept Used by HandleFlowMod to proper free structs
-   * \param insts_kept Used by HandleFlowMod to proper free structs
+   * \param match_kept Used by HandleMsgFlowMod to proper free structs
+   * \param insts_kept Used by HandleMsgFlowMod to proper free structs
    * \return 0 if sucess or OpenFlow error code
    */
   ofl_err FlowTableAdd (flow_table *table, ofl_msg_flow_mod *mod, 
@@ -382,16 +382,30 @@ private:
       bool strict); 
 
   /**
-   * Handles a flow_mod msf with OFPFC_MODIFY or OFPFC_MODIFY_STRICT command. 
+   * Handles a flow_mod msg with OFPFC_MODIFY or OFPFC_MODIFY_STRICT command. 
    * \see ofsoftswitch13 flow_table_delete () at udatapath/flow_table.c
    *
    * \param table The table to modify the entry
    * \param mod The ofl_msg_flow_mod message
    * \param strict If true, check for strict match
+   * \param insts_kept Used by HandleMsgFlowMod to proper free structs
    * \return 0 if sucess or OpenFlow error code
    */
   ofl_err FlowTableModify (flow_table *table, ofl_msg_flow_mod *mod, 
       bool strict, bool *insts_kept);
+
+  /**
+   * Handles any flow_mod msg. 
+   * \see ofsoftswitch13 flow_table_flow_mod () at udatapath/flow_table.c
+   *
+   * \param table The table to modify the entry
+   * \param mod The ofl_msg_flow_mod message
+   * \param match_kept Used by HandleMsgFlowMod to proper free structs
+   * \param insts_kept Used by HandleMsgFlowMod to proper free structs
+   * \return 0 if sucess or OpenFlow error code
+   */
+  ofl_err FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod, 
+      bool *match_kept, bool *insts_kept);
   //\}
 
 
