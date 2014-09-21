@@ -1081,17 +1081,15 @@ OFSwitch13NetDevice::BuffersSave (packet *pkt)
   p = &m_buffers->buffers[m_buffers->buffer_idx];
   if (p->pkt != NULL) 
     {
-      return NO_BUFFER;
-      // FIXME: Solve this time problem
-      // if (time_now() < p->timeout) 
-      //   {
-      //     return NO_BUFFER;
-      //   } 
-      // else 
-      //   {
-      //     p->pkt->buffer_id = NO_BUFFER;
-      //     InternalPacketDestroy (p->pkt);
-      //   }
+      if (Simulator::Now () < Time (p->timeout))
+        {
+          return NO_BUFFER;
+        } 
+      else 
+        {
+          p->pkt->buffer_id = NO_BUFFER;
+          InternalPacketDestroy (p->pkt);
+        }
     }
 
   /* Don't use maximum cookie value since the all-bits-1 id is special. */
@@ -1099,10 +1097,13 @@ OFSwitch13NetDevice::BuffersSave (packet *pkt)
     {
       p->cookie = 0;
     }
-  p->pkt = pkt;
-  // p->timeout = time_now() + OVERWRITE_SECS;
-  id = m_buffers->buffer_idx | (p->cookie << PKT_BUFFER_BITS);
 
+  // We are using the time_t p->timeout to store ns3 simulation time in ms
+  Time expire = Simulator::Now () + Time ("1s");
+  p->timeout = (time_t)expire.GetMilliSeconds (); 
+  
+  p->pkt = pkt;
+  id = m_buffers->buffer_idx | (p->cookie << PKT_BUFFER_BITS);
   pkt->buffer_id  = id;
 
   return id;
@@ -1114,10 +1115,8 @@ OFSwitch13NetDevice::BuffersIsAlive (uint32_t id)
   NS_LOG_FUNCTION (this);
   
   packet_buffer *p = &m_buffers->buffers [id & PKT_BUFFER_MASK];
-  return (p->cookie == id >> PKT_BUFFER_BITS);
-
-  //FIXME Incomplete due to time incompatibility from simulator and ofsoftswitch13
-  //return ((p->cookie == id >> PKT_BUFFER_BITS) && (time_now() < p->timeout));
+  return ((p->cookie == id >> PKT_BUFFER_BITS) && 
+          (Simulator::Now () < Time (p->timeout)));
 }
 
 void
