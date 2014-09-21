@@ -81,6 +81,15 @@ public:
    */
   void SetConnectionCallback (SwitchConnectionCallback_t cb);
 
+  /**
+   * \brief Execute a dpctl command to send an openflow message to the
+   * switch.
+   * \param swtch The target switch metadata
+   * \param textCmd The dpctl command to create the message.
+   * \return The number of bytes sent
+   */
+  int DpctlCommand (SwitchInfo swtch, const std::string textCmd);
+
 protected:
   // inherited from Application
   virtual void StartApplication (void);
@@ -106,31 +115,11 @@ protected:
   //\}
 
   /**
-   * \brief Create a flow_mod message using the same syntax from dpctl, and
-   * send it to the switch.
-   * \param swtch The target switch metadata
-   * \param textCmd The dpctl command to create the message.
-   * \return The number of bytes sent
-   */
-  int DpctlFlowModCommand (SwitchInfo swtch, const std::string textCmd);
-
-  /**
-   * \brief Create a set_config message using the same syntax from dpctl, and
-   * send it to the switch.
-   * \param swtch The target switch metadata
-   * \param textCmd The dpctl command to create the message.
-   * \return The number of bytes sent
-   */
-  int DpctlSetConfigCommand (SwitchInfo swtch, const std::string textCmd);
-
-
-
-  /**
    * \name OpenFlow controller-to-switch messages
    * \brief Send request messages to switch
    *
    * These methods can be used by controller to query switch configuration,
-   * description or statistics. The response sen by switch will be received by
+   * description or statistics. The response sent by switch will be received by
    * handlers methods.
    *
    * \param swtch The target switch metadata
@@ -142,8 +131,6 @@ protected:
   int RequestFeatures (SwitchInfo swtch);         //!< Query switch features (during handshake)
   int RequestConfig (SwitchInfo swtch);           //!< Query switch configuration
   int RequestSwitchDesc (SwitchInfo swtch);       //!< Query switch datapath description
-  int RequestFlowStats (SwitchInfo swtch);        //!< Query flow entry statistics
-  int RequestFlowAggregStats (SwitchInfo swtch);  //!< Query aggregate flow entry statistics
   int RequestTableStats (SwitchInfo swtch);       //!< Query table statistics
   int RequestPortStats (SwitchInfo swtch, uint32_t port = OFPP_ANY); //!< Query port statistcs (default: all ports)
   int RequestTableFeatures (SwitchInfo swtch);    //!< Query table features
@@ -190,8 +177,8 @@ protected:
 
   typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
   SwitchsMap_t m_switchesMap;           //!< Registered switch metadata
+
 private:
- 
   /**
    * \internal
    * \brief Called by the SocketRead when a packet is received from the switch.
@@ -200,6 +187,25 @@ private:
    * \param buffer The pointer to the buffer containing the message.
    */
   int ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer);
+
+  /**
+   * \internal
+   * \name Dcptl commands
+   * Methods to create the openflow messages based on dpctl commands
+   * \param swtch The target switch metadata
+   * \param argc The number of arguments 
+   * \param argv The argument's values
+   * \return The number of bytes sent
+   */
+  //\{
+  int DpctlFlowModCommand (SwitchInfo swtch, int argc, char *argv[]);
+  int DpctlSetConfigCommand (SwitchInfo swtch, int argc, char *argv[]);
+  int DpctlStatsFlowCommand (SwitchInfo swtch, int argc, char *argv[]);
+  int DpctlStatsAggrCommand (SwitchInfo swtch, int argc, char *argv[]);
+  int DpctlStatsPortCommand (SwitchInfo swtch, int argc, char *argv[]);
+  int DpctlPortModCommand (SwitchInfo swtch, int argc, char *argv[]);
+  int DpctlTableModCommand (SwitchInfo swtch, int argc, char *argv[]);
+  //\}
 
   /**
    * \internal

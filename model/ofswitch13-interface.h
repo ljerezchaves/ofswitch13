@@ -91,6 +91,7 @@ void parse_port_mod(char *str, struct ofl_msg_port_mod *msg);
 void parse_table_mod(char *str, struct ofl_msg_table_mod *msg);
 void parse_band(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_header **b);
 void make_all_match(struct ofl_match_header **match);
+int parse_port(char *str, uint32_t *port); 
 
 #undef list
 #undef private

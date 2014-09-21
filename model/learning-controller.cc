@@ -116,8 +116,8 @@ LearningController::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
                 {
                   // Send a flow-mod to switch creating this flow;
                   std::ostringstream cmd;
-                  cmd << "cmd=add,table=0,prio=" << ++prio << " eth_dst=" << src48 << " apply:output="<< inPort;
-                  DpctlFlowModCommand (swtch, cmd.str());
+                  cmd << "flow-mod cmd=add,table=0,prio=" << ++prio << " eth_dst=" << src48 << " apply:output="<< inPort;
+                  DpctlCommand (swtch, cmd.str());
                 }
             }
           else
@@ -180,12 +180,12 @@ LearningController::ConnectionStarted (SwitchInfo swtch)
   NS_LOG_FUNCTION (this << swtch.ipv4);
 
   // After a successfull handshake, let's install the table-miss entry
-  DpctlFlowModCommand (swtch, "cmd=add,table=0,prio=0 apply:output=ctrl");
+  DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl");
 
   // Lets configure te switch to not buffer packets.
   std::ostringstream cmd;
-  cmd << "miss="<< OFPCML_NO_BUFFER;
-  DpctlSetConfigCommand (swtch, cmd.str ());
+  cmd << "set-config miss="<< OFPCML_NO_BUFFER;
+  DpctlCommand (swtch, cmd.str ());
 
   // Create an empty L2SwitchingTable and insert it into m_learnedInfo
   L2Table_t l2Table;

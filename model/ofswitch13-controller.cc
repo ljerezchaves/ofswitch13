@@ -51,9 +51,96 @@ SwitchInfo::GetInet ()
   return InetSocketAddress (ipv4, port);
 }
 
+int
+OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
+{
+  int bytes = 0;
+  char **argv;
+  size_t argc;
+  
+  // Parse dpctl command
+  wordexp_t cmd;
+  wordexp (textCmd.c_str (), &cmd, 0);
+  argv = cmd.we_wordv;
+  argc = cmd.we_wordc;
+
+  if (strcmp (argv[0], "features") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
+      bytes = RequestFeatures (swtch);
+    }
+  else if (strcmp (argv[0], "get-config") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
+      bytes = RequestConfig (swtch);
+    }
+  else if (strcmp (argv[0], "table-features") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
+      bytes = RequestTableFeatures (swtch);
+    }
+  else if (strcmp (argv[0], "stats-desc") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
+      bytes = RequestSwitchDesc (swtch);
+    }
+  else if (strcmp (argv[0], "stats-flow") == 0)
+    {
+      NS_ASSERT_MSG (argc >= 1 && argc <= 3 , "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlStatsFlowCommand (swtch, --argc, ++argv);
+    }
+  else if (strcmp (argv[0], "stats-aggr") == 0)
+    {
+      NS_ASSERT_MSG (argc >= 1 && argc <= 3 , "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlStatsAggrCommand (swtch, --argc, ++argv);
+    }
+  else if (strcmp (argv[0], "stats-table") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
+      bytes = RequestTableStats (swtch);
+    }
+  else if (strcmp (argv[0], "stats-port") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1 || argc == 2 , "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlStatsPortCommand (swtch, --argc, ++argv);
+    }
+  else if (strcmp (argv[0], "port-desc") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
+      bytes = RequestPortDesc (swtch);
+    }
+  else if (strcmp (argv[0], "set-config") == 0)
+    {
+      NS_ASSERT_MSG (argc == 2, "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlSetConfigCommand (swtch, --argc, ++argv);
+    }
+  else if (strcmp (argv[0], "flow-mod") == 0)
+    {
+      NS_ASSERT_MSG (argc >= 2 && argc <= 9, "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlFlowModCommand (swtch, --argc, ++argv);
+    }
+  else if (strcmp (argv[0], "get-async") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
+      bytes = RequestAsync (swtch);
+    }
+  else if (strcmp (argv[0], "port-mod") == 0)
+    {
+      NS_ASSERT_MSG (argc == 2, "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlPortModCommand (swtch, --argc, ++argv);
+    }
+  else if (strcmp (argv[0], "table-mod") == 0)
+    {
+      NS_ASSERT_MSG (argc == 2, "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlTableModCommand (swtch, --argc, ++argv);
+    }
+  // set-table-match ??
+
+  wordfree (&cmd);
+  return bytes;
+}
+
 /********** Public methods ***********/
-
-
 OFSwitch13Controller::OFSwitch13Controller ()
 {
   NS_LOG_FUNCTION (this);
@@ -71,7 +158,6 @@ OFSwitch13Controller::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Controller") 
     .SetParent<Object> ()
-//    .AddConstructor<OFSwitch13Controller> ()
     .AddAttribute ("Port",
                    "Port on which we listen for incoming packets.",
                    UintegerValue (6653),
@@ -110,115 +196,7 @@ OFSwitch13Controller::SetConnectionCallback (SwitchConnectionCallback_t cb)
   m_connectionCallback = cb;
 }
 
-int
-OFSwitch13Controller::DpctlFlowModCommand (SwitchInfo swtch, const std::string textCmd)
-{
-  NS_LOG_FUNCTION (swtch.ipv4);
-
-  // Create the internal flow_mod message
-  ofl_msg_flow_mod msgLocal;
-  ofl_msg_flow_mod *msg = &msgLocal;
-  msgLocal.header.type = OFPT_FLOW_MOD;
-  msgLocal.cookie = 0x0000000000000000ULL;
-  msgLocal.cookie_mask = 0x0000000000000000ULL;
-  msgLocal.table_id = 0x00;
-  msgLocal.command = OFPFC_ADD;
-  msgLocal.idle_timeout = OFP_FLOW_PERMANENT;
-  msgLocal.hard_timeout = OFP_FLOW_PERMANENT;
-  msgLocal.priority = OFP_DEFAULT_PRIORITY;
-  msgLocal.buffer_id = 0xffffffff;
-  msgLocal.out_port = OFPP_ANY;
-  msgLocal.out_group = OFPG_ANY;
-  msgLocal.flags = 0x0000;
-  msgLocal.match = NULL;
-  msgLocal.instructions_num = 0;
-  msgLocal.instructions = NULL;
-
-  // Parse flow-mod dpctl command
-  wordexp_t cmd;
-  wordexp (textCmd.c_str (), &cmd, 0);
-  
-  parse_flow_mod_args (cmd.we_wordv[0], msg); 
-  if (cmd.we_wordc > 1) 
-    {
-      size_t i, j;
-      size_t inst_num = 0;
-      if (cmd.we_wordc > 2)
-        {
-          inst_num = cmd.we_wordc - 2;
-          j = 2;
-          parse_match (cmd.we_wordv[1], &(msg->match));
-        }
-      else 
-        {
-          if (msg->command == OFPFC_DELETE) 
-            {
-              inst_num = 0;
-              parse_match (cmd.we_wordv[1], &(msg->match));
-            } 
-          else 
-            {
-              /**
-               * We copy the value because we don't know if it is an
-               * instruction or match.  If the match is empty, the argv is
-               * modified causing errors to instructions parsing
-               */
-              char *cpy = (char*)malloc (strlen (cmd.we_wordv[1]) + 1);
-              memset (cpy, 0x00, strlen (cmd.we_wordv[1]) + 1);
-              memcpy (cpy, cmd.we_wordv[1], strlen (cmd.we_wordv[1])); 
-              parse_match (cpy, &(msg->match));
-              free (cpy);
-              if (msg->match->length <= 4)
-                {
-                  inst_num = cmd.we_wordc - 1;
-                  j = 1;
-                }
-            }
-        }
-
-      msg->instructions_num = inst_num;
-      msg->instructions = (ofl_instruction_header**)xmalloc (sizeof (ofl_instruction_header*) * inst_num);
-      for (i=0; i < inst_num; i++) 
-        {
-          parse_inst (cmd.we_wordv[j+i], &(msg->instructions[i]));
-        }
-    } 
-  else 
-    {
-      make_all_match (&(msg->match));
-    }
-  wordfree (&cmd);
-
-  // Create packet, free memory and send
-  LogOflMsg ((ofl_msg_header*)msg);
-  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)msg, ++m_xid));
-}
-
-int
-OFSwitch13Controller::DpctlSetConfigCommand (SwitchInfo swtch, const std::string textCmd)
-{
-  NS_LOG_FUNCTION (swtch.ipv4);
-
-  ofl_msg_set_config msg;
-  msg.header.type = OFPT_SET_CONFIG;
-  msg.config = (ofl_config*)xmalloc (sizeof (ofl_config));
-  msg.config->flags = OFPC_FRAG_NORMAL;
-  msg.config->miss_send_len = OFP_DEFAULT_MISS_SEND_LEN;
-
-  // Parse set-config dpctl command
-  wordexp_t cmd;
-  wordexp (textCmd.c_str (), &cmd, 0);
-  parse_config (cmd.we_wordv[0], msg.config); 
-  wordfree (&cmd);
-  
-  // Create packet, free memory and send
-  LogOflMsg ((ofl_msg_header*)&msg);
-  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
-}
-
-
 /********* Protected methods *********/
-
 int
 OFSwitch13Controller::SendToSwitch (SwitchInfo swtch, Ptr<Packet> pkt)
 {
@@ -267,7 +245,6 @@ OFSwitch13Controller::SendEchoRequest (SwitchInfo swtch, size_t payloadSize)
     } 
   return SendToSwitch (swtch, pkt);
 }
-
 
 int
 OFSwitch13Controller::RequestBarrier (SwitchInfo swtch)
@@ -327,50 +304,6 @@ OFSwitch13Controller::RequestSwitchDesc (SwitchInfo swtch)
   msg.header.type = OFPT_MULTIPART_REQUEST;
   msg.type = OFPMP_DESC; 
   msg.flags = 0x0000;
-
-  LogOflMsg ((ofl_msg_header*)&msg);
-  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
-}
-
-int
-OFSwitch13Controller::RequestFlowStats (SwitchInfo swtch)
-{
-  NS_LOG_FUNCTION (swtch.ipv4);
-
-  struct ofl_msg_multipart_request_flow msg;
-  msg.header.header.type = OFPT_MULTIPART_REQUEST;
-  msg.header.type = OFPMP_FLOW; 
-  msg.header.flags = 0x0000;
-  msg.cookie = 0x0000000000000000ULL;
-  msg.cookie_mask = 0x0000000000000000ULL;
-  msg.table_id = 0xff;
-  msg.out_port = OFPP_ANY;
-  msg.out_group = OFPG_ANY;
-  msg.match = NULL;
-
-  //TODO Parse arguments and match
-
-  LogOflMsg ((ofl_msg_header*)&msg);
-  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
-}
-
-int
-OFSwitch13Controller::RequestFlowAggregStats (SwitchInfo swtch)
-{
-  NS_LOG_FUNCTION (swtch.ipv4);
-
-  struct ofl_msg_multipart_request_flow msg;
-  msg.header.header.type = OFPT_MULTIPART_REQUEST;
-  msg.header.type = OFPMP_AGGREGATE; 
-  msg.header.flags = 0x0000;
-  msg.cookie = 0x0000000000000000ULL;
-  msg.cookie_mask = 0x0000000000000000ULL;
-  msg.table_id = 0xff;
-  msg.out_port = OFPP_ANY;
-  msg.out_group = OFPG_ANY;
-  msg.match = NULL;
-
-  // TODO Parse arguments and match
 
   LogOflMsg ((ofl_msg_header*)&msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
@@ -598,7 +531,6 @@ OFSwitch13Controller::HandleMsgQueueGetConfigReply (ofl_msg_queue_get_config_rep
   return 0;
 }
 
-
 /********** Private methods **********/
 void
 OFSwitch13Controller::StartApplication ()
@@ -779,6 +711,224 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer)
     }
   ofpbuf_delete (buffer);
   return error; 
+}
+
+int
+OFSwitch13Controller::DpctlFlowModCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  // Create the internal flow_mod message
+  ofl_msg_flow_mod msgLocal;
+  ofl_msg_flow_mod *msg = &msgLocal;
+  msgLocal.header.type = OFPT_FLOW_MOD;
+  msgLocal.cookie = 0x0000000000000000ULL;
+  msgLocal.cookie_mask = 0x0000000000000000ULL;
+  msgLocal.table_id = 0x00;
+  msgLocal.command = OFPFC_ADD;
+  msgLocal.idle_timeout = OFP_FLOW_PERMANENT;
+  msgLocal.hard_timeout = OFP_FLOW_PERMANENT;
+  msgLocal.priority = OFP_DEFAULT_PRIORITY;
+  msgLocal.buffer_id = 0xffffffff;
+  msgLocal.out_port = OFPP_ANY;
+  msgLocal.out_group = OFPG_ANY;
+  msgLocal.flags = 0x0000;
+  msgLocal.match = NULL;
+  msgLocal.instructions_num = 0;
+  msgLocal.instructions = NULL;
+
+  // Parse flow-mod dpctl command
+  parse_flow_mod_args (argv[0], msg); 
+  if (argc > 1) 
+    {
+      size_t i, j;
+      size_t inst_num = 0;
+      if (argc > 2)
+        {
+          inst_num = argc - 2;
+          j = 2;
+          parse_match (argv[1], &(msg->match));
+        }
+      else 
+        {
+          if (msg->command == OFPFC_DELETE) 
+            {
+              inst_num = 0;
+              parse_match (argv[1], &(msg->match));
+            } 
+          else 
+            {
+              /**
+               * We copy the value because we don't know if it is an
+               * instruction or match.  If the match is empty, the argv is
+               * modified causing errors to instructions parsing
+               */
+              char *cpy = (char*)malloc (strlen (argv[1]) + 1);
+              memset (cpy, 0x00, strlen (argv[1]) + 1);
+              memcpy (cpy, argv[1], strlen (argv[1])); 
+              parse_match (cpy, &(msg->match));
+              free (cpy);
+              if (msg->match->length <= 4)
+                {
+                  inst_num = argc - 1;
+                  j = 1;
+                }
+            }
+        }
+
+      msg->instructions_num = inst_num;
+      msg->instructions = (ofl_instruction_header**)xmalloc (sizeof (ofl_instruction_header*) * inst_num);
+      for (i=0; i < inst_num; i++) 
+        {
+          parse_inst (argv[j+i], &(msg->instructions[i]));
+        }
+    } 
+  else 
+    {
+      make_all_match (&(msg->match));
+    }
+
+  // Create packet, free memory and send
+  LogOflMsg ((ofl_msg_header*)msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)msg, ++m_xid));
+}
+
+int
+OFSwitch13Controller::DpctlSetConfigCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  ofl_msg_set_config msg;
+  msg.header.type = OFPT_SET_CONFIG;
+  msg.config = (ofl_config*)xmalloc (sizeof (ofl_config));
+  msg.config->flags = OFPC_FRAG_NORMAL;
+  msg.config->miss_send_len = OFP_DEFAULT_MISS_SEND_LEN;
+
+  // Parse set-config dpctl command
+  parse_config (argv[0], msg.config); 
+  
+  // Create packet, free memory and send
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
+}
+
+int
+OFSwitch13Controller::DpctlStatsFlowCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  struct ofl_msg_multipart_request_flow msg;
+  msg.header.header.type = OFPT_MULTIPART_REQUEST;
+  msg.header.type = OFPMP_FLOW; 
+  msg.header.flags = 0x0000;
+  msg.cookie = 0x0000000000000000ULL;
+  msg.cookie_mask = 0x0000000000000000ULL;
+  msg.table_id = 0xff;
+  msg.out_port = OFPP_ANY;
+  msg.out_group = OFPG_ANY;
+  msg.match = NULL;
+
+  if (argc > 0)
+    {
+      parse_flow_stat_args (argv[0], &msg); 
+    }
+  if (argc > 1)
+    {
+      parse_match (argv[1], &(msg.match));
+    }
+  else
+    {
+      make_all_match (&(msg.match));
+    }
+  
+  // Create packet, free memory and send
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
+}
+
+int
+OFSwitch13Controller::DpctlStatsAggrCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  struct ofl_msg_multipart_request_flow msg;
+  msg.header.header.type = OFPT_MULTIPART_REQUEST;
+  msg.header.type = OFPMP_AGGREGATE; 
+  msg.header.flags = 0x0000;
+  msg.cookie = 0x0000000000000000ULL;
+  msg.cookie_mask = 0x0000000000000000ULL;
+  msg.table_id = 0xff;
+  msg.out_port = OFPP_ANY;
+  msg.out_group = OFPG_ANY;
+  msg.match = NULL;
+
+  if (argc > 0)
+    {
+      parse_flow_stat_args (argv[0], &msg); 
+    }
+  if (argc > 1)
+    {
+      parse_match (argv[1], &(msg.match));
+    }
+  else
+    {
+      make_all_match (&(msg.match));
+    }
+
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
+}
+
+int
+OFSwitch13Controller::DpctlStatsPortCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  if (argc > 0)
+    {
+      uint32_t port;
+      parse_port (argv[0], &port); 
+      return RequestPortStats (swtch, port);
+    }
+  else
+    {
+      return RequestPortStats (swtch);
+    }
+}
+
+int
+OFSwitch13Controller::DpctlPortModCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  ofl_msg_port_mod msg;
+  msg.header.type = OFPT_PORT_MOD;
+  msg.port_no = OFPP_ANY;
+  msg.config = 0x00000000;
+  msg.mask = 0x00000000;
+  msg.advertise = 0x00000000;
+  memset (msg.hw_addr, 0xff, OFP_ETH_ALEN);
+
+  parse_port_mod (argv[0], &msg);
+
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
+}
+
+int
+OFSwitch13Controller::DpctlTableModCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  ofl_msg_table_mod msg;
+  msg.header.type = OFPT_TABLE_MOD;
+  msg.table_id = 0xff;
+  msg.config = 0x00;
+
+  parse_table_mod (argv[0], &msg);
+
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
 }
 
 void 
