@@ -1098,9 +1098,9 @@ OFSwitch13NetDevice::BuffersSave (packet *pkt)
       p->cookie = 0;
     }
 
-  // We are using the time_t p->timeout to store ns3 simulation time in ms
+  // We are using the time_t p->timeout to store ns3 simulation time 
   Time expire = Simulator::Now () + Time ("1s");
-  p->timeout = (time_t)expire.GetMilliSeconds (); 
+  p->timeout = (time_t)expire.GetTimeStep (); 
   
   p->pkt = pkt;
   id = m_buffers->buffer_idx | (p->cookie << PKT_BUFFER_BITS);
