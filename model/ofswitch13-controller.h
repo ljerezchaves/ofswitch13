@@ -55,11 +55,16 @@ struct SwitchInfo
 class OFSwitch13Controller : public Application
 {
 public:
-  OFSwitch13Controller ();
-  virtual ~OFSwitch13Controller ();
+  OFSwitch13Controller ();          //!< Default constructor
+  virtual ~OFSwitch13Controller (); //!< Dummy destructor, see DoDispose.
 
-  // inherited from Object
+  /**
+   * Register this type.
+   * \return The object TypeId.
+   */
   static TypeId GetTypeId (void);
+
+  /** Destructor implementation */
   virtual void DoDispose ();
 
   /**
@@ -175,21 +180,20 @@ protected:
   virtual ofl_err HandleMsgQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
   //\}
 
-  typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
-  SwitchsMap_t m_switchesMap;           //!< Registered switch metadata
+  typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;   //!< Structure to map IPv4 to switch info
+  SwitchsMap_t m_switchesMap;                               //!< Registered switch metadata
 
 private:
   /**
-   * \internal
    * \brief Called by the SocketRead when a packet is received from the switch.
    * Dispatches control messages to appropriate handler functions.
    * \param swtch The switch the message was received from.
    * \param buffer The pointer to the buffer containing the message.
+   * \return 0 if everything's ok, otherwise an error number.
    */
   int ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer);
 
   /**
-   * \internal
    * \name Dcptl commands
    * Methods to create the openflow messages based on dpctl commands
    * \param swtch The target switch metadata
@@ -208,7 +212,6 @@ private:
   //\}
 
   /**
-   * \internal
    * \name Socket callbacks
    * Handlers used as socket callbacks to TCP communication between this
    * switch and the controller.

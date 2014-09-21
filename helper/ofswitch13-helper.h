@@ -114,7 +114,7 @@ public:
    * csma gigabit network, using IPv4 network 10.100.150.0/24. Finally, start
    * the switch <--> controller connection for all already registered switches.
    * 
-   * \atention It is expected that this method is used with TabBridge to
+   * \attention It is expected that this method is used with TabBridge to
    * provide an external controller.
    *
    * \param cNode The node to install the controller
@@ -144,7 +144,7 @@ private:
   Address                   m_ctrlAddr;     //!< Controller Addr 
   uint64_t                  m_dpId;         //!< Datapath (switch) ID
 
-  typedef std::vector<SwitchInfo> SwitchInfoVector_t;
+  typedef std::vector<SwitchInfo> SwitchInfoVector_t; //!< Structure to store switch information
   SwitchInfoVector_t        m_unregSw;      //!< OpenFlow switches not registered yet
 };
 

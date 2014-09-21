@@ -32,19 +32,31 @@ namespace ns3 {
 class LearningController : public OFSwitch13Controller
 {
 public:
-  LearningController ();
-  virtual ~LearningController ();
+  LearningController ();          //!< Default constructor
+  virtual ~LearningController (); //!< Dummy destructor, see DoDispose.
 
-  // inherited from Object
+  /**
+   * Register this type.
+   * \return The object TypeId.
+   */
   static TypeId GetTypeId (void);
+
+  /** Destructor implementation */
   virtual void DoDispose ();
   
-  // inherited from OFSwitch13Controller
+  /**
+   * Handle packet-in messages sent from switch to this controller. Look for L2
+   * switching information, update the structures and send a packet-out back.
+   *
+   * \param msg The packet-in messagem.
+   * \param swtch The switch information.
+   * \param xid Transaction id.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
   ofl_err HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid);
 
 private:
-  //!< TCP connection callback
-  void ConnectionStarted (SwitchInfo swtch);
+  void ConnectionStarted (SwitchInfo swtch);    //!< TCP connection callback
 
   /** 
    * \name L2 switching structures

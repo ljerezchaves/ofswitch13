@@ -53,10 +53,14 @@ class OFSwitch13NetDevice : public NetDevice
 //friend class OFSwitch13Controller;
 
 public:
+  /**
+   * Register this type.
+   * \return The object TypeId.
+   */
   static TypeId GetTypeId (void);
 
-  OFSwitch13NetDevice ();
-  virtual ~OFSwitch13NetDevice ();
+  OFSwitch13NetDevice ();           //!< Default constructor
+  virtual ~OFSwitch13NetDevice ();  //!< Dummy destructor, see DoDispose.
   
   /**
    * \name OFSwitch13NetDevice Description Data
@@ -92,7 +96,6 @@ public:
    *
    * \param switchPort The NetDevice port to add.
    * \return 0 if everything's ok, otherwise an error number.
-   * \sa #EXFULL
    */
   int AddSwitchPort (Ptr<NetDevice> switchPort);
 
@@ -145,7 +148,7 @@ private:
   /**
    * \brief Search the switch ports looking for a specific device
    *
-   * \param sed The Ptr<CsmaNetDevice> pointer to device.
+   * \param dev The Ptr<CsmaNetDevice> pointer to device.
    * \return A pointer to the corresponding ofs::Port.
    */
   ofs::Port* PortGetOfsPort (Ptr<NetDevice> dev);
@@ -159,7 +162,6 @@ private:
   ofs::Port* PortGetOfsPort (uint32_t no);
 
   /**
-   * \internal
    * Update the port status field of the switch port. A non-zero return value
    * indicates some field has changed.
    *
@@ -179,8 +181,7 @@ private:
    * \see remote_rconn_run () at udatapath/datapath.c
    * \see handle_control_msg () at udatapath/dp_control.c
    *
-   * \param msg The message (ofpbuf) received from the controller.
-   * \param length Length of the message.
+   * \param buffer The message (ofpbuf) received from the controller.
    * \return 0 if everything's ok, otherwise an error number.
    */
   int ReceiveFromController (ofpbuf* buffer);
@@ -207,7 +208,7 @@ private:
    * \param protocol The protocol defining the Packet.
    * \param src The source address of the Packet.
    * \param dst The destination address of the Packet.
-   * \param PacketType Type of the packet.
+   * \param packetType Type of the packet.
    */
   void ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Packet> packet,
       uint16_t protocol, const Address& src, const Address& dst, PacketType
@@ -254,7 +255,6 @@ private:
       packet **pkt);
 
   /**
-   * \internal
    * \brief Check if any flow in any table is timed out and update port
    * status.
    * 
@@ -313,7 +313,7 @@ private:
    * \see ofsoftswitch dp_execute_action at udatapath/dp_actions.c
    *
    * \param pkt The packet associated with this action
-   * \param set A pointer to the action
+   * \param action A pointer to the action
    */
   void ActionExecute (packet *pkt, ofl_action_header *action);
 
@@ -412,7 +412,6 @@ private:
   ///\name Flow entry methods
   //\{
   /**
-   * \internal
    * Removes a flow entry with the given reason. A flow removed message is sent
    * if needed. 
    * \param entry The flow entry to remove.
@@ -422,7 +421,6 @@ private:
   void FlowEntryRemove (flow_entry *entry, uint8_t reason);
 
   /**
-   * \internal
    * \brief Destroy a flow entry. 
    * \param entry The flow entry to destroy.
    * \see ofsoftswitch13 flow_entry_destroy () at udatapath/flow_entry.c
@@ -442,7 +440,7 @@ private:
    * \attention This method only works for DIX encapsulation mode.
    * \see CsmaNetDevice::AddHeader ()
    *
-   * \param packt The packet (will be modified).
+   * \param packet The packet (will be modified).
    * \param source The L2 source address.
    * \param dest The L2 destination address.
    * \param protocolNumber The L3 protocol defining the packet
@@ -462,10 +460,14 @@ private:
   Ptr<Packet> CreatePacketIn (packet *pkt, uint8_t tableId,
           ofp_packet_in_reason reason, uint64_t cookie);
 
+  /**
+   * \brief Destroys a packet along with all its associated structures.
+   * \see ofsoftswitch13 packet_destroy () at udatapath/packet.c
+   * \param pkt The internal packet to free
+   */
   void InternalPacketDestroy (packet *pkt);
 
   /**
-   * \internal
    * \brief Send an echo request message to controller.
    *
    * This method reschedules itself at every m_echo interval, to constantly
@@ -474,7 +476,6 @@ private:
   void SendEchoRequest ();
 
   /**
-   * \internal
    * \name OpenFlow message handlers
    * Handlers used by ReceiveFromController to proccess each type of OpenFlow
    * message received from the controller.
@@ -509,7 +510,6 @@ private:
   //\}
 
    /**
-   * \internal
    * \name Socket callbacks
    * Handlers used as socket callbacks to TCP communication between this
    * switch and the controller.
@@ -522,11 +522,11 @@ private:
   //\}
 
   /// NetDevice callbacks
-  NetDevice::ReceiveCallback        m_rxCallback;
-  NetDevice::PromiscReceiveCallback m_promiscRxCallback;
+  NetDevice::ReceiveCallback        m_rxCallback;        //!< Receive callback
+  NetDevice::PromiscReceiveCallback m_promiscRxCallback; //!< Promiscuous receive callback
   
   // Considering the necessary datapath structs from ofsoftswitch13
-  typedef std::vector<ofs::Port> Ports_t;
+  typedef std::vector<ofs::Port> Ports_t;     //!< Structure to store port information
   Ports_t                 m_ports;            //!< Switch's ports
   
   ofs::EchoMsgMap_t       m_echoMap;          //!< Metadata for echo requests

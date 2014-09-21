@@ -30,7 +30,7 @@
  * <https://github.com/ljerezchaves/ofsoftswitch13> implementation compiled
  * as a library (use ./configure --enable-ns3-lib).
  *
- * \atention Currently, only a subset of features are supported.
+ * \attention Currently, only a subset of features are supported.
  */
 #ifndef OFSWITCH13_INTERFACE_H
 #define OFSWITCH13_INTERFACE_H
