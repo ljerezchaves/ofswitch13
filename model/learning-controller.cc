@@ -182,6 +182,11 @@ LearningController::ConnectionStarted (SwitchInfo swtch)
   // After a successfull handshake, let's install the table-miss entry
   DpctlFlowModCommand (swtch, "cmd=add,table=0,prio=0 apply:output=ctrl");
 
+  // Lets configure te switch to not buffer packets.
+  std::ostringstream cmd;
+  cmd << "miss="<< OFPCML_NO_BUFFER;
+  DpctlSetConfigCommand (swtch, cmd.str ());
+
   // Create an empty L2SwitchingTable and insert it into m_learnedInfo
   L2Table_t l2Table;
   uint64_t dpId = swtch.netdev->GetDatapathId ();

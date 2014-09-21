@@ -134,7 +134,7 @@ OFSwitch13Controller::DpctlFlowModCommand (SwitchInfo swtch, const std::string t
   msgLocal.instructions_num = 0;
   msgLocal.instructions = NULL;
 
-  // Parse flow_mod dpctl command
+  // Parse flow-mod dpctl command
   wordexp_t cmd;
   wordexp (textCmd.c_str (), &cmd, 0);
   
@@ -192,6 +192,28 @@ OFSwitch13Controller::DpctlFlowModCommand (SwitchInfo swtch, const std::string t
   // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)msg, ++m_xid));
+}
+
+int
+OFSwitch13Controller::DpctlSetConfigCommand (SwitchInfo swtch, const std::string textCmd)
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  ofl_msg_set_config msg;
+  msg.header.type = OFPT_SET_CONFIG;
+  msg.config = (ofl_config*)xmalloc (sizeof (ofl_config));
+  msg.config->flags = OFPC_FRAG_NORMAL;
+  msg.config->miss_send_len = OFP_DEFAULT_MISS_SEND_LEN;
+
+  // Parse set-config dpctl command
+  wordexp_t cmd;
+  wordexp (textCmd.c_str (), &cmd, 0);
+  parse_config (cmd.we_wordv[0], msg.config); 
+  wordfree (&cmd);
+  
+  // Create packet, free memory and send
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
 }
 
 

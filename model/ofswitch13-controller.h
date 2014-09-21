@@ -96,7 +96,7 @@ protected:
 
   /**
    * \name OpenFlow symmetric messages
-   * Methods to send messages withou solicitation
+   * Methods to send messages without solicitation
    * \param swtch The target switch metadata
    * \return The number of transmitted bytes.
    */
@@ -109,10 +109,20 @@ protected:
    * \brief Create a flow_mod message using the same syntax from dpctl, and
    * send it to the switch.
    * \param swtch The target switch metadata
-   * \param textCmd The dpctl flow_mod command to create the message.
+   * \param textCmd The dpctl command to create the message.
    * \return The number of bytes sent
    */
   int DpctlFlowModCommand (SwitchInfo swtch, const std::string textCmd);
+
+  /**
+   * \brief Create a set_config message using the same syntax from dpctl, and
+   * send it to the switch.
+   * \param swtch The target switch metadata
+   * \param textCmd The dpctl command to create the message.
+   * \return The number of bytes sent
+   */
+  int DpctlSetConfigCommand (SwitchInfo swtch, const std::string textCmd);
+
 
 
   /**
