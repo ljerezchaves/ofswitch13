@@ -132,7 +132,7 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   SetAddress (Mac48Address::Allocate ()); 
  
   // Initializing the datapath, as in dp_net at udatapath/datapath.c
-  time_init ();
+  // time_init ();
   nblink_initialize(); 
   
   m_ports.reserve (DP_MAX_PORTS+1);
@@ -1544,7 +1544,6 @@ OFSwitch13NetDevice::FlowTableLookup (flow_table *table, packet *pkt)
                       entry->stats->packet_count++;
                     }
                   entry->last_used = Simulator::Now ().GetTimeStep ();
-                  entry->last_used = time_msec(); // FIXME time
                   table->stats->matched_count++;
                   return entry;
                 }
@@ -1659,7 +1658,6 @@ OFSwitch13NetDevice::FlowEntryCreate (flow_table *table, ofl_msg_flow_mod *mod)
   uint64_t now;
   
   now = Simulator::Now ().GetTimeStep ();
-  now = time_msec();  // FIXME time
 
   entry = (flow_entry*)xmalloc (sizeof (flow_entry));
   entry->dp    = NULL;
@@ -1670,8 +1668,8 @@ OFSwitch13NetDevice::FlowEntryCreate (flow_table *table, ofl_msg_flow_mod *mod)
   entry->stats->duration_sec  = 0;
   entry->stats->duration_nsec = 0;
   entry->stats->priority      = mod->priority;
-  entry->stats->idle_timeout  = mod->idle_timeout;  // FIXME: Ver como o dpctl define esses valores
-  entry->stats->hard_timeout  = mod->hard_timeout;
+  entry->stats->idle_timeout  = mod->idle_timeout;  // stored in seconds
+  entry->stats->hard_timeout  = mod->hard_timeout;  // stored in seconds
   entry->stats->cookie        = mod->cookie;
   entry->no_pkt_count = ((mod->flags & OFPFF_NO_PKT_COUNTS) != 0 );
   entry->no_byt_count = ((mod->flags & OFPFF_NO_BYT_COUNTS) != 0 ); 
@@ -1700,9 +1698,14 @@ OFSwitch13NetDevice::FlowEntryCreate (flow_table *table, ofl_msg_flow_mod *mod)
 
   entry->match = mod->match; /* TODO: MOD MATCH? */
 
-  entry->created      = now;
-  entry->remove_at    = mod->hard_timeout == 0 ? 0 : now + mod->hard_timeout * 1000;  // FIXME time
-  entry->last_used    = now;
+  entry->created = now;  // timestep
+  entry->remove_at = 0;  // timestep
+  if (mod->hard_timeout)
+    {
+      Time out = Time (now) + Time::FromInteger (mod->hard_timeout, Time::S);
+      entry->remove_at = out.GetTimeStep ();
+    }
+  entry->last_used = now;  // timestep
   entry->send_removed = ((mod->flags & OFPFF_SEND_FLOW_REM) != 0);
   list_init (&entry->match_node);
   list_init (&entry->idle_node);
@@ -1722,14 +1725,10 @@ OFSwitch13NetDevice::FlowEntryCreate (flow_table *table, ofl_msg_flow_mod *mod)
 bool 
 OFSwitch13NetDevice::FlowEntryIdleTimeout (flow_entry *entry)
 {
-  bool timeout;
- 
-  timeout = (entry->stats->idle_timeout != 0) &&
-            (Simulator::Now () > Time (entry->last_used + entry->stats->idle_timeout * 1000));  // FIXME time tem que ver a unidade desse idle timeout ai
+  bool timeout = (entry->stats->idle_timeout != 0) && 
+                 (Simulator::Now () > (Time (entry->last_used) + 
+                                       Time::FromInteger (entry->stats->idle_timeout, Time::S)));
   
-  //timeout = (entry->stats->idle_timeout != 0) &&
-  //          (time_msec() > entry->last_used + entry->stats->idle_timeout * 1000); // FIXME time
-
   if (timeout) 
     {
       FlowEntryRemove (entry, OFPRR_IDLE_TIMEOUT);
@@ -1740,10 +1739,7 @@ OFSwitch13NetDevice::FlowEntryIdleTimeout (flow_entry *entry)
 bool 
 OFSwitch13NetDevice::FlowEntryHardTimeout (flow_entry *entry)
 {
-  bool timeout;
-  
-  timeout = (entry->remove_at != 0) && (Simulator::Now () > Time (entry->remove_at));
-  // timeout = (entry->remove_at != 0) && (time_msec() > entry->remove_at);  // FIXME time
+  bool timeout = (entry->remove_at != 0) && (Simulator::Now () > Time (entry->remove_at));
 
   if (timeout) 
     {
@@ -1756,8 +1752,9 @@ void
 OFSwitch13NetDevice::FlowEntryUpdate (flow_entry *entry) 
 {
   Time alive = Simulator::Now () - Time (entry->created);
-  entry->stats->duration_sec  = alive.ToInteger (Time::S); // FIXME time
-  entry->stats->duration_nsec = alive.ToInteger (Time::NS);;
+  entry->stats->duration_sec  = (uint32_t)alive.ToInteger (Time::S);
+  alive -= Time::FromInteger (entry->stats->duration_sec, Time::S); 
+  entry->stats->duration_nsec = (uint32_t)alive.ToInteger (Time::NS);
 }
 
 void
