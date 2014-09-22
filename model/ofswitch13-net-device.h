@@ -347,7 +347,6 @@ private:
   /**
    * Creates a new flow table 
    * \see ofsoftswitch13 flow_table_create () at udatapath/flow_table.c
-   *
    * \param table_id The table id.
    * \return The pointer to the created table.
    */
@@ -357,7 +356,6 @@ private:
    * Handles a flow_mod msg with OFPFC_ADD command. 
    * \attention new entries will be placed behind those with equal priority
    * \see ofsoftswitch13 flow_table_add () at udatapath/flow_table.c
-   *
    * \param table The table to add the entry
    * \param mod The ofl_msg_flow_mod message
    * \param check_overlap If true, prevents existing flow entry overlaps with
@@ -372,7 +370,6 @@ private:
   /**
    * Handles a flow_mod msg with OFPFC_DELETE or OFPFC_DELETE_STRICT command. 
    * \see ofsoftswitch13 flow_table_delete () at udatapath/flow_table.c
-   *
    * \param table The table to delete the entry
    * \param mod The ofl_msg_flow_mod message
    * \param strict If true, check for strict match
@@ -384,7 +381,6 @@ private:
   /**
    * Handles a flow_mod msg with OFPFC_MODIFY or OFPFC_MODIFY_STRICT command. 
    * \see ofsoftswitch13 flow_table_delete () at udatapath/flow_table.c
-   *
    * \param table The table to modify the entry
    * \param mod The ofl_msg_flow_mod message
    * \param strict If true, check for strict match
@@ -397,7 +393,6 @@ private:
   /**
    * Handles any flow_mod msg. 
    * \see ofsoftswitch13 flow_table_flow_mod () at udatapath/flow_table.c
-   *
    * \param table The table to modify the entry
    * \param mod The ofl_msg_flow_mod message
    * \param match_kept Used by HandleMsgFlowMod to proper free structs
@@ -406,6 +401,34 @@ private:
    */
   ofl_err FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod, 
       bool *match_kept, bool *insts_kept);
+
+  /** 
+   * Finds the flow entry with the highest priority, which matches the packet.
+   * \see ofsoftswitch flow_table_lookup () at udatapath/flow_table.c
+   * \param table The flow table
+   * \param pkt The internal packet
+   * \return The flow entry which matches the packet
+   */
+  flow_entry* FlowTableLookup (flow_table *table, packet *pkt);
+
+  /**
+   * Orders the flow table to check the timeout its flows. 
+   * \see ofsoftswitch flow_table_timeout () at udatapath/flow_table.c
+   * \param table Flow table to check.
+   */
+  void FlowTableTimeout (flow_table *table);
+
+  /**
+   * Collects statistics of the flow entries of the table. 
+   * \see ofsoftswitch flow_table_stats () at udatapath/flow_table.c
+   * \param table Flow table.
+   * \param msg Multipart flow table stats request message.
+   * \param stats Computed statistics.
+   * \param stats_size Size of statistics.
+   * \param stats_num Number of statistcs.
+   */
+  void FlowTableStats (flow_table *table, ofl_msg_multipart_request_flow *msg, 
+      ofl_flow_stats ***stats, size_t *stats_size, size_t *stats_num);
   //\}
 
 
@@ -414,18 +437,55 @@ private:
   /**
    * Removes a flow entry with the given reason. A flow removed message is sent
    * if needed. 
+   * \see ofsoftswitch13 flow_entry_remove () at udatapath/flow_entry.c
    * \param entry The flow entry to remove.
    * \param reason The reason to send to controller.
-   * \see ofsoftswitch13 flow_entry_remove () at udatapath/flow_entry.c
    */
   void FlowEntryRemove (flow_entry *entry, uint8_t reason);
 
   /**
-   * \brief Destroy a flow entry. 
-   * \param entry The flow entry to destroy.
+   * Destroy a flow entry. 
    * \see ofsoftswitch13 flow_entry_destroy () at udatapath/flow_entry.c
+   * \param entry The flow entry to destroy.
    */
   void FlowEntryDestroy (flow_entry *entry);
+
+  /**
+   * Creates a flow entry. 
+   * \see ofsoftswitch13 flow_entry_create () at udatapath/flow_entry.c
+   * \param table The flow table to insert the new entry.
+   * \param mod The flow mod message.
+   * \return The new flow entry.
+   */
+  flow_entry * FlowEntryCreate (flow_table *table, ofl_msg_flow_mod *mod);
+
+  /** 
+   * Checks if the entry should time out because of its idle timeout. If so,
+   * the packet is freed, flow removed message is generated, and true is
+   * returned. 
+   * \see ofsoftswitch13 flow_entry_idle_timeout () at udatapath/flow_entry.c
+   * \param entry Flow entry to check.
+   * \return True if flow entry removed.
+   */
+  bool FlowEntryIdleTimeout (flow_entry *entry);
+  
+  /** 
+   * Checks if the entry should time out because of its hard timeout. If so,
+   * the packet is freed, flow removed message is generated, and true is
+   * returned. 
+   * \see ofsoftswitch13 flow_entry_hard_timeout () at udatapath/flow_entry.c
+   * \param entry Flow entry to check.
+   * \return True if flow entry removed.
+   */
+  bool FlowEntryHardTimeout (flow_entry *entry);
+
+  /**
+   * Updates the time fields of the flow entry statistics. Used before
+   * generating flow statistics messages.
+   * \see ofsoftswitch13 flow_entry_update () at udatapath/flow_entry.c
+   * \param entry Flow entry to update.
+   */
+  void FlowEntryUpdate (flow_entry *entry);
   //\}
   
 
