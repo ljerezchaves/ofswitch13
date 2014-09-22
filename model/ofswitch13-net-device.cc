@@ -132,7 +132,6 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   SetAddress (Mac48Address::Allocate ()); 
  
   // Initializing the datapath, as in dp_net at udatapath/datapath.c
-  // time_init ();
   nblink_initialize(); 
   
   m_ports.reserve (DP_MAX_PORTS+1);
@@ -1070,7 +1069,6 @@ OFSwitch13NetDevice::BuffersSave (packet *pkt)
       p->cookie = 0;
     }
 
-  // We are using the time_t p->timeout to store ns3 simulation time 
   Time expire = Simulator::Now () + Time ("1s");
   p->timeout = (time_t)expire.GetTimeStep (); 
   
