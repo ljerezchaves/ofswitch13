@@ -7,6 +7,6 @@ def build(bld):
     obj = bld.create_ns3_program('double-ofswitch13', ['ofswitch13', 'csma', 'network', 'applications', 'internet'])
     obj.source = 'double-ofswitch13.cc'
 
-    obj = bld.create_ns3_program('external-controller', ['ofswitch13', 'csma', 'network', 'internet', 'tap-bridge'])
+    obj = bld.create_ns3_program('external-controller', ['ofswitch13', 'csma', 'network', 'internet', 'applications', 'tap-bridge'])
     obj.source = 'external-controller.cc'
 
