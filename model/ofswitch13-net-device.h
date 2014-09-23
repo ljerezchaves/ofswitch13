@@ -48,9 +48,6 @@ class OFSwitch13Controller;
  */
 class OFSwitch13NetDevice : public NetDevice
 {
-
-//friend class OFSwitch13Controller;
-
 public:
   /**
    * Register this type.
@@ -58,8 +55,14 @@ public:
    */
   static TypeId GetTypeId (void);
 
-  OFSwitch13NetDevice ();           //!< Default constructor
-  virtual ~OFSwitch13NetDevice ();  //!< Dummy destructor, see DoDispose.
+  /**
+   * Default constructor. Initialize structures.
+   * \see ofsoftswitch dp_new () at udatapath/datapath.c
+   */
+  OFSwitch13NetDevice ();
+
+  /** Dummy destructor, see DoDispose. */
+  virtual ~OFSwitch13NetDevice ();    
   
   /**
    * \name OFSwitch13NetDevice Description Data
@@ -79,13 +82,13 @@ public:
   //\}
 
  /**
-   * Add a 'port' to the switch device. This method adds a new switch port to a
-   * OFSwitch13NetDevice, so that the new switch port NetDevice becomes part of
-   * the switch and L2 frames start being forwarded to/from this NetDevice.
+   * Add a 'port' to the switch device. This method adds a new switch
+   * port to a OFSwitch13NetDevice, so that the new switch port NetDevice
+   * becomes part of the switch and L2 frames start being forwarded to/from
+   * this NetDevice.
    * \attention The current implementation only supports CsmaNetDevices using
-   * DIX encapsulation.
-   * \attention The csmaNetDevice that is being added as switch port must _not_
-   * have an IP address.
+   * DIX encapsulation. Also, the csmaNetDevice that is being added as switch
+   * port must _not_ have an IP address.
    * \param switchPort The NetDevice port to add.
    * \return 0 if everything's ok, otherwise an error number.
    */
@@ -97,9 +100,14 @@ public:
   uint32_t GetNSwitchPorts (void) const;
 
   /**
-   * \return The datapath ID
+   * \return The datapath ID.
    */
   uint64_t GetDatapathId (void) const;
+
+  /**
+   * Set the datapath ID.
+   */
+  void SetDatapathId (uint64_t id);
 
   /**
    * Set up the TCP connection between switch and controller.
@@ -124,7 +132,8 @@ public:
   virtual bool IsPointToPoint (void) const;
   virtual bool IsBridge (void) const;
   virtual bool Send (Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber);
-  virtual bool SendFrom (Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber);
+  virtual bool SendFrom (Ptr<Packet> packet, const Address& source, const Address& dest, 
+      uint16_t protocolNumber);
   virtual Ptr<Node> GetNode (void) const;
   virtual void SetNode (Ptr<Node> node);
   virtual bool NeedsArp (void) const;
@@ -135,18 +144,36 @@ public:
 private:
   virtual void DoDispose (void);
 
+  ///\name Datapath methods
+  //\{
+  /**
+   * Creates a new datapath.
+   * \return The created datapath.
+   */
+  datapath* DatapathNew ();
+
+  /**
+   * Check if any flow in any table is timed out and update port status. This
+   * method reschedules itself at every m_timout interval, to constantly check
+   * the pipeline for timed out flow entries and update port status.
+   * \see ofsoftswitch13 function pipeline_timeout () at udatapath/pipeline.c
+   * \param dp The datapath.
+   */
+  void DatapathTimeout (datapath* dp);
+  //\}
+
   ///\name Port methods
   //\{
   /**
-   * Search the switch ports looking for a specific device
+   * Search the switch ports looking for a specific device.
    * \param dev The Ptr<CsmaNetDevice> pointer to device.
    * \return A pointer to the corresponding ofs::Port.
    */
   ofs::Port* PortGetOfsPort (Ptr<NetDevice> dev);
 
   /**
-   * Search the switch ports looking for a specific port number
-   * \param no The port number (starting at 1) 
+   * Search the switch ports looking for a specific port number.
+   * \param no The port number (starting at 1).
    * \return A pointer to the corresponding ofs::Port.
    */
   ofs::Port* PortGetOfsPort (uint32_t no);
@@ -167,17 +194,15 @@ private:
    * \param p Port to update.
    */
   void PortStatsUpdate (ofs::Port *p);
-
   //\}
-
 
   ///\name Send/Receive methods
   //\{
   /**
    * Called by the SocketRead when a packet is received from the controller.
    * Dispatches control messages to appropriate handler functions.
-   * \see remote_rconn_run () at udatapath/datapath.c
-   * \see handle_control_msg () at udatapath/dp_control.c
+   * \see remote_rconn_run () at udatapath/datapath.c.
+   * \see handle_control_msg () at udatapath/dp_control.c.
    * \param buffer The message (ofpbuf) received from the controller.
    * \return 0 if everything's ok, otherwise an error number.
    */
@@ -187,8 +212,8 @@ private:
    * Send a message to the controller. This method is the key to communicating
    * with the controller, it does the actual sending. The other Send methods
    * call this one when they are ready to send the packet.
-   * \param packet The packet to send
-   * \return The number of bytes transmitted
+   * \param packet The packet to send.
+   * \return The number of bytes transmitted.
    */
   int SendToController (Ptr<Packet> packet);
 
@@ -212,13 +237,22 @@ private:
    * create the ns3 packet, remove the ethernet header and trailer from packet
    * (which will be included again by CsmaNetDevice), send the packet over the
    * proper netdevice, and update port statistics.
-   * \param pkt The internal packet to send
-   * \param port The Openflow port structure
-   * \return True if success, false otherwise
+   * \param pkt The internal packet to send.
+   * \param port The Openflow port structure.
+   * \return True if success, false otherwise.
    */
   bool SendToSwitchPort (packet *pkt, ofs::Port *port);
-  //\}
 
+  /**
+   * Send a message over all switch ports, except input port.
+   * \see SendToSwitch ();
+   * \param pkt The internal packet to send.
+   * \param port The Openflow port structure.
+   * \return True if success, false otherwise.
+   */
+  bool FloodToSwitchPorts (packet *pkt);
+
+  //\}
 
   ///\name Pipeline methods
   //\{
@@ -228,50 +262,45 @@ private:
    * controller, if the flag is set.
    * \see ofsoftswitch function process_buffer at udatapath/dp_ports.c
    * \see ofsoftswitch function pipeline_process_packet at udatapath/pipeline.c
-   *
+   * \param pl The pipeline.
    * \param pkt The internal openflow packet.
    */
-  void PipelineProcessPacket (packet* pkt);
+  void PipelineProcessPacket (pipeline* pl, packet* pkt);
 
   /**
    * Executes the instructions associated with a flow entry
    * \see ofsoftswitch function execute_entry at udatapath/pipeline.c
+   * \param pl The pipeline.
    * \param entry The flow entry to execute
    * \param next_table A pointer to next table (can be modified by entry)
    * \param pkt The packet associated with this flow entry
    */
-  void PipelineExecuteEntry (flow_entry *entry, flow_table **next_table, 
-      packet **pkt);
-
-  /**
-   * Check if any flow in any table is timed out and update port status. This
-   * method reschedules itself at every m_timout interval, to constantly check
-   * the pipeline for timed out flow entries and update port status.
-   * \see ofsoftswitch13 function pipeline_timeout () at udatapath/pipeline.c
-   */
-  void PipelineTimeout ();
+  void PipelineExecuteEntry (pipeline* pl, flow_entry *entry, 
+      flow_table **next_table, packet **pkt);
   //\}
 
   ///\name Buffer methods
   //\{
   /**
    * Saves the packet into the buffer. 
-   * \see ofsoftswitch13 function dp_buffers_save () at udatapath/dp_buffers.c
-   * \param pkt Internal packet to save
+   * \see ofsoftswitch13 dp_buffers_save () at udatapath/dp_buffers.c
+   * \param dpb The buffer structure.
+   * \param pkt Internal packet to save.
    * \return The saved buffer ID, or NO_BUFFER if saving was not possible.
    */
-  int32_t BuffersSave (packet *pkt);
+  int32_t BuffersSave (dp_buffers *dpb, packet *pkt);
 
   /**
    * Check for valid buffered packet
-   * \see ofsoftswitch13 function dp_buffers_is_alive () at udatapath/dp_buffers.c
-   * \param id The buffer id of the packet to check
+   * \see ofsoftswitch13 dp_buffers_is_alive () at udatapath/dp_buffers.c
+   * \param dpb The buffer structure.
+   * \param id The buffer id of the packet to check.
    * \return True if the buffered packet is not timed out.
    */
-  bool BuffersIsAlive (uint32_t id);
+  bool BuffersIsAlive (dp_buffers *dpb, uint32_t id);
   //\}
 
-  ///\name Action methods
+  ///\name Actions methods
   //\{
   /**
    * Executes the list of OFPIT_APPLY_ACTIONS actions on the given packet
@@ -281,8 +310,8 @@ private:
    * \param actions A pointer to the list of actions
    * \param cookie The cookie that identifies the buffer ??? (not sure)
    */
-  void ActionListExecute (packet *pkt, size_t actions_num,
-    ofl_action_header **actions, uint64_t cookie);
+  void ActionsListExecute (packet *pkt, size_t actions_num, 
+      ofl_action_header **actions, uint64_t cookie);
  
   /**
    * Executes the set of OFPIT_WRITE_ACTIONS actions on the given packet
@@ -294,14 +323,6 @@ private:
   void ActionSetExecute (packet *pkt, action_set *set, uint64_t cookie);
 
   /**
-   * Executes a single action on the given packet
-   * \see ofsoftswitch dp_execute_action at udatapath/dp_actions.c
-   * \param pkt The packet associated with this action
-   * \param action A pointer to the action
-   */
-  void ActionExecute (packet *pkt, ofl_action_header *action);
-
-  /**
    * Execute the ouput action sending the packet to an output port
    * \see ofsoftswitch dp_actions_output_port at udatapath/dp_actions.c
    * \param pkt The packet associated with this action
@@ -311,29 +332,23 @@ private:
    * \param cookie The cookie that identifies the buffer ??? (not sure)
    */
   void ActionOutputPort (packet *pkt, uint32_t out_port, uint32_t out_queue,
-          uint16_t max_len, uint64_t cookie);
+      uint16_t max_len, uint64_t cookie);
 
   /**
-   * Validate actions before applying it
-   * \see ofsoftswitch13 dp_actions_validade () at udatapath/dp_actions.c
-   * \param num The number of actions
-   * \param actions The actions structure
-   * \return 0 if sucess or OpenFlow error code
+   * Validate actions before applying it.
+   * \see ofsoftswitch13 dp_actions_validate () at udatapath/dp_actions.c.
+   * \param dp The datapath.
+   * \param num The number of actions.
+   * \param actions The actions structure.
+   * \return 0 if sucess or OpenFlow error code.
    */
-  ofl_err ActionValidate (size_t num, ofl_action_header **actions);
+  ofl_err ActionValidate (datapath *dp, size_t num, 
+      ofl_action_header **actions);
   //\}
   
   
   ///\name Flow table methods
   //\{
-  /**
-   * Creates a new flow table 
-   * \see ofsoftswitch13 flow_table_create () at udatapath/flow_table.c
-   * \param table_id The table id.
-   * \return The pointer to the created table.
-   */
-  flow_table* FlowTableCreate (uint8_t table_id);
-
   /**
    * Handles a flow_mod msg with OFPFC_ADD command. 
    * \attention new entries will be placed behind those with equal priority
@@ -359,18 +374,6 @@ private:
    */
   ofl_err FlowTableDelete (flow_table *table, ofl_msg_flow_mod *mod, 
       bool strict); 
-
-  /**
-   * Handles a flow_mod msg with OFPFC_MODIFY or OFPFC_MODIFY_STRICT command. 
-   * \see ofsoftswitch13 flow_table_delete () at udatapath/flow_table.c
-   * \param table The table to modify the entry
-   * \param mod The ofl_msg_flow_mod message
-   * \param strict If true, check for strict match
-   * \param insts_kept Used by HandleMsgFlowMod to proper free structs
-   * \return 0 if sucess or OpenFlow error code
-   */
-  ofl_err FlowTableModify (flow_table *table, ofl_msg_flow_mod *mod, 
-      bool strict, bool *insts_kept);
 
   /**
    * Handles any flow_mod msg. 
@@ -426,20 +429,15 @@ private:
   void FlowEntryRemove (flow_entry *entry, uint8_t reason);
 
   /**
-   * Destroy a flow entry. 
-   * \see ofsoftswitch13 flow_entry_destroy () at udatapath/flow_entry.c
-   * \param entry The flow entry to destroy.
-   */
-  void FlowEntryDestroy (flow_entry *entry);
-
-  /**
    * Creates a flow entry. 
-   * \see ofsoftswitch13 flow_entry_create () at udatapath/flow_entry.c
+   * \see ofsoftswitch13 flow_entry_create () at udatapath/flow_entry.c.
+   * \param dp The datapath.
    * \param table The flow table to insert the new entry.
    * \param mod The flow mod message.
    * \return The new flow entry.
    */
-  flow_entry * FlowEntryCreate (flow_table *table, ofl_msg_flow_mod *mod);
+  flow_entry* FlowEntryCreate (datapath *dp, flow_table *table, 
+      ofl_msg_flow_mod *mod);
 
   /** 
    * Checks if the entry should time out because of its idle timeout. If so,
@@ -479,37 +477,39 @@ private:
    * to include it again to properly buffer the packet. We will remove this
    * header and trailer latter.
    * \attention This method only works for DIX encapsulation mode.
-   * \see CsmaNetDevice::AddHeader ()
+   * \see CsmaNetDevice::AddHeader ().
    * \param packet The packet (will be modified).
    * \param source The L2 source address.
    * \param dest The L2 destination address.
-   * \param protocolNumber The L3 protocol defining the packet
+   * \param protocolNumber The L3 protocol defining the packet.
    */
   void AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
       Mac48Address dest, uint16_t protocolNumber);
 
   /**
    * Create a packet_in to send to controller.
-   * \param pkt The internal packet to send
-   * \param tableId Table id with with entry match
-   * \param reason The reason to send this packet to controller
-   * \param cookie ??
-   * \return The ns3 packet created
+   * \see ofsoftswitch13 send_packet_to_controller () at udatapath/pipeline.c
+   * \param pl The pipeline.
+   * \param pkt The internal packet to send.
+   * \param tableId Table id with with entry match.
+   * \param reason The reason to send this packet to controller.
+   * \param cookie ??.
+   * \return The ns3 packet created.
    */
-  Ptr<Packet> CreatePacketIn (packet *pkt, uint8_t tableId,
+  Ptr<Packet> CreatePacketIn (pipeline* pl, packet *pkt, uint8_t tableId,
           ofp_packet_in_reason reason, uint64_t cookie);
 
   /**
    * Destroys a packet along with all its associated structures.
-   * \see ofsoftswitch13 packet_destroy () at udatapath/packet.c
-   * \param pkt The internal packet to free
+   * \see ofsoftswitch13 packet_destroy () at udatapath/packet.c.
+   * \param pkt The internal packet to free.
    */
   void InternalPacketDestroy (packet *pkt);
 
   /**
-   * Send an echo request message to controller.
-   * This method reschedules itself at every m_echo interval, to constantly
-   * check the connection between switch and controller.
+   * Send an echo request message to controller. This method reschedules
+   * itself at every m_echo interval, to constantly.  check the connection
+   * between switch and controller.
    */
   void SendEchoRequest ();
 
@@ -522,28 +522,28 @@ private:
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  ofl_err HandleMsgHello            (ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgEchoRequest      (ofl_msg_echo *msg, uint64_t xid);
-  ofl_err HandleMsgEchoReply        (ofl_msg_echo *msg, uint64_t xid);
-  ofl_err HandleMsgFeaturesRequest  (ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgGetConfigRequest (ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgSetConfig        (ofl_msg_set_config *msg, uint64_t xid);
-  ofl_err HandleMsgPacketOut        (ofl_msg_packet_out *msg, uint64_t xid);
-  ofl_err HandleMsgFlowMod          (ofl_msg_flow_mod *msg, uint64_t xid);
-  ofl_err HandleMsgPortMod          (ofl_msg_port_mod *msg, uint64_t xid);
-  ofl_err HandleMsgTableMod         (ofl_msg_table_mod *msg, uint64_t xid);
-  ofl_err HandleMsgMultipartRequest (ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err HandleMsgBarrierRequest   (ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgGetAsyncRequest  (ofl_msg_async_config *msg, uint64_t xid);
-  ofl_err HandleMsgSetAsync         (ofl_msg_async_config *msg, uint64_t xid);
+  ofl_err HandleMsgHello            (datapath *dp, ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgEchoRequest      (datapath *dp, ofl_msg_echo *msg, uint64_t xid);
+  ofl_err HandleMsgEchoReply        (datapath *dp, ofl_msg_echo *msg, uint64_t xid);
+  ofl_err HandleMsgFeaturesRequest  (datapath *dp, ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgGetConfigRequest (datapath *dp, ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgSetConfig        (datapath *dp, ofl_msg_set_config *msg, uint64_t xid);
+  ofl_err HandleMsgPacketOut        (datapath *dp, ofl_msg_packet_out *msg, uint64_t xid);
+  ofl_err HandleMsgFlowMod          (datapath *dp, ofl_msg_flow_mod *msg, uint64_t xid);
+  ofl_err HandleMsgPortMod          (datapath *dp, ofl_msg_port_mod *msg, uint64_t xid);
+  ofl_err HandleMsgTableMod         (datapath *dp, ofl_msg_table_mod *msg, uint64_t xid);
+  ofl_err HandleMsgMultipartRequest (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err HandleMsgBarrierRequest   (datapath *dp, ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgGetAsyncRequest  (datapath *dp, ofl_msg_async_config *msg, uint64_t xid);
+  ofl_err HandleMsgSetAsync         (datapath *dp, ofl_msg_async_config *msg, uint64_t xid);
 
-  ofl_err MultipartMsgDesc          (ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgFlow          (ofl_msg_multipart_request_flow *msg, uint64_t xid);
-  ofl_err MultipartMsgAggregate     (ofl_msg_multipart_request_flow *msg, uint64_t xid);
-  ofl_err MultipartMsgTable         (ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgTableFeatures (ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgPortStats     (ofl_msg_multipart_request_port *msg, uint64_t xid);
-  ofl_err MultipartMsgPortDesc      (ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgDesc          (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgFlow          (datapath *dp, ofl_msg_multipart_request_flow *msg, uint64_t xid);
+  ofl_err MultipartMsgAggregate     (datapath *dp, ofl_msg_multipart_request_flow *msg, uint64_t xid);
+  ofl_err MultipartMsgTable         (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgTableFeatures (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgPortStats     (datapath *dp, ofl_msg_multipart_request_port *msg, uint64_t xid);
+  ofl_err MultipartMsgPortDesc      (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   //\}
 
    /**
@@ -562,14 +562,8 @@ private:
   NetDevice::ReceiveCallback        m_rxCallback;        //!< Receive callback
   NetDevice::PromiscReceiveCallback m_promiscRxCallback; //!< Promiscuous receive callback
   
-  // Considering the necessary datapath structs from ofsoftswitch13
-  typedef std::vector<ofs::Port> Ports_t;     //!< Structure to store port information
-  Ports_t                 m_ports;            //!< Switch's ports
-  
   ofs::EchoMsgMap_t       m_echoMap;          //!< Metadata for echo requests
-
   uint32_t                m_xid;              //!< Global transaction idx
-  uint64_t                m_id;               //!< Unique identifier for this switch
   Mac48Address            m_address;          //!< Address of this device
   Ptr<BridgeChannel>      m_channel;          //!< Collection of port channels into the Switch Channel
   Ptr<Node>               m_node;             //!< Node this device is installed on
@@ -578,16 +572,12 @@ private:
   uint32_t                m_ifIndex;          //!< Interface Index
   uint16_t                m_mtu;              //!< Maximum Transmission Unit
   Time                    m_echo;             //!< Echo request interval
-  Time                    m_timeout;          //!< Pipeline Timeout
+  Time                    m_timeout;          //!< Datapath Timeout
   Time                    m_lookupDelay;      //!< Flow Table Lookup Delay [overhead].
-  Time                    m_lastTimeout;      //!< Last datapath timeout
   ofl_async_config        m_asyncConfig;      //!< Asynchronous messages configuration
-  ofl_config              m_config;           //!< Configuration, set from controller
-  pipeline*               m_pipeline;         //!< Pipeline with multi-tables
-  dp_buffers*             m_buffers;          //!< Datapath buffers
-  // group_table*            m_groups;           //!< Group tables
-  // meter_table*            m_meters;           //!< Meter tables
-  // ofl_exp*                m_exp;                //!< Experimenter handling
+  
+  datapath*               m_datapath;         //!< The OpenFlow datapath
+  ofs::Ports_t            m_ports;            //!< Switch's ports
 
 }; // Class OFSwitch13NetDevice
 

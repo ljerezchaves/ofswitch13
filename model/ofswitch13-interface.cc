@@ -25,9 +25,9 @@ namespace ofs {
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 
-Port::Port (Ptr<NetDevice> netdev, uint32_t no) : 
-            flags (0),
-            netdev (netdev)
+Port::Port (Ptr<NetDevice> netdev, uint32_t no) 
+  : flags (0),
+    netdev (netdev)
 {  
   port_no = no;
   conf = (ofl_port*)xmalloc (sizeof (ofl_port));
@@ -135,7 +135,7 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
   return buffer;
 }
 
-ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid)
+ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -145,7 +145,7 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid)
   ofpbuf *ofpbuf = ofpbuf_new (0);
   
   // Pack message into ofpbuf using wire format
-  error = ofl_msg_pack (msg, xid, &buf, &buf_size, NULL/*ofl_exp *exp*/);
+  error = ofl_msg_pack (msg, xid, &buf, &buf_size, exp);
   if (error)
     {
       NS_LOG_ERROR ("Error packing message.");
@@ -156,14 +156,14 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid)
   return ofpbuf;
 }
 
-packet * InternalPacketFromBuffer (uint32_t in_port, ofpbuf *buf,
+packet * InternalPacketFromBuffer (datapath* dp, uint32_t in_port, ofpbuf *buf,
     bool packet_out) 
 {
   NS_LOG_FUNCTION_NOARGS ();
   packet *pkt;
   pkt = (packet*)xmalloc (sizeof (packet));
 
-  pkt->dp         = NULL;
+  pkt->dp         = dp;
   pkt->buffer     = buf;
   pkt->in_port    = in_port;
   pkt->action_set = (action_set*)xmalloc (sizeof (action_set));

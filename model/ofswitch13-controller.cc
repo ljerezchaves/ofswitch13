@@ -377,7 +377,7 @@ OFSwitch13Controller::HandleMsgHello (ofl_msg_header *msg, SwitchInfo swtch, uin
   // unpacking the message
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free (msg, NULL/*dp->exp*/);
+  ofl_msg_free (msg, NULL/*exp*/);
   return 0;
 }
 
@@ -396,7 +396,7 @@ OFSwitch13Controller::HandleMsgEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch,
   SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid)); 
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
   return 0;
 }
 
@@ -419,7 +419,7 @@ OFSwitch13Controller::HandleMsgEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, u
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
   return 0;
 }
 
@@ -429,7 +429,7 @@ OFSwitch13Controller::HandleMsgBarrierReply (ofl_msg_header *msg, SwitchInfo swt
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
   return 0;
 }
 
@@ -445,7 +445,7 @@ OFSwitch13Controller::HandleMsgError (ofl_msg_error *msg, SwitchInfo swtch, uint
   free (str);
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
   return 0;
 }
 
@@ -455,7 +455,7 @@ OFSwitch13Controller::HandleMsgFeaturesReply (ofl_msg_features_reply *msg, Switc
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
   return 0;
 }
 
@@ -465,7 +465,7 @@ OFSwitch13Controller::HandleMsgGetConfigReply (ofl_msg_get_config_reply *msg, Sw
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
   return 0;
 }
 
@@ -485,7 +485,7 @@ OFSwitch13Controller::HandleMsgPortStatus (ofl_msg_port_status *msg, SwitchInfo 
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
   return 0;
 }
 
@@ -495,7 +495,7 @@ OFSwitch13Controller::HandleMsgAsyncReply (ofl_msg_async_config *msg, SwitchInfo
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
   return 0;
 }
 
@@ -507,7 +507,7 @@ OFSwitch13Controller::HandleMsgMultipartReply (ofl_msg_multipart_reply_header *m
   // handle these messages as they wish.
   
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
   return 0;
 }
 
@@ -517,7 +517,7 @@ OFSwitch13Controller::HandleMsgRoleReply (ofl_msg_role_request *msg, SwitchInfo 
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
   return 0;
 }
   
@@ -527,7 +527,7 @@ OFSwitch13Controller::HandleMsgQueueGetConfigReply (ofl_msg_queue_get_config_rep
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
   return 0;
 }
 
@@ -701,7 +701,7 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer)
          * error is returned however, the message must be freed inside the
          * handler (because the handler might keep parts of the message) 
          */
-        ofl_msg_free (msg, NULL/*dp->exp*/);
+        ofl_msg_free (msg, NULL/*exp*/);
       }
     }
   
