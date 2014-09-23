@@ -114,16 +114,20 @@ LearningController::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
                 }
               else
                 {
-                  // Send a flow-mod to switch creating this flow;
+                  NS_LOG_DEBUG ("Learning that mac " << src48 << " can be found at port " << inPort);
+                  
+                  // Send a flow-mod to switch creating this flow. Let's
+                  // configure the flow entry to 10s idle timeout and to
+                  // notify the controller when flow expires. (flags=0x0001)
                   std::ostringstream cmd;
-                  cmd << "flow-mod cmd=add,table=0,prio=" << ++prio << " eth_dst=" << src48 << " apply:output="<< inPort;
+                  cmd << "flow-mod cmd=add,table=0,idle=10,flags=0x0001" << 
+                         ",prio=" << ++prio << " eth_dst=" << src48 << " apply:output="<< inPort;
                   DpctlCommand (swtch, cmd.str());
                 }
             }
           else
             {
               NS_ASSERT_MSG (itSrc->second == inPort, "Inconsistent L2 switching table");
-              // TODO Should pdate existing entry?
             }
         }
       else 
@@ -173,6 +177,33 @@ LearningController::HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
   return 0;
 }
 
+ofl_err 
+LearningController::HandleMsgFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid)
+{
+  NS_LOG_FUNCTION (swtch.ipv4 << xid);
+  NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");
+
+  uint64_t dpId = swtch.netdev->GetDatapathId ();
+  DatapathMap_t::iterator it = m_learnedInfo.find (dpId);
+  if (it != m_learnedInfo.end ())
+    {
+      Mac48Address mac48;
+      ofl_match_tlv *ethSrc = oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->stats->match);
+      mac48.CopyFrom (ethSrc->value);
+      
+      L2Table_t *l2Table = &it->second;
+      L2Table_t::iterator itSrc = l2Table->find (mac48);
+      if (itSrc != l2Table->end ())
+        {
+          l2Table->erase (itSrc);
+        }
+    }
+
+  // All handlers must free the message when everything is ok
+  ofl_msg_free_flow_removed (msg, true, NULL);
+  return 0;
+}
+
 /********** Private methods **********/
 void 
 LearningController::ConnectionStarted (SwitchInfo swtch)
@@ -182,9 +213,9 @@ LearningController::ConnectionStarted (SwitchInfo swtch)
   // After a successfull handshake, let's install the table-miss entry
   DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl");
 
-  // Lets configure te switch to not buffer packets.
+  // Configure te switch to buffer packets and send only the first 128 bytes 
   std::ostringstream cmd;
-  cmd << "set-config miss="<< OFPCML_NO_BUFFER;
+  cmd << "set-config miss=128";
   DpctlCommand (swtch, cmd.str ());
 
   // Create an empty L2SwitchingTable and insert it into m_learnedInfo
