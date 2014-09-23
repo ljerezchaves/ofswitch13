@@ -242,6 +242,16 @@ private:
    * \return True if success, false otherwise.
    */
   bool SendToSwitchPort (packet *pkt, ofs::Port *port);
+
+  /**
+   * Send a message over all switch ports, except input port.
+   * \see SendToSwitch ();
+   * \param pkt The internal packet to send.
+   * \param port The Openflow port structure.
+   * \return True if success, false otherwise.
+   */
+  bool FloodToSwitchPorts (packet *pkt);
+
   //\}
 
   ///\name Pipeline methods

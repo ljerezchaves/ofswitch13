@@ -465,7 +465,7 @@ OFSwitch13NetDevice::DoDispose ()
   m_node = 0;
   m_ctrlSocket = 0;
 
-  // FIXME Issue #22 pipeline_destroy (m_datapath->pipeline);
+  pipeline_destroy (m_datapath->pipeline);
 
   NetDevice::DoDispose ();
 }
@@ -493,13 +493,13 @@ OFSwitch13NetDevice::DatapathNew ()
   dp->listeners_aux = NULL;
   dp->n_listeners_aux = 0;
   
-  dp->id = 0; //FIXME
+  dp->id = 0;
   dp->last_timeout = Simulator::Now ().GetTimeStep ();
   
   dp->buffers = dp_buffers_create (dp); 
   dp->pipeline = pipeline_create (dp);
   dp->groups = group_table_create (dp);
-  //dp->meters = meter_table_create (dp);
+  dp->meters = meter_table_create (dp);
   
   dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling
   dp->config.miss_send_len = 128;      // send first 128 bytes to controller 
@@ -847,6 +847,22 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
 }
 
 bool
+OFSwitch13NetDevice::FloodToSwitchPorts (packet *pkt)
+{
+  ofs::Port *p;
+  for (uint32_t i = 1; i <= GetNSwitchPorts (); i++)
+    {
+      p = PortGetOfsPort (i);
+      if (p->port_no == pkt->in_port)
+        {
+          continue;
+        }
+      SendToSwitchPort (pkt, p);
+    }
+  return true;
+}
+
+bool
 OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
 {
   NS_LOG_FUNCTION (this);
@@ -902,7 +918,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
         {
           NS_LOG_WARN ("Packet has invalid TTL, sending to controller.");
           Ptr<Packet> ns3pkt = CreatePacketIn (pl, pkt, 0, OFPR_INVALID_TTL, UINT64_MAX);
-          SendToController (ns3pkt);  // FIXME check
+          SendToController (ns3pkt);
         } 
       else 
         {
@@ -1244,17 +1260,7 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
       case (OFPP_FLOOD):
       case (OFPP_ALL): 
         {
-          ofs::Port *p;
-          // Send to all ports except input // FIXME Criar SendToAllSwitchPorts
-          for (uint32_t i = 1; i <= GetNSwitchPorts (); i++)
-            {
-              p = PortGetOfsPort (i);
-              if (p->port_no == pkt->in_port)
-                {
-                  continue;
-                }
-              SendToSwitchPort (pkt, p);
-            }
+          FloodToSwitchPorts (pkt);
           break;
         }
       case (OFPP_NORMAL):
@@ -1531,9 +1537,8 @@ OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
   list_remove (&entry->idle_node);
   entry->table->stats->active_count--;
  
-  // FIXME No group support by now no metter support
-  // del_group_refs (entry);
-  // del_meter_refs (entry);
+  del_group_refs (entry);
+  del_meter_refs (entry);
   ofl_structs_free_flow_stats (entry->stats, entry->dp->exp);
   free (entry);
 }
@@ -1599,13 +1604,11 @@ OFSwitch13NetDevice::FlowEntryCreate (datapath *dp, flow_table *table,
   list_init (&entry->idle_node);
   list_init (&entry->hard_node);
 
-  // FIXME No group support by now
-  // list_init (&entry->group_refs);
-  // init_group_refs (entry);
+  list_init (&entry->group_refs);
+  init_group_refs (entry);
 
-  // FIXME No metter support by now
-  // list_init (&entry->meter_refs);
-  // init_meter_refs (entry);
+  list_init (&entry->meter_refs);
+  init_meter_refs (entry);
 
   return entry;
 }
