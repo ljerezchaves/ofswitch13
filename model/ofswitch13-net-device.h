@@ -58,8 +58,14 @@ public:
    */
   static TypeId GetTypeId (void);
 
-  OFSwitch13NetDevice ();           //!< Default constructor
-  virtual ~OFSwitch13NetDevice ();  //!< Dummy destructor, see DoDispose.
+  /**
+   * Default constructor. Initialize structures.
+   * \see ofsoftswitch dp_new () at udatapath/datapath.c
+   */
+  OFSwitch13NetDevice ();
+
+  /** Dummy destructor, see DoDispose. */
+  virtual ~OFSwitch13NetDevice ();    
   
   /**
    * \name OFSwitch13NetDevice Description Data
@@ -79,9 +85,10 @@ public:
   //\}
 
  /**
-   * Add a 'port' to the switch device. This method adds a new switch port to a
-   * OFSwitch13NetDevice, so that the new switch port NetDevice becomes part of
-   * the switch and L2 frames start being forwarded to/from this NetDevice.
+   * Add a physical 'port' to the switch device. This method adds a new switch
+   * port to a OFSwitch13NetDevice, so that the new switch port NetDevice
+   * becomes part of the switch and L2 frames start being forwarded to/from
+   * this NetDevice.
    * \attention The current implementation only supports CsmaNetDevices using
    * DIX encapsulation.
    * \attention The csmaNetDevice that is being added as switch port must _not_
@@ -134,6 +141,17 @@ public:
 
 private:
   virtual void DoDispose (void);
+
+  datapath* DatapathNew ();
+
+  /**
+   * Check if any flow in any table is timed out and update port status. This
+   * method reschedules itself at every m_timout interval, to constantly check
+   * the pipeline for timed out flow entries and update port status.
+   * \see ofsoftswitch13 function pipeline_timeout () at udatapath/pipeline.c
+   */
+  void DatapathTimeout ();
+
 
   ///\name Port methods
   //\{
@@ -219,57 +237,91 @@ private:
   bool SendToSwitchPort (packet *pkt, ofs::Port *port);
   //\}
 
-
   ///\name Pipeline methods
   //\{
+  /**
+   * Create the pipeline structures.
+   * \see ofsoftswitch function pipeline_create at udatapath/pipeline.c
+   * \param dp The datapath.
+   * \return The created pipeline.
+   */
+  pipeline* PipelineCreate (datapath* dp);
+
   /**
    * Run the packet through the pipeline. Looks up in the pipeline tables for a
    * match.  If it doesn't match, it forwards the packet to the registered
    * controller, if the flag is set.
    * \see ofsoftswitch function process_buffer at udatapath/dp_ports.c
    * \see ofsoftswitch function pipeline_process_packet at udatapath/pipeline.c
-   *
+   * \param pl The pipeline.
    * \param pkt The internal openflow packet.
    */
-  void PipelineProcessPacket (packet* pkt);
+  void PipelineProcessPacket (pipeline* pl, packet* pkt);
 
   /**
    * Executes the instructions associated with a flow entry
    * \see ofsoftswitch function execute_entry at udatapath/pipeline.c
+   * \param pl The pipeline.
    * \param entry The flow entry to execute
    * \param next_table A pointer to next table (can be modified by entry)
    * \param pkt The packet associated with this flow entry
    */
-  void PipelineExecuteEntry (flow_entry *entry, flow_table **next_table, 
+  void PipelineExecuteEntry (pipeline* pl, flow_entry *entry, flow_table **next_table, 
       packet **pkt);
-
-  /**
-   * Check if any flow in any table is timed out and update port status. This
-   * method reschedules itself at every m_timout interval, to constantly check
-   * the pipeline for timed out flow entries and update port status.
-   * \see ofsoftswitch13 function pipeline_timeout () at udatapath/pipeline.c
-   */
-  void PipelineTimeout ();
   //\}
 
   ///\name Buffer methods
   //\{
   /**
+   * Create the buffers structures.
+   * \see ofsoftswitch function dp_buffers_create at udatapath/dp_buffers.c
+   * \param dp The datapath.
+   * \return The created buffer.
+   */
+  dp_buffers* BuffersCreate (datapath* dp);
+
+  /**
    * Saves the packet into the buffer. 
    * \see ofsoftswitch13 function dp_buffers_save () at udatapath/dp_buffers.c
-   * \param pkt Internal packet to save
+   * \param dpb The buffer structure.
+   * \param pkt Internal packet to save.
    * \return The saved buffer ID, or NO_BUFFER if saving was not possible.
    */
-  int32_t BuffersSave (packet *pkt);
+  int32_t BuffersSave (dp_buffers *dpb, packet *pkt);
 
   /**
    * Check for valid buffered packet
    * \see ofsoftswitch13 function dp_buffers_is_alive () at udatapath/dp_buffers.c
-   * \param id The buffer id of the packet to check
+   * \param dpb The buffer structure.
+   * \param id The buffer id of the packet to check.
    * \return True if the buffered packet is not timed out.
    */
-  bool BuffersIsAlive (uint32_t id);
+  bool BuffersIsAlive (dp_buffers *dpb, uint32_t id);
   //\}
+
+  ///\name Group methods
+  //\{
+  /**
+   * Creates a group table.
+   * \return The created table.
+   */
+  group_table* GroupTableCreate ();
+
+  /** 
+   * Look for a group entry ID.
+   * \param id Group id.
+   * \return The group entry with the given ID. 
+   */
+//  group_entry* GroupTableFind (uint32_t gid);
+
+  /** 
+   * Executes the given group entry on the packet. 
+   * \param pkt Internal packet.
+   * \param git Group id.
+   */
+//  void GroupTableExecute (packet *pkt, uint32_t gid);
+  //\}
+
 
   ///\name Action methods
   //\{
@@ -326,13 +378,14 @@ private:
   
   ///\name Flow table methods
   //\{
-  /**
-   * Creates a new flow table 
-   * \see ofsoftswitch13 flow_table_create () at udatapath/flow_table.c
-   * \param table_id The table id.
-   * \return The pointer to the created table.
-   */
-  flow_table* FlowTableCreate (uint8_t table_id);
+//  /**
+//   * Creates a new flow table 
+//   * \see ofsoftswitch13 flow_table_create () at udatapath/flow_table.c
+//   * \param dp The datapath.
+//   * \param table_id The table id.
+//   * \return The pointer to the created table.
+//   */
+//  flow_table* FlowTableCreate (datapath* dp, uint8_t table_id);
 
   /**
    * Handles a flow_mod msg with OFPFC_ADD command. 
@@ -562,12 +615,8 @@ private:
   NetDevice::ReceiveCallback        m_rxCallback;        //!< Receive callback
   NetDevice::PromiscReceiveCallback m_promiscRxCallback; //!< Promiscuous receive callback
   
-  // Considering the necessary datapath structs from ofsoftswitch13
-  typedef std::vector<ofs::Port> Ports_t;     //!< Structure to store port information
-  Ports_t                 m_ports;            //!< Switch's ports
-  
+  ofs::Ports_t            m_ports;            //!< Switch's ports
   ofs::EchoMsgMap_t       m_echoMap;          //!< Metadata for echo requests
-
   uint32_t                m_xid;              //!< Global transaction idx
   uint64_t                m_id;               //!< Unique identifier for this switch
   Mac48Address            m_address;          //!< Address of this device
@@ -578,16 +627,19 @@ private:
   uint32_t                m_ifIndex;          //!< Interface Index
   uint16_t                m_mtu;              //!< Maximum Transmission Unit
   Time                    m_echo;             //!< Echo request interval
-  Time                    m_timeout;          //!< Pipeline Timeout
+  Time                    m_timeout;          //!< Datapath Timeout
   Time                    m_lookupDelay;      //!< Flow Table Lookup Delay [overhead].
-  Time                    m_lastTimeout;      //!< Last datapath timeout
   ofl_async_config        m_asyncConfig;      //!< Asynchronous messages configuration
+  
+  //Time                    m_lastTimeout;      //!< Last datapath timeout
   ofl_config              m_config;           //!< Configuration, set from controller
   pipeline*               m_pipeline;         //!< Pipeline with multi-tables
-  dp_buffers*             m_buffers;          //!< Datapath buffers
-  // group_table*            m_groups;           //!< Group tables
-  // meter_table*            m_meters;           //!< Meter tables
+  //dp_buffers*             m_buffers;          //!< Datapath buffers
+  group_table*            m_groups;           //!< Group table
+  // meter_table*            m_meters;           //!< Meter table
   // ofl_exp*                m_exp;                //!< Experimenter handling
+
+  datapath*               m_datapath;         //!< The OpenFlow datapath
 
 }; // Class OFSwitch13NetDevice
 

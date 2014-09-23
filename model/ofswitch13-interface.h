@@ -61,11 +61,13 @@ extern "C"
 #include "udatapath/pipeline.h"
 #include "udatapath/flow_table.h"
 #include "udatapath/flow_entry.h"
+#include "udatapath/group_table.h"
+#include "udatapath/group_entry.h"
 #include "udatapath/dp_ports.h"
 #include "udatapath/dp_actions.h"
-#include "udatapath/packet_handle_std.h"
-#include "udatapath/dp_buffers.h"
 #include "udatapath/action_set.h"
+#include "udatapath/dp_buffers.h"
+#include "udatapath/packet_handle_std.h"
 
 #include "lib/ofpbuf.h"
 #include "lib/dynamic-string.h"
@@ -73,8 +75,8 @@ extern "C"
 #include "lib/random.h"
 
 #include "oflib/ofl-structs.h"
-#include "oflib/oxm-match.h"
 #include "oflib/ofl-utils.h"
+#include "oflib/oxm-match.h"
 
 #include "utilities/dpctl.h"
 // Some dpctl parse methods that are not in header
@@ -101,13 +103,40 @@ int parse_port(char *str, uint32_t *port);
 // Capabilities supported by this implementation (from dp_capabilities.h)
 #define DP_SUPPORTED_CAPABILITIES ( \
     OFPC_FLOW_STATS     \
-  | OFPC_TABLE_STATS    \
   | OFPC_PORT_STATS     )
+/*| OFPC_TABLE_STATS */
 /*| OFPC_GROUP_STATS */  
 /*| OFPC_IP_REASM */     
 /*| OFPC_QUEUE_STATS */   
 /*| OFPC_PORT_BLOCKED */   
-    
+  
+#define DP_SUPPORTED_ACTIONS ( \
+    (1 << OFPAT_OUTPUT)        \
+  | (2 << OFPAT_COPY_TTL_OUT)  \
+  | (3 << OFPAT_COPY_TTL_IN)   \
+  | (4 << OFPAT_SET_MPLS_TTL)  \
+  | (5 << OFPAT_DEC_MPLS_TTL)  \
+  | (6 << OFPAT_PUSH_VLAN)     \
+  | (7 << OFPAT_POP_VLAN)      \
+  | (8 << OFPAT_PUSH_MPLS)     \
+  | (9 << OFPAT_POP_MPLS)      \
+  | (10 << OFPAT_SET_QUEUE)    \
+  | (11 << OFPAT_GROUP)        \
+  | (12 << OFPAT_SET_NW_TTL)   \
+  | (13 << OFPAT_DEC_NW_TTL)   )
+
+#define DP_SUPPORTED_GROUPS ( \
+    OFPGT_ALL       \
+  | OFPGT_SELECT    \
+  | OFPGT_INDIRECT  \
+  | OFPGT_FF        )
+
+#define DP_SUPPORTED_GROUP_CAPABILITIES ( \
+  OFPGFC_SELECT_WEIGHT        \
+/*| OFPGFC_SELECT_LIVENESS    \
+  | OFPGFC_CHAINING           \
+  | OFPGFC_CHAINING_CHECKS*/  )
+
 namespace ns3 {
 namespace ofs {
 
@@ -122,19 +151,17 @@ struct Port
 {
   /**
    * \brief Port constructor.
-   * 
-   * \see new_port () at udatapath/dp_ports.c
+   * \see new_port () at udatapath/dp_ports.c.
    * \attention Port numbers should start at 1.
-   * 
    * \param dev Pointer to NetDevice (port) at the switch.
    * \param port_no Number for this port.
    */
   Port (Ptr<NetDevice> dev, uint32_t port_no);
 
   /**
-   * Get netdev data rate and set Openflow port features config
-   * \param netdev Switch port device
-   * \return the configure port features
+   * Get netdev data rate and set Openflow port features config.
+   * \param netdev Switch port device.
+   * \return the configure port features.
    */
   uint32_t GetFeatures (Ptr<CsmaNetDevice> netdev);
   
@@ -145,6 +172,9 @@ struct Port
   uint32_t port_no;               ///< Port number
   uint64_t created;               ///< Create time
 };
+
+/** Structure to store port information. */
+typedef std::vector<Port> Ports_t;     
 
 /**
  * \ingroup ofswitch13
@@ -161,17 +191,15 @@ struct EchoInfo
   Time GetRtt ();   //!< Compute the echo RTT
 };
 
+/** Structure to store echo information */
 typedef std::map<uint64_t, EchoInfo> EchoMsgMap_t;
 
 /**
  * \ingroup ofswitch13
- * \brief Create and OpenFlow ofpbuf from ns3::Packet
- * 
- * Takes a Ptr<Packet> and generates an OpenFlow buffer (ofpbuf*) from it,
- * loading the packet data as well as its headers into the buffer.
- * 
+ * Create and OpenFlow ofpbuf from ns3::Packet.  Takes a Ptr<Packet> and
+ * generates an OpenFlow buffer (ofpbuf*) from it, loading the packet data as
+ * well as its headers into the buffer.
  * \see ofsoftswitch13 function netdev_recv () at lib/netdev.c
- *
  * \param packet The packet.
  * \param bodyRoom The size to allocate for data.
  * \param headRoom The size to allocate for headers (left unitialized).
@@ -182,42 +210,36 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
 
 /**
  * \ingroup ofswitch13
- * \brief Create and OpenFlow ofpbuf from internal ofl_msg_*
- * 
- * Takes a ofl_msg_* structure and generates an OpenFlow buffer (ofpbuf*) from
- * it, packing message data into the buffer using wire format
- * 
- * \param msg The ofl_msg_* structure
+ * Create and OpenFlow ofpbuf from internal ofl_msg_*. Takes a ofl_msg_*
+ * structure and generates an OpenFlow buffer (ofpbuf*) from it, packing
+ * message data into the buffer using wire format.
+ * \param msg The ofl_msg_* structure.
  * \param xid The transaction id to use.
- * \return The OpenFlow Buffer created from the message
+ * \return The OpenFlow Buffer created from the message.
  */
 ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid);
 
 /**
  * \ingroup ofswitch13
- * \brief Creates an OpenFlow internal packet from openflow buffer
- *
- * This packet in an internal ofsoftswitch13 structure to represent the
- * packet, and it is used to parse fields, lookup for flow matchs, etc.
- *
+ * Creates an OpenFlow internal packet from openflow buffer. This packet in an
+ * internal ofsoftswitch13 structure to represent the packet, and it is used to
+ * parse fields, lookup for flow matchs, etc.
  * \see ofsoftswitch13 function packet_create () at udatapath/packet.c
- *
  * \param in_port The id of the input port.
- * \param buf The openflow buffer with the packet
- * \param packet_out True if the packet arrived in a packet out msg
- * \return The pointer to the created packet
+ * \param buf The openflow buffer with the packet.
+ * \param packet_out True if the packet arrived in a packet out msg.
+ * \param dp The datapath.
+ * \return The pointer to the created packet.
  */
 packet* InternalPacketFromBuffer (uint32_t in_port, ofpbuf *buf,
-    bool packet_out);
+    bool packet_out, datapath* dp);
 
 /**
  * \ingroup ofswitch13
- * \brief Create an ns3::Packet from internal ofl_msg_*
- * 
- * Takes a ofl_msg_* structure and generates an Ptr<Packet> from
- * it, packing message data into the packet using wire format
- * 
- * \param msg The ofl_msg_* structure
+ * Create an ns3::Packet from internal ofl_msg_*.  Takes a ofl_msg_* structure
+ * and generates an Ptr<Packet> from it, packing message data into the packet
+ * using wire format.
+ * \param msg The ofl_msg_* structure.
  * \param xid The transaction id to use.
  * \return The ns3::Packet created.
  */
@@ -225,25 +247,20 @@ Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid = 0);
 
 /**
  * \ingroup ofswitch13
- * \brief Create an ns3::Packet from OpenFlow buffer
- * 
- * Takes an OpenFlow buffer (ofpbuf*) and generates a Ptr<Packet> from it,
- * load the data as well as its headers into the packet and free the buffer
- * memory.
- * 
- * \param buffer The ofpbuf buffer
+ * Create an ns3::Packet from OpenFlow buffer.  Takes an OpenFlow buffer
+ * (ofpbuf*) and generates a Ptr<Packet> from it, load the data as well as its
+ * headers into the packet and free the buffer memory.
+ * \param buffer The ofpbuf buffer.
  * \return The ns3::Packet created.
  */
 Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer);
 
 /**
  * \ingroup ofswitch13
- * \brief Create an ns3::Packet from internal OpenFlow packet 
- * 
- * Takes an internal OpenFlow packet (struct packet*) and generates a Ptr<Packet> from it,
- * load the data as well as its headers into the packet.
- * 
- * \param pkt The internal openflow packet
+ * Create an ns3::Packet from internal OpenFlow packet.  Takes an internal
+ * OpenFlow packet (struct packet*) and generates a Ptr<Packet> from it, load
+ * the data as well as its headers into the packet.
+ * \param pkt The internal openflow packet.
  * \return The ns3::Packet created.
  */
 Ptr<Packet> PacketFromInternalPacket (packet *pkt);
