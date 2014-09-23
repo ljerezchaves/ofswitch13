@@ -239,14 +239,6 @@ private:
 
   ///\name Pipeline methods
   //\{
-//  /**
-//   * Create the pipeline structures.
-//   * \see ofsoftswitch function pipeline_create at udatapath/pipeline.c
-//   * \param dp The datapath.
-//   * \return The created pipeline.
-//   */
-//  pipeline* PipelineCreate (datapath* dp);
-
   /**
    * Run the packet through the pipeline. Looks up in the pipeline tables for a
    * match.  If it doesn't match, it forwards the packet to the registered
@@ -272,14 +264,6 @@ private:
 
   ///\name Buffer methods
   //\{
-//  /**
-//   * Create the buffers structures.
-//   * \see ofsoftswitch function dp_buffers_create at udatapath/dp_buffers.c
-//   * \param dp The datapath.
-//   * \return The created buffer.
-//   */
-//  dp_buffers* BuffersCreate (datapath* dp);
-
   /**
    * Saves the packet into the buffer. 
    * \see ofsoftswitch13 function dp_buffers_save () at udatapath/dp_buffers.c
@@ -298,31 +282,6 @@ private:
    */
   bool BuffersIsAlive (dp_buffers *dpb, uint32_t id);
   //\}
-
-  ///\name Group methods
-  //\{
-//  /**
-//   * Creates a group table.
-//   * \param dp The datapath.
-//   * \return The created table.
-//   */
-//  group_table* GroupTableCreate (datapath* dp);
-
-  /** 
-   * Look for a group entry ID.
-   * \param id Group id.
-   * \return The group entry with the given ID. 
-   */
-//  group_entry* GroupTableFind (uint32_t gid);
-
-  /** 
-   * Executes the given group entry on the packet. 
-   * \param pkt Internal packet.
-   * \param git Group id.
-   */
-//  void GroupTableExecute (packet *pkt, uint32_t gid);
-  //\}
-
 
   ///\name Action methods
   //\{
@@ -379,15 +338,6 @@ private:
   
   ///\name Flow table methods
   //\{
-//  /**
-//   * Creates a new flow table 
-//   * \see ofsoftswitch13 flow_table_create () at udatapath/flow_table.c
-//   * \param dp The datapath.
-//   * \param table_id The table id.
-//   * \return The pointer to the created table.
-//   */
-//  flow_table* FlowTableCreate (datapath* dp, uint8_t table_id);
-
   /**
    * Handles a flow_mod msg with OFPFC_ADD command. 
    * \attention new entries will be placed behind those with equal priority

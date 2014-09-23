@@ -845,19 +845,6 @@ OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
   return false;
 }
 
-// pipeline*
-// OFSwitch13NetDevice::PipelineCreate (datapath* dp)
-// {
-//   pipeline *pl = (pipeline*)xmalloc (sizeof (pipeline));
-//   for (size_t i=0; i<PIPELINE_TABLES; i++) 
-//     {
-//       pl->tables[i] = flow_table_create (dp, i);
-//     }
-//   pl->dp = dp;
-//   nblink_initialize();
-//   return pl;
-// }
-
 void
 OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
 {
@@ -1045,22 +1032,6 @@ OFSwitch13NetDevice::DatapathTimeout ()
   m_datapath->last_timeout = Simulator::Now ().GetTimeStep ();
 }
 
-// dp_buffers*
-// OFSwitch13NetDevice::BuffersCreate (datapath* dp)
-// {
-//   dp_buffers *dpb = (dp_buffers*)xmalloc (sizeof (dp_buffers));
-//   dpb->dp = dp;
-//   dpb->buffer_idx  = (size_t)-1;
-//   dpb->buffers_num = N_PKT_BUFFERS;
-//   for (size_t i=0; i<N_PKT_BUFFERS; i++) 
-//     {
-//       dpb->buffers[i].pkt     = NULL;
-//       dpb->buffers[i].cookie  = UINT32_MAX;
-//       dpb->buffers[i].timeout = 0;
-//     }
-//   return dpb;
-// }
-
 int32_t
 OFSwitch13NetDevice::BuffersSave (dp_buffers *dpb, packet *pkt)
 {
@@ -1119,38 +1090,6 @@ OFSwitch13NetDevice::BuffersIsAlive (dp_buffers *dpb, uint32_t id)
   return ((p->cookie == id >> PKT_BUFFER_BITS) && 
           (Simulator::Now () < Time (p->timeout)));
 }
-
-// group_table*
-// OFSwitch13NetDevice::GroupTableCreate (datapath* dp)
-// {
-//   group_table *table = (group_table*)xmalloc (sizeof (group_table));
-//   table->dp = dp;
-// 
-//   table->features = (ofl_msg_multipart_reply_group_features*)xmalloc (sizeof (ofl_msg_multipart_reply_group_features));	
-//   table->features->types = DP_SUPPORTED_GROUPS;
-//   table->features->capabilities = DP_SUPPORTED_GROUP_CAPABILITIES;    
-//   for (size_t i = 0; i < 4; i++)
-//     {
-//       table->features->max_groups[i] = 255;
-//       table->features->actions[i] = DP_SUPPORTED_ACTIONS;
-//     }
-//   table->entries_num = 0;
-//   hmap_init (&table->entries);
-//   table->buckets_num = 0;
-// 
-//   return table;
-// }
-
-// group_entry* 
-// OFSwitch13NetDevice::GroupTableFind (uint32_t gid)
-// {
-//   
-// }
-// 
-// void 
-// OFSwitch13NetDevice::GroupTableExecute (packet *pkt, uint32_t gid)
-// {
-// }
 
 void
 OFSwitch13NetDevice::ActionListExecute (packet *pkt, size_t actions_num,
@@ -1393,46 +1332,6 @@ OFSwitch13NetDevice::ActionValidate (size_t num, ofl_action_header **actions)
     }
   return 0;
 }
-
-// flow_table*
-// OFSwitch13NetDevice::FlowTableCreate (datapath* dp, uint8_t table_id)
-// {
-//   flow_table *table;
-//   ds string = DS_EMPTY_INITIALIZER;
-// 
-//   ds_put_format (&string, "table_%u", table_id);
-// 
-//   table = (flow_table*)xmalloc (sizeof (flow_table));
-//   memset (table, 0x00, sizeof (flow_table));
-// 
-//   table->dp = dp;
-//   table->disabled = 0;
-//   
-//   /*Init table stats */
-//   table->stats = (ofl_table_stats*)xmalloc (sizeof (ofl_table_stats));
-//   memset (table->stats, 0x00, sizeof (ofl_table_stats));
-//   table->stats->table_id      = table_id;
-//   table->stats->active_count  = 0;
-//   table->stats->lookup_count  = 0;
-//   table->stats->matched_count = 0;
-// 
-//   /* Init Table features */
-//   table->features = (ofl_table_features*)xmalloc (sizeof (ofl_table_features));
-//   memset (table->features, 0x00, sizeof (ofl_table_features));
-//   table->features->table_id       = table_id;
-//   table->features->name           = ds_cstr(&string);
-//   table->features->metadata_match = 0xffffffffffffffff; 
-//   table->features->metadata_write = 0xffffffffffffffff;
-//   table->features->config         = OFPTC_TABLE_MISS_CONTROLLER;
-//   table->features->max_entries    = FLOW_TABLE_MAX_ENTRIES;
-//   table->features->properties_num = flow_table_features (table->features);
-// 
-//   list_init (&table->match_entries);
-//   list_init (&table->hard_entries);
-//   list_init (&table->idle_entries);
-// 
-//   return table;
-// }
 
 ofl_err
 OFSwitch13NetDevice::FlowTableAdd (flow_table *table, ofl_msg_flow_mod *mod, 
