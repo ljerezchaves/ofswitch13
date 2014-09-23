@@ -1632,18 +1632,6 @@ OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
   free (entry);
 }
 
-// void 
-// OFSwitch13NetDevice::FlowEntryDestroy (flow_entry *entry)
-// {
-//   NS_LOG_FUNCTION (this);
-//   
-//   // FIXME No meter/group support by now
-//   // del_group_refs (entry);
-//   // del_meter_refs (entry);
-//   ofl_structs_free_flow_stats (entry->stats, NULL/*entry->dp->exp*/);
-//   free (entry);
-// }
-
 flow_entry* 
 OFSwitch13NetDevice::FlowEntryCreate (datapath *dp, flow_table *table, ofl_msg_flow_mod *mod)
 {
