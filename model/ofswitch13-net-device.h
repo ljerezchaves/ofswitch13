@@ -37,8 +37,7 @@ class OFSwitch13Controller;
 /**
  * \ingroup ofswitch13
  *
- * \brief A NetDevice that switches multiple LAN segments via OpenFlow protocol 
- *
+ * A NetDevice that switches multiple LAN segments via OpenFlow protocol.
  * The OFSwitch13NetDevice object aggregates multiple netdevices as ports
  * and acts like a switch. It implements OpenFlow datapath compatibility,
  * according to the OpenFlow Switch Specification v1.3.
@@ -64,14 +63,12 @@ public:
   
   /**
    * \name OFSwitch13NetDevice Description Data
-   * \brief These four data describe the OFSwitch13NetDevice as if it were
-   * a real OpenFlow switch.
-   *
-   * There is a type of stats request that OpenFlow switches are supposed to
-   * handle that returns the description of the OpenFlow switch. Currently
-   * manufactured by "The ns-3 team", software description is "Simulated
-   * OpenFlow Switch datapath version 1.3", hardware description is "N/A",
-   * serial number is 1, and datapath description is "N/A".
+   * These four data describe the OFSwitch13NetDevice as if it were a real
+   * OpenFlow switch. There is a type of stats request that OpenFlow switches
+   * are supposed to handle that returns the description of the OpenFlow
+   * switch. Currently manufactured by "The ns-3 team", software description is
+   * "Simulated OpenFlow Switch datapath version 1.3", hardware description is
+   * "N/A", serial number is 1, and datapath description is "N/A".
    */
   //\{
   static const char * GetManufacturerDescription ();
@@ -82,18 +79,13 @@ public:
   //\}
 
  /**
-   * \brief Add a 'port' to the switch device
-   *
-   * This method adds a new switch port to a OFSwitch13NetDevice, so that the
-   * new switch port NetDevice becomes part of the switch and L2 frames start
-   * being forwarded to/from this NetDevice.
-   * 
+   * Add a 'port' to the switch device. This method adds a new switch port to a
+   * OFSwitch13NetDevice, so that the new switch port NetDevice becomes part of
+   * the switch and L2 frames start being forwarded to/from this NetDevice.
    * \attention The current implementation only supports CsmaNetDevices using
    * DIX encapsulation.
-   *
    * \attention The csmaNetDevice that is being added as switch port must _not_
    * have an IP address.
-   *
    * \param switchPort The NetDevice port to add.
    * \return 0 if everything's ok, otherwise an error number.
    */
@@ -110,7 +102,7 @@ public:
   uint64_t GetDatapathId (void) const;
 
   /**
-   * \brief Set up the TCP connection between switch and controller.
+   * Set up the TCP connection between switch and controller.
    */
   void StartControllerConnection ();
 
@@ -146,16 +138,14 @@ private:
   ///\name Port methods
   //\{
   /**
-   * \brief Search the switch ports looking for a specific device
-   *
+   * Search the switch ports looking for a specific device
    * \param dev The Ptr<CsmaNetDevice> pointer to device.
    * \return A pointer to the corresponding ofs::Port.
    */
   ofs::Port* PortGetOfsPort (Ptr<NetDevice> dev);
 
   /**
-   * \brief Search the switch ports looking for a specific port number
-   *
+   * Search the switch ports looking for a specific port number
    * \param no The port number (starting at 1) 
    * \return A pointer to the corresponding ofs::Port.
    */
@@ -164,7 +154,6 @@ private:
   /**
    * Update the port status field of the switch port. A non-zero return value
    * indicates some field has changed.
-   *
    * \param p Port to update its config and flag fields.
    * \return true 0 if unchanged, any value otherwise.
    */
@@ -175,24 +164,19 @@ private:
   ///\name Send/Receive methods
   //\{
   /**
-   * \brief Called by the SocketRead when a packet is received from the
-   * controller. Dispatches control messages to appropriate handler
-   * functions.
+   * Called by the SocketRead when a packet is received from the controller.
+   * Dispatches control messages to appropriate handler functions.
    * \see remote_rconn_run () at udatapath/datapath.c
    * \see handle_control_msg () at udatapath/dp_control.c
-   *
    * \param buffer The message (ofpbuf) received from the controller.
    * \return 0 if everything's ok, otherwise an error number.
    */
   int ReceiveFromController (ofpbuf* buffer);
  
   /**
-   * \brief Send a message to the controller. 
-   *
-   * This method is the key to communicating with the controller, it does the
-   * actual sending. The other Send methods call this one when they are ready
-   * to send the packet.
-   *
+   * Send a message to the controller. This method is the key to communicating
+   * with the controller, it does the actual sending. The other Send methods
+   * call this one when they are ready to send the packet.
    * \param packet The packet to send
    * \return The number of bytes transmitted
    */
@@ -202,7 +186,6 @@ private:
    * Called when a packet is received on one of the switch's ports. This method
    * will send the packet to the openflow pipeline.
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c 
-   *
    * \param netdev The port the packet was received on.
    * \param packet The Packet itself.
    * \param protocol The protocol defining the Packet.
@@ -215,13 +198,10 @@ private:
       packetType);
 
   /**
-   * \brief Send a message over a specific switch port
-   *
-   * Check port configuration, create the ns3 packet, remove the ethernet
-   * header and trailer from packet (which will be included again by
-   * CsmaNetDevice), send the packet over the proper netdevice, and update port
-   * statistics.
-   *
+   * Send a message over a specific switch port. Check port configuration,
+   * create the ns3 packet, remove the ethernet header and trailer from packet
+   * (which will be included again by CsmaNetDevice), send the packet over the
+   * proper netdevice, and update port statistics.
    * \param pkt The internal packet to send
    * \param port The Openflow port structure
    * \return True if success, false otherwise
@@ -246,7 +226,6 @@ private:
   /**
    * Executes the instructions associated with a flow entry
    * \see ofsoftswitch function execute_entry at udatapath/pipeline.c
-   *
    * \param entry The flow entry to execute
    * \param next_table A pointer to next table (can be modified by entry)
    * \param pkt The packet associated with this flow entry
@@ -255,11 +234,9 @@ private:
       packet **pkt);
 
   /**
-   * \brief Check if any flow in any table is timed out and update port
-   * status.
-   * 
-   * This method reschedules itself at every m_timout interval, to constantly
-   * check the pipeline for timed out flow entries and update port status.
+   * Check if any flow in any table is timed out and update port status. This
+   * method reschedules itself at every m_timout interval, to constantly check
+   * the pipeline for timed out flow entries and update port status.
    * \see ofsoftswitch13 function pipeline_timeout () at udatapath/pipeline.c
    */
   void PipelineTimeout ();
@@ -268,7 +245,7 @@ private:
   ///\name Buffer methods
   //\{
   /**
-   * \brief Saves the packet into the buffer. 
+   * Saves the packet into the buffer. 
    * \see ofsoftswitch13 function dp_buffers_save () at udatapath/dp_buffers.c
    * \param pkt Internal packet to save
    * \return The saved buffer ID, or NO_BUFFER if saving was not possible.
@@ -276,7 +253,7 @@ private:
   int32_t BuffersSave (packet *pkt);
 
   /**
-   * \brief Check for valid buffered packet
+   * Check for valid buffered packet
    * \see ofsoftswitch13 function dp_buffers_is_alive () at udatapath/dp_buffers.c
    * \param id The buffer id of the packet to check
    * \return True if the buffered packet is not timed out.
@@ -289,7 +266,6 @@ private:
   /**
    * Executes the list of OFPIT_APPLY_ACTIONS actions on the given packet
    * \see ofsoftswitch dp_execute_action_list at udatapath/dp_actions.c
-   *
    * \param pkt The packet associated with this action
    * \param actions_num The number of actions to execute
    * \param actions A pointer to the list of actions
@@ -301,7 +277,6 @@ private:
   /**
    * Executes the set of OFPIT_WRITE_ACTIONS actions on the given packet
    * \see ofsoftswitch action_set_execute at udatapath/action_set.c
-   *
    * \param pkt The packet associated with this action set
    * \param set A pointer to the set of actions
    * \param cookie The cookie that identifies the buffer ??? (not sure)
@@ -311,7 +286,6 @@ private:
   /**
    * Executes a single action on the given packet
    * \see ofsoftswitch dp_execute_action at udatapath/dp_actions.c
-   *
    * \param pkt The packet associated with this action
    * \param action A pointer to the action
    */
@@ -320,7 +294,6 @@ private:
   /**
    * Execute the ouput action sending the packet to an output port
    * \see ofsoftswitch dp_actions_output_port at udatapath/dp_actions.c
-   *
    * \param pkt The packet associated with this action
    * \param out_port The port number
    * \param out_queue The queue to use (Can I remove this?)
@@ -331,9 +304,8 @@ private:
           uint16_t max_len, uint64_t cookie);
 
   /**
-   * \brief Validate actions before applying it
+   * Validate actions before applying it
    * \see ofsoftswitch13 dp_actions_validade () at udatapath/dp_actions.c
-   *
    * \param num The number of actions
    * \param actions The actions structure
    * \return 0 if sucess or OpenFlow error code
@@ -490,16 +462,14 @@ private:
   
 
   /**
-   * \brief Add an Ethernet header and trailer to the packet
-   *
-   * This is an workaround to facilitate the creation of the openflow buffer.
-   * When the packet gets inside the switch, the Ethernet header has already
-   * been removed by CsmaNetDevice::Receive () method on the NetDevice port.
-   * So, we are going to include it again to properly buffer the packet. We
-   * will remove this header and trailer latter.
+   * Add an Ethernet header and trailer to the packet. This is an workaround
+   * to facilitate the creation of the openflow buffer. When the packet gets
+   * inside the switch, the Ethernet header has already been removed by
+   * CsmaNetDevice::Receive () method on the NetDevice port. So, we are going
+   * to include it again to properly buffer the packet. We will remove this
+   * header and trailer latter.
    * \attention This method only works for DIX encapsulation mode.
    * \see CsmaNetDevice::AddHeader ()
-   *
    * \param packet The packet (will be modified).
    * \param source The L2 source address.
    * \param dest The L2 destination address.
@@ -509,8 +479,7 @@ private:
       Mac48Address dest, uint16_t protocolNumber);
 
   /**
-   * \brief Create a packet_in to send to controller
-   *
+   * Create a packet_in to send to controller.
    * \param pkt The internal packet to send
    * \param tableId Table id with with entry match
    * \param reason The reason to send this packet to controller
@@ -521,15 +490,14 @@ private:
           ofp_packet_in_reason reason, uint64_t cookie);
 
   /**
-   * \brief Destroys a packet along with all its associated structures.
+   * Destroys a packet along with all its associated structures.
    * \see ofsoftswitch13 packet_destroy () at udatapath/packet.c
    * \param pkt The internal packet to free
    */
   void InternalPacketDestroy (packet *pkt);
 
   /**
-   * \brief Send an echo request message to controller.
-   *
+   * Send an echo request message to controller.
    * This method reschedules itself at every m_echo interval, to constantly
    * check the connection between switch and controller.
    */
@@ -539,7 +507,6 @@ private:
    * \name OpenFlow message handlers
    * Handlers used by ReceiveFromController to proccess each type of OpenFlow
    * message received from the controller.
-   *
    * \param msg The OpenFlow message.
    * \param xid The transaction id from the request message.
    * \return 0 if everything's ok, otherwise an error number.
