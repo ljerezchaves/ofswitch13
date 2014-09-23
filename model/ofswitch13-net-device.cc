@@ -132,7 +132,6 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   SetAddress (Mac48Address::Allocate ()); 
  
   // Initializing the datapath, as in dp_net at udatapath/datapath.c
-  time_init ();
   nblink_initialize(); 
   
   m_ports.reserve (DP_MAX_PORTS+1);
@@ -882,7 +881,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (packet* pkt)
       NS_LOG_DEBUG ("searching table entry for packet match: " <<  
             ofl_structs_match_to_string ((ofl_match_header*)&(pkt->handle_std->match), NULL));
   
-      entry = flow_table_lookup (table, pkt);
+      entry = FlowTableLookup (table, pkt);
       if (entry != NULL) 
         {
           NS_LOG_DEBUG ("found matching entry: " << ofl_structs_flow_stats_to_string (entry->stats, NULL));
@@ -1000,42 +999,14 @@ OFSwitch13NetDevice::PipelineExecuteEntry (flow_entry *entry,
 void
 OFSwitch13NetDevice::PipelineTimeout ()
 {
-  // FIXME No meter support by now
+  // FIXME No meter support by now  ????? De onde veio isso
   // meter_table_add_tokens(dp->meters);
-      
-  /**FIXME Disabled due to time incompatibility from simulator and ofsoftswitch13 
   
-  // Check for flow entry timeout
-  flow_table *table;
-  flow_entry *entry, *next;
-  
-  uint64_t nowMsec = (uint64_t)Simulator::Now ().GetMilliSeconds ();
+  // Check flow entry timeout
   for (int i = 0; i < PIPELINE_TABLES; i++) 
     {
-      table = m_pipeline->tables[i];
-      
-      // NOTE: hard timeout entries are ordered by the time they should be
-      // removed at, so if one is not removed, the rest will not be either. 
-      LIST_FOR_EACH_SAFE (entry, next, flow_entry, hard_node, &table->hard_entries) 
-        {
-          if ((entry->remove_at != 0) && 
-              (nowMsec > entry->remove_at))
-            {
-              FlowEntryRemove (entry, OFPRR_HARD_TIMEOUT);
-            }
-          else break;
-        }
-
-      LIST_FOR_EACH_SAFE (entry, next, flow_entry, idle_node, &table->idle_entries) 
-        {
-          if ((entry->stats->idle_timeout != 0) &&
-              (nowMsec > entry->last_used + entry->stats->idle_timeout * 1000))
-            {
-              FlowEntryRemove (entry, OFPRR_IDLE_TIMEOUT);
-            }
-        }
+      FlowTableTimeout (m_pipeline->tables[i]);
     }
-  **/
 
   // Check for changes in port status
   for (size_t i = 0; i < m_ports.size (); i++)
@@ -1098,7 +1069,6 @@ OFSwitch13NetDevice::BuffersSave (packet *pkt)
       p->cookie = 0;
     }
 
-  // We are using the time_t p->timeout to store ns3 simulation time 
   Time expire = Simulator::Now () + Time ("1s");
   p->timeout = (time_t)expire.GetTimeStep (); 
   
@@ -1423,7 +1393,7 @@ OFSwitch13NetDevice::FlowTableAdd (flow_table *table, ofl_msg_flow_mod *mod,
       /* if the entry equals, replace the old one */
       if (flow_entry_matches (entry, mod, true/*strict*/, false/*check_cookie*/)) 
         {
-          new_entry = flow_entry_create (NULL/*table->dp*/, table, mod);
+          new_entry = FlowEntryCreate (table, mod);
           *match_kept = true;
           *insts_kept = true;
 
@@ -1448,7 +1418,7 @@ OFSwitch13NetDevice::FlowTableAdd (flow_table *table, ofl_msg_flow_mod *mod,
     }
   table->stats->active_count++;
 
-  new_entry = flow_entry_create (NULL/*table->dp*/, table, mod);
+  new_entry = FlowEntryCreate (table, mod);
   *match_kept = true;
   *insts_kept = true;
 
@@ -1544,6 +1514,97 @@ OFSwitch13NetDevice::FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod,
     }
 }
 
+flow_entry* 
+OFSwitch13NetDevice::FlowTableLookup (flow_table *table, packet *pkt)
+{
+  flow_entry *entry;
+
+  table->stats->lookup_count++;
+
+  LIST_FOR_EACH (entry, flow_entry, match_node, &table->match_entries) 
+    {
+      ofl_match_header *m;
+      m = entry->match == NULL ? entry->stats->match : entry->match;
+
+      /* select appropriate handler, based on match type of flow entry. */
+      switch (m->type) 
+        {
+          case (OFPMT_OXM): 
+            {
+              if (packet_handle_std_match (pkt->handle_std, (ofl_match *)m)) 
+                {
+                  if (!entry->no_byt_count)
+                    {
+                      entry->stats->byte_count += pkt->buffer->size;
+                    }
+                  if (!entry->no_pkt_count)
+                    {
+                      entry->stats->packet_count++;
+                    }
+                  entry->last_used = Simulator::Now ().GetTimeStep ();
+                  table->stats->matched_count++;
+                  return entry;
+                }
+              break;
+            }
+          default: 
+            {
+              NS_LOG_WARN ("Trying to process flow entry with unknown match type " << m->type);
+            }
+        }
+    }
+  return NULL;
+}
+
+void
+OFSwitch13NetDevice::FlowTableTimeout (flow_table *table) 
+{
+  struct flow_entry *entry, *next;
+
+  /** 
+   * NOTE: hard timeout entries are ordered by the time they should be removed
+   * at, so if one is not removed, the rest will not be either. 
+   */
+  LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, hard_node, &table->hard_entries) 
+    {
+      if (!FlowEntryHardTimeout (entry)) 
+        {
+          break;
+        }
+    }
+
+  LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, idle_node, &table->idle_entries) 
+    {
+      FlowEntryIdleTimeout (entry);
+    }
+}
+
+void 
+OFSwitch13NetDevice::FlowTableStats (flow_table *table, ofl_msg_multipart_request_flow *msg, 
+      ofl_flow_stats ***stats, size_t *stats_size, size_t *stats_num)
+{
+  flow_entry *entry;
+
+  LIST_FOR_EACH (entry, flow_entry, match_node, &table->match_entries) 
+    {
+      if ((msg->out_port == OFPP_ANY || flow_entry_has_out_port (entry, msg->out_port)) &&
+          (msg->out_group == OFPG_ANY || flow_entry_has_out_group (entry, msg->out_group)) &&
+          match_std_nonstrict ((ofl_match*)msg->match,
+                              (ofl_match*)entry->stats->match)) 
+        {
+
+          FlowEntryUpdate (entry);
+          if ((*stats_size) == (*stats_num)) 
+            {
+              (*stats) = (ofl_flow_stats**) xrealloc (*stats, (sizeof (ofl_flow_stats*)) * (*stats_size) * 2);
+              *stats_size *= 2;
+            }
+          (*stats)[(*stats_num)] = entry->stats;
+          (*stats_num)++;
+        }
+    }
+}
+
 void
 OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
 {
@@ -1551,7 +1612,7 @@ OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
 
   if (entry->send_removed)
     {
-      flow_entry_update (entry);
+      FlowEntryUpdate (entry);
         {
           NS_LOG_DEBUG ("Flow entry expired. Notifying the controller...");
           ofl_msg_flow_removed msg;
@@ -1586,6 +1647,112 @@ OFSwitch13NetDevice::FlowEntryDestroy (flow_entry *entry)
   // del_meter_refs (entry);
   ofl_structs_free_flow_stats (entry->stats, NULL/*entry->dp->exp*/);
   free (entry);
+}
+
+flow_entry* 
+OFSwitch13NetDevice::FlowEntryCreate (flow_table *table, ofl_msg_flow_mod *mod)
+{
+  flow_entry *entry;
+  uint64_t now;
+  
+  now = Simulator::Now ().GetTimeStep ();
+
+  entry = (flow_entry*)xmalloc (sizeof (flow_entry));
+  entry->dp    = NULL;
+  entry->table = table;
+
+  entry->stats = (ofl_flow_stats*)xmalloc (sizeof (ofl_flow_stats));
+  entry->stats->table_id      = mod->table_id;
+  entry->stats->duration_sec  = 0;
+  entry->stats->duration_nsec = 0;
+  entry->stats->priority      = mod->priority;
+  entry->stats->idle_timeout  = mod->idle_timeout;  // stored in seconds
+  entry->stats->hard_timeout  = mod->hard_timeout;  // stored in seconds
+  entry->stats->cookie        = mod->cookie;
+  entry->no_pkt_count = ((mod->flags & OFPFF_NO_PKT_COUNTS) != 0 );
+  entry->no_byt_count = ((mod->flags & OFPFF_NO_BYT_COUNTS) != 0 ); 
+  
+  if (entry->no_pkt_count)
+    {
+      entry->stats->packet_count = 0xffffffffffffffff;
+    }
+  else
+    {
+      entry->stats->packet_count = 0;
+    }
+
+  if (entry->no_byt_count)
+    {
+      entry->stats->byte_count = 0xffffffffffffffff;
+    }
+  else
+    {
+      entry->stats->byte_count = 0;
+    }
+
+  entry->stats->match            = mod->match;
+  entry->stats->instructions_num = mod->instructions_num;
+  entry->stats->instructions     = mod->instructions;
+
+  entry->match = mod->match; /* TODO: MOD MATCH? */
+
+  entry->created = now;  // timestep
+  entry->remove_at = 0;  // timestep
+  if (mod->hard_timeout)
+    {
+      Time out = Time (now) + Time::FromInteger (mod->hard_timeout, Time::S);
+      entry->remove_at = out.GetTimeStep ();
+    }
+  entry->last_used = now;  // timestep
+  entry->send_removed = ((mod->flags & OFPFF_SEND_FLOW_REM) != 0);
+  list_init (&entry->match_node);
+  list_init (&entry->idle_node);
+  list_init (&entry->hard_node);
+
+  // FIXME No group support by now
+  // list_init (&entry->group_refs);
+  // init_group_refs (entry);
+
+  // FIXME No metter support by now
+  // list_init (&entry->meter_refs);
+  // init_meter_refs (entry);
+
+  return entry;
+}
+
+bool 
+OFSwitch13NetDevice::FlowEntryIdleTimeout (flow_entry *entry)
+{
+  bool timeout = (entry->stats->idle_timeout != 0) && 
+                 (Simulator::Now () > (Time (entry->last_used) + 
+                                       Time::FromInteger (entry->stats->idle_timeout, Time::S)));
+  
+  if (timeout) 
+    {
+      FlowEntryRemove (entry, OFPRR_IDLE_TIMEOUT);
+    }
+  return timeout;
+}
+
+bool 
+OFSwitch13NetDevice::FlowEntryHardTimeout (flow_entry *entry)
+{
+  bool timeout = (entry->remove_at != 0) && (Simulator::Now () > Time (entry->remove_at));
+
+  if (timeout) 
+    {
+      FlowEntryRemove (entry, OFPRR_HARD_TIMEOUT);
+    }
+  return timeout;
+}
+
+void
+OFSwitch13NetDevice::FlowEntryUpdate (flow_entry *entry) 
+{
+  Time alive = Simulator::Now () - Time (entry->created);
+  entry->stats->duration_sec  = (uint32_t)alive.ToInteger (Time::S);
+  alive -= Time::FromInteger (entry->stats->duration_sec, Time::S); 
+  entry->stats->duration_nsec = (uint32_t)alive.ToInteger (Time::NS);
 }
 
 void
@@ -2208,12 +2375,12 @@ OFSwitch13NetDevice::MultipartMsgFlow (ofl_msg_multipart_request_flow *msg, uint
       size_t i;
       for (i=0; i<PIPELINE_TABLES; i++) 
         {
-          flow_table_stats (m_pipeline->tables[i], msg, &stats, &stats_size, &stats_num);
+          FlowTableStats (m_pipeline->tables[i], msg, &stats, &stats_size, &stats_num);
         }
     } 
   else 
     {
-      flow_table_stats(m_pipeline->tables[msg->table_id], msg, &stats, &stats_size, &stats_num);
+      FlowTableStats (m_pipeline->tables[msg->table_id], msg, &stats, &stats_size, &stats_num);
     }
 
   ofl_msg_multipart_reply_flow reply;
