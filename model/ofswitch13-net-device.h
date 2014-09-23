@@ -364,18 +364,6 @@ private:
       bool strict); 
 
   /**
-   * Handles a flow_mod msg with OFPFC_MODIFY or OFPFC_MODIFY_STRICT command. 
-   * \see ofsoftswitch13 flow_table_delete () at udatapath/flow_table.c
-   * \param table The table to modify the entry
-   * \param mod The ofl_msg_flow_mod message
-   * \param strict If true, check for strict match
-   * \param insts_kept Used by HandleMsgFlowMod to proper free structs
-   * \return 0 if sucess or OpenFlow error code
-   */
-  ofl_err FlowTableModify (flow_table *table, ofl_msg_flow_mod *mod, 
-      bool strict, bool *insts_kept);
-
-  /**
    * Handles any flow_mod msg. 
    * \see ofsoftswitch13 flow_table_flow_mod () at udatapath/flow_table.c
    * \param table The table to modify the entry

@@ -1371,38 +1371,6 @@ OFSwitch13NetDevice::FlowTableDelete (flow_table *table, ofl_msg_flow_mod *mod,
 }
 
 ofl_err 
-OFSwitch13NetDevice::FlowTableModify (flow_table *table, ofl_msg_flow_mod *mod,
-    bool strict, bool *insts_kept)
-{
-  NS_LOG_FUNCTION (this);
-  
-  flow_entry *entry;
-
-  LIST_FOR_EACH (entry, flow_entry, match_node, &table->match_entries) 
-    {
-      if (flow_entry_matches (entry, mod, strict, true/*check_cookie*/)) 
-        {
-          /* Code from flow_entry_replace_instructions (entry, mod->instructions_num, mod->instructions); */
-          {
-            size_t instructions_num = mod->instructions_num;
-            ofl_instruction_header **instructions = mod->instructions;
-            // FIXME No group support by now
-            // del_group_refs(entry);
-            OFL_UTILS_FREE_ARR_FUN2 (entry->stats->instructions, entry->stats->instructions_num, 
-                ofl_structs_free_instruction, NULL/*entry->dp->exp*/);
-            entry->stats->instructions_num = instructions_num;
-            entry->stats->instructions = instructions;
-            // init_group_refs (entry);
-          }
-          flow_entry_modify_stats (entry, mod);
-          *insts_kept = true;
-        }
-    }
-
-  return 0;
-}
-
-ofl_err 
 OFSwitch13NetDevice::FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod, 
       bool *match_kept, bool *insts_kept)
 {
@@ -1415,11 +1383,11 @@ OFSwitch13NetDevice::FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod,
         }
       case (OFPFC_MODIFY): 
         {
-          return FlowTableModify (table, mod, false, insts_kept);
+          return flow_table_modify (table, mod, false, insts_kept);
         }
       case (OFPFC_MODIFY_STRICT): 
         {
-          return FlowTableModify (table, mod, true, insts_kept);
+          return flow_table_modify (table, mod, true, insts_kept);
         }
       case (OFPFC_DELETE): 
         {
@@ -1552,7 +1520,8 @@ OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
   list_remove (&entry->hard_node);
   list_remove (&entry->idle_node);
   entry->table->stats->active_count--;
-  
+ 
+  // FIXME No group support by now no metter support
   // del_group_refs (entry);
   // del_meter_refs (entry);
   ofl_structs_free_flow_stats (entry->stats, NULL/*entry->dp->exp*/);
