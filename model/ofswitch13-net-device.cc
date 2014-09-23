@@ -91,7 +91,7 @@ OFSwitch13NetDevice::GetTypeId (void)
     .AddAttribute ("ID",
                    "The identification of the OFSwitch13NetDevice/Datapath.",
                    UintegerValue (GenerateId ()),
-                   MakeUintegerAccessor (&OFSwitch13NetDevice::m_id),
+                   MakeUintegerAccessor (&OFSwitch13NetDevice::SetDatapathId),
                    MakeUintegerChecker<uint64_t> ())
     .AddAttribute ("FlowTableLookupDelay",
                    "Overhead for looking up in the flow table (Default: standard TCAM on an FPGA).",
@@ -229,7 +229,14 @@ OFSwitch13NetDevice::GetNSwitchPorts (void) const
 uint64_t
 OFSwitch13NetDevice::GetDatapathId (void) const
 {
-  return m_id;
+  return m_datapath->id;
+}
+
+void
+OFSwitch13NetDevice::SetDatapathId (uint64_t id)
+{
+  NS_ASSERT (m_datapath);
+  m_datapath->id = id;
 }
 
 void
@@ -466,15 +473,43 @@ OFSwitch13NetDevice::DatapathNew ()
 {
   datapath* dp = (datapath*)xmalloc (sizeof (datapath));
 
-  dp->pipeline = pipeline_create (dp);
-  dp->buffers = dp_buffers_create (dp); 
-  dp->groups = group_table_create (dp);
-  dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling
-  dp->config.miss_send_len = 128;      // send first 128 bytes to controller (OFPCML_NO_BUFFER to hole ptk)
-  dp->exp = NULL;
+  dp->mfr_desc   = (char*)xmalloc (DESC_STR_LEN); 
+  dp->hw_desc    = (char*)xmalloc (DESC_STR_LEN);
+  dp->sw_desc    = (char*)xmalloc (DESC_STR_LEN);
+  dp->dp_desc    = (char*)xmalloc (DESC_STR_LEN);
+  dp->serial_num = (char*)xmalloc (DESC_STR_LEN);
+  strcpy (dp->mfr_desc ,  GetManufacturerDescription ());
+  strcpy (dp->hw_desc,    GetHardwareDescription ());
+  strcpy (dp->sw_desc,    GetSoftwareDescription ());
+  strcpy (dp->dp_desc,    GetDatapathDescrtiption ());
+  strcpy (dp->serial_num, GetSerialNumber ());
+
+  // Not used
+  dp->generation_id = -1;
+  dp->listeners = NULL;
+  dp->n_listeners = 0;
+  dp->listeners_aux = NULL;
+  dp->n_listeners_aux = 0;
   
+  dp->id = 0; //FIXME
   dp->last_timeout = Simulator::Now ().GetTimeStep ();
-  Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this);
+  
+  dp->buffers = dp_buffers_create (dp); 
+  dp->pipeline = pipeline_create (dp);
+  dp->groups = group_table_create (dp);
+  //dp->meters = meter_table_create (dp);
+  
+  dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling
+  dp->config.miss_send_len = 128;      // send first 128 bytes to controller 
+                                       // use OFPCML_NO_BUFFER to send hole ptk
+  dp->exp = NULL;
+
+  // Not used
+  dp->ports_num = 0;
+  dp->max_queues = 0;
+  dp->local_port = NULL;
+
+  Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, dp);
   
   m_ports.reserve (DP_MAX_PORTS+1);
 
@@ -793,7 +828,8 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   uint32_t headRoom = 128 + 2;
   uint32_t bodyRoom = netdev->GetMtu () + VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofs::BufferFromPacket (pktCopy, bodyRoom, headRoom);
-  struct packet *pkt = ofs::InternalPacketFromBuffer (inPort->stats->port_no, buffer, false, m_datapath);
+  struct packet *pkt = ofs::InternalPacketFromBuffer (m_datapath, 
+      inPort->stats->port_no, buffer, false);
 
   // Update port stats
   inPort->stats->rx_packets++;
@@ -999,7 +1035,7 @@ OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
 }
 
 void
-OFSwitch13NetDevice::DatapathTimeout ()
+OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 {
   // FIXME No meter support by now
   // meter_table_add_tokens (dp->meters);
@@ -1007,7 +1043,7 @@ OFSwitch13NetDevice::DatapathTimeout ()
   // Check flow entry timeout
   for (int i = 0; i < PIPELINE_TABLES; i++) 
     {
-      FlowTableTimeout (m_datapath->pipeline->tables[i]);
+      FlowTableTimeout (dp->pipeline->tables[i]);
     }
 
   // Check for changes in port status
@@ -1028,8 +1064,8 @@ OFSwitch13NetDevice::DatapathTimeout ()
         }
     }
 
-  Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this);
-  m_datapath->last_timeout = Simulator::Now ().GetTimeStep ();
+  Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, dp);
+  dp->last_timeout = Simulator::Now ().GetTimeStep ();
 }
 
 int32_t
@@ -1250,7 +1286,7 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
           {
             // NOTE: hackish; makes sure packet cannot be resubmit to pipeline again.
             pkt->packet_out = false;
-            PipelineProcessPacket (m_datapath->pipeline, pkt);
+            PipelineProcessPacket (pkt->dp->pipeline, pkt);
           } 
         else 
           {
@@ -1265,7 +1301,7 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
         }
       case (OFPP_CONTROLLER): 
         {
-          Ptr<Packet> ns3pkt = CreatePacketIn (m_datapath->pipeline, pkt, pkt->table_id, 
+          Ptr<Packet> ns3pkt = CreatePacketIn (pkt->dp->pipeline, pkt, pkt->table_id, 
               (pkt->handle_std->table_miss ? OFPR_NO_MATCH : OFPR_ACTION), cookie);
           SendToController (ns3pkt);
           break;
@@ -1303,7 +1339,7 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
 }
 
 ofl_err 
-OFSwitch13NetDevice::ActionValidate (size_t num, ofl_action_header **actions)
+OFSwitch13NetDevice::ActionValidate (datapath *dp, size_t num, ofl_action_header **actions)
 {
   NS_LOG_FUNCTION (this);
   
@@ -1322,7 +1358,7 @@ OFSwitch13NetDevice::ActionValidate (size_t num, ofl_action_header **actions)
       if (actions[i]->type == OFPAT_GROUP) 
         {
           ofl_action_group *ag = (ofl_action_group*)actions[i];
-          if (ag->group_id <= OFPG_MAX && group_table_find (m_datapath->groups, ag->group_id) == NULL) 
+          if (ag->group_id <= OFPG_MAX && group_table_find (dp->groups, ag->group_id) == NULL) 
             {
               NS_LOG_WARN ("Group action for invalid group " << ag->group_id);
               return ofl_error (OFPET_BAD_ACTION, OFPBAC_BAD_OUT_GROUP);
@@ -1352,7 +1388,7 @@ OFSwitch13NetDevice::FlowTableAdd (flow_table *table, ofl_msg_flow_mod *mod,
       /* if the entry equals, replace the old one */
       if (flow_entry_matches (entry, mod, true/*strict*/, false/*check_cookie*/)) 
         {
-          new_entry = FlowEntryCreate (table, mod);
+          new_entry = FlowEntryCreate (table->dp, table, mod);
           *match_kept = true;
           *insts_kept = true;
 
@@ -1360,7 +1396,7 @@ OFSwitch13NetDevice::FlowTableAdd (flow_table *table, ofl_msg_flow_mod *mod,
           list_replace (&new_entry->match_node, &entry->match_node);
           list_remove (&entry->hard_node);
           list_remove (&entry->idle_node);
-          FlowEntryDestroy (entry);
+          flow_entry_destroy (entry);
           add_to_timeout_lists (table, new_entry);
           return 0;
         }
@@ -1377,7 +1413,7 @@ OFSwitch13NetDevice::FlowTableAdd (flow_table *table, ofl_msg_flow_mod *mod,
     }
   table->stats->active_count++;
 
-  new_entry = FlowEntryCreate (table, mod);
+  new_entry = FlowEntryCreate (table->dp, table, mod);
   *match_kept = true;
   *insts_kept = true;
 
@@ -1596,20 +1632,20 @@ OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
   free (entry);
 }
 
-void 
-OFSwitch13NetDevice::FlowEntryDestroy (flow_entry *entry)
-{
-  NS_LOG_FUNCTION (this);
-  
-  // FIXME No meter/group support by now
-  // del_group_refs (entry);
-  // del_meter_refs (entry);
-  ofl_structs_free_flow_stats (entry->stats, NULL/*entry->dp->exp*/);
-  free (entry);
-}
+// void 
+// OFSwitch13NetDevice::FlowEntryDestroy (flow_entry *entry)
+// {
+//   NS_LOG_FUNCTION (this);
+//   
+//   // FIXME No meter/group support by now
+//   // del_group_refs (entry);
+//   // del_meter_refs (entry);
+//   ofl_structs_free_flow_stats (entry->stats, NULL/*entry->dp->exp*/);
+//   free (entry);
+// }
 
 flow_entry* 
-OFSwitch13NetDevice::FlowEntryCreate (flow_table *table, ofl_msg_flow_mod *mod)
+OFSwitch13NetDevice::FlowEntryCreate (datapath *dp, flow_table *table, ofl_msg_flow_mod *mod)
 {
   flow_entry *entry;
   uint64_t now;
@@ -1617,7 +1653,7 @@ OFSwitch13NetDevice::FlowEntryCreate (flow_table *table, ofl_msg_flow_mod *mod)
   now = Simulator::Now ().GetTimeStep ();
 
   entry = (flow_entry*)xmalloc (sizeof (flow_entry));
-  entry->dp    = NULL;
+  entry->dp    = dp;
   entry->table = table;
 
   entry->stats = (ofl_flow_stats*)xmalloc (sizeof (ofl_flow_stats));
@@ -1653,7 +1689,7 @@ OFSwitch13NetDevice::FlowEntryCreate (flow_table *table, ofl_msg_flow_mod *mod)
   entry->stats->instructions_num = mod->instructions_num;
   entry->stats->instructions     = mod->instructions;
 
-  entry->match = mod->match; /* TODO: MOD MATCH? */
+  entry->match = mod->match;
 
   entry->created = now;  // timestep
   entry->remove_at = 0;  // timestep
@@ -1890,7 +1926,7 @@ OFSwitch13NetDevice::HandleMsgFeaturesRequest (ofl_msg_header *msg, uint64_t xid
   
   ofl_msg_features_reply reply;
   reply.header.type  = OFPT_FEATURES_REPLY;
-  reply.datapath_id  = m_id;
+  reply.datapath_id  = GetDatapathId ();
   reply.n_buffers    = dp_buffers_size (m_datapath->buffers);
   reply.n_tables     = PIPELINE_TABLES;
   reply.auxiliary_id = 0; // FIXME No auxiliary connection support by now
@@ -1953,7 +1989,7 @@ OFSwitch13NetDevice::HandleMsgPacketOut (ofl_msg_packet_out *msg, uint64_t xid)
   packet *pkt;
   int error;
 
-  error = ActionValidate (msg->actions_num, msg->actions);
+  error = ActionValidate (m_datapath, msg->actions_num, msg->actions);
   if (error) 
     {
       return error;
@@ -1965,7 +2001,7 @@ OFSwitch13NetDevice::HandleMsgPacketOut (ofl_msg_packet_out *msg, uint64_t xid)
       buf = ofpbuf_new (0);
       ofpbuf_use (buf, msg->data, msg->data_length);
       ofpbuf_put_uninit (buf, msg->data_length);
-      pkt = ofs::InternalPacketFromBuffer (msg->in_port, buf, true, m_datapath);
+      pkt = ofs::InternalPacketFromBuffer (m_datapath, msg->in_port, buf, true);
     } 
   else 
     {
@@ -2014,7 +2050,7 @@ OFSwitch13NetDevice::HandleMsgFlowMod (ofl_msg_flow_mod *msg, uint64_t xid)
         {
           ofl_instruction_actions *ia = (ofl_instruction_actions*)msg->instructions[i];
   
-          error = ActionValidate ((size_t)ia->actions_num, ia->actions);
+          error = ActionValidate (m_datapath, (size_t)ia->actions_num, ia->actions);
           if (error) 
             {
               return error;
@@ -2281,7 +2317,8 @@ ofl_err
 OFSwitch13NetDevice::MultipartMsgDesc (ofl_msg_multipart_request_header *msg, uint64_t xid)
 {
   NS_LOG_FUNCTION (this);
-  
+ 
+  // FIXME usar os campos do m_datapath
   char *mfrDesc = (char*)xmalloc (DESC_STR_LEN);
   char *hwDesc  = (char*)xmalloc (DESC_STR_LEN);
   char *swDesc  = (char*)xmalloc (DESC_STR_LEN);
@@ -2545,7 +2582,7 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
   socket->SetRecvCallback (MakeCallback (&OFSwitch13NetDevice::SocketCtrlRead, this));
 
   // Randomize xid
-  m_xid = HashInt (m_xid, m_id & UINT32_MAX);
+  m_xid = HashInt (m_xid, GetDatapathId () & UINT32_MAX);
 
   // Send Hello message
   ofl_msg_header msg;

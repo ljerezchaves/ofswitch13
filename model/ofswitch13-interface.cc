@@ -156,8 +156,8 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp)
   return ofpbuf;
 }
 
-packet * InternalPacketFromBuffer (uint32_t in_port, ofpbuf *buf,
-    bool packet_out, datapath* dp) 
+packet * InternalPacketFromBuffer (datapath* dp, uint32_t in_port, ofpbuf *buf,
+    bool packet_out) 
 {
   NS_LOG_FUNCTION_NOARGS ();
   packet *pkt;

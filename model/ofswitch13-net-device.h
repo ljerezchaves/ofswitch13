@@ -104,9 +104,14 @@ public:
   uint32_t GetNSwitchPorts (void) const;
 
   /**
-   * \return The datapath ID
+   * \return The datapath ID.
    */
   uint64_t GetDatapathId (void) const;
+
+  /**
+   * Set the datapath ID.
+   */
+  void SetDatapathId (uint64_t id);
 
   /**
    * Set up the TCP connection between switch and controller.
@@ -142,6 +147,12 @@ public:
 private:
   virtual void DoDispose (void);
 
+  ///\name Datapath methods
+  //\{
+  /**
+   * Creates a new datapath.
+   * \return The created datapath.
+   */
   datapath* DatapathNew ();
 
   /**
@@ -149,22 +160,23 @@ private:
    * method reschedules itself at every m_timout interval, to constantly check
    * the pipeline for timed out flow entries and update port status.
    * \see ofsoftswitch13 function pipeline_timeout () at udatapath/pipeline.c
+   * \param dp The datapath.
    */
-  void DatapathTimeout ();
-
+  void DatapathTimeout (datapath* dp);
+  //\}
 
   ///\name Port methods
   //\{
   /**
-   * Search the switch ports looking for a specific device
+   * Search the switch ports looking for a specific device.
    * \param dev The Ptr<CsmaNetDevice> pointer to device.
    * \return A pointer to the corresponding ofs::Port.
    */
   ofs::Port* PortGetOfsPort (Ptr<NetDevice> dev);
 
   /**
-   * Search the switch ports looking for a specific port number
-   * \param no The port number (starting at 1) 
+   * Search the switch ports looking for a specific port number.
+   * \param no The port number (starting at 1).
    * \return A pointer to the corresponding ofs::Port.
    */
   ofs::Port* PortGetOfsPort (uint32_t no);
@@ -185,17 +197,15 @@ private:
    * \param p Port to update.
    */
   void PortStatsUpdate (ofs::Port *p);
-
   //\}
-
 
   ///\name Send/Receive methods
   //\{
   /**
    * Called by the SocketRead when a packet is received from the controller.
    * Dispatches control messages to appropriate handler functions.
-   * \see remote_rconn_run () at udatapath/datapath.c
-   * \see handle_control_msg () at udatapath/dp_control.c
+   * \see remote_rconn_run () at udatapath/datapath.c.
+   * \see handle_control_msg () at udatapath/dp_control.c.
    * \param buffer The message (ofpbuf) received from the controller.
    * \return 0 if everything's ok, otherwise an error number.
    */
@@ -205,8 +215,8 @@ private:
    * Send a message to the controller. This method is the key to communicating
    * with the controller, it does the actual sending. The other Send methods
    * call this one when they are ready to send the packet.
-   * \param packet The packet to send
-   * \return The number of bytes transmitted
+   * \param packet The packet to send.
+   * \return The number of bytes transmitted.
    */
   int SendToController (Ptr<Packet> packet);
 
@@ -230,9 +240,9 @@ private:
    * create the ns3 packet, remove the ethernet header and trailer from packet
    * (which will be included again by CsmaNetDevice), send the packet over the
    * proper netdevice, and update port statistics.
-   * \param pkt The internal packet to send
-   * \param port The Openflow port structure
-   * \return True if success, false otherwise
+   * \param pkt The internal packet to send.
+   * \param port The Openflow port structure.
+   * \return True if success, false otherwise.
    */
   bool SendToSwitchPort (packet *pkt, ofs::Port *port);
   //\}
@@ -258,8 +268,8 @@ private:
    * \param next_table A pointer to next table (can be modified by entry)
    * \param pkt The packet associated with this flow entry
    */
-  void PipelineExecuteEntry (pipeline* pl, flow_entry *entry, flow_table **next_table, 
-      packet **pkt);
+  void PipelineExecuteEntry (pipeline* pl, flow_entry *entry, 
+      flow_table **next_table, packet **pkt);
   //\}
 
   ///\name Buffer methods
@@ -326,13 +336,14 @@ private:
           uint16_t max_len, uint64_t cookie);
 
   /**
-   * Validate actions before applying it
-   * \see ofsoftswitch13 dp_actions_validade () at udatapath/dp_actions.c
-   * \param num The number of actions
-   * \param actions The actions structure
-   * \return 0 if sucess or OpenFlow error code
+   * Validate actions before applying it.
+   * \see ofsoftswitch13 dp_actions_validate () at udatapath/dp_actions.c.
+   * \param dp The datapath.
+   * \param num The number of actions.
+   * \param actions The actions structure.
+   * \return 0 if sucess or OpenFlow error code.
    */
-  ofl_err ActionValidate (size_t num, ofl_action_header **actions);
+  ofl_err ActionValidate (datapath *dp, size_t num, ofl_action_header **actions);
   //\}
   
   
@@ -429,21 +440,23 @@ private:
    */
   void FlowEntryRemove (flow_entry *entry, uint8_t reason);
 
-  /**
-   * Destroy a flow entry. 
-   * \see ofsoftswitch13 flow_entry_destroy () at udatapath/flow_entry.c
-   * \param entry The flow entry to destroy.
-   */
-  void FlowEntryDestroy (flow_entry *entry);
+//  /**
+//   * Destroy a flow entry. 
+//   * \see ofsoftswitch13 flow_entry_destroy () at udatapath/flow_entry.c
+//   * \param entry The flow entry to destroy.
+//   */
+//  void FlowEntryDestroy (flow_entry *entry);
 
   /**
    * Creates a flow entry. 
-   * \see ofsoftswitch13 flow_entry_create () at udatapath/flow_entry.c
+   * \see ofsoftswitch13 flow_entry_create () at udatapath/flow_entry.c.
+   * \param dp The datapath.
    * \param table The flow table to insert the new entry.
    * \param mod The flow mod message.
    * \return The new flow entry.
    */
-  flow_entry * FlowEntryCreate (flow_table *table, ofl_msg_flow_mod *mod);
+  flow_entry* FlowEntryCreate (datapath *dp, flow_table *table, 
+      ofl_msg_flow_mod *mod);
 
   /** 
    * Checks if the entry should time out because of its idle timeout. If so,
@@ -568,10 +581,8 @@ private:
   NetDevice::ReceiveCallback        m_rxCallback;        //!< Receive callback
   NetDevice::PromiscReceiveCallback m_promiscRxCallback; //!< Promiscuous receive callback
   
-  ofs::Ports_t            m_ports;            //!< Switch's ports
   ofs::EchoMsgMap_t       m_echoMap;          //!< Metadata for echo requests
   uint32_t                m_xid;              //!< Global transaction idx
-  uint64_t                m_id;               //!< Unique identifier for this switch
   Mac48Address            m_address;          //!< Address of this device
   Ptr<BridgeChannel>      m_channel;          //!< Collection of port channels into the Switch Channel
   Ptr<Node>               m_node;             //!< Node this device is installed on
@@ -584,15 +595,8 @@ private:
   Time                    m_lookupDelay;      //!< Flow Table Lookup Delay [overhead].
   ofl_async_config        m_asyncConfig;      //!< Asynchronous messages configuration
   
-  //Time                    m_lastTimeout;      //!< Last datapath timeout
-  //ofl_config              m_config;           //!< Configuration, set from controller
-  //pipeline*               m_pipeline;         //!< Pipeline with multi-tables
-  //dp_buffers*             m_buffers;          //!< Datapath buffers
-  //group_table*            m_groups;           //!< Group table
-  // meter_table*            m_meters;           //!< Meter table
-  // ofl_exp*                m_exp;                //!< Experimenter handling
-
   datapath*               m_datapath;         //!< The OpenFlow datapath
+  ofs::Ports_t            m_ports;            //!< Switch's physical ports
 
 }; // Class OFSwitch13NetDevice
 
