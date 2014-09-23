@@ -466,6 +466,8 @@ OFSwitch13NetDevice::DoDispose ()
   m_ctrlSocket = 0;
 
   pipeline_destroy (m_datapath->pipeline);
+  group_table_destroy (m_datapath->groups);
+  meter_table_destroy (m_datapath->meters);
 
   NetDevice::DoDispose ();
 }
