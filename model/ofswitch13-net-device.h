@@ -132,7 +132,8 @@ public:
   virtual bool IsPointToPoint (void) const;
   virtual bool IsBridge (void) const;
   virtual bool Send (Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber);
-  virtual bool SendFrom (Ptr<Packet> packet, const Address& source, const Address& dest, uint16_t protocolNumber);
+  virtual bool SendFrom (Ptr<Packet> packet, const Address& source, const Address& dest, 
+      uint16_t protocolNumber);
   virtual Ptr<Node> GetNode (void) const;
   virtual void SetNode (Ptr<Node> node);
   virtual bool NeedsArp (void) const;
@@ -272,7 +273,7 @@ private:
   //\{
   /**
    * Saves the packet into the buffer. 
-   * \see ofsoftswitch13 function dp_buffers_save () at udatapath/dp_buffers.c
+   * \see ofsoftswitch13 dp_buffers_save () at udatapath/dp_buffers.c
    * \param dpb The buffer structure.
    * \param pkt Internal packet to save.
    * \return The saved buffer ID, or NO_BUFFER if saving was not possible.
@@ -281,7 +282,7 @@ private:
 
   /**
    * Check for valid buffered packet
-   * \see ofsoftswitch13 function dp_buffers_is_alive () at udatapath/dp_buffers.c
+   * \see ofsoftswitch13 dp_buffers_is_alive () at udatapath/dp_buffers.c
    * \param dpb The buffer structure.
    * \param id The buffer id of the packet to check.
    * \return True if the buffered packet is not timed out.
@@ -299,8 +300,8 @@ private:
    * \param actions A pointer to the list of actions
    * \param cookie The cookie that identifies the buffer ??? (not sure)
    */
-  void ActionsListExecute (packet *pkt, size_t actions_num,
-    ofl_action_header **actions, uint64_t cookie);
+  void ActionsListExecute (packet *pkt, size_t actions_num, 
+      ofl_action_header **actions, uint64_t cookie);
  
   /**
    * Executes the set of OFPIT_WRITE_ACTIONS actions on the given packet
@@ -321,7 +322,7 @@ private:
    * \param cookie The cookie that identifies the buffer ??? (not sure)
    */
   void ActionOutputPort (packet *pkt, uint32_t out_port, uint32_t out_queue,
-          uint16_t max_len, uint64_t cookie);
+      uint16_t max_len, uint64_t cookie);
 
   /**
    * Validate actions before applying it.
@@ -331,7 +332,8 @@ private:
    * \param actions The actions structure.
    * \return 0 if sucess or OpenFlow error code.
    */
-  ofl_err ActionValidate (datapath *dp, size_t num, ofl_action_header **actions);
+  ofl_err ActionValidate (datapath *dp, size_t num, 
+      ofl_action_header **actions);
   //\}
   
   
@@ -510,28 +512,28 @@ private:
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  ofl_err HandleMsgHello            (ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgEchoRequest      (ofl_msg_echo *msg, uint64_t xid);
-  ofl_err HandleMsgEchoReply        (ofl_msg_echo *msg, uint64_t xid);
-  ofl_err HandleMsgFeaturesRequest  (ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgGetConfigRequest (ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgSetConfig        (ofl_msg_set_config *msg, uint64_t xid);
-  ofl_err HandleMsgPacketOut        (ofl_msg_packet_out *msg, uint64_t xid);
-  ofl_err HandleMsgFlowMod          (ofl_msg_flow_mod *msg, uint64_t xid);
-  ofl_err HandleMsgPortMod          (ofl_msg_port_mod *msg, uint64_t xid);
-  ofl_err HandleMsgTableMod         (ofl_msg_table_mod *msg, uint64_t xid);
-  ofl_err HandleMsgMultipartRequest (ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err HandleMsgBarrierRequest   (ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgGetAsyncRequest  (ofl_msg_async_config *msg, uint64_t xid);
-  ofl_err HandleMsgSetAsync         (ofl_msg_async_config *msg, uint64_t xid);
+  ofl_err HandleMsgHello            (datapath *dp, ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgEchoRequest      (datapath *dp, ofl_msg_echo *msg, uint64_t xid);
+  ofl_err HandleMsgEchoReply        (datapath *dp, ofl_msg_echo *msg, uint64_t xid);
+  ofl_err HandleMsgFeaturesRequest  (datapath *dp, ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgGetConfigRequest (datapath *dp, ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgSetConfig        (datapath *dp, ofl_msg_set_config *msg, uint64_t xid);
+  ofl_err HandleMsgPacketOut        (datapath *dp, ofl_msg_packet_out *msg, uint64_t xid);
+  ofl_err HandleMsgFlowMod          (datapath *dp, ofl_msg_flow_mod *msg, uint64_t xid);
+  ofl_err HandleMsgPortMod          (datapath *dp, ofl_msg_port_mod *msg, uint64_t xid);
+  ofl_err HandleMsgTableMod         (datapath *dp, ofl_msg_table_mod *msg, uint64_t xid);
+  ofl_err HandleMsgMultipartRequest (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err HandleMsgBarrierRequest   (datapath *dp, ofl_msg_header *msg, uint64_t xid);
+  ofl_err HandleMsgGetAsyncRequest  (datapath *dp, ofl_msg_async_config *msg, uint64_t xid);
+  ofl_err HandleMsgSetAsync         (datapath *dp, ofl_msg_async_config *msg, uint64_t xid);
 
-  ofl_err MultipartMsgDesc          (ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgFlow          (ofl_msg_multipart_request_flow *msg, uint64_t xid);
-  ofl_err MultipartMsgAggregate     (ofl_msg_multipart_request_flow *msg, uint64_t xid);
-  ofl_err MultipartMsgTable         (ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgTableFeatures (ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err MultipartMsgPortStats     (ofl_msg_multipart_request_port *msg, uint64_t xid);
-  ofl_err MultipartMsgPortDesc      (ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgDesc          (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgFlow          (datapath *dp, ofl_msg_multipart_request_flow *msg, uint64_t xid);
+  ofl_err MultipartMsgAggregate     (datapath *dp, ofl_msg_multipart_request_flow *msg, uint64_t xid);
+  ofl_err MultipartMsgTable         (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgTableFeatures (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgPortStats     (datapath *dp, ofl_msg_multipart_request_port *msg, uint64_t xid);
+  ofl_err MultipartMsgPortDesc      (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   //\}
 
    /**
