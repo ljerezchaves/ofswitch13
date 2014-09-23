@@ -154,10 +154,20 @@ private:
   /**
    * Update the port status field of the switch port. A non-zero return value
    * indicates some field has changed.
+   * \see ofsoftswitch13 dp_port_live_update () at udatapath/dp_ports.c
    * \param p Port to update its config and flag fields.
    * \return true 0 if unchanged, any value otherwise.
    */
-  int PortUpdateStatus (ofs::Port *p);
+  int PortLiveUpdate (ofs::Port *p);
+
+  /**
+   * Updates the time fields of the port statistics. Used before
+   * generating port statistics messages.
+   * \see ofsoftswitch13 dp_port_stats_update () at udatapath/dp_ports.c
+   * \param p Port to update.
+   */
+  void PortStatsUpdate (ofs::Port *p);
+
   //\}
 
 

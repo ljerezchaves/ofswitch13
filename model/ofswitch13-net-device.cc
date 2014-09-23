@@ -484,7 +484,7 @@ OFSwitch13NetDevice::DoDispose ()
   m_node = 0;
   m_ctrlSocket = 0;
 
-  // FIXME pipeline_destroy (m_pipeline);
+  // FIXME Issue #22 pipeline_destroy (m_pipeline);
 
   NetDevice::DoDispose ();
 }
@@ -527,7 +527,7 @@ OFSwitch13NetDevice::PortGetOfsPort (uint32_t no)
 }
 
 int
-OFSwitch13NetDevice::PortUpdateStatus (ofs::Port *p)
+OFSwitch13NetDevice::PortLiveUpdate (ofs::Port *p)
 {
   uint32_t orig_config = p->conf->config;
   uint32_t orig_state = p->conf->state;
@@ -546,6 +546,15 @@ OFSwitch13NetDevice::PortUpdateStatus (ofs::Port *p)
 
   return ((orig_config != p->conf->config) || 
           (orig_state !=  p->conf->state));
+}
+
+void 
+OFSwitch13NetDevice::PortStatsUpdate (ofs::Port *p)
+{
+  Time alive = Simulator::Now () - Time (p->created);
+  p->stats->duration_sec  = (uint32_t)alive.ToInteger (Time::S);
+  alive -= Time::FromInteger (p->stats->duration_sec, Time::S); 
+  p->stats->duration_nsec = (uint32_t)alive.ToInteger (Time::NS);
 }
 
 int
@@ -999,7 +1008,7 @@ OFSwitch13NetDevice::PipelineExecuteEntry (flow_entry *entry,
 void
 OFSwitch13NetDevice::PipelineTimeout ()
 {
-  // FIXME No meter support by now  ????? De onde veio isso
+  // FIXME No meter support by now
   // meter_table_add_tokens(dp->meters);
   
   // Check flow entry timeout
@@ -1012,7 +1021,7 @@ OFSwitch13NetDevice::PipelineTimeout ()
   for (size_t i = 0; i < m_ports.size (); i++)
     {
       ofs::Port *p = &m_ports[i];
-      if (PortUpdateStatus (p))
+      if (PortLiveUpdate (p))
         {
           NS_LOG_DEBUG ("Port configuration has changed. Notifying the controller...");
           ofl_msg_port_status msg;
@@ -2039,8 +2048,6 @@ OFSwitch13NetDevice::HandleMsgFlowMod (ofl_msg_flow_mod *msg, uint64_t xid)
    * \see ofsoftswitch13 pipeline_handle_flow_mod () at udatapath/pipeline.c
    * and flow_table_flow_mod () at udatapath/flow_table.c
    */
-  
-  // FIXME No table_id = 0xff support by now
   ofl_err error;
   size_t i;
   bool match_kept, insts_kept;
@@ -2276,7 +2283,7 @@ OFSwitch13NetDevice::HandleMsgBarrierRequest (ofl_msg_header *msg, uint64_t xid)
   
   /**
    * Note: the implementation is single-threaded, so a barrier request can
-   * simply be replied. FIXME Really ???
+   * simply be replied. // FIXME  Issue #19
    */
   ofl_msg_header reply;
   reply.type = OFPT_BARRIER_REPLY;
@@ -2468,7 +2475,7 @@ OFSwitch13NetDevice::MultipartMsgTableFeatures (ofl_msg_multipart_request_header
 {
   NS_LOG_FUNCTION (this);
   
-  // FIXME Implement this
+  // FIXME Implement this Issue #14
   return ofl_error (OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_TABLE);
   //return 0;
 }
@@ -2495,7 +2502,7 @@ OFSwitch13NetDevice::MultipartMsgPortStats (ofl_msg_multipart_request_port *msg,
       for (i = 1; i <= GetNSwitchPorts (); i++)
         {
           port = PortGetOfsPort (i);
-          // dp_port_stats_update(port); FIXME Time-related stats...
+          PortStatsUpdate (port);
           reply.stats[i-1] = port->stats;
         }
     } 
@@ -2506,7 +2513,7 @@ OFSwitch13NetDevice::MultipartMsgPortStats (ofl_msg_multipart_request_port *msg,
         {
           reply.stats_num = 1;
           reply.stats = (ofl_port_stats**)xmalloc (sizeof (ofl_port_stats*));
-          // dp_port_stats_update(port); FIXME Time-related stats...
+          PortStatsUpdate (port);
           reply.stats[0] = port->stats;
         }
     }

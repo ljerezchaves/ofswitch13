@@ -143,6 +143,7 @@ struct Port
   ofl_port *conf;                 ///< Config information
   ofl_port_stats *stats;          ///< Statistics
   uint32_t port_no;               ///< Port number
+  uint64_t created;               ///< Create time
 };
 
 /**

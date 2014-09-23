@@ -29,28 +29,29 @@ Port::Port (Ptr<NetDevice> netdev, uint32_t no) :
             flags (0),
             netdev (netdev)
 {  
-    port_no = no;
-    conf = (ofl_port*)xmalloc (sizeof (ofl_port));
-    memset (conf, 0x00, sizeof (ofl_port));
-    conf->name = (char*)xmalloc (4);
-    snprintf(conf->name, 8, "Port %d", no);
-    conf->port_no = no;
-    conf->config = 0x00000000;
-    conf->state = 0x00000000 | OFPPS_LIVE;
-    netdev->GetAddress ().CopyTo (conf->hw_addr);
-    
-    conf->curr       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-    conf->advertised = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-    conf->supported  = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-    // conf->peer       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-    conf->curr_speed = port_speed (conf->curr);
-    conf->max_speed  = port_speed (conf->supported);
-    
-    stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
-    memset (stats, 0x00, sizeof (ofl_port_stats));
-    stats->port_no = no;
+  port_no = no;
+  conf = (ofl_port*)xmalloc (sizeof (ofl_port));
+  memset (conf, 0x00, sizeof (ofl_port));
+  conf->name = (char*)xmalloc (4);
+  snprintf(conf->name, 8, "Port %d", no);
+  conf->port_no = no;
+  conf->config = 0x00000000;
+  conf->state = 0x00000000 | OFPPS_LIVE;
+  netdev->GetAddress ().CopyTo (conf->hw_addr);
+  
+  conf->curr       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+  conf->advertised = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+  conf->supported  = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+  // conf->peer       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+  conf->curr_speed = port_speed (conf->curr);
+  conf->max_speed  = port_speed (conf->supported);
+  
+  stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
+  memset (stats, 0x00, sizeof (ofl_port_stats));
+  stats->port_no = no;
 
-    flags |= SWP_USED;
+  flags |= SWP_USED;
+  created = Simulator::Now ().GetTimeStep ();
 }
 
 uint32_t 
