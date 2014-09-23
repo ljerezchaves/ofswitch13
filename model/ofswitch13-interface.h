@@ -217,7 +217,7 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
  * \param xid The transaction id to use.
  * \return The OpenFlow Buffer created from the message.
  */
-ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid);
+ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp = NULL);
 
 /**
  * \ingroup ofswitch13

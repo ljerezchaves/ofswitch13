@@ -466,18 +466,17 @@ OFSwitch13NetDevice::DatapathNew ()
 {
   datapath* dp = (datapath*)xmalloc (sizeof (datapath));
 
-  dp->pipeline = PipelineCreate (dp);
-  dp->buffers = BuffersCreate (dp); 
-  m_groups = GroupTableCreate ();
-  m_ports.reserve (DP_MAX_PORTS+1);
-  
-  m_config.flags = OFPC_FRAG_NORMAL;         // IP fragments with no special handling
-  m_config.miss_send_len = 128;              // send first 128 bytes to controller (OFPCML_NO_BUFFER to hole ptk)
+  dp->pipeline = pipeline_create (dp);
+  dp->buffers = dp_buffers_create (dp); 
+  dp->groups = group_table_create (dp);
+  dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling
+  dp->config.miss_send_len = 128;      // send first 128 bytes to controller (OFPCML_NO_BUFFER to hole ptk)
+  dp->exp = NULL;
   
   dp->last_timeout = Simulator::Now ().GetTimeStep ();
   Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this);
-
-  dp->exp = NULL;
+  
+  m_ports.reserve (DP_MAX_PORTS+1);
 
   return dp;
 }
@@ -846,18 +845,18 @@ OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
   return false;
 }
 
-pipeline*
-OFSwitch13NetDevice::PipelineCreate (datapath* dp)
-{
-  pipeline *pl = (pipeline*)xmalloc (sizeof (pipeline));
-  for (size_t i=0; i<PIPELINE_TABLES; i++) 
-    {
-      pl->tables[i] = flow_table_create (dp, i);
-    }
-  pl->dp = dp;
-  nblink_initialize();
-  return pl;
-}
+// pipeline*
+// OFSwitch13NetDevice::PipelineCreate (datapath* dp)
+// {
+//   pipeline *pl = (pipeline*)xmalloc (sizeof (pipeline));
+//   for (size_t i=0; i<PIPELINE_TABLES; i++) 
+//     {
+//       pl->tables[i] = flow_table_create (dp, i);
+//     }
+//   pl->dp = dp;
+//   nblink_initialize();
+//   return pl;
+// }
 
 void
 OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
@@ -870,10 +869,10 @@ OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
   // Check ttl
   if (!packet_handle_std_is_ttl_valid (pkt->handle_std)) 
     {
-      if ((pl->dp->config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) // FIXME m_config
+      if ((pl->dp->config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) 
         {
           NS_LOG_WARN ("Packet has invalid TTL, sending to controller.");
-          Ptr<Packet> ns3pkt = CreatePacketIn (pkt, 0, OFPR_INVALID_TTL, UINT64_MAX);
+          Ptr<Packet> ns3pkt = CreatePacketIn (pl, pkt, 0, OFPR_INVALID_TTL, UINT64_MAX);
           SendToController (ns3pkt);  // FIXME check
         } 
       else 
@@ -1046,21 +1045,21 @@ OFSwitch13NetDevice::DatapathTimeout ()
   m_datapath->last_timeout = Simulator::Now ().GetTimeStep ();
 }
 
-dp_buffers*
-OFSwitch13NetDevice::BuffersCreate (datapath* dp)
-{
-  dp_buffers *dpb = (dp_buffers*)xmalloc (sizeof (dp_buffers));
-  dpb->dp = dp;
-  dpb->buffer_idx  = (size_t)-1;
-  dpb->buffers_num = N_PKT_BUFFERS;
-  for (size_t i=0; i<N_PKT_BUFFERS; i++) 
-    {
-      dpb->buffers[i].pkt     = NULL;
-      dpb->buffers[i].cookie  = UINT32_MAX;
-      dpb->buffers[i].timeout = 0;
-    }
-  return dpb;
-}
+// dp_buffers*
+// OFSwitch13NetDevice::BuffersCreate (datapath* dp)
+// {
+//   dp_buffers *dpb = (dp_buffers*)xmalloc (sizeof (dp_buffers));
+//   dpb->dp = dp;
+//   dpb->buffer_idx  = (size_t)-1;
+//   dpb->buffers_num = N_PKT_BUFFERS;
+//   for (size_t i=0; i<N_PKT_BUFFERS; i++) 
+//     {
+//       dpb->buffers[i].pkt     = NULL;
+//       dpb->buffers[i].cookie  = UINT32_MAX;
+//       dpb->buffers[i].timeout = 0;
+//     }
+//   return dpb;
+// }
 
 int32_t
 OFSwitch13NetDevice::BuffersSave (dp_buffers *dpb, packet *pkt)
@@ -1121,26 +1120,26 @@ OFSwitch13NetDevice::BuffersIsAlive (dp_buffers *dpb, uint32_t id)
           (Simulator::Now () < Time (p->timeout)));
 }
 
-group_table*
-OFSwitch13NetDevice::GroupTableCreate ()
-{
-  group_table *table = (group_table*)xmalloc (sizeof (group_table));
-  table->dp = NULL;
-
-  table->features = (ofl_msg_multipart_reply_group_features*)xmalloc (sizeof (ofl_msg_multipart_reply_group_features));	
-  table->features->types = DP_SUPPORTED_GROUPS;
-  table->features->capabilities = DP_SUPPORTED_GROUP_CAPABILITIES;    
-  for (size_t i = 0; i < 4; i++)
-    {
-      table->features->max_groups[i] = 255;
-      table->features->actions[i] = DP_SUPPORTED_ACTIONS;
-    }
-  table->entries_num = 0;
-  hmap_init (&table->entries);
-  table->buckets_num = 0;
-
-  return table;
-}
+// group_table*
+// OFSwitch13NetDevice::GroupTableCreate (datapath* dp)
+// {
+//   group_table *table = (group_table*)xmalloc (sizeof (group_table));
+//   table->dp = dp;
+// 
+//   table->features = (ofl_msg_multipart_reply_group_features*)xmalloc (sizeof (ofl_msg_multipart_reply_group_features));	
+//   table->features->types = DP_SUPPORTED_GROUPS;
+//   table->features->capabilities = DP_SUPPORTED_GROUP_CAPABILITIES;    
+//   for (size_t i = 0; i < 4; i++)
+//     {
+//       table->features->max_groups[i] = 255;
+//       table->features->actions[i] = DP_SUPPORTED_ACTIONS;
+//     }
+//   table->entries_num = 0;
+//   hmap_init (&table->entries);
+//   table->buckets_num = 0;
+// 
+//   return table;
+// }
 
 // group_entry* 
 // OFSwitch13NetDevice::GroupTableFind (uint32_t gid)
@@ -1327,7 +1326,7 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
         }
       case (OFPP_CONTROLLER): 
         {
-          Ptr<Packet> ns3pkt = CreatePacketIn (pkt, pkt->table_id, 
+          Ptr<Packet> ns3pkt = CreatePacketIn (m_datapath->pipeline, pkt, pkt->table_id, 
               (pkt->handle_std->table_miss ? OFPR_NO_MATCH : OFPR_ACTION), cookie);
           SendToController (ns3pkt);
           break;
@@ -1384,7 +1383,7 @@ OFSwitch13NetDevice::ActionValidate (size_t num, ofl_action_header **actions)
       if (actions[i]->type == OFPAT_GROUP) 
         {
           ofl_action_group *ag = (ofl_action_group*)actions[i];
-          if (ag->group_id <= OFPG_MAX && group_table_find (m_groups, ag->group_id) == NULL) 
+          if (ag->group_id <= OFPG_MAX && group_table_find (m_datapath->groups, ag->group_id) == NULL) 
             {
               NS_LOG_WARN ("Group action for invalid group " << ag->group_id);
               return ofl_error (OFPET_BAD_ACTION, OFPBAC_BAD_OUT_GROUP);
@@ -1847,7 +1846,7 @@ OFSwitch13NetDevice::AddEthernetHeader (Ptr<Packet> packet, Mac48Address source,
 }
 
 Ptr<Packet> 
-OFSwitch13NetDevice::CreatePacketIn (packet *pkt, uint8_t tableId,
+OFSwitch13NetDevice::CreatePacketIn (pipeline* pl, packet *pkt, uint8_t tableId,
     ofp_packet_in_reason reason, uint64_t cookie)
 {
   NS_LOG_FUNCTION (this); 
@@ -1860,11 +1859,11 @@ OFSwitch13NetDevice::CreatePacketIn (packet *pkt, uint8_t tableId,
   msg.data = (uint8_t*)pkt->buffer->data;
   msg.cookie = cookie;
 
-  if (m_config.miss_send_len != OFPCML_NO_BUFFER)
+  if (pl->dp->config.miss_send_len != OFPCML_NO_BUFFER)
     {
-      BuffersSave (m_datapath->buffers, pkt);
+      BuffersSave (pl->dp->buffers, pkt);
       msg.buffer_id = pkt->buffer_id;
-      msg.data_length = MIN (m_config.miss_send_len, pkt->buffer->size);
+      msg.data_length = MIN (pl->dp->config.miss_send_len, pkt->buffer->size);
     }
   else 
     {
@@ -2015,7 +2014,7 @@ OFSwitch13NetDevice::HandleMsgGetConfigRequest (ofl_msg_header *msg, uint64_t xi
   
   ofl_msg_get_config_reply reply;
   reply.header.type = OFPT_GET_CONFIG_REPLY;
-  reply.config      = &m_config;
+  reply.config      = &m_datapath->config;
 
   Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
   LogOflMsg ((ofl_msg_header*)&reply);
@@ -2039,8 +2038,8 @@ OFSwitch13NetDevice::HandleMsgSetConfig (ofl_msg_set_config *msg, uint64_t xid)
       flags = (flags & ~OFPC_FRAG_MASK) | OFPC_FRAG_DROP;
   }
 
-  m_config.flags = flags;
-  m_config.miss_send_len = msg->config->miss_send_len;
+  m_datapath->config.flags = flags;
+  m_datapath->config.miss_send_len = msg->config->miss_send_len;
   
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);

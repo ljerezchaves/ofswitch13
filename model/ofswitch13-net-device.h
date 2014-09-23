@@ -239,13 +239,13 @@ private:
 
   ///\name Pipeline methods
   //\{
-  /**
-   * Create the pipeline structures.
-   * \see ofsoftswitch function pipeline_create at udatapath/pipeline.c
-   * \param dp The datapath.
-   * \return The created pipeline.
-   */
-  pipeline* PipelineCreate (datapath* dp);
+//  /**
+//   * Create the pipeline structures.
+//   * \see ofsoftswitch function pipeline_create at udatapath/pipeline.c
+//   * \param dp The datapath.
+//   * \return The created pipeline.
+//   */
+//  pipeline* PipelineCreate (datapath* dp);
 
   /**
    * Run the packet through the pipeline. Looks up in the pipeline tables for a
@@ -272,13 +272,13 @@ private:
 
   ///\name Buffer methods
   //\{
-  /**
-   * Create the buffers structures.
-   * \see ofsoftswitch function dp_buffers_create at udatapath/dp_buffers.c
-   * \param dp The datapath.
-   * \return The created buffer.
-   */
-  dp_buffers* BuffersCreate (datapath* dp);
+//  /**
+//   * Create the buffers structures.
+//   * \see ofsoftswitch function dp_buffers_create at udatapath/dp_buffers.c
+//   * \param dp The datapath.
+//   * \return The created buffer.
+//   */
+//  dp_buffers* BuffersCreate (datapath* dp);
 
   /**
    * Saves the packet into the buffer. 
@@ -301,11 +301,12 @@ private:
 
   ///\name Group methods
   //\{
-  /**
-   * Creates a group table.
-   * \return The created table.
-   */
-  group_table* GroupTableCreate ();
+//  /**
+//   * Creates a group table.
+//   * \param dp The datapath.
+//   * \return The created table.
+//   */
+//  group_table* GroupTableCreate (datapath* dp);
 
   /** 
    * Look for a group entry ID.
@@ -532,37 +533,39 @@ private:
    * to include it again to properly buffer the packet. We will remove this
    * header and trailer latter.
    * \attention This method only works for DIX encapsulation mode.
-   * \see CsmaNetDevice::AddHeader ()
+   * \see CsmaNetDevice::AddHeader ().
    * \param packet The packet (will be modified).
    * \param source The L2 source address.
    * \param dest The L2 destination address.
-   * \param protocolNumber The L3 protocol defining the packet
+   * \param protocolNumber The L3 protocol defining the packet.
    */
   void AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
       Mac48Address dest, uint16_t protocolNumber);
 
   /**
    * Create a packet_in to send to controller.
-   * \param pkt The internal packet to send
-   * \param tableId Table id with with entry match
-   * \param reason The reason to send this packet to controller
-   * \param cookie ??
-   * \return The ns3 packet created
+   * \see ofsoftswitch13 send_packet_to_controller () at udatapath/pipeline.c
+   * \param pl The pipeline.
+   * \param pkt The internal packet to send.
+   * \param tableId Table id with with entry match.
+   * \param reason The reason to send this packet to controller.
+   * \param cookie ??.
+   * \return The ns3 packet created.
    */
-  Ptr<Packet> CreatePacketIn (packet *pkt, uint8_t tableId,
+  Ptr<Packet> CreatePacketIn (pipeline* pl, packet *pkt, uint8_t tableId,
           ofp_packet_in_reason reason, uint64_t cookie);
 
   /**
    * Destroys a packet along with all its associated structures.
-   * \see ofsoftswitch13 packet_destroy () at udatapath/packet.c
-   * \param pkt The internal packet to free
+   * \see ofsoftswitch13 packet_destroy () at udatapath/packet.c.
+   * \param pkt The internal packet to free.
    */
   void InternalPacketDestroy (packet *pkt);
 
   /**
-   * Send an echo request message to controller.
-   * This method reschedules itself at every m_echo interval, to constantly
-   * check the connection between switch and controller.
+   * Send an echo request message to controller. This method reschedules
+   * itself at every m_echo interval, to constantly.  check the connection
+   * between switch and controller.
    */
   void SendEchoRequest ();
 
@@ -632,10 +635,10 @@ private:
   ofl_async_config        m_asyncConfig;      //!< Asynchronous messages configuration
   
   //Time                    m_lastTimeout;      //!< Last datapath timeout
-  ofl_config              m_config;           //!< Configuration, set from controller
-  pipeline*               m_pipeline;         //!< Pipeline with multi-tables
+  //ofl_config              m_config;           //!< Configuration, set from controller
+  //pipeline*               m_pipeline;         //!< Pipeline with multi-tables
   //dp_buffers*             m_buffers;          //!< Datapath buffers
-  group_table*            m_groups;           //!< Group table
+  //group_table*            m_groups;           //!< Group table
   // meter_table*            m_meters;           //!< Meter table
   // ofl_exp*                m_exp;                //!< Experimenter handling
 

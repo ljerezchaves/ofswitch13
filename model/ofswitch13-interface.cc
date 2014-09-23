@@ -135,7 +135,7 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
   return buffer;
 }
 
-ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid)
+ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -145,7 +145,7 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid)
   ofpbuf *ofpbuf = ofpbuf_new (0);
   
   // Pack message into ofpbuf using wire format
-  error = ofl_msg_pack (msg, xid, &buf, &buf_size, NULL/*ofl_exp *exp*/);
+  error = ofl_msg_pack (msg, xid, &buf, &buf_size, exp);
   if (error)
     {
       NS_LOG_ERROR ("Error packing message.");
