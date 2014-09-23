@@ -48,9 +48,6 @@ class OFSwitch13Controller;
  */
 class OFSwitch13NetDevice : public NetDevice
 {
-
-//friend class OFSwitch13Controller;
-
 public:
   /**
    * Register this type.
@@ -85,14 +82,13 @@ public:
   //\}
 
  /**
-   * Add a physical 'port' to the switch device. This method adds a new switch
+   * Add a 'port' to the switch device. This method adds a new switch
    * port to a OFSwitch13NetDevice, so that the new switch port NetDevice
    * becomes part of the switch and L2 frames start being forwarded to/from
    * this NetDevice.
    * \attention The current implementation only supports CsmaNetDevices using
-   * DIX encapsulation.
-   * \attention The csmaNetDevice that is being added as switch port must _not_
-   * have an IP address.
+   * DIX encapsulation. Also, the csmaNetDevice that is being added as switch
+   * port must _not_ have an IP address.
    * \param switchPort The NetDevice port to add.
    * \return 0 if everything's ok, otherwise an error number.
    */
@@ -293,7 +289,7 @@ private:
   bool BuffersIsAlive (dp_buffers *dpb, uint32_t id);
   //\}
 
-  ///\name Action methods
+  ///\name Actions methods
   //\{
   /**
    * Executes the list of OFPIT_APPLY_ACTIONS actions on the given packet
@@ -303,7 +299,7 @@ private:
    * \param actions A pointer to the list of actions
    * \param cookie The cookie that identifies the buffer ??? (not sure)
    */
-  void ActionListExecute (packet *pkt, size_t actions_num,
+  void ActionsListExecute (packet *pkt, size_t actions_num,
     ofl_action_header **actions, uint64_t cookie);
  
   /**
@@ -321,7 +317,7 @@ private:
    * \param pkt The packet associated with this action
    * \param action A pointer to the action
    */
-  void ActionExecute (packet *pkt, ofl_action_header *action);
+  // void ActionExecute (packet *pkt, ofl_action_header *action);
 
   /**
    * Execute the ouput action sending the packet to an output port
@@ -589,7 +585,7 @@ private:
   ofl_async_config        m_asyncConfig;      //!< Asynchronous messages configuration
   
   datapath*               m_datapath;         //!< The OpenFlow datapath
-  ofs::Ports_t            m_ports;            //!< Switch's physical ports
+  ofs::Ports_t            m_ports;            //!< Switch's ports
 
 }; // Class OFSwitch13NetDevice
 

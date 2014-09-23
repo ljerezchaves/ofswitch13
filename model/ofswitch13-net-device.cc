@@ -1010,7 +1010,7 @@ OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
           case OFPIT_APPLY_ACTIONS: 
             {
               ofl_instruction_actions *ia = (ofl_instruction_actions*)inst;
-              ActionListExecute ((*pkt), ia->actions_num, ia->actions, entry->stats->cookie);
+              ActionsListExecute ((*pkt), ia->actions_num, ia->actions, entry->stats->cookie);
               break;
             }
           case OFPIT_CLEAR_ACTIONS: 
@@ -1128,7 +1128,7 @@ OFSwitch13NetDevice::BuffersIsAlive (dp_buffers *dpb, uint32_t id)
 }
 
 void
-OFSwitch13NetDevice::ActionListExecute (packet *pkt, size_t actions_num,
+OFSwitch13NetDevice::ActionsListExecute (packet *pkt, size_t actions_num,
     ofl_action_header **actions, uint64_t cookie) 
 {
   NS_LOG_FUNCTION (this);
@@ -1136,7 +1136,7 @@ OFSwitch13NetDevice::ActionListExecute (packet *pkt, size_t actions_num,
   size_t i;
   for (i=0; i < actions_num; i++) 
     {
-      ActionExecute (pkt, actions[i]);
+      dp_execute_action (pkt, actions[i]);
       if (pkt->out_group != OFPG_ANY) 
         {
           uint32_t group = pkt->out_group;
@@ -1144,7 +1144,6 @@ OFSwitch13NetDevice::ActionListExecute (packet *pkt, size_t actions_num,
           NS_LOG_DEBUG ("Group action; executing group " << group);
           // FIXME No group support by now
           // group_table_execute(pkt->dp->groups, pkt, group); 
-          // ActionOutputGroup (?);
         } 
       else if (pkt->out_port != OFPP_ANY) 
         {
@@ -1170,7 +1169,7 @@ OFSwitch13NetDevice::ActionSetExecute (packet *pkt, action_set *set,
 
   LIST_FOR_EACH_SAFE (entry, next, action_set_entry, node, &set->actions) 
     {
-      ActionExecute (pkt, entry->action);
+      dp_execute_action (pkt, entry->action);
       list_remove (&entry->node);
       free (entry);
 
@@ -1202,76 +1201,76 @@ OFSwitch13NetDevice::ActionSetExecute (packet *pkt, action_set *set,
     }
 }
 
-void 
-OFSwitch13NetDevice::ActionExecute (packet *pkt, ofl_action_header *action)
-{
-  NS_LOG_FUNCTION (this);
-  
-  char *a = ofl_action_to_string (action, NULL/*pkt->dp->exp*/);
-  NS_LOG_DEBUG ("executing action " << a);
-  free(a);
-
-  switch (action->type) 
-    {
-      case (OFPAT_SET_FIELD): 
-        set_field (pkt,(ofl_action_set_field*) action);
-        break;
-      case (OFPAT_OUTPUT): 
-        output (pkt, (ofl_action_output*)action);
-        break;
-      case (OFPAT_COPY_TTL_OUT): 
-        copy_ttl_out (pkt, action);
-        break;
-      case (OFPAT_COPY_TTL_IN):
-        copy_ttl_in (pkt, action);
-        break;
-      case (OFPAT_SET_MPLS_TTL):
-        set_mpls_ttl (pkt, (ofl_action_mpls_ttl*)action);
-        break;
-      case (OFPAT_DEC_MPLS_TTL): 
-        dec_mpls_ttl (pkt, action);
-        break;
-      case (OFPAT_PUSH_VLAN): 
-        push_vlan (pkt, (ofl_action_push*)action);
-        break;
-      case (OFPAT_POP_VLAN): 
-        pop_vlan (pkt, action);
-        break;
-      case (OFPAT_PUSH_MPLS): 
-        push_mpls (pkt, (ofl_action_push*)action);
-        break;
-      case (OFPAT_POP_MPLS): 
-        pop_mpls (pkt, (ofl_action_pop_mpls*)action);
-        break;
-      case (OFPAT_SET_QUEUE): 
-        set_queue (pkt, (ofl_action_set_queue*)action);
-        break;
-      case (OFPAT_GROUP): 
-        group (pkt, (ofl_action_group*)action);
-        break;
-      case (OFPAT_SET_NW_TTL): 
-        set_nw_ttl (pkt, (ofl_action_set_nw_ttl*)action);
-        break;
-      case (OFPAT_DEC_NW_TTL): 
-        dec_nw_ttl (pkt, action);
-        break;
-      case (OFPAT_PUSH_PBB):
-        push_pbb (pkt, (ofl_action_push*)action);
-        break;
-      case (OFPAT_POP_PBB):
-        pop_pbb (pkt, action);
-        break;
-      case (OFPAT_EXPERIMENTER): 
-        dp_exp_action (pkt, (ofl_action_experimenter*)action);
-        break;
-      default: 
-        NS_LOG_WARN ("Trying to execute unknown action type " << action->type);
-    }
- 
-  char *p = packet_to_string (pkt);
-  NS_LOG_DEBUG ("Action result: "<< p);
-  free (p);
-}
+// void 
+// OFSwitch13NetDevice::ActionExecute (packet *pkt, ofl_action_header *action)
+// {
+//   NS_LOG_FUNCTION (this);
+//   
+//   char *a = ofl_action_to_string (action, NULL/*pkt->dp->exp*/);
+//   NS_LOG_DEBUG ("executing action " << a);
+//   free(a);
+// 
+//   switch (action->type) 
+//     {
+//       case (OFPAT_SET_FIELD): 
+//         set_field (pkt,(ofl_action_set_field*) action);
+//         break;
+//       case (OFPAT_OUTPUT): 
+//         output (pkt, (ofl_action_output*)action);
+//         break;
+//       case (OFPAT_COPY_TTL_OUT): 
+//         copy_ttl_out (pkt, action);
+//         break;
+//       case (OFPAT_COPY_TTL_IN):
+//         copy_ttl_in (pkt, action);
+//         break;
+//       case (OFPAT_SET_MPLS_TTL):
+//         set_mpls_ttl (pkt, (ofl_action_mpls_ttl*)action);
+//         break;
+//       case (OFPAT_DEC_MPLS_TTL): 
+//         dec_mpls_ttl (pkt, action);
+//         break;
+//       case (OFPAT_PUSH_VLAN): 
+//         push_vlan (pkt, (ofl_action_push*)action);
+//         break;
+//       case (OFPAT_POP_VLAN): 
+//         pop_vlan (pkt, action);
+//         break;
+//       case (OFPAT_PUSH_MPLS): 
+//         push_mpls (pkt, (ofl_action_push*)action);
+//         break;
+//       case (OFPAT_POP_MPLS): 
+//         pop_mpls (pkt, (ofl_action_pop_mpls*)action);
+//         break;
+//       case (OFPAT_SET_QUEUE): 
+//         set_queue (pkt, (ofl_action_set_queue*)action);
+//         break;
+//       case (OFPAT_GROUP): 
+//         group (pkt, (ofl_action_group*)action);
+//         break;
+//       case (OFPAT_SET_NW_TTL): 
+//         set_nw_ttl (pkt, (ofl_action_set_nw_ttl*)action);
+//         break;
+//       case (OFPAT_DEC_NW_TTL): 
+//         dec_nw_ttl (pkt, action);
+//         break;
+//       case (OFPAT_PUSH_PBB):
+//         push_pbb (pkt, (ofl_action_push*)action);
+//         break;
+//       case (OFPAT_POP_PBB):
+//         pop_pbb (pkt, action);
+//         break;
+//       case (OFPAT_EXPERIMENTER): 
+//         dp_exp_action (pkt, (ofl_action_experimenter*)action);
+//         break;
+//       default: 
+//         NS_LOG_WARN ("Trying to execute unknown action type " << action->type);
+//     }
+//  
+//   char *p = packet_to_string (pkt);
+//   NS_LOG_DEBUG ("Action result: "<< p);
+//   free (p);
+// }
 
 void
 OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
@@ -1284,7 +1283,6 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
       case (OFPP_TABLE): 
         if (pkt->packet_out) 
           {
-            // NOTE: hackish; makes sure packet cannot be resubmit to pipeline again.
             pkt->packet_out = false;
             PipelineProcessPacket (pkt->dp->pipeline, pkt);
           } 
@@ -1310,7 +1308,7 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
       case (OFPP_ALL): 
         {
           ofs::Port *p;
-          // Send to all ports except input
+          // Send to all ports except input // FIXME Criar SendToAllSwitchPorts
           for (uint32_t i = 1; i <= GetNSwitchPorts (); i++)
             {
               p = PortGetOfsPort (i);
@@ -2003,7 +2001,7 @@ OFSwitch13NetDevice::HandleMsgPacketOut (ofl_msg_packet_out *msg, uint64_t xid)
       return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BUFFER_EMPTY);
     }
   
-  ActionListExecute (pkt, msg->actions_num, msg->actions, UINT64_MAX);
+  ActionsListExecute (pkt, msg->actions_num, msg->actions, UINT64_MAX);
   InternalPacketDestroy (pkt);
   
   // All handlers must free the message when everything is ok
