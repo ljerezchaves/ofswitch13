@@ -312,14 +312,6 @@ private:
   void ActionSetExecute (packet *pkt, action_set *set, uint64_t cookie);
 
   /**
-   * Executes a single action on the given packet
-   * \see ofsoftswitch dp_execute_action at udatapath/dp_actions.c
-   * \param pkt The packet associated with this action
-   * \param action A pointer to the action
-   */
-  // void ActionExecute (packet *pkt, ofl_action_header *action);
-
-  /**
    * Execute the ouput action sending the packet to an output port
    * \see ofsoftswitch dp_actions_output_port at udatapath/dp_actions.c
    * \param pkt The packet associated with this action
