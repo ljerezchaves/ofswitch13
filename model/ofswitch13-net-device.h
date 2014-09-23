@@ -440,13 +440,6 @@ private:
    */
   void FlowEntryRemove (flow_entry *entry, uint8_t reason);
 
-//  /**
-//   * Destroy a flow entry. 
-//   * \see ofsoftswitch13 flow_entry_destroy () at udatapath/flow_entry.c
-//   * \param entry The flow entry to destroy.
-//   */
-//  void FlowEntryDestroy (flow_entry *entry);
-
   /**
    * Creates a flow entry. 
    * \see ofsoftswitch13 flow_entry_create () at udatapath/flow_entry.c.
