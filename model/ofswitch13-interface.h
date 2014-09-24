@@ -106,16 +106,14 @@ int parse_table(char *str, uint8_t *table);
 uint32_t port_speed(uint32_t conf);
 
 // From udatapath/flow_table.c
-void add_to_timeout_lists(struct flow_table *table, struct flow_entry *entry);
 ofl_err flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool strict, bool *insts_kept);
+ofl_err flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept);
 
 // From udatapath/pipeline.c
 int inst_compare(const void *inst1, const void *inst2);
 
 // From udatapath/flow_entry.
-void init_group_refs(struct flow_entry *entry);
 void del_group_refs(struct flow_entry *entry);
-void init_meter_refs(struct flow_entry *entry);
 void del_meter_refs(struct flow_entry *entry);
 
 #undef list

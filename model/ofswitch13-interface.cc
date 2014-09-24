@@ -51,7 +51,7 @@ Port::Port (Ptr<NetDevice> netdev, uint32_t no)
   stats->port_no = no;
 
   flags |= SWP_USED;
-  created = Simulator::Now ().GetTimeStep ();
+  created = Simulator::Now ().ToInteger (Time::MS);
 }
 
 uint32_t 
@@ -218,7 +218,6 @@ time_now(void)
 long long int
 time_msec(void)
 {
-  NS_LOG_UNCOND ("Estive aqui: time_msec");
   return (long long int)ns3::Simulator::Now ().ToInteger (ns3::Time::MS);
 }
 
