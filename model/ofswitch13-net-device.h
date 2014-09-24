@@ -531,6 +531,7 @@ private:
   ofl_err HandleMsgPacketOut        (datapath *dp, ofl_msg_packet_out *msg, uint64_t xid);
   ofl_err HandleMsgFlowMod          (datapath *dp, ofl_msg_flow_mod *msg, uint64_t xid);
   ofl_err HandleMsgPortMod          (datapath *dp, ofl_msg_port_mod *msg, uint64_t xid);
+  ofl_err HandleMsgGroupMod         (datapath *dp, ofl_msg_group_mod *msg, uint64_t xid);
   ofl_err HandleMsgTableMod         (datapath *dp, ofl_msg_table_mod *msg, uint64_t xid);
   ofl_err HandleMsgMultipartRequest (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err HandleMsgBarrierRequest   (datapath *dp, ofl_msg_header *msg, uint64_t xid);

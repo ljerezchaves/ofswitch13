@@ -667,9 +667,9 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
           case OFPT_FLOW_MOD:
             error = HandleMsgFlowMod (dp, (ofl_msg_flow_mod*)msg, xid); 
             break;
-          //case OFPT_GROUP_MOD:
-          //  error = group_table_handle_group_mod (dp->groups, (ofl_msg_group_mod*)msg, sender);
-          //  break;
+          case OFPT_GROUP_MOD:
+            error = HandleMsgGroupMod (dp, (ofl_msg_group_mod*)msg, xid);
+            break;
           case OFPT_PORT_MOD:
             error = HandleMsgPortMod (dp, (ofl_msg_port_mod*)msg, xid);
             break;
@@ -2046,6 +2046,43 @@ OFSwitch13NetDevice::HandleMsgFlowMod (datapath *dp, ofl_msg_flow_mod *msg,
       return 0;
     }
 }
+
+ofl_err 
+OFSwitch13NetDevice::HandleMsgGroupMod (datapath *dp, ofl_msg_group_mod *msg, 
+    uint64_t xid)
+{
+  ofl_err error;
+  size_t i;
+
+  // FIXME There are several places where this should be fixed
+  // if (sender->remote->role == OFPCR_ROLE_SLAVE)
+  //     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
+
+  for (i = 0; i< msg->buckets_num; i++) 
+    {
+      error = ActionValidate (dp, msg->buckets[i]->actions_num, msg->buckets[i]->actions);
+      if (error) 
+        {
+          return error;
+        }
+    }
+
+  switch (msg->command) 
+    {
+      case (OFPGC_ADD):
+        return group_table_add (dp->groups, msg);
+      
+      case (OFPGC_MODIFY):
+        return group_table_modify (dp->groups, msg);
+
+      case (OFPGC_DELETE):
+        return group_table_delete (dp->groups, msg);
+
+      default:
+        return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+    }
+}
+
 
 ofl_err
 OFSwitch13NetDevice::HandleMsgPortMod (datapath *dp, ofl_msg_port_mod *msg, 
