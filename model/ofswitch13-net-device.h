@@ -278,27 +278,6 @@ private:
       flow_table **next_table, packet **pkt);
   //\}
 
-//  ///\name Buffer methods
-//  //\{
-//  /**
-//   * Saves the packet into the buffer. 
-//   * \see ofsoftswitch13 dp_buffers_save () at udatapath/dp_buffers.c
-//   * \param dpb The buffer structure.
-//   * \param pkt Internal packet to save.
-//   * \return The saved buffer ID, or NO_BUFFER if saving was not possible.
-//   */
-//  int32_t BuffersSave (dp_buffers *dpb, packet *pkt);
-//
-//  /**
-//   * Check for valid buffered packet
-//   * \see ofsoftswitch13 dp_buffers_is_alive () at udatapath/dp_buffers.c
-//   * \param dpb The buffer structure.
-//   * \param id The buffer id of the packet to check.
-//   * \return True if the buffered packet is not timed out.
-//   */
-//  bool BuffersIsAlive (dp_buffers *dpb, uint32_t id);
-//  //\}
-
   ///\name Actions methods
   //\{
   /**
@@ -378,44 +357,6 @@ private:
    */
   void FlowTableTimeout (flow_table *table);
 
-//  /**
-//   * Handles a flow_mod msg with OFPFC_ADD command. 
-//   * \attention new entries will be placed behind those with equal priority
-//   * \see ofsoftswitch13 flow_table_add () at udatapath/flow_table.c
-//   * \param table The table to add the entry
-//   * \param mod The ofl_msg_flow_mod message
-//   * \param check_overlap If true, prevents existing flow entry overlaps with
-//   *        the match in the flow mod message
-//   * \param match_kept Used by HandleMsgFlowMod to proper free structs
-//   * \param insts_kept Used by HandleMsgFlowMod to proper free structs
-//   * \return 0 if sucess or OpenFlow error code
-//   */
-//  ofl_err FlowTableAdd (flow_table *table, ofl_msg_flow_mod *mod, 
-//      bool check_overlap, bool *match_kept, bool *insts_kept);
-//
-//  /** 
-//   * Finds the flow entry with the highest priority, which matches the packet.
-//   * \see ofsoftswitch flow_table_lookup () at udatapath/flow_table.c
-//   * \param table The flow table
-//   * \param pkt The internal packet
-//   * \return The flow entry which matches the packet
-//   */
-//  flow_entry* FlowTableLookup (flow_table *table, packet *pkt);
-// 
-//  /**
-//   * Collects statistics of the flow entries of the table. 
-//   * \see ofsoftswitch flow_table_stats () at udatapath/flow_table.c
-//   * \param table Flow table.
-//   * \param msg Multipart flow table stats request message.
-//   * \param stats Computed statistics.
-//   * \param stats_size Size of statistics.
-//   * \param stats_num Number of statistcs.
-//   */
-//  void FlowTableStats (flow_table *table, ofl_msg_multipart_request_flow *msg, 
-//      ofl_flow_stats ***stats, size_t *stats_size, size_t *stats_num);
-  //\}
-
-
   ///\name Flow entry methods
   //\{
   /** 
@@ -446,27 +387,7 @@ private:
    * \param reason The reason to send to controller.
    */
   void FlowEntryRemove (flow_entry *entry, uint8_t reason);
-
-//  /**
-//   * Creates a flow entry. 
-//   * \see ofsoftswitch13 flow_entry_create () at udatapath/flow_entry.c.
-//   * \param dp The datapath.
-//   * \param table The flow table to insert the new entry.
-//   * \param mod The flow mod message.
-//   * \return The new flow entry.
-//   */
-//  flow_entry* FlowEntryCreate (datapath *dp, flow_table *table, 
-//      ofl_msg_flow_mod *mod);
-//
-//  /**
-//   * Updates the time fields of the flow entry statistics. Used before
-//   * generating flow statistics messages.
-//   * \see ofsoftswitch13 flow_entry_update () at udatapath/flow_entry.c
-//   * \param entry Flow entry to update.
-//   */
-//  void FlowEntryUpdate (flow_entry *entry);
   //\}
-  
 
   /**
    * Add an Ethernet header and trailer to the packet. This is an workaround
@@ -497,13 +418,6 @@ private:
    */
   Ptr<Packet> CreatePacketIn (pipeline* pl, packet *pkt, uint8_t tableId,
           ofp_packet_in_reason reason, uint64_t cookie);
-
-//  /**
-//   * Destroys a packet along with all its associated structures.
-//   * \see ofsoftswitch13 packet_destroy () at udatapath/packet.c.
-//   * \param pkt The internal packet to free.
-//   */
-//  void InternalPacketDestroy (packet *pkt);
 
   /**
    * Send an echo request message to controller. This method reschedules
