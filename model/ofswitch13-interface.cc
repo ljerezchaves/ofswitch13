@@ -205,4 +205,21 @@ Ptr<Packet> PacketFromInternalPacket (packet *pkt)
 
 } // namespace ofs
 } // namespace ns3
+
+/* Returns the current time, in seconds. */
+time_t 
+time_now(void)
+{
+  NS_LOG_UNCOND ("Estive aqui: time_now");
+  return (time_t)ns3::Simulator::Now ().ToInteger (ns3::Time::S);
+}
+
+/* Returns the current time, in ms (within TIME_UPDATE_INTERVAL ms). */
+long long int
+time_msec(void)
+{
+  NS_LOG_UNCOND ("Estive aqui: time_msec");
+  return (long long int)ns3::Simulator::Now ().ToInteger (ns3::Time::MS);
+}
+
 #endif // NS3_OFSWITCH13
