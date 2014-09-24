@@ -496,7 +496,7 @@ OFSwitch13NetDevice::DatapathNew ()
   dp->n_listeners_aux = 0;
   
   dp->id = 0;
-  dp->last_timeout = Simulator::Now ().GetTimeStep ();
+  dp->last_timeout = time_now ();
   
   dp->buffers = dp_buffers_create (dp); 
   dp->pipeline = pipeline_create (dp);
@@ -518,6 +518,40 @@ OFSwitch13NetDevice::DatapathNew ()
   m_ports.reserve (DP_MAX_PORTS+1);
 
   return dp;
+}
+
+void
+OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
+{
+  // FIXME No meter support by now
+  // meter_table_add_tokens (dp->meters);
+  
+  // Check flow entry timeout
+  for (int i = 0; i < PIPELINE_TABLES; i++) 
+    {
+      FlowTableTimeout (dp->pipeline->tables[i]);
+    }
+
+  // Check for changes in port status
+  for (size_t i = 0; i < m_ports.size (); i++)
+    {
+      ofs::Port *p = &m_ports[i];
+      if (PortLiveUpdate (p))
+        {
+          NS_LOG_DEBUG ("Port configuration has changed. Notifying the controller...");
+          ofl_msg_port_status msg;
+          msg.header.type = OFPT_PORT_STATUS;
+          msg.reason = OFPPR_MODIFY;
+          msg.desc = p->conf;
+
+          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+          LogOflMsg ((ofl_msg_header*)&msg);
+          SendToController (packet);
+        }
+    }
+
+  Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, dp);
+  dp->last_timeout = time_now ();
 }
 
 ofs::Port*
@@ -563,7 +597,7 @@ OFSwitch13NetDevice::PortLiveUpdate (ofs::Port *p)
   uint32_t orig_config = p->conf->config;
   uint32_t orig_state = p->conf->state;
 
-  // Port is always enabled (NetDevice is always enabled)
+  // Port is always enabled
   p->conf->config &= ~OFPPC_PORT_DOWN;
 
   if (p->netdev->IsLinkUp ())
@@ -582,10 +616,8 @@ OFSwitch13NetDevice::PortLiveUpdate (ofs::Port *p)
 void 
 OFSwitch13NetDevice::PortStatsUpdate (ofs::Port *p)
 {
-  Time alive = Simulator::Now () - Time (p->created);
-  p->stats->duration_sec  = (uint32_t)alive.ToInteger (Time::S);
-  alive -= Time::FromInteger (p->stats->duration_sec, Time::S); 
-  p->stats->duration_nsec = (uint32_t)alive.ToInteger (Time::NS);
+  p->stats->duration_sec  =  (time_msec() - p->created) / 1000;
+  p->stats->duration_nsec = ((time_msec() - p->created) % 1000) * 1000;
 }
 
 int
@@ -844,8 +876,8 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   inPort->stats->rx_bytes += buffer->size;
 
   // Runs the packet through the pipeline
-  Simulator::Schedule (m_lookupDelay, &OFSwitch13NetDevice::PipelineProcessPacket, this, 
-      m_datapath->pipeline, pkt);
+  Simulator::Schedule (m_lookupDelay, &OFSwitch13NetDevice::PipelineProcessPacket, 
+      this, m_datapath->pipeline, pkt);
 }
 
 bool
@@ -926,7 +958,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
         {
           NS_LOG_WARN ("Packet has invalid TTL, dropping.");
         }
-      InternalPacketDestroy (pkt);
+      packet_destroy (pkt);
       return;
     }
   
@@ -944,7 +976,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
           ofl_structs_match_to_string ((ofl_match_header*)&(pkt->handle_std->match), 
               pl->dp->exp));
   
-      entry = FlowTableLookup (table, pkt);
+      entry = flow_table_lookup (table, pkt);
       if (entry != NULL) 
         {
           NS_LOG_DEBUG ("found matching entry: " << 
@@ -964,7 +996,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
             {
               // Pipeline end. Execute actions and free packet
               ActionSetExecute (pkt, pkt->action_set, UINT64_MAX);
-              InternalPacketDestroy (pkt);
+              packet_destroy (pkt);
               return;
             }
         } 
@@ -972,7 +1004,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
         {
           /* OpenFlow 1.3 default behavior on a table miss */
           NS_LOG_DEBUG ("No matching entry found. Dropping packet.");
-          InternalPacketDestroy (pkt);
+          packet_destroy (pkt);
           return;
         }
     }
@@ -1022,7 +1054,8 @@ OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
                   HashInt (OXM_OF_METADATA, 0), &(*pkt)->handle_std->match.match_fields)
                 {
                   uint64_t *metadata = (uint64_t*) f->value;
-                  *metadata = (*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask);
+                  *metadata = (*metadata & ~wi->metadata_mask) | 
+                              (wi->metadata & wi->metadata_mask);
                   NS_LOG_DEBUG ("Executing write metadata: " << *metadata);
                 }
               break;
@@ -1058,99 +1091,6 @@ OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
             }
         }
     }
-}
-
-void
-OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
-{
-  // FIXME No meter support by now
-  // meter_table_add_tokens (dp->meters);
-  
-  // Check flow entry timeout
-  for (int i = 0; i < PIPELINE_TABLES; i++) 
-    {
-      FlowTableTimeout (dp->pipeline->tables[i]);
-    }
-
-  // Check for changes in port status
-  for (size_t i = 0; i < m_ports.size (); i++)
-    {
-      ofs::Port *p = &m_ports[i];
-      if (PortLiveUpdate (p))
-        {
-          NS_LOG_DEBUG ("Port configuration has changed. Notifying the controller...");
-          ofl_msg_port_status msg;
-          msg.header.type = OFPT_PORT_STATUS;
-          msg.reason = OFPPR_MODIFY;
-          msg.desc = p->conf;
-
-          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-          LogOflMsg ((ofl_msg_header*)&msg);
-          SendToController (packet);
-        }
-    }
-
-  Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, dp);
-  dp->last_timeout = Simulator::Now ().GetTimeStep ();
-}
-
-int32_t
-OFSwitch13NetDevice::BuffersSave (dp_buffers *dpb, packet *pkt)
-{
-  NS_LOG_FUNCTION (this);
-  
-  packet_buffer *p;
-  uint32_t id;
-
-  /* if packet is already in buffer, do not save again */
-  if (pkt->buffer_id != NO_BUFFER) 
-    {
-      if (BuffersIsAlive (dpb, pkt->buffer_id)) 
-        {
-          return pkt->buffer_id;
-        }
-    }
-
-  dpb->buffer_idx = (dpb->buffer_idx + 1) & PKT_BUFFER_MASK;
-
-  p = &dpb->buffers[dpb->buffer_idx];
-  if (p->pkt != NULL) 
-    {
-      if (Simulator::Now () < Time (p->timeout))
-        {
-          return NO_BUFFER;
-        } 
-      else 
-        {
-          p->pkt->buffer_id = NO_BUFFER;
-          InternalPacketDestroy (p->pkt);
-        }
-    }
-
-  /* Don't use maximum cookie value since the all-bits-1 id is special. */
-  if (++p->cookie >= (1u << PKT_COOKIE_BITS) - 1)
-    {
-      p->cookie = 0;
-    }
-
-  Time expire = Simulator::Now () + Time ("2s");
-  p->timeout = (time_t)expire.GetTimeStep (); 
-  
-  p->pkt = pkt;
-  id = dpb->buffer_idx | (p->cookie << PKT_BUFFER_BITS);
-  pkt->buffer_id  = id;
-
-  return id;
-}
-
-bool
-OFSwitch13NetDevice::BuffersIsAlive (dp_buffers *dpb, uint32_t id)
-{
-  NS_LOG_FUNCTION (this);
-  
-  packet_buffer *p = &dpb->buffers [id & PKT_BUFFER_MASK];
-  return ((p->cookie == id >> PKT_BUFFER_BITS) && 
-          (Simulator::Now () < Time (p->timeout)));
 }
 
 void
@@ -1313,80 +1253,6 @@ OFSwitch13NetDevice::ActionValidate (datapath *dp, size_t num, ofl_action_header
   return 0;
 }
 
-ofl_err
-OFSwitch13NetDevice::FlowTableAdd (flow_table *table, ofl_msg_flow_mod *mod, 
-    bool check_overlap, bool *match_kept, bool *insts_kept) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  // Note: new entries will be placed behind those with equal priority
-  flow_entry *entry, *new_entry;
-
-  LIST_FOR_EACH (entry, flow_entry, match_node, &table->match_entries) 
-    {
-      if (check_overlap && flow_entry_overlaps (entry, mod)) 
-        {
-          return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_OVERLAP);
-        }
-
-      /* if the entry equals, replace the old one */
-      if (flow_entry_matches (entry, mod, true/*strict*/, false/*check_cookie*/)) 
-        {
-          new_entry = FlowEntryCreate (table->dp, table, mod);
-          *match_kept = true;
-          *insts_kept = true;
-
-          /* NOTE: no flow removed message should be generated according to spec. */
-          list_replace (&new_entry->match_node, &entry->match_node);
-          list_remove (&entry->hard_node);
-          list_remove (&entry->idle_node);
-          flow_entry_destroy (entry);
-          add_to_timeout_lists (table, new_entry);
-          return 0;
-        }
-
-      if (mod->priority > entry->stats->priority) 
-        {
-          break;
-        }
-    }
-
-  if (table->stats->active_count == FLOW_TABLE_MAX_ENTRIES) 
-    {
-      return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_TABLE_FULL);
-    }
-  table->stats->active_count++;
-
-  new_entry = FlowEntryCreate (table->dp, table, mod);
-  *match_kept = true;
-  *insts_kept = true;
-
-  list_insert (&entry->match_node, &new_entry->match_node);
-  add_to_timeout_lists (table, new_entry);
-
-  return 0;
-}
-
-ofl_err 
-OFSwitch13NetDevice::FlowTableDelete (flow_table *table, ofl_msg_flow_mod *mod,
-    bool strict)
-{
-  NS_LOG_FUNCTION (this);
-  
-  flow_entry *entry, *next;
-
-  LIST_FOR_EACH_SAFE (entry, next, flow_entry, match_node, &table->match_entries) 
-    {
-      if ((mod->out_port  == OFPP_ANY || flow_entry_has_out_port (entry, mod->out_port)) &&
-          (mod->out_group == OFPG_ANY || flow_entry_has_out_group (entry, mod->out_group)) &&
-           flow_entry_matches (entry, mod, strict, true/*check_cookie*/)) 
-        {
-           FlowEntryRemove (entry, OFPRR_DELETE);
-        }
-    }
-  return 0;
-}
-
 ofl_err 
 OFSwitch13NetDevice::FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod, 
       bool *match_kept, bool *insts_kept)
@@ -1396,7 +1262,7 @@ OFSwitch13NetDevice::FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod,
       case (OFPFC_ADD): 
         {
           bool overlap = ((mod->flags & OFPFF_CHECK_OVERLAP) != 0);
-          return FlowTableAdd (table, mod, overlap, match_kept, insts_kept);
+          return flow_table_add (table, mod, overlap, match_kept, insts_kept);
         }
       case (OFPFC_MODIFY): 
         {
@@ -1421,46 +1287,24 @@ OFSwitch13NetDevice::FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod,
     }
 }
 
-flow_entry* 
-OFSwitch13NetDevice::FlowTableLookup (flow_table *table, packet *pkt)
+ofl_err 
+OFSwitch13NetDevice::FlowTableDelete (flow_table *table, ofl_msg_flow_mod *mod,
+    bool strict)
 {
-  flow_entry *entry;
+  NS_LOG_FUNCTION (this);
+  
+  flow_entry *entry, *next;
 
-  table->stats->lookup_count++;
-
-  LIST_FOR_EACH (entry, flow_entry, match_node, &table->match_entries) 
+  LIST_FOR_EACH_SAFE (entry, next, flow_entry, match_node, &table->match_entries) 
     {
-      ofl_match_header *m;
-      m = entry->match == NULL ? entry->stats->match : entry->match;
-
-      /* select appropriate handler, based on match type of flow entry. */
-      switch (m->type) 
+      if ((mod->out_port  == OFPP_ANY || flow_entry_has_out_port (entry, mod->out_port)) &&
+          (mod->out_group == OFPG_ANY || flow_entry_has_out_group (entry, mod->out_group)) &&
+           flow_entry_matches (entry, mod, strict, true/*check_cookie*/)) 
         {
-          case (OFPMT_OXM): 
-            {
-              if (packet_handle_std_match (pkt->handle_std, (ofl_match *)m)) 
-                {
-                  if (!entry->no_byt_count)
-                    {
-                      entry->stats->byte_count += pkt->buffer->size;
-                    }
-                  if (!entry->no_pkt_count)
-                    {
-                      entry->stats->packet_count++;
-                    }
-                  entry->last_used = Simulator::Now ().GetTimeStep ();
-                  table->stats->matched_count++;
-                  return entry;
-                }
-              break;
-            }
-          default: 
-            {
-              NS_LOG_WARN ("Trying to process flow entry with unknown match type " << m->type);
-            }
+           FlowEntryRemove (entry, OFPRR_DELETE);
         }
     }
-  return NULL;
+  return 0;
 }
 
 void
@@ -1468,10 +1312,6 @@ OFSwitch13NetDevice::FlowTableTimeout (flow_table *table)
 {
   struct flow_entry *entry, *next;
 
-  /** 
-   * NOTE: hard timeout entries are ordered by the time they should be removed
-   * at, so if one is not removed, the rest will not be either. 
-   */
   LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, hard_node, &table->hard_entries) 
     {
       if (!FlowEntryHardTimeout (entry)) 
@@ -1486,31 +1326,30 @@ OFSwitch13NetDevice::FlowTableTimeout (flow_table *table)
     }
 }
 
-void 
-OFSwitch13NetDevice::FlowTableStats (flow_table *table, ofl_msg_multipart_request_flow *msg, 
-      ofl_flow_stats ***stats, size_t *stats_size, size_t *stats_num)
+bool 
+OFSwitch13NetDevice::FlowEntryIdleTimeout (flow_entry *entry)
 {
-  flow_entry *entry;
-
-  LIST_FOR_EACH (entry, flow_entry, match_node, &table->match_entries) 
+  bool timeout = (entry->stats->idle_timeout != 0) && 
+      ((uint64_t)time_msec () > entry->last_used + entry->stats->idle_timeout * 1000);
+  
+  if (timeout) 
     {
-      if ((msg->out_port == OFPP_ANY || flow_entry_has_out_port (entry, msg->out_port)) &&
-          (msg->out_group == OFPG_ANY || flow_entry_has_out_group (entry, msg->out_group)) &&
-          match_std_nonstrict ((ofl_match*)msg->match,
-                               (ofl_match*)entry->stats->match)) 
-        {
-
-          FlowEntryUpdate (entry);
-          if ((*stats_size) == (*stats_num)) 
-            {
-              (*stats) = (ofl_flow_stats**) xrealloc (*stats, 
-                         (sizeof (ofl_flow_stats*)) * (*stats_size) * 2);
-              *stats_size *= 2;
-            }
-          (*stats)[(*stats_num)] = entry->stats;
-          (*stats_num)++;
-        }
+      FlowEntryRemove (entry, OFPRR_IDLE_TIMEOUT);
     }
+  return timeout;
+}
+
+bool 
+OFSwitch13NetDevice::FlowEntryHardTimeout (flow_entry *entry)
+{
+  bool timeout = (entry->remove_at != 0) && 
+      ((uint64_t)time_msec () > entry->remove_at);
+
+  if (timeout) 
+    {
+      FlowEntryRemove (entry, OFPRR_HARD_TIMEOUT);
+    }
+  return timeout;
 }
 
 void
@@ -1520,7 +1359,7 @@ OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
 
   if (entry->send_removed)
     {
-      FlowEntryUpdate (entry);
+      flow_entry_update (entry);
         {
           NS_LOG_DEBUG ("Flow entry expired. Notifying the controller...");
           ofl_msg_flow_removed msg;
@@ -1543,111 +1382,6 @@ OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
   del_meter_refs (entry);
   ofl_structs_free_flow_stats (entry->stats, entry->dp->exp);
   free (entry);
-}
-
-flow_entry* 
-OFSwitch13NetDevice::FlowEntryCreate (datapath *dp, flow_table *table, 
-    ofl_msg_flow_mod *mod)
-{
-  flow_entry *entry;
-  uint64_t now;
-  
-  now = Simulator::Now ().GetTimeStep ();
-
-  entry = (flow_entry*)xmalloc (sizeof (flow_entry));
-  entry->dp    = dp;
-  entry->table = table;
-
-  entry->stats = (ofl_flow_stats*)xmalloc (sizeof (ofl_flow_stats));
-  entry->stats->table_id      = mod->table_id;
-  entry->stats->duration_sec  = 0;
-  entry->stats->duration_nsec = 0;
-  entry->stats->priority      = mod->priority;
-  entry->stats->idle_timeout  = mod->idle_timeout;  // stored in seconds
-  entry->stats->hard_timeout  = mod->hard_timeout;  // stored in seconds
-  entry->stats->cookie        = mod->cookie;
-  entry->no_pkt_count = ((mod->flags & OFPFF_NO_PKT_COUNTS) != 0 );
-  entry->no_byt_count = ((mod->flags & OFPFF_NO_BYT_COUNTS) != 0 ); 
-  
-  if (entry->no_pkt_count)
-    {
-      entry->stats->packet_count = 0xffffffffffffffff;
-    }
-  else
-    {
-      entry->stats->packet_count = 0;
-    }
-
-  if (entry->no_byt_count)
-    {
-      entry->stats->byte_count = 0xffffffffffffffff;
-    }
-  else
-    {
-      entry->stats->byte_count = 0;
-    }
-
-  entry->stats->match            = mod->match;
-  entry->stats->instructions_num = mod->instructions_num;
-  entry->stats->instructions     = mod->instructions;
-
-  entry->match = mod->match;
-
-  entry->created = now;  // timestep
-  entry->remove_at = 0;  // timestep
-  if (mod->hard_timeout)
-    {
-      Time out = Time (now) + Time::FromInteger (mod->hard_timeout, Time::S);
-      entry->remove_at = out.GetTimeStep ();
-    }
-  entry->last_used = now;  // timestep
-  entry->send_removed = ((mod->flags & OFPFF_SEND_FLOW_REM) != 0);
-  list_init (&entry->match_node);
-  list_init (&entry->idle_node);
-  list_init (&entry->hard_node);
-
-  list_init (&entry->group_refs);
-  init_group_refs (entry);
-
-  list_init (&entry->meter_refs);
-  init_meter_refs (entry);
-
-  return entry;
-}
-
-bool 
-OFSwitch13NetDevice::FlowEntryIdleTimeout (flow_entry *entry)
-{
-  bool timeout = (entry->stats->idle_timeout != 0) && 
-                 (Simulator::Now () > (Time (entry->last_used) + 
-                                       Time::FromInteger (entry->stats->idle_timeout, Time::S)));
-  
-  if (timeout) 
-    {
-      FlowEntryRemove (entry, OFPRR_IDLE_TIMEOUT);
-    }
-  return timeout;
-}
-
-bool 
-OFSwitch13NetDevice::FlowEntryHardTimeout (flow_entry *entry)
-{
-  bool timeout = (entry->remove_at != 0) && (Simulator::Now () > Time (entry->remove_at));
-
-  if (timeout) 
-    {
-      FlowEntryRemove (entry, OFPRR_HARD_TIMEOUT);
-    }
-  return timeout;
-}
-
-void
-OFSwitch13NetDevice::FlowEntryUpdate (flow_entry *entry) 
-{
-  Time alive = Simulator::Now () - Time (entry->created);
-  entry->stats->duration_sec  = (uint32_t)alive.ToInteger (Time::S);
-  alive -= Time::FromInteger (entry->stats->duration_sec, Time::S); 
-  entry->stats->duration_nsec = (uint32_t)alive.ToInteger (Time::NS);
 }
 
 void
@@ -1696,7 +1430,7 @@ OFSwitch13NetDevice::CreatePacketIn (pipeline* pl, packet *pkt, uint8_t tableId,
 
   if (pl->dp->config.miss_send_len != OFPCML_NO_BUFFER)
     {
-      BuffersSave (pl->dp->buffers, pkt);
+      dp_buffers_save (pl->dp->buffers, pkt);
       msg.buffer_id = pkt->buffer_id;
       msg.data_length = MIN (pl->dp->config.miss_send_len, pkt->buffer->size);
     }
@@ -1715,31 +1449,6 @@ OFSwitch13NetDevice::CreatePacketIn (pipeline* pl, packet *pkt, uint8_t tableId,
   LogOflMsg ((ofl_msg_header*)&msg);
   return ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
 }
-
-void 
-OFSwitch13NetDevice::InternalPacketDestroy (packet *pkt)
-{
-  /* If packet is saved in a buffer, do not destroy it,
-   * if buffer is still valid */
-   
-  if (pkt->buffer_id != NO_BUFFER) 
-    {
-      if (BuffersIsAlive (pkt->dp->buffers, pkt->buffer_id)) 
-        {
-          return;
-        }
-      else 
-        {
-          dp_buffers_discard (pkt->dp->buffers, pkt->buffer_id, false);
-        }
-    }
-
-  action_set_destroy (pkt->action_set);
-  ofpbuf_delete (pkt->buffer);
-  packet_handle_std_destroy (pkt->handle_std);
-  free (pkt);
-}
-
 
 void
 OFSwitch13NetDevice::SendEchoRequest ()
@@ -1923,7 +1632,7 @@ OFSwitch13NetDevice::HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg,
     }
   
   ActionsListExecute (pkt, msg->actions_num, msg->actions, UINT64_MAX);
-  InternalPacketDestroy (pkt);
+  packet_destroy (pkt);
   
   // All handlers must free the message when everything is ok
   ofl_msg_free_packet_out (msg, false, dp->exp);
@@ -2311,13 +2020,13 @@ OFSwitch13NetDevice::MultipartMsgFlow (datapath *dp,
       size_t i;
       for (i=0; i<PIPELINE_TABLES; i++) 
         {
-          FlowTableStats (dp->pipeline->tables[i], msg, 
+          flow_table_stats (dp->pipeline->tables[i], msg, 
               &stats, &stats_size, &stats_num);
         }
     } 
   else 
     {
-      FlowTableStats (dp->pipeline->tables[msg->table_id], 
+      flow_table_stats (dp->pipeline->tables[msg->table_id], 
           msg, &stats, &stats_size, &stats_num);
     }
 
