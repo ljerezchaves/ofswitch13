@@ -203,6 +203,7 @@ private:
    */
   //\{
   int DpctlFlowModCommand (SwitchInfo swtch, int argc, char *argv[]);
+  int DpctlGroupModCommand (SwitchInfo swtch, int argc, char *argv[]);
   int DpctlSetConfigCommand (SwitchInfo swtch, int argc, char *argv[]);
   int DpctlStatsFlowCommand (SwitchInfo swtch, int argc, char *argv[]);
   int DpctlStatsAggrCommand (SwitchInfo swtch, int argc, char *argv[]);

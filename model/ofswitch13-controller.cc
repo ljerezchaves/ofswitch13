@@ -119,6 +119,11 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
       NS_ASSERT_MSG (argc >= 2 && argc <= 9, "Invalid number of arguments for command " << argv[0]);
       bytes = DpctlFlowModCommand (swtch, --argc, ++argv);
     }
+  else if (strcmp (argv[0], "group-mod") == 0)
+    {
+      NS_ASSERT_MSG (argc >= 2 && argc <= UINT8_MAX, "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlGroupModCommand (swtch, --argc, ++argv);
+    }
   else if (strcmp (argv[0], "get-async") == 0)
     {
       NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
@@ -791,6 +796,46 @@ OFSwitch13Controller::DpctlFlowModCommand (SwitchInfo swtch, int argc, char *arg
   // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)msg, ++m_xid));
+}
+
+int
+OFSwitch13Controller::DpctlGroupModCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  struct ofl_msg_group_mod msg;
+  msg.header.type = OFPT_GROUP_MOD;
+  msg.command = OFPGC_ADD;
+  msg.type = OFPGT_ALL;
+  msg.group_id = OFPG_ALL;
+  msg.buckets_num = 0;
+  msg.buckets = NULL;
+
+  parse_group_mod_args (argv[0], &msg);
+
+  if (argc > 1) 
+    {
+      size_t i;
+      size_t buckets_num = (argc - 1) / 2;
+
+      msg.buckets_num = buckets_num;
+      msg.buckets = (ofl_bucket**)xmalloc (sizeof (ofl_bucket *) * buckets_num);
+
+      for (i=0; i < buckets_num; i++) 
+        {
+          msg.buckets[i] = (ofl_bucket*)xmalloc (sizeof (ofl_bucket));
+          msg.buckets[i]->weight = 0;
+          msg.buckets[i]->watch_port = OFPP_ANY;
+          msg.buckets[i]->watch_group = OFPG_ANY;
+          msg.buckets[i]->actions_num = 0;
+          msg.buckets[i]->actions = NULL;
+
+          parse_bucket (argv[i*2+1], msg.buckets[i]);
+          parse_actions (argv[i*2+2], &(msg.buckets[i]->actions_num), &(msg.buckets[i]->actions));
+        }
+    }
+
+  // Create packet, free memory and send
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
 }
 
 int
