@@ -445,7 +445,6 @@ OFSwitch13NetDevice::SupportsSendFrom () const
 }
 
 /********** Private methods **********/
-
 void
 OFSwitch13NetDevice::DoDispose ()
 {
@@ -635,7 +634,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
   if (!error)
     {
       LogOflMsg ((ofl_msg_header*)msg, true/*Rx*/);
-      /* Dispatches control messages to appropriate handler functions. */
+      // Dispatches control messages to appropriate handler functions.
       datapath *dp = m_datapath;
       switch (msg->type)
         {
@@ -656,7 +655,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             //dp_exp_message(dp, (struct ofl_msg_experimenter *)msg, sender); // TODO
             break;
 
-          /* Switch configuration messages. */
+          // Switch configuration messages.
           case OFPT_FEATURES_REQUEST:
             error = HandleMsgFeaturesRequest (dp, msg, xid);
             break;
@@ -673,7 +672,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             error = HandleMsgSetConfig (dp, (ofl_msg_set_config*)msg, xid);
             break;
 
-          /* Asynchronous messages. */
+          // Asynchronous messages.
           case OFPT_PACKET_IN:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
@@ -684,7 +683,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
 
-          /* Controller command messages. */
+          // Controller command messages.
           case OFPT_GET_ASYNC_REQUEST:
             error = HandleMsgGetAsyncRequest (dp, (ofl_msg_async_config*)msg, xid);
             break;     
@@ -710,7 +709,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             error = HandleMsgTableMod (dp, (ofl_msg_table_mod*)msg, xid);
             break;
 
-          /* Statistics messages. */
+          // Statistics messages.
           case OFPT_MULTIPART_REQUEST:
             error = HandleMsgMultipartRequest (dp, (ofl_msg_multipart_request_header*)msg, xid);
             break;
@@ -718,7 +717,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
 
-          /* Barrier messages. */
+          // Barrier messages.
           case OFPT_BARRIER_REQUEST:
             error = HandleMsgBarrierRequest (dp, msg, xid);
             break;
@@ -726,7 +725,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
           
-          /* Role messages. */
+          // Role messages.
           //case OFPT_ROLE_REQUEST:
           //  error = dp_handle_role_request (dp, (ofl_msg_role_request*)msg, sender);
           //  break;
@@ -734,7 +733,7 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
 
-          /* Queue Configuration messages. */
+          // Queue Configuration messages.
           //case OFPT_QUEUE_GET_CONFIG_REQUEST:
           //  error = dp_ports_handle_queue_get_config_request (dp, 
           //           (ofl_msg_queue_get_config_request*)msg, sender);
@@ -752,12 +751,10 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
         }
       if (error)
       {
-        /**
-         * NOTE: It is assumed that if a handler returns with error, it did not
-         * use any part of the control message, thus it can be freed up. If no
-         * error is returned however, the message must be freed inside the
-         * handler (because the handler might keep parts of the message) 
-         */
+        // NOTE: It is assumed that if a handler returns with error, it did not
+        // use any part of the control message, thus it can be freed up. If no
+        // error is returned however, the message must be freed inside the
+        // handler (because the handler might keep parts of the message) 
         ofl_msg_free (msg, dp->exp);
       }
     }
@@ -811,25 +808,19 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
       m_promiscRxCallback (this, packet, protocol, src, dst, packetType);
     }
 
-  /**
-   * This method is called after the Csma switch port received the packet. The
-   * CsmaNetDevice has already classified the packetType.
-   */
+  // This method is called after the Csma switch port received the packet. The
+  // CsmaNetDevice has already classified the packetType.
   switch (packetType)
     {
-      /**
-       * For PACKET_BROADCAST or PACKET_MULTICAST, forward the packet up AND let
-       * the pipeline process it to get it forwarded.
-       */
+      // For PACKET_BROADCAST or PACKET_MULTICAST, forward the packet up AND let
+      // the pipeline process it to get it forwarded.
       case PACKET_BROADCAST:
       case PACKET_MULTICAST:
         m_rxCallback (this, packet, protocol, src);
         break;
 
-      /**
-       * For PACKET_OTHERHOST or PACKET_HOST check if it is addressed to this
-       * switch to forward it up OR let the pipeline process it.  
-       */
+      // For PACKET_OTHERHOST or PACKET_HOST check if it is addressed to this
+      // switch to forward it up OR let the pipeline process it.  
       case PACKET_HOST:
       case PACKET_OTHERHOST:
         if (dst48 == m_address)
@@ -841,8 +832,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
         break;
     }
 
-  /** Preparing the pipeline process... **/
-
+  // Preparing the pipeline process...
   // Get the input port and check configuration
   ofs::Port* inPort = PortGetOfsPort (netdev);
   NS_ASSERT_MSG (inPort != NULL, "This device is not registered as a switch port");
@@ -852,20 +842,16 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
       return;
     }
 
-  /**
-   * Adding the ethernet header back to the packet. It was removed by
-   * CsmaNetDevice but we need L2 information for the pipeline. It will be
-   * removed when outputing the packet by SendToSwitchPort method.
-   */
+  // Adding the ethernet header back to the packet. It was removed by
+  // CsmaNetDevice but we need L2 information for the pipeline. It will be
+  // removed when outputing the packet by SendToSwitchPort method.
   Ptr<Packet> pktCopy = packet->Copy ();
   AddEthernetHeader (pktCopy, src48, dst48, protocol);
 
-  /**
-   * Buffering the packet and creating the internal openflow packet structure
-   * from buffer. Allocate buffer with some headroom to add headers in
-   * forwarding to the controller or adding a vlan tag, plus an extra 2 bytes
-   * to allow IP headers to be aligned on a 4-byte boundary.
-   */
+  // Buffering the packet and creating the internal openflow packet structure
+  // from buffer. Allocate buffer with some headroom to add headers in
+  // forwarding to the controller or adding a vlan tag, plus an extra 2 bytes
+  // to allow IP headers to be aligned on a 4-byte boundary.
   uint32_t headRoom = 128 + 2;
   uint32_t bodyRoom = netdev->GetMtu () + VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofs::BufferFromPacket (pktCopy, bodyRoom, headRoom);
@@ -910,10 +896,8 @@ OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
   
   if ((port->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN))) == 0)
     {
-      /**
-       * Removing the ethernet header and trailer from packet, which will be
-       * included again by CsmaNetDevice
-       */
+      // Removing the ethernet header and trailer from packet, which will be
+      // included again by CsmaNetDevice
       Ptr<Packet> packet = ofs::PacketFromInternalPacket (pkt);
       EthernetTrailer trailer;
       packet->RemoveTrailer (trailer);
@@ -987,7 +971,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
                                          (entry->match->length <= 4));
           PipelineExecuteEntry (pl, entry, &next_table, &pkt);
           
-          /* Packet could be destroyed by a meter instruction */
+          // Packet could be destroyed by a meter instruction
           if (!pkt)
             {
               return;
@@ -1003,7 +987,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
         } 
       else 
         {
-          /* OpenFlow 1.3 default behavior on a table miss */
+          // OpenFlow 1.3 default behavior on a table miss
           NS_LOG_DEBUG ("No matching entry found. Dropping packet.");
           packet_destroy (pkt);
           return;
@@ -1018,11 +1002,9 @@ OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
 {
    NS_LOG_FUNCTION (this);
   
- /** 
-   * Instructions, when present, will be executed in the following order:
-   * Meter, Apply-Actions, Clear-Actions, Write-Actions, Write-Metadata, and
-   * Goto-Table.
-   **/
+  // Instructions, when present, will be executed in the following order:
+  // Meter, Apply-Actions, Clear-Actions, Write-Actions, Write-Metadata, and
+  // Goto-Table.
   size_t i;
   ofl_instruction_header *inst;
 
@@ -1050,7 +1032,7 @@ OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
 
               packet_handle_std_validate ((*pkt)->handle_std);
               
-              /* Search field on the description of the packet. */
+              // Search field on the description of the packet.
               HMAP_FOR_EACH_WITH_HASH (f, ofl_match_tlv, hmap_node, 
                   HashInt (OXM_OF_METADATA, 0), &(*pkt)->handle_std->match.match_fields)
                 {
@@ -1139,8 +1121,8 @@ OFSwitch13NetDevice::ActionSetExecute (action_set *set, packet *pkt,
       list_remove (&entry->node);
       free (entry);
 
-      /* According to the spec. if there was a group action, the output
-       * port action should be ignored */
+      // According to the spec. if there was a group action, 
+      // the output port action should be ignored
       if (pkt->out_group != OFPG_ANY) 
         {
           uint32_t group_id = pkt->out_group;
@@ -1457,48 +1439,52 @@ OFSwitch13NetDevice::GroupEntryExecute (group_entry *entry, packet *packet)
   size_t i;
   switch (entry->desc->type) 
     {
-      case (OFPGT_ALL): 
-        for (i = 0; i < entry->desc->buckets_num; i++) 
-          {
-            GroupEntryExecuteBucket (entry, packet, i);
-          }
-        break;
-      
-      case (OFPGT_SELECT): 
-        i = select_from_select_group (entry);
-        if ((int)i != -1)
-          {
-            GroupEntryExecuteBucket (entry, packet, i);
-          } 
-        else 
-          {
-            NS_LOG_WARN ("No bucket in group.");
-          }
-        break;
-
+      case (OFPGT_ALL):
+        {
+          for (i = 0; i < entry->desc->buckets_num; i++) 
+            {
+              GroupEntryExecuteBucket (entry, packet, i);
+            }
+          break;
+        }
+      case (OFPGT_SELECT):
+        {
+          i = select_from_select_group (entry);
+          if ((int)i != -1)
+            {
+              GroupEntryExecuteBucket (entry, packet, i);
+            } 
+          else 
+            {
+              NS_LOG_WARN ("No bucket in group.");
+            }
+          break;
+        }
       case (OFPGT_INDIRECT): 
-        if (entry->desc->buckets_num > 0) 
-          {
-            GroupEntryExecuteBucket (entry, packet, 0);
-          } 
-        else 
-          {
-            NS_LOG_WARN ("No bucket in group.");
-          }
-        break;
-      
+        {
+          if (entry->desc->buckets_num > 0) 
+            {
+              GroupEntryExecuteBucket (entry, packet, 0);
+            } 
+          else 
+            {
+              NS_LOG_WARN ("No bucket in group.");
+            }
+          break;
+        }
       case (OFPGT_FF): 
-        i = select_from_ff_group (entry);
-        if ((int)i != -1)
-          {
-            GroupEntryExecuteBucket (entry, packet, i);
-          } 
-        else 
-          {
-            NS_LOG_WARN ("No bucket in group.");
-          }
-        break;
-      
+        {
+          i = select_from_ff_group (entry);
+          if ((int)i != -1)
+            {
+              GroupEntryExecuteBucket (entry, packet, i);
+            } 
+          else 
+            {
+              NS_LOG_WARN ("No bucket in group.");
+            }
+          break;
+        }
       default: 
         NS_LOG_WARN ("Trying to execute unknown group type " << 
             entry->desc->type << " in group " << entry->stats->group_id);
@@ -1645,8 +1631,8 @@ OFSwitch13NetDevice::HandleMsgHello (datapath *dp, ofl_msg_header *msg,
     uint64_t xid) 
 {
   NS_LOG_FUNCTION (this);
-  // Nothing to do: the ofsoftswitch13 already checks for OpenFlow version when
-  // unpacking the message
+  // Nothing to do: the ofsoftswitch13 already checks for 
+  // OpenFlow version when unpacking the message
   
   // All handlers must free the message when everything is ok
   ofl_msg_free (msg, dp->exp);
@@ -1787,13 +1773,13 @@ OFSwitch13NetDevice::HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg,
     } 
   else 
     {
-      /* NOTE: in this case packet should not have data */
+      // NOTE: in this case packet should not have data
       pkt = dp_buffers_retrieve (dp->buffers, msg->buffer_id);
     }
 
   if (pkt == NULL) 
     {
-      /* This might be a wrong req., or a timed out buffer */
+      // This might be a wrong req., or a timed out buffer
       return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BUFFER_EMPTY);
     }
   
@@ -1811,12 +1797,10 @@ OFSwitch13NetDevice::HandleMsgFlowMod (datapath *dp, ofl_msg_flow_mod *msg,
 {
   NS_LOG_FUNCTION (this);
   
-  /**
-   * Modifications to a flow table from the controller are done with the
-   * OFPT_FLOW_MOD message (including add, modify or delete).
-   * \see ofsoftswitch13 pipeline_handle_flow_mod () at udatapath/pipeline.c
-   * and flow_table_flow_mod () at udatapath/flow_table.c
-   */
+  // Modifications to a flow table from the controller are done with the
+  // OFPT_FLOW_MOD message (including add, modify or delete).
+  // \see ofsoftswitch13 pipeline_handle_flow_mod () at udatapath/pipeline.c
+  // and flow_table_flow_mod () at udatapath/flow_table.c
   pipeline *pl = dp->pipeline;
   ofl_err error;
   size_t i;
@@ -1824,7 +1808,7 @@ OFSwitch13NetDevice::HandleMsgFlowMod (datapath *dp, ofl_msg_flow_mod *msg,
   match_kept = false;
   insts_kept = false;
   
-  /*Sort by execution oder*/
+  // Sort by execution oder
   qsort (msg->instructions, msg->instructions_num, 
       sizeof (ofl_instruction_header*), inst_compare);
   
@@ -1847,7 +1831,7 @@ OFSwitch13NetDevice::HandleMsgFlowMod (datapath *dp, ofl_msg_flow_mod *msg,
               return error;
             }
         }
-      /* Reject goto in the last table. */
+      // Reject goto in the last table.
       if ((msg->table_id == (PIPELINE_TABLES - 1)) && 
           (msg->instructions[i]->type == OFPIT_GOTO_TABLE))
         {
@@ -1857,11 +1841,9 @@ OFSwitch13NetDevice::HandleMsgFlowMod (datapath *dp, ofl_msg_flow_mod *msg,
   
   if (msg->table_id == 0xff) 
     {
-      /** 
-       * Note: the result of using table_id = 0xff is undefined in the spec.
-       * For now it is accepted for delete commands, meaning to delete from
-       * all tables 
-       */
+      // Note: the result of using table_id = 0xff is undefined in the spec.
+      // For now it is accepted for delete commands, meaning to delete from
+      // all tables 
       if (msg->command == OFPFC_DELETE || 
           msg->command == OFPFC_DELETE_STRICT) 
         {
@@ -1902,7 +1884,7 @@ OFSwitch13NetDevice::HandleMsgFlowMod (datapath *dp, ofl_msg_flow_mod *msg,
       if ((msg->command == OFPFC_ADD || msg->command == OFPFC_MODIFY || 
            msg->command == OFPFC_MODIFY_STRICT) && msg->buffer_id != NO_BUFFER) 
         {
-          /* run buffered message through pipeline */
+          // Run buffered message through pipeline
           packet *pkt;
           pkt = dp_buffers_retrieve (dp->buffers, msg->buffer_id);
           if (pkt != NULL) 
@@ -1928,11 +1910,9 @@ OFSwitch13NetDevice::HandleMsgGroupMod (datapath *dp, ofl_msg_group_mod *msg,
 {
   NS_LOG_FUNCTION (this);
   
-  /**
-   * Modifications to group table from the controller are done with the
-   * OFPT_FLOW_MOD message (including add, modify or delete).
-   * \see group_table_handle_group_mod () at udatapath/group_table.c
-   */
+  // Modifications to group table from the controller are done with the
+  // OFPT_FLOW_MOD message (including add, modify or delete).
+  // \see group_table_handle_group_mod () at udatapath/group_table.c
   ofl_err error;
   size_t i;
 
@@ -1973,7 +1953,7 @@ OFSwitch13NetDevice::HandleMsgPortMod (datapath *dp, ofl_msg_port_mod *msg,
       return ofl_error (OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_PORT);
     }
 
-  /* Make sure the port id hasn't changed since this was sent */
+  // Make sure the port id hasn't changed since this was sent
   uint8_t p_addr[ETH_ADDR_LEN];
   p->netdev->GetAddress ().CopyTo (p_addr);
   if (memcmp (msg->hw_addr, p_addr, ETH_ADDR_LEN) != 0) 
@@ -1988,17 +1968,17 @@ OFSwitch13NetDevice::HandleMsgPortMod (datapath *dp, ofl_msg_port_mod *msg,
       if ((p->conf->state & OFPPS_LINK_DOWN) || 
           (p->conf->config & OFPPC_PORT_DOWN)) 
         {
-          /* Port not live */
+          // Port not live
           p->conf->state &= ~OFPPS_LIVE;
         } 
       else 
         {
-          /* Port is live */
+          // Port is live
           p->conf->state |= OFPPS_LIVE;
         }
     }
 
-  /* Notify the controller that the port status has changed */
+  // Notify the controller that the port status has changed
   ofl_msg_port_status reply;
   reply.header.type = OFPT_PORT_STATUS;
   reply.reason = OFPPR_MODIFY; 
@@ -2100,10 +2080,8 @@ OFSwitch13NetDevice::HandleMsgBarrierRequest (datapath *dp, ofl_msg_header *msg,
 {
   NS_LOG_FUNCTION (this);
   
-  /**
-   * Note: the implementation is single-threaded, so a barrier request can
-   * simply be replied. // FIXME  Issue #19
-   */
+  // Note: the implementation is single-threaded, so a barrier request can
+  // simply be replied. // FIXME  Issue #19
   ofl_msg_header reply;
   reply.type = OFPT_BARRIER_REPLY;
 
