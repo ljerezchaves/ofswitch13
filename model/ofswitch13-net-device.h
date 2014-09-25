@@ -506,6 +506,9 @@ private:
   ofl_err MultipartMsgTable         (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err MultipartMsgTableFeatures (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err MultipartMsgPortStats     (datapath *dp, ofl_msg_multipart_request_port *msg, uint64_t xid);
+  ofl_err MultipartMsgGroup         (datapath *dp, ofl_msg_multipart_request_group *msg, uint64_t xid);
+  ofl_err MultipartMsgGroupDesc     (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgGroupFeatures (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err MultipartMsgPortDesc      (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   //\}
 

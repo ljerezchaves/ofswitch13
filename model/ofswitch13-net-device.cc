@@ -2046,13 +2046,13 @@ OFSwitch13NetDevice::HandleMsgMultipartRequest (datapath *dp,
         //return dp_ports_handle_stats_request_queue(dp, (ofl_msg_multipart_request_queue*)msg, sender);
       
       case (OFPMP_GROUP): 
-        //return group_table_handle_stats_request_group(dp->groups, (ofl_msg_multipart_request_group*)msg, sender);
+        return MultipartMsgGroup (dp, (ofl_msg_multipart_request_group*)msg, xid);
       
       case (OFPMP_GROUP_DESC): 
-        //return group_table_handle_stats_request_group_desc(dp->groups, msg, sender);
+        return MultipartMsgGroupDesc (dp, msg, xid);
       
       case (OFPMP_GROUP_FEATURES):
-        //return group_table_handle_stats_request_group_features(dp->groups, msg, sender);
+        return MultipartMsgGroupFeatures (dp, msg, xid);
       
       case (OFPMP_METER):
         //return meter_table_handle_stats_request_meter(dp->meters,(ofl_msg_multipart_meter_request*)msg, sender);
@@ -2314,6 +2314,128 @@ OFSwitch13NetDevice::MultipartMsgPortStats (datapath *dp,
 
   // All handlers must free the message when everything is ok
   free (reply.stats);
+  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
+  return 0;
+}
+
+ofl_err 
+OFSwitch13NetDevice::MultipartMsgGroup (datapath *dp, 
+    ofl_msg_multipart_request_group *msg, uint64_t xid)
+{
+  NS_LOG_FUNCTION (this);
+
+  group_table *table = dp->groups;
+  group_entry *entry;
+  if (msg->group_id == OFPG_ALL) 
+    {
+      entry = NULL;
+    } 
+  else 
+    {
+      entry = group_table_find (table, msg->group_id);
+      if (entry == NULL) 
+        {
+          return ofl_error (OFPET_GROUP_MOD_FAILED, OFPGMFC_UNKNOWN_GROUP);
+        }
+    }
+
+  ofl_msg_multipart_reply_group reply;
+  reply.header.header.type = OFPT_MULTIPART_REPLY;
+  reply.header.type = OFPMP_GROUP;
+  reply.header.flags = 0x0000;
+  reply.stats_num = msg->group_id == OFPG_ALL ? table->entries_num : 1,
+  reply.stats  = (ofl_group_stats**)xmalloc (sizeof (ofl_group_stats*) * 
+      (msg->group_id == OFPG_ALL ? table->entries_num : 1));
+
+  if (msg->group_id == OFPG_ALL) 
+    {
+      group_entry *e;
+      size_t i = 0;
+
+      HMAP_FOR_EACH (e, group_entry, node, &table->entries) 
+        {
+           group_entry_update (e);
+           reply.stats[i] = e->stats;
+           i++;
+        }
+    } 
+  else 
+    {
+      group_entry_update (entry);
+      reply.stats[0] = entry->stats;
+    }
+  
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
+  LogOflMsg ((ofl_msg_header*)&reply);
+  SendToController (pkt);
+ 
+  // All handlers must free the message when everything is ok
+  free (reply.stats);
+  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
+  return 0;
+}
+
+ofl_err
+OFSwitch13NetDevice::MultipartMsgGroupDesc (datapath *dp, 
+    ofl_msg_multipart_request_header *msg, uint64_t xid)
+{
+  NS_LOG_FUNCTION (this);
+
+  group_table *table = dp->groups;
+  group_entry *entry;
+  size_t i = 0;
+
+  ofl_msg_multipart_reply_group_desc reply;
+  reply.header.header.type = OFPT_MULTIPART_REPLY;
+  reply.header.type = OFPMP_GROUP_DESC; 
+  reply.header.flags = 0x0000;
+  reply.stats_num = table->entries_num,
+  reply.stats = (ofl_group_desc_stats**)xmalloc (sizeof (ofl_group_desc_stats *) * 
+      table->entries_num);
+
+  HMAP_FOR_EACH (entry, group_entry, node, &table->entries) 
+    {
+      reply.stats[i] = entry->desc;
+      i++;
+    }
+
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
+  LogOflMsg ((ofl_msg_header*)&reply);
+  SendToController (pkt);
+ 
+  // All handlers must free the message when everything is ok
+  free (reply.stats);
+  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
+  return 0;
+}
+
+ofl_err
+OFSwitch13NetDevice::MultipartMsgGroupFeatures (datapath *dp, 
+    ofl_msg_multipart_request_header *msg, uint64_t xid)
+{
+  NS_LOG_FUNCTION (this);
+ 
+  group_table *table = dp->groups;
+  size_t i = 0;
+
+  struct ofl_msg_multipart_reply_group_features reply;
+  reply.header.header.type = OFPT_MULTIPART_REPLY;
+  reply.header.type = OFPMP_GROUP_FEATURES;
+  reply.header.flags = 0x0000;
+  reply.types = table->features->types;
+  reply.capabilities = table->features->capabilities;
+
+  for (i = 0; i < 4; i++)
+    {
+      reply.max_groups[i] = table->features->max_groups[i];
+      reply.actions[i] = table->features->actions[i];
+    } 
+  
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
+  LogOflMsg ((ofl_msg_header*)&reply);
+  SendToController (pkt);
+ 
+  // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
   return 0;
 }
