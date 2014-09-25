@@ -113,6 +113,10 @@ ofl_err flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, b
 ofl_err group_table_add(struct group_table *table, struct ofl_msg_group_mod *mod);
 ofl_err group_table_modify(struct group_table *table, struct ofl_msg_group_mod *mod); 
 
+// From udatapath/group_entry.c
+size_t select_from_select_group(struct group_entry *entry);
+size_t select_from_ff_group(struct group_entry *entry);
+
 // From udatapath/pipeline.c
 int inst_compare(const void *inst1, const void *inst2);
 

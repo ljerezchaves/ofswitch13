@@ -465,9 +465,10 @@ OFSwitch13NetDevice::DoDispose ()
   m_node = 0;
   m_ctrlSocket = 0;
 
-  pipeline_destroy (m_datapath->pipeline);
-  group_table_destroy (m_datapath->groups);
-  meter_table_destroy (m_datapath->meters);
+  // FIXME Theses methods may cause errors... check
+  // pipeline_destroy (m_datapath->pipeline);
+  // group_table_destroy (m_datapath->groups);
+  // meter_table_destroy (m_datapath->meters);
 
   NetDevice::DoDispose ();
 }
@@ -995,7 +996,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
           if (next_table == NULL) 
             {
               // Pipeline end. Execute actions and free packet
-              ActionSetExecute (pkt, pkt->action_set, UINT64_MAX);
+              ActionSetExecute (pkt->action_set, pkt, UINT64_MAX);
               packet_destroy (pkt);
               return;
             }
@@ -1108,8 +1109,7 @@ OFSwitch13NetDevice::ActionsListExecute (packet *pkt, size_t actions_num,
           uint32_t group = pkt->out_group;
           pkt->out_group = OFPG_ANY;
           NS_LOG_DEBUG ("Group action; executing group " << group);
-          // FIXME No group support by now
-          // group_table_execute(pkt->dp->groups, pkt, group); 
+          GroupTableExecute (pkt->dp->groups, pkt, group); 
         } 
       else if (pkt->out_port != OFPP_ANY) 
         {
@@ -1126,7 +1126,7 @@ OFSwitch13NetDevice::ActionsListExecute (packet *pkt, size_t actions_num,
 }
 
 void
-OFSwitch13NetDevice::ActionSetExecute (packet *pkt, action_set *set, 
+OFSwitch13NetDevice::ActionSetExecute (action_set *set, packet *pkt,  
     uint64_t cookie)
 {
   NS_LOG_FUNCTION (this);
@@ -1143,11 +1143,10 @@ OFSwitch13NetDevice::ActionSetExecute (packet *pkt, action_set *set,
        * port action should be ignored */
       if (pkt->out_group != OFPG_ANY) 
         {
-          // FIXME No group support by now
-          // uint32_t group_id = pkt->out_group;
-          // pkt->out_group = OFPG_ANY;
-          // action_set_clear_actions (pkt->action_set);
-          // group_table_execute (pkt->dp->groups, pkt, group_id);
+          uint32_t group_id = pkt->out_group;
+          pkt->out_group = OFPG_ANY;
+          action_set_clear_actions (pkt->action_set);
+          GroupTableExecute (pkt->dp->groups, pkt, group_id);
           return;
         } 
       else if (pkt->out_port != OFPP_ANY) 
@@ -1222,7 +1221,8 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
 }
 
 ofl_err 
-OFSwitch13NetDevice::ActionValidate (datapath *dp, size_t num, ofl_action_header **actions)
+OFSwitch13NetDevice::ActionsValidate (datapath *dp, size_t num, 
+    ofl_action_header **actions)
 {
   NS_LOG_FUNCTION (this);
   
@@ -1407,6 +1407,9 @@ OFSwitch13NetDevice::GroupTableDelete (group_table *table, ofl_msg_group_mod *mo
       group_entry *entry, *e;
       entry = group_table_find (table, mod->group_id);
 
+      // NOTE: The spec. does not define what happens when groups refer to
+      // groups which are being deleted. For now deleting such a group is not
+      // allowed.
       if (entry != NULL) 
         {
           HMAP_FOR_EACH(e, group_entry, node, &table->entries) 
@@ -1422,20 +1425,125 @@ OFSwitch13NetDevice::GroupTableDelete (group_table *table, ofl_msg_group_mod *mo
           GroupEntryDestroy (entry);
         }
 
+      // No error should be sent, if delete is for a non-existing group.
       ofl_msg_free_group_mod (mod, true, table->dp->exp);
       return 0;
     }
 }
+
+void 
+OFSwitch13NetDevice::GroupTableExecute (group_table *table, packet *packet, 
+    uint32_t group_id)
+{
+  group_entry *entry;
+  entry = group_table_find (table, group_id);
+
+  if (entry == NULL) 
+    {
+      NS_LOG_WARN ("Trying to execute non-existing group " << group_id);
+      return;
+    }
+  GroupEntryExecute (entry, packet);
+}
   
+void 
+OFSwitch13NetDevice::GroupEntryExecute (group_entry *entry, packet *packet)
+{
+  NS_LOG_DEBUG ("Executing group " << entry->stats->group_id);
+  
+  // NOTE: Packet is copied for all buckets now (even if there is only one).
+  // This allows execution of the original packet onward. It is not clear
+  // whether that is allowed or not according to the spec. though.
+  size_t i;
+  switch (entry->desc->type) 
+    {
+      case (OFPGT_ALL): 
+        for (i = 0; i < entry->desc->buckets_num; i++) 
+          {
+            GroupEntryExecuteBucket (entry, packet, i);
+          }
+        break;
+      
+      case (OFPGT_SELECT): 
+        i = select_from_select_group (entry);
+        if ((int)i != -1)
+          {
+            GroupEntryExecuteBucket (entry, packet, i);
+          } 
+        else 
+          {
+            NS_LOG_WARN ("No bucket in group.");
+          }
+        break;
+
+      case (OFPGT_INDIRECT): 
+        if (entry->desc->buckets_num > 0) 
+          {
+            GroupEntryExecuteBucket (entry, packet, 0);
+          } 
+        else 
+          {
+            NS_LOG_WARN ("No bucket in group.");
+          }
+        break;
+      
+      case (OFPGT_FF): 
+        i = select_from_ff_group (entry);
+        if ((int)i != -1)
+          {
+            GroupEntryExecuteBucket (entry, packet, i);
+          } 
+        else 
+          {
+            NS_LOG_WARN ("No bucket in group.");
+          }
+        break;
+      
+      default: 
+        NS_LOG_WARN ("Trying to execute unknown group type " << 
+            entry->desc->type << " in group " << entry->stats->group_id);
+    }
+}
+
+void 
+OFSwitch13NetDevice::GroupEntryExecuteBucket (group_entry *entry, packet *pkt, size_t i)
+{
+  // Currently packets are always cloned. However it should be possible to see
+  // if cloning is necessary, or not, based on bucket actions.
+  ofl_bucket *bucket = entry->desc->buckets[i];
+  packet *p = packet_clone (pkt);
+
+  char *s = ofl_structs_bucket_to_string (bucket, entry->dp->exp);
+  NS_LOG_DEBUG ("Writing bucket: " << s);
+  free (s);
+
+  action_set_write_actions (p->action_set, bucket->actions_num, bucket->actions);
+
+  entry->stats->byte_count += p->buffer->size;
+  entry->stats->packet_count++;
+  entry->stats->counters[i]->byte_count += p->buffer->size;
+  entry->stats->counters[i]->packet_count++;
+
+  // Cookie field is set UINT64_MAX because we 
+  // cannot associate to any particular flow
+  ActionSetExecute (p->action_set, p, UINT64_MAX);
+  packet_destroy (p);
+}
+
 void
 OFSwitch13NetDevice::GroupEntryDestroy (group_entry *entry)
 {
   flow_ref_entry *ref, *next;
 
+  // remove all referencing flows
   LIST_FOR_EACH_SAFE (ref, next, flow_ref_entry, node, &entry->flow_refs) 
     {
       FlowEntryRemove (ref->entry, OFPRR_GROUP_DELETE);
+      // Note: the flow_ref_entryf will be destroyed after a chain of calls in
+      // flow_entry_remove no point in decreasing stats counter, as the group
+      // is destroyed anyway
     }
+  
   ofl_structs_free_group_desc_stats (entry->desc, entry->dp->exp);
   ofl_structs_free_group_stats (entry->stats);
   free (entry->data);
@@ -1663,7 +1771,7 @@ OFSwitch13NetDevice::HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg,
   packet *pkt;
   int error;
 
-  error = ActionValidate (dp, msg->actions_num, msg->actions);
+  error = ActionsValidate (dp, msg->actions_num, msg->actions);
   if (error) 
     {
       return error;
@@ -1728,7 +1836,7 @@ OFSwitch13NetDevice::HandleMsgFlowMod (datapath *dp, ofl_msg_flow_mod *msg,
         {
           ofl_instruction_actions *ia = (ofl_instruction_actions*)msg->instructions[i];
   
-          error = ActionValidate (dp, (size_t)ia->actions_num, ia->actions);
+          error = ActionsValidate (dp, (size_t)ia->actions_num, ia->actions);
           if (error) 
             {
               return error;
@@ -1830,7 +1938,7 @@ OFSwitch13NetDevice::HandleMsgGroupMod (datapath *dp, ofl_msg_group_mod *msg,
 
   for (i = 0; i< msg->buckets_num; i++) 
     {
-      error = ActionValidate (dp, msg->buckets[i]->actions_num, msg->buckets[i]->actions);
+      error = ActionsValidate (dp, msg->buckets[i]->actions_num, msg->buckets[i]->actions);
       if (error) 
         {
           return error;
