@@ -109,6 +109,10 @@ uint32_t port_speed(uint32_t conf);
 ofl_err flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool strict, bool *insts_kept);
 ofl_err flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept);
 
+// From udatapath/group_table.c
+ofl_err group_table_add(struct group_table *table, struct ofl_msg_group_mod *mod);
+ofl_err group_table_modify(struct group_table *table, struct ofl_msg_group_mod *mod); 
+
 // From udatapath/pipeline.c
 int inst_compare(const void *inst1, const void *inst2);
 

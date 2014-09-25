@@ -389,6 +389,28 @@ private:
   void FlowEntryRemove (flow_entry *entry, uint8_t reason);
   //\}
 
+  ///\name Group table methods
+  //\{
+  /**
+   * Handles a group_mod msg with OFPGC_DELETE command. 
+   * \see ofsoftswitch13 group_table_delete () at udatapath/group_table.c
+   * \param table The group table to delete
+   * \param mod The ofl_msg_group_mod message
+   * \return 0 if sucess or OpenFlow error code
+   */
+  ofl_err GroupTableDelete (group_table *table, ofl_msg_group_mod *mod); 
+  //\}
+
+  ///\name Group entry methods
+  //\{
+  /**
+   * Destroy a group entry and referencing flow entries. 
+   * \see ofsoftswitch13 group_entry_destroy () at udatapath/group_entry.c
+   * \param entry The group entry to destroy
+   */
+  void GroupEntryDestroy (group_entry *entry); 
+  //\}
+
   /**
    * Add an Ethernet header and trailer to the packet. This is an workaround
    * to facilitate the creation of the openflow buffer. When the packet gets

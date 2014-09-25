@@ -1384,6 +1384,64 @@ OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
   free (entry);
 }
 
+ofl_err 
+OFSwitch13NetDevice::GroupTableDelete (group_table *table, ofl_msg_group_mod *mod)
+{
+  if (mod->group_id == OFPG_ALL) 
+    {
+      group_entry *entry, *next;
+      HMAP_FOR_EACH_SAFE (entry, next, group_entry, node, &table->entries) 
+        {
+          GroupEntryDestroy (entry);
+        }
+      hmap_destroy (&table->entries);
+      hmap_init (&table->entries);
+      table->entries_num = 0;
+      table->buckets_num = 0;
+
+      ofl_msg_free_group_mod (mod, true, table->dp->exp);
+      return 0;
+    } 
+  else 
+    {
+      group_entry *entry, *e;
+      entry = group_table_find (table, mod->group_id);
+
+      if (entry != NULL) 
+        {
+          HMAP_FOR_EACH(e, group_entry, node, &table->entries) 
+            {
+              if (group_entry_has_out_group (e, entry->stats->group_id)) 
+                {
+                  return ofl_error (OFPET_GROUP_MOD_FAILED, OFPGMFC_CHAINING_UNSUPPORTED);
+                }
+            }
+          table->entries_num--;
+          table->buckets_num -= entry->desc->buckets_num;
+          hmap_remove (&table->entries, &entry->node);
+          GroupEntryDestroy (entry);
+        }
+
+      ofl_msg_free_group_mod (mod, true, table->dp->exp);
+      return 0;
+    }
+}
+  
+void
+OFSwitch13NetDevice::GroupEntryDestroy (group_entry *entry)
+{
+  flow_ref_entry *ref, *next;
+
+  LIST_FOR_EACH_SAFE (ref, next, flow_ref_entry, node, &entry->flow_refs) 
+    {
+      FlowEntryRemove (ref->entry, OFPRR_GROUP_DELETE);
+    }
+  ofl_structs_free_group_desc_stats (entry->desc, entry->dp->exp);
+  ofl_structs_free_group_stats (entry->stats);
+  free (entry->data);
+  free (entry);
+}
+
 void
 OFSwitch13NetDevice::AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
     Mac48Address dest, uint16_t protocolNumber)
@@ -1760,12 +1818,15 @@ ofl_err
 OFSwitch13NetDevice::HandleMsgGroupMod (datapath *dp, ofl_msg_group_mod *msg, 
     uint64_t xid)
 {
+  NS_LOG_FUNCTION (this);
+  
+  /**
+   * Modifications to group table from the controller are done with the
+   * OFPT_FLOW_MOD message (including add, modify or delete).
+   * \see group_table_handle_group_mod () at udatapath/group_table.c
+   */
   ofl_err error;
   size_t i;
-
-  // FIXME There are several places where this should be fixed
-  // if (sender->remote->role == OFPCR_ROLE_SLAVE)
-  //     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
 
   for (i = 0; i< msg->buckets_num; i++) 
     {
@@ -1785,13 +1846,12 @@ OFSwitch13NetDevice::HandleMsgGroupMod (datapath *dp, ofl_msg_group_mod *msg,
         return group_table_modify (dp->groups, msg);
 
       case (OFPGC_DELETE):
-        return group_table_delete (dp->groups, msg);
+        return GroupTableDelete (dp->groups, msg);
 
       default:
         return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
     }
 }
-
 
 ofl_err
 OFSwitch13NetDevice::HandleMsgPortMod (datapath *dp, ofl_msg_port_mod *msg, 
