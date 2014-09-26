@@ -448,15 +448,6 @@ private:
    * \return 0 if sucess or OpenFlow error code.
    */
   ofl_err MeterTableDelete (meter_table *table, ofl_msg_meter_mod *mod);
-
-  /**
-   * Executes the given group entry on the packet. 
-   * \see group_table_execute () at udatapath/group_table.c
-   * \param table The group table.
-   * \param packet The packet to execute actions.
-   * \param group_id The group entry id.
-   */
-  //void MeterTableApply (group_table *table, packet *packet, uint32_t group_id);
   //\}
 
   ///\name Meter entry methods

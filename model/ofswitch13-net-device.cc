@@ -523,8 +523,7 @@ OFSwitch13NetDevice::DatapathNew ()
 void
 OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 {
-  // FIXME No meter support by now
-  // meter_table_add_tokens (dp->meters);
+  meter_table_add_tokens (dp->meters);  // FIXME Com qual frequencia deveria chamar isso?
   
   // Check flow entry timeout
   for (int i = 0; i < PIPELINE_TABLES; i++) 
@@ -1061,9 +1060,8 @@ OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
             }
           case OFPIT_METER: 
             {
-              // FIXME No meter support by now
-              // ofl_instruction_meter *im = (ofl_instruction_meter*)inst;
-              // meter_table_apply(pl->dp->meters, pkt , im->meter_id);
+              ofl_instruction_meter *im = (ofl_instruction_meter*)inst;
+              meter_table_apply (pl->dp->meters, pkt, im->meter_id);
               break;
             }
           case OFPIT_EXPERIMENTER: 
