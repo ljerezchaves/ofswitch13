@@ -325,69 +325,69 @@ private:
   //\}
   
   
-  ///\name Flow table methods
-  //\{
-  /**
-   * Handles any flow_mod msg. 
-   * \see ofsoftswitch13 flow_table_flow_mod () at udatapath/flow_table.c
-   * \param table The table to modify the entry
-   * \param mod The ofl_msg_flow_mod message
-   * \param match_kept Used by HandleMsgFlowMod to proper free structs
-   * \param insts_kept Used by HandleMsgFlowMod to proper free structs
-   * \return 0 if sucess or OpenFlow error code
-   */
-  ofl_err FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod, 
-      bool *match_kept, bool *insts_kept);
-
-  /**
-   * Handles a flow_mod msg with OFPFC_DELETE or OFPFC_DELETE_STRICT command. 
-   * \see ofsoftswitch13 flow_table_delete () at udatapath/flow_table.c
-   * \param table The table to delete the entry
-   * \param mod The ofl_msg_flow_mod message
-   * \param strict If true, check for strict match
-   * \return 0 if sucess or OpenFlow error code
-   */
-  ofl_err FlowTableDelete (flow_table *table, ofl_msg_flow_mod *mod, 
-      bool strict); 
-
-  /**
-   * Orders the flow table to check the timeout its flows. 
-   * \see ofsoftswitch flow_table_timeout () at udatapath/flow_table.c
-   * \param table Flow table to check.
-   */
-  void FlowTableTimeout (flow_table *table);
-
-  ///\name Flow entry methods
-  //\{
-  /** 
-   * Checks if the entry should time out because of its idle timeout. If so,
-   * the packet is freed, flow removed message is generated, and true is
-   * returned. 
-   * \see ofsoftswitch13 flow_entry_idle_timeout () at udatapath/flow_entry.c
-   * \param entry Flow entry to check.
-   * \return True if flow entry removed.
-   */
-  bool FlowEntryIdleTimeout (flow_entry *entry);
-  
-  /** 
-   * Checks if the entry should time out because of its hard timeout. If so,
-   * the packet is freed, flow removed message is generated, and true is
-   * returned. 
-   * \see ofsoftswitch13 flow_entry_hard_timeout () at udatapath/flow_entry.c
-   * \param entry Flow entry to check.
-   * \return True if flow entry removed.
-   */
-  bool FlowEntryHardTimeout (flow_entry *entry);
-
-  /**
-   * Removes a flow entry with the given reason. A flow removed message is sent
-   * if needed. 
-   * \see ofsoftswitch13 flow_entry_remove () at udatapath/flow_entry.c
-   * \param entry The flow entry to remove.
-   * \param reason The reason to send to controller.
-   */
-  void FlowEntryRemove (flow_entry *entry, uint8_t reason);
-  //\}
+//  ///\name Flow table methods
+//  //\{
+//  /**
+//   * Handles any flow_mod msg. 
+//   * \see ofsoftswitch13 flow_table_flow_mod () at udatapath/flow_table.c
+//   * \param table The table to modify the entry
+//   * \param mod The ofl_msg_flow_mod message
+//   * \param match_kept Used by HandleMsgFlowMod to proper free structs
+//   * \param insts_kept Used by HandleMsgFlowMod to proper free structs
+//   * \return 0 if sucess or OpenFlow error code
+//   */
+//  ofl_err FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod, 
+//      bool *match_kept, bool *insts_kept);
+//
+//  /**
+//   * Handles a flow_mod msg with OFPFC_DELETE or OFPFC_DELETE_STRICT command. 
+//   * \see ofsoftswitch13 flow_table_delete () at udatapath/flow_table.c
+//   * \param table The table to delete the entry
+//   * \param mod The ofl_msg_flow_mod message
+//   * \param strict If true, check for strict match
+//   * \return 0 if sucess or OpenFlow error code
+//   */
+//  ofl_err FlowTableDelete (flow_table *table, ofl_msg_flow_mod *mod, 
+//      bool strict); 
+//
+//  /**
+//   * Orders the flow table to check the timeout its flows. 
+//   * \see ofsoftswitch flow_table_timeout () at udatapath/flow_table.c
+//   * \param table Flow table to check.
+//   */
+//  void FlowTableTimeout (flow_table *table);
+//
+//  ///\name Flow entry methods
+//  //\{
+//  /** 
+//   * Checks if the entry should time out because of its idle timeout. If so,
+//   * the packet is freed, flow removed message is generated, and true is
+//   * returned. 
+//   * \see ofsoftswitch13 flow_entry_idle_timeout () at udatapath/flow_entry.c
+//   * \param entry Flow entry to check.
+//   * \return True if flow entry removed.
+//   */
+//  bool FlowEntryIdleTimeout (flow_entry *entry);
+//  
+//  /** 
+//   * Checks if the entry should time out because of its hard timeout. If so,
+//   * the packet is freed, flow removed message is generated, and true is
+//   * returned. 
+//   * \see ofsoftswitch13 flow_entry_hard_timeout () at udatapath/flow_entry.c
+//   * \param entry Flow entry to check.
+//   * \return True if flow entry removed.
+//   */
+//  bool FlowEntryHardTimeout (flow_entry *entry);
+//
+//  /**
+//   * Removes a flow entry with the given reason. A flow removed message is sent
+//   * if needed. 
+//   * \see ofsoftswitch13 flow_entry_remove () at udatapath/flow_entry.c
+//   * \param entry The flow entry to remove.
+//   * \param reason The reason to send to controller.
+//   */
+//  void FlowEntryRemove (flow_entry *entry, uint8_t reason);
+//  //\}
 
   ///\name Group table methods
   //\{
@@ -398,7 +398,7 @@ private:
    * \param mod The ofl_msg_group_mod message.
    * \return 0 if sucess or OpenFlow error code.
    */
-  ofl_err GroupTableDelete (group_table *table, ofl_msg_group_mod *mod);
+//  ofl_err GroupTableDelete (group_table *table, ofl_msg_group_mod *mod);
 
   /**
    * Executes the given group entry on the packet. 
@@ -435,7 +435,7 @@ private:
    * \see ofsoftswitch13 group_entry_destroy () at udatapath/group_entry.c
    * \param entry The group entry to destroy
    */
-  void GroupEntryDestroy (group_entry *entry); 
+//  void GroupEntryDestroy (group_entry *entry); 
   //\}
 
   ///\name Meter table methods
@@ -447,7 +447,7 @@ private:
    * \param mod The ofl_msg_meter_mod message.
    * \return 0 if sucess or OpenFlow error code.
    */
-  ofl_err MeterTableDelete (meter_table *table, ofl_msg_meter_mod *mod);
+//  ofl_err MeterTableDelete (meter_table *table, ofl_msg_meter_mod *mod);
   //\}
 
   ///\name Meter entry methods
@@ -457,7 +457,7 @@ private:
    * \see ofsoftswitch13 meter_entry_destroy () at udatapath/meter_entry.c
    * \param entry The meter entry to destroy
    */
-  void MeterEntryDestroy (meter_entry *entry); 
+//  void MeterEntryDestroy (meter_entry *entry); 
   //\}
 
   /**

@@ -1288,183 +1288,183 @@ OFSwitch13NetDevice::ActionsValidate (datapath *dp, size_t num,
   return 0;
 }
 
-ofl_err 
-OFSwitch13NetDevice::FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod, 
-      bool *match_kept, bool *insts_kept)
-{
-  switch (mod->command) 
-    {
-      case (OFPFC_ADD): 
-        {
-          bool overlap = ((mod->flags & OFPFF_CHECK_OVERLAP) != 0);
-          return flow_table_add (table, mod, overlap, match_kept, insts_kept);
-        }
-      case (OFPFC_MODIFY): 
-        {
-          return flow_table_modify (table, mod, false, insts_kept);
-        }
-      case (OFPFC_MODIFY_STRICT): 
-        {
-          return flow_table_modify (table, mod, true, insts_kept);
-        }
-      case (OFPFC_DELETE): 
-        {
-          return FlowTableDelete (table, mod, false);
-        }
-      case (OFPFC_DELETE_STRICT): 
-        {
-          return FlowTableDelete (table, mod, true);
-        }
-      default: 
-        {
-          return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_COMMAND);
-        }
-    }
-}
+// ofl_err 
+// OFSwitch13NetDevice::FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod, 
+//       bool *match_kept, bool *insts_kept)
+// {
+//   switch (mod->command) 
+//     {
+//       case (OFPFC_ADD): 
+//         {
+//           bool overlap = ((mod->flags & OFPFF_CHECK_OVERLAP) != 0);
+//           return flow_table_add (table, mod, overlap, match_kept, insts_kept);
+//         }
+//       case (OFPFC_MODIFY): 
+//         {
+//           return flow_table_modify (table, mod, false, insts_kept);
+//         }
+//       case (OFPFC_MODIFY_STRICT): 
+//         {
+//           return flow_table_modify (table, mod, true, insts_kept);
+//         }
+//       case (OFPFC_DELETE): 
+//         {
+//           return FlowTableDelete (table, mod, false);
+//         }
+//       case (OFPFC_DELETE_STRICT): 
+//         {
+//           return FlowTableDelete (table, mod, true);
+//         }
+//       default: 
+//         {
+//           return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_COMMAND);
+//         }
+//     }
+// }
 
-ofl_err 
-OFSwitch13NetDevice::FlowTableDelete (flow_table *table, ofl_msg_flow_mod *mod,
-    bool strict)
-{
-  NS_LOG_FUNCTION (this);
-  
-  flow_entry *entry, *next;
+// ofl_err 
+// OFSwitch13NetDevice::FlowTableDelete (flow_table *table, ofl_msg_flow_mod *mod,
+//     bool strict)
+// {
+//   NS_LOG_FUNCTION (this);
+//   
+//   flow_entry *entry, *next;
+// 
+//   LIST_FOR_EACH_SAFE (entry, next, flow_entry, match_node, &table->match_entries) 
+//     {
+//       if ((mod->out_port  == OFPP_ANY || flow_entry_has_out_port (entry, mod->out_port)) &&
+//           (mod->out_group == OFPG_ANY || flow_entry_has_out_group (entry, mod->out_group)) &&
+//            flow_entry_matches (entry, mod, strict, true/*check_cookie*/)) 
+//         {
+//            FlowEntryRemove (entry, OFPRR_DELETE);
+//         }
+//     }
+//   return 0;
+// }
 
-  LIST_FOR_EACH_SAFE (entry, next, flow_entry, match_node, &table->match_entries) 
-    {
-      if ((mod->out_port  == OFPP_ANY || flow_entry_has_out_port (entry, mod->out_port)) &&
-          (mod->out_group == OFPG_ANY || flow_entry_has_out_group (entry, mod->out_group)) &&
-           flow_entry_matches (entry, mod, strict, true/*check_cookie*/)) 
-        {
-           FlowEntryRemove (entry, OFPRR_DELETE);
-        }
-    }
-  return 0;
-}
-
-void
-OFSwitch13NetDevice::FlowTableTimeout (flow_table *table) 
-{
-  struct flow_entry *entry, *next;
-
-  LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, hard_node, &table->hard_entries) 
-    {
-      if (!FlowEntryHardTimeout (entry)) 
-        {
-          break;
-        }
-    }
-
-  LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, idle_node, &table->idle_entries) 
-    {
-      FlowEntryIdleTimeout (entry);
-    }
-}
-
-bool 
-OFSwitch13NetDevice::FlowEntryIdleTimeout (flow_entry *entry)
-{
-  bool timeout = (entry->stats->idle_timeout != 0) && 
-      ((uint64_t)time_msec () > entry->last_used + entry->stats->idle_timeout * 1000);
-  
-  if (timeout) 
-    {
-      FlowEntryRemove (entry, OFPRR_IDLE_TIMEOUT);
-    }
-  return timeout;
-}
-
-bool 
-OFSwitch13NetDevice::FlowEntryHardTimeout (flow_entry *entry)
-{
-  bool timeout = (entry->remove_at != 0) && 
-      ((uint64_t)time_msec () > entry->remove_at);
-
-  if (timeout) 
-    {
-      FlowEntryRemove (entry, OFPRR_HARD_TIMEOUT);
-    }
-  return timeout;
-}
-
-void
-OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
-{
-  NS_LOG_FUNCTION (this);
-
-  if (entry->send_removed)
-    {
-      flow_entry_update (entry);
-        {
-          NS_LOG_DEBUG ("Flow entry expired. Notifying the controller...");
-          ofl_msg_flow_removed msg;
-          msg.header.type = OFPT_FLOW_REMOVED;
-          msg.reason = (ofp_flow_removed_reason)reason;
-          msg.stats  = entry->stats;
-
-          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, GetNextXid ());
-          LogOflMsg ((ofl_msg_header*)&msg);
-          SendToController (packet);
-        }
-    }
-
-  list_remove (&entry->match_node);
-  list_remove (&entry->hard_node);
-  list_remove (&entry->idle_node);
-  entry->table->stats->active_count--;
- 
-  del_group_refs (entry);
-  del_meter_refs (entry);
-  ofl_structs_free_flow_stats (entry->stats, entry->dp->exp);
-  free (entry);
-}
-
-ofl_err 
-OFSwitch13NetDevice::GroupTableDelete (group_table *table, ofl_msg_group_mod *mod)
-{
-  if (mod->group_id == OFPG_ALL) 
-    {
-      group_entry *entry, *next;
-      HMAP_FOR_EACH_SAFE (entry, next, group_entry, node, &table->entries) 
-        {
-          GroupEntryDestroy (entry);
-        }
-      hmap_destroy (&table->entries);
-      hmap_init (&table->entries);
-      table->entries_num = 0;
-      table->buckets_num = 0;
-
-      ofl_msg_free_group_mod (mod, true, table->dp->exp);
-      return 0;
-    } 
-  else 
-    {
-      group_entry *entry, *e;
-      entry = group_table_find (table, mod->group_id);
-
-      // NOTE: The spec. does not define what happens when groups refer to
-      // groups which are being deleted. For now deleting such a group is not
-      // allowed.
-      if (entry != NULL) 
-        {
-          HMAP_FOR_EACH(e, group_entry, node, &table->entries) 
-            {
-              if (group_entry_has_out_group (e, entry->stats->group_id)) 
-                {
-                  return ofl_error (OFPET_GROUP_MOD_FAILED, OFPGMFC_CHAINING_UNSUPPORTED);
-                }
-            }
-          table->entries_num--;
-          table->buckets_num -= entry->desc->buckets_num;
-          hmap_remove (&table->entries, &entry->node);
-          GroupEntryDestroy (entry);
-        }
-
-      // No error should be sent, if delete is for a non-existing group.
-      ofl_msg_free_group_mod (mod, true, table->dp->exp);
-      return 0;
-    }
-}
+// void
+// OFSwitch13NetDevice::FlowTableTimeout (flow_table *table) 
+// {
+//   struct flow_entry *entry, *next;
+// 
+//   LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, hard_node, &table->hard_entries) 
+//     {
+//       if (!FlowEntryHardTimeout (entry)) 
+//         {
+//           break;
+//         }
+//     }
+// 
+//   LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, idle_node, &table->idle_entries) 
+//     {
+//       FlowEntryIdleTimeout (entry);
+//     }
+// }
+// 
+// bool 
+// OFSwitch13NetDevice::FlowEntryIdleTimeout (flow_entry *entry)
+// {
+//   bool timeout = (entry->stats->idle_timeout != 0) && 
+//       ((uint64_t)time_msec () > entry->last_used + entry->stats->idle_timeout * 1000);
+//   
+//   if (timeout) 
+//     {
+//       FlowEntryRemove (entry, OFPRR_IDLE_TIMEOUT);
+//     }
+//   return timeout;
+// }
+// 
+// bool 
+// OFSwitch13NetDevice::FlowEntryHardTimeout (flow_entry *entry)
+// {
+//   bool timeout = (entry->remove_at != 0) && 
+//       ((uint64_t)time_msec () > entry->remove_at);
+// 
+//   if (timeout) 
+//     {
+//       FlowEntryRemove (entry, OFPRR_HARD_TIMEOUT);
+//     }
+//   return timeout;
+// }
+// 
+// void
+// OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
+// {
+//   NS_LOG_FUNCTION (this);
+// 
+//   if (entry->send_removed)
+//     {
+//       flow_entry_update (entry);
+//         {
+//           NS_LOG_DEBUG ("Flow entry expired. Notifying the controller...");
+//           ofl_msg_flow_removed msg;
+//           msg.header.type = OFPT_FLOW_REMOVED;
+//           msg.reason = (ofp_flow_removed_reason)reason;
+//           msg.stats  = entry->stats;
+// 
+//           Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, GetNextXid ());
+//           LogOflMsg ((ofl_msg_header*)&msg);
+//           SendToController (packet);
+//         }
+//     }
+// 
+//   list_remove (&entry->match_node);
+//   list_remove (&entry->hard_node);
+//   list_remove (&entry->idle_node);
+//   entry->table->stats->active_count--;
+//  
+//   del_group_refs (entry);
+//   del_meter_refs (entry);
+//   ofl_structs_free_flow_stats (entry->stats, entry->dp->exp);
+//   free (entry);
+// }
+// 
+// ofl_err 
+// OFSwitch13NetDevice::GroupTableDelete (group_table *table, ofl_msg_group_mod *mod)
+// {
+//   if (mod->group_id == OFPG_ALL) 
+//     {
+//       group_entry *entry, *next;
+//       HMAP_FOR_EACH_SAFE (entry, next, group_entry, node, &table->entries) 
+//         {
+//           GroupEntryDestroy (entry);
+//         }
+//       hmap_destroy (&table->entries);
+//       hmap_init (&table->entries);
+//       table->entries_num = 0;
+//       table->buckets_num = 0;
+// 
+//       ofl_msg_free_group_mod (mod, true, table->dp->exp);
+//       return 0;
+//     } 
+//   else 
+//     {
+//       group_entry *entry, *e;
+//       entry = group_table_find (table, mod->group_id);
+// 
+//       // NOTE: The spec. does not define what happens when groups refer to
+//       // groups which are being deleted. For now deleting such a group is not
+//       // allowed.
+//       if (entry != NULL) 
+//         {
+//           HMAP_FOR_EACH(e, group_entry, node, &table->entries) 
+//             {
+//               if (group_entry_has_out_group (e, entry->stats->group_id)) 
+//                 {
+//                   return ofl_error (OFPET_GROUP_MOD_FAILED, OFPGMFC_CHAINING_UNSUPPORTED);
+//                 }
+//             }
+//           table->entries_num--;
+//           table->buckets_num -= entry->desc->buckets_num;
+//           hmap_remove (&table->entries, &entry->node);
+//           GroupEntryDestroy (entry);
+//         }
+// 
+//       // No error should be sent, if delete is for a non-existing group.
+//       ofl_msg_free_group_mod (mod, true, table->dp->exp);
+//       return 0;
+//     }
+// }
 
 void 
 OFSwitch13NetDevice::GroupTableExecute (group_table *table, packet *packet, 
@@ -1569,80 +1569,80 @@ OFSwitch13NetDevice::GroupEntryExecuteBucket (group_entry *entry, packet *pkt, s
   packet_destroy (p);
 }
 
-void
-OFSwitch13NetDevice::GroupEntryDestroy (group_entry *entry)
-{
-  flow_ref_entry *ref, *next;
-
-  // remove all referencing flows
-  LIST_FOR_EACH_SAFE (ref, next, flow_ref_entry, node, &entry->flow_refs) 
-    {
-      FlowEntryRemove (ref->entry, OFPRR_GROUP_DELETE);
-      // Note: the flow_ref_entryf will be destroyed after a chain of calls in
-      // flow_entry_remove no point in decreasing stats counter, as the group
-      // is destroyed anyway
-    }
-  
-  ofl_structs_free_group_desc_stats (entry->desc, entry->dp->exp);
-  ofl_structs_free_group_stats (entry->stats);
-  free (entry->data);
-  free (entry);
-}
-
-ofl_err 
-OFSwitch13NetDevice::MeterTableDelete (meter_table *table, ofl_msg_meter_mod *mod)
-{
-  if (mod->meter_id == OFPM_ALL) 
-    {
-      meter_entry *entry, *next;
-      HMAP_FOR_EACH_SAFE (entry, next, meter_entry, node, &table->meter_entries) 
-        {
-          MeterEntryDestroy (entry);
-        }
-      hmap_destroy (&table->meter_entries);
-      hmap_init (&table->meter_entries);
-      table->entries_num = 0;
-      table->bands_num = 0;
-    } 
-  else 
-    {
-      meter_entry *entry;
-      entry = meter_table_find (table, mod->meter_id);
-
-      if (entry != NULL) 
-        {
-          table->entries_num--;
-          table->bands_num -= entry->stats->meter_bands_num;
-          hmap_remove (&table->meter_entries, &entry->node);
-          MeterEntryDestroy (entry);
-        }
-    }
-
-  ofl_msg_free_meter_mod (mod, false);
-  return 0;
-}
-
-void 
-OFSwitch13NetDevice::MeterEntryDestroy (meter_entry *entry)
-{
-  flow_ref_entry *ref, *next;
-
-  // remove all referencing flows
-  LIST_FOR_EACH_SAFE (ref, next, flow_ref_entry, node, &entry->flow_refs) 
-    {
-      FlowEntryRemove (ref->entry, OFPRR_METER_DELETE); // OFPRR_METER_DELETE ??
-      // Note: the flow_ref_entry will be destroyed after 
-      // a chain of calls in flow_entry_remove
-    }
-
-  OFL_UTILS_FREE_ARR_FUN (entry->config->bands, entry->config->meter_bands_num, 
-      ofl_structs_free_meter_bands);
-  free (entry->config);
-
-  OFL_UTILS_FREE_ARR (entry->stats->band_stats, entry->stats->meter_bands_num);
-  free (entry->stats);
-  free (entry);
-}
+// void
+// OFSwitch13NetDevice::GroupEntryDestroy (group_entry *entry)
+// {
+//   flow_ref_entry *ref, *next;
+// 
+//   // remove all referencing flows
+//   LIST_FOR_EACH_SAFE (ref, next, flow_ref_entry, node, &entry->flow_refs) 
+//     {
+//       FlowEntryRemove (ref->entry, OFPRR_GROUP_DELETE);
+//       // Note: the flow_ref_entryf will be destroyed after a chain of calls in
+//       // flow_entry_remove no point in decreasing stats counter, as the group
+//       // is destroyed anyway
+//     }
+//   
+//   ofl_structs_free_group_desc_stats (entry->desc, entry->dp->exp);
+//   ofl_structs_free_group_stats (entry->stats);
+//   free (entry->data);
+//   free (entry);
+// }
+// 
+// ofl_err 
+// OFSwitch13NetDevice::MeterTableDelete (meter_table *table, ofl_msg_meter_mod *mod)
+// {
+//   if (mod->meter_id == OFPM_ALL) 
+//     {
+//       meter_entry *entry, *next;
+//       HMAP_FOR_EACH_SAFE (entry, next, meter_entry, node, &table->meter_entries) 
+//         {
+//           MeterEntryDestroy (entry);
+//         }
+//       hmap_destroy (&table->meter_entries);
+//       hmap_init (&table->meter_entries);
+//       table->entries_num = 0;
+//       table->bands_num = 0;
+//     } 
+//   else 
+//     {
+//       meter_entry *entry;
+//       entry = meter_table_find (table, mod->meter_id);
+// 
+//       if (entry != NULL) 
+//         {
+//           table->entries_num--;
+//           table->bands_num -= entry->stats->meter_bands_num;
+//           hmap_remove (&table->meter_entries, &entry->node);
+//           MeterEntryDestroy (entry);
+//         }
+//     }
+// 
+//   ofl_msg_free_meter_mod (mod, false);
+//   return 0;
+// }
+// 
+// void 
+// OFSwitch13NetDevice::MeterEntryDestroy (meter_entry *entry)
+// {
+//   flow_ref_entry *ref, *next;
+// 
+//   // remove all referencing flows
+//   LIST_FOR_EACH_SAFE (ref, next, flow_ref_entry, node, &entry->flow_refs) 
+//     {
+//       FlowEntryRemove (ref->entry, OFPRR_METER_DELETE); // OFPRR_METER_DELETE ??
+//       // Note: the flow_ref_entry will be destroyed after 
+//       // a chain of calls in flow_entry_remove
+//     }
+// 
+//   OFL_UTILS_FREE_ARR_FUN (entry->config->bands, entry->config->meter_bands_num, 
+//       ofl_structs_free_meter_bands);
+//   free (entry->config);
+// 
+//   OFL_UTILS_FREE_ARR (entry->stats->band_stats, entry->stats->meter_bands_num);
+//   free (entry->stats);
+//   free (entry);
+// }
 
 void
 OFSwitch13NetDevice::AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
@@ -1959,7 +1959,7 @@ OFSwitch13NetDevice::HandleMsgFlowMod (datapath *dp, ofl_msg_flow_mod *msg,
           error = 0;
           for (i = 0; i < PIPELINE_TABLES; i++) 
             {
-              error = FlowTableFlowMod (pl->tables[i], msg, &match_kept, &insts_kept);
+              error = flow_table_flow_mod (pl->tables[i], msg, &match_kept, &insts_kept);
               if (error) 
                 {
                   break;
@@ -1983,7 +1983,7 @@ OFSwitch13NetDevice::HandleMsgFlowMod (datapath *dp, ofl_msg_flow_mod *msg,
   else
     {
       // Execute flow modification at proper table
-      error = FlowTableFlowMod (pl->tables[msg->table_id], msg, &match_kept, &insts_kept); 
+      error = flow_table_flow_mod (pl->tables[msg->table_id], msg, &match_kept, &insts_kept); 
       if (error) 
         {
           return error;
@@ -2042,7 +2042,7 @@ OFSwitch13NetDevice::HandleMsgGroupMod (datapath *dp, ofl_msg_group_mod *msg,
         return group_table_modify (dp->groups, msg);
 
       case (OFPGC_DELETE):
-        return GroupTableDelete (dp->groups, msg);
+        return group_table_delete (dp->groups, msg);
 
       default:
         return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
@@ -2253,7 +2253,7 @@ OFSwitch13NetDevice::HandleMsgMeterMod (datapath *dp, ofl_msg_meter_mod *msg,
         return meter_table_modify (dp->meters, msg);
 
       case (OFPMC_DELETE):
-        return MeterTableDelete (dp->meters, msg);
+        return meter_table_delete (dp->meters, msg);
 
       default:
         return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
