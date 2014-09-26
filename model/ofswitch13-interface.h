@@ -19,16 +19,11 @@
 /** 
  * \defgroup ofswitch13 OpenFlow 1.3 softswitch
  * This section documents the API of ns3 OpenFlow 1.3 compatible switch
- * datapath implementation.
- */
-
-/** 
- * \ingroup ofswitch13
- * This module follows the OpenFlow 1.3 switch specification
+ * datapath and base controller implementation. This module follows the
+ * OpenFlow 1.3 switch specification
  * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
- * It depends on the CPqD ofsoftswitch13
- * <https://github.com/ljerezchaves/ofsoftswitch13> implementation compiled
- * as a library (use ./configure --enable-ns3-lib).
+ * It depends on the CPqD ofsoftswitch13 <https://github.com/ljerezchaves/ofsoftswitch13> 
+ * implementation compiled as a library (use ./configure --enable-ns3-lib).
  *
  * \attention Currently, only a subset of features are supported.
  */
@@ -37,15 +32,14 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <set>
+#include <map>
+#include <limits>
 
 #include "ns3/simulator.h"
 #include "ns3/log.h"
 #include "ns3/net-device.h"
 #include "ns3/csma-module.h"
-
-#include <set>
-#include <map>
-#include <limits>
 
 #include <boost/static_assert.hpp>
 #include "openflow/openflow.h"
