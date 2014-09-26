@@ -109,6 +109,14 @@ uint32_t port_speed(uint32_t conf);
 ofl_err flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool strict, bool *insts_kept);
 ofl_err flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept);
 
+// From udatapath/group_table.c
+ofl_err group_table_add(struct group_table *table, struct ofl_msg_group_mod *mod);
+ofl_err group_table_modify(struct group_table *table, struct ofl_msg_group_mod *mod); 
+
+// From udatapath/group_entry.c
+size_t select_from_select_group(struct group_entry *entry);
+size_t select_from_ff_group(struct group_entry *entry);
+
 // From udatapath/pipeline.c
 int inst_compare(const void *inst1, const void *inst2);
 
@@ -124,40 +132,13 @@ void del_meter_refs(struct flow_entry *entry);
 // Capabilities supported by this implementation (from dp_capabilities.h)
 #define DP_SUPPORTED_CAPABILITIES ( \
     OFPC_FLOW_STATS     \
-  | OFPC_PORT_STATS     )
-/*| OFPC_TABLE_STATS */
-/*| OFPC_GROUP_STATS */  
+  | OFPC_PORT_STATS     \
+  | OFPC_TABLE_STATS    \
+  | OFPC_GROUP_STATS    )
 /*| OFPC_IP_REASM */     
 /*| OFPC_QUEUE_STATS */   
 /*| OFPC_PORT_BLOCKED */   
   
-#define DP_SUPPORTED_ACTIONS ( \
-    (1 << OFPAT_OUTPUT)        \
-  | (2 << OFPAT_COPY_TTL_OUT)  \
-  | (3 << OFPAT_COPY_TTL_IN)   \
-  | (4 << OFPAT_SET_MPLS_TTL)  \
-  | (5 << OFPAT_DEC_MPLS_TTL)  \
-  | (6 << OFPAT_PUSH_VLAN)     \
-  | (7 << OFPAT_POP_VLAN)      \
-  | (8 << OFPAT_PUSH_MPLS)     \
-  | (9 << OFPAT_POP_MPLS)      \
-  | (10 << OFPAT_SET_QUEUE)    \
-  | (11 << OFPAT_GROUP)        \
-  | (12 << OFPAT_SET_NW_TTL)   \
-  | (13 << OFPAT_DEC_NW_TTL)   )
-
-#define DP_SUPPORTED_GROUPS ( \
-    OFPGT_ALL       \
-  | OFPGT_SELECT    \
-  | OFPGT_INDIRECT  \
-  | OFPGT_FF        )
-
-#define DP_SUPPORTED_GROUP_CAPABILITIES ( \
-  OFPGFC_SELECT_WEIGHT        \
-/*| OFPGFC_SELECT_LIVENESS    \
-  | OFPGFC_CHAINING           \
-  | OFPGFC_CHAINING_CHECKS*/  )
-
 namespace ns3 {
 namespace ofs {
 

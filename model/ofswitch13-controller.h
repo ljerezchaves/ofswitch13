@@ -139,6 +139,7 @@ protected:
   int RequestTableStats (SwitchInfo swtch);       //!< Query table statistics
   int RequestPortStats (SwitchInfo swtch, uint32_t port = OFPP_ANY); //!< Query port statistcs (default: all ports)
   int RequestTableFeatures (SwitchInfo swtch);    //!< Query table features
+  int RequestGroupFeatures (SwitchInfo swtch);    //!< Query group features
   int RequestPortDesc (SwitchInfo swtch);         //!< Query port description
   //\}
 
@@ -203,10 +204,13 @@ private:
    */
   //\{
   int DpctlFlowModCommand (SwitchInfo swtch, int argc, char *argv[]);
+  int DpctlGroupModCommand (SwitchInfo swtch, int argc, char *argv[]);
   int DpctlSetConfigCommand (SwitchInfo swtch, int argc, char *argv[]);
   int DpctlStatsFlowCommand (SwitchInfo swtch, int argc, char *argv[]);
   int DpctlStatsAggrCommand (SwitchInfo swtch, int argc, char *argv[]);
   int DpctlStatsPortCommand (SwitchInfo swtch, int argc, char *argv[]);
+  int DpctlStatsGroupCommand (SwitchInfo swtch, int argc, char *argv[]);
+  int DpctlStatsGroupDescCommand (SwitchInfo swtch, int argc, char *argv[]);
   int DpctlPortModCommand (SwitchInfo swtch, int argc, char *argv[]);
   int DpctlTableModCommand (SwitchInfo swtch, int argc, char *argv[]);
   //\}

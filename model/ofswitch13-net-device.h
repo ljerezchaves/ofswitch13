@@ -294,11 +294,11 @@ private:
   /**
    * Executes the set of OFPIT_WRITE_ACTIONS actions on the given packet
    * \see ofsoftswitch action_set_execute at udatapath/action_set.c
-   * \param pkt The packet associated with this action set
    * \param set A pointer to the set of actions
+   * \param pkt The packet associated with this action set
    * \param cookie The cookie that identifies the buffer ??? (not sure)
    */
-  void ActionSetExecute (packet *pkt, action_set *set, uint64_t cookie);
+  void ActionSetExecute (action_set *set, packet *pkt, uint64_t cookie);
 
   /**
    * Execute the ouput action sending the packet to an output port
@@ -320,7 +320,7 @@ private:
    * \param actions The actions structure.
    * \return 0 if sucess or OpenFlow error code.
    */
-  ofl_err ActionValidate (datapath *dp, size_t num, 
+  ofl_err ActionsValidate (datapath *dp, size_t num, 
       ofl_action_header **actions);
   //\}
   
@@ -389,6 +389,55 @@ private:
   void FlowEntryRemove (flow_entry *entry, uint8_t reason);
   //\}
 
+  ///\name Group table methods
+  //\{
+  /**
+   * Handles a group_mod msg with OFPGC_DELETE command. 
+   * \see ofsoftswitch13 group_table_delete () at udatapath/group_table.c
+   * \param table The group table.
+   * \param mod The ofl_msg_group_mod message.
+   * \return 0 if sucess or OpenFlow error code.
+   */
+  ofl_err GroupTableDelete (group_table *table, ofl_msg_group_mod *mod);
+
+  /**
+   * Executes the given group entry on the packet. 
+   * \see group_table_execute () at udatapath/group_table.c
+   * \param table The group table.
+   * \param packet The packet to execute actions.
+   * \param group_id The group entry id.
+   */
+  void GroupTableExecute (group_table *table, packet *packet, uint32_t group_id);
+  //\}
+
+  ///\name Group entry methods
+  //\{
+  /**
+   * Executes the group entry on the packet. 
+   * \see ofsoftswitch13 group_entry_execute () at udatapath/group_entry.c
+   * \param entry The group entry to execute.
+   * \param entry The packet.
+   */
+  void GroupEntryExecute (group_entry *entry, packet *packet);
+
+  /** 
+   * Executes a group entry of type ALL.
+   * \see ofsoftswitch13 execute_all (), execute_select (), execute_indirect ()
+   * and execute_ff () at udatapath/group_entry.c
+   * \param entry The group entry to execute.
+   * \param pkt The packet.
+   * \param i Bucket index.
+   */
+  void GroupEntryExecuteBucket (group_entry *entry, packet *pkt, size_t i); 
+
+  /**
+   * Destroy a group entry and referencing flow entries. 
+   * \see ofsoftswitch13 group_entry_destroy () at udatapath/group_entry.c
+   * \param entry The group entry to destroy
+   */
+  void GroupEntryDestroy (group_entry *entry); 
+  //\}
+
   /**
    * Add an Ethernet header and trailer to the packet. This is an workaround
    * to facilitate the creation of the openflow buffer. When the packet gets
@@ -444,6 +493,7 @@ private:
   ofl_err HandleMsgPacketOut        (datapath *dp, ofl_msg_packet_out *msg, uint64_t xid);
   ofl_err HandleMsgFlowMod          (datapath *dp, ofl_msg_flow_mod *msg, uint64_t xid);
   ofl_err HandleMsgPortMod          (datapath *dp, ofl_msg_port_mod *msg, uint64_t xid);
+  ofl_err HandleMsgGroupMod         (datapath *dp, ofl_msg_group_mod *msg, uint64_t xid);
   ofl_err HandleMsgTableMod         (datapath *dp, ofl_msg_table_mod *msg, uint64_t xid);
   ofl_err HandleMsgMultipartRequest (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err HandleMsgBarrierRequest   (datapath *dp, ofl_msg_header *msg, uint64_t xid);
@@ -456,6 +506,9 @@ private:
   ofl_err MultipartMsgTable         (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err MultipartMsgTableFeatures (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err MultipartMsgPortStats     (datapath *dp, ofl_msg_multipart_request_port *msg, uint64_t xid);
+  ofl_err MultipartMsgGroup         (datapath *dp, ofl_msg_multipart_request_group *msg, uint64_t xid);
+  ofl_err MultipartMsgGroupDesc     (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
+  ofl_err MultipartMsgGroupFeatures (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err MultipartMsgPortDesc      (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   //\}
 
