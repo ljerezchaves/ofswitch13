@@ -741,10 +741,9 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
           case OFPT_QUEUE_GET_CONFIG_REPLY:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
-          //case OFPT_METER_MOD:
-          //  error = meter_table_handle_meter_mod (dp->meters, 
-          //              (ofl_msg_meter_mod*)msg, sender);
-          //  break;            
+          case OFPT_METER_MOD:
+            error = HandleMsgMeterMod (dp, (ofl_msg_meter_mod*)msg, xid);
+            break;            
           
           default: 
             error = ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
@@ -1536,6 +1535,61 @@ OFSwitch13NetDevice::GroupEntryDestroy (group_entry *entry)
   free (entry);
 }
 
+ofl_err 
+OFSwitch13NetDevice::MeterTableDelete (meter_table *table, ofl_msg_meter_mod *mod)
+{
+  if (mod->meter_id == OFPM_ALL) 
+    {
+      meter_entry *entry, *next;
+      HMAP_FOR_EACH_SAFE (entry, next, meter_entry, node, &table->meter_entries) 
+        {
+          MeterEntryDestroy (entry);
+        }
+      hmap_destroy (&table->meter_entries);
+      hmap_init (&table->meter_entries);
+      table->entries_num = 0;
+      table->bands_num = 0;
+    } 
+  else 
+    {
+      meter_entry *entry;
+      entry = meter_table_find (table, mod->meter_id);
+
+      if (entry != NULL) 
+        {
+          table->entries_num--;
+          table->bands_num -= entry->stats->meter_bands_num;
+          hmap_remove (&table->meter_entries, &entry->node);
+          MeterEntryDestroy (entry);
+        }
+    }
+
+  ofl_msg_free_meter_mod (mod, false);
+  return 0;
+}
+
+void 
+OFSwitch13NetDevice::MeterEntryDestroy (meter_entry *entry)
+{
+  flow_ref_entry *ref, *next;
+
+  // remove all referencing flows
+  LIST_FOR_EACH_SAFE (ref, next, flow_ref_entry, node, &entry->flow_refs) 
+    {
+      FlowEntryRemove (ref->entry, OFPRR_METER_DELETE); // OFPRR_METER_DELETE ??
+      // Note: the flow_ref_entry will be destroyed after 
+      // a chain of calls in flow_entry_remove
+    }
+
+  OFL_UTILS_FREE_ARR_FUN (entry->config->bands, entry->config->meter_bands_num, 
+      ofl_structs_free_meter_bands);
+  free (entry->config);
+
+  OFL_UTILS_FREE_ARR (entry->stats->band_stats, entry->stats->meter_bands_num);
+  free (entry->stats);
+  free (entry);
+}
+
 void
 OFSwitch13NetDevice::AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
     Mac48Address dest, uint16_t protocolNumber)
@@ -2124,6 +2178,31 @@ OFSwitch13NetDevice::HandleMsgSetAsync (datapath *dp,
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
   return 0;
+}
+
+ofl_err 
+OFSwitch13NetDevice::HandleMsgMeterMod (datapath *dp, ofl_msg_meter_mod *msg, 
+    uint64_t xid)
+{
+  NS_LOG_FUNCTION (this);
+  
+  // Modifications to meter table from the controller are done with the
+  // OFPT_METER_MOD message (including add, modify or delete).
+  // \see meter_table_handle_meter_mod () at udatapath/meter_table.c
+  switch (msg->command) 
+    {
+      case (OFPMC_ADD):
+        return meter_table_add (dp->meters, msg);
+      
+      case (OFPMC_MODIFY):
+        return meter_table_modify (dp->meters, msg);
+
+      case (OFPMC_DELETE):
+        return MeterTableDelete (dp->meters, msg);
+
+      default:
+        return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+    }
 }
 
 ofl_err

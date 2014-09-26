@@ -117,6 +117,10 @@ ofl_err group_table_modify(struct group_table *table, struct ofl_msg_group_mod *
 size_t select_from_select_group(struct group_entry *entry);
 size_t select_from_ff_group(struct group_entry *entry);
 
+// From udatapath/meter_table.c
+ofl_err meter_table_add(struct meter_table *table, struct ofl_msg_meter_mod *mod);
+ofl_err meter_table_modify(struct meter_table *table, struct ofl_msg_meter_mod *mod);
+
 // From udatapath/pipeline.c
 int inst_compare(const void *inst1, const void *inst2);
 
