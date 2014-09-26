@@ -1426,7 +1426,7 @@ OFSwitch13NetDevice::GroupTableExecute (group_table *table, packet *packet,
 }
   
 void 
-OFSwitch13NetDevice::GroupEntryExecute (group_entry *entry, packet *packet)
+OFSwitch13NetDevice::GroupEntryExecute (group_entry *entry, packet *pkt)
 {
   NS_LOG_DEBUG ("Executing group " << entry->stats->group_id);
   
@@ -1440,7 +1440,7 @@ OFSwitch13NetDevice::GroupEntryExecute (group_entry *entry, packet *packet)
         {
           for (i = 0; i < entry->desc->buckets_num; i++) 
             {
-              GroupEntryExecuteBucket (entry, packet, i);
+              GroupEntryExecuteBucket (entry, pkt, i);
             }
           break;
         }
@@ -1449,7 +1449,7 @@ OFSwitch13NetDevice::GroupEntryExecute (group_entry *entry, packet *packet)
           i = select_from_select_group (entry);
           if ((int)i != -1)
             {
-              GroupEntryExecuteBucket (entry, packet, i);
+              GroupEntryExecuteBucket (entry, pkt, i);
             } 
           else 
             {
@@ -1461,7 +1461,7 @@ OFSwitch13NetDevice::GroupEntryExecute (group_entry *entry, packet *packet)
         {
           if (entry->desc->buckets_num > 0) 
             {
-              GroupEntryExecuteBucket (entry, packet, 0);
+              GroupEntryExecuteBucket (entry, pkt, 0);
             } 
           else 
             {
@@ -1474,7 +1474,7 @@ OFSwitch13NetDevice::GroupEntryExecute (group_entry *entry, packet *packet)
           i = select_from_ff_group (entry);
           if ((int)i != -1)
             {
-              GroupEntryExecuteBucket (entry, packet, i);
+              GroupEntryExecuteBucket (entry, pkt, i);
             } 
           else 
             {

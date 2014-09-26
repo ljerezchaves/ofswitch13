@@ -247,7 +247,6 @@ private:
    * Send a message over all switch ports, except input port.
    * \see SendToSwitch ();
    * \param pkt The internal packet to send.
-   * \param port The Openflow port structure.
    * \return True if success, false otherwise.
    */
   bool FloodToSwitchPorts (packet *pkt);
@@ -416,9 +415,9 @@ private:
    * Executes the group entry on the packet. 
    * \see ofsoftswitch13 group_entry_execute () at udatapath/group_entry.c
    * \param entry The group entry to execute.
-   * \param entry The packet.
+   * \param pkt The packet.
    */
-  void GroupEntryExecute (group_entry *entry, packet *packet);
+  void GroupEntryExecute (group_entry *entry, packet *pkt);
 
   /** 
    * Executes a group entry of type ALL.

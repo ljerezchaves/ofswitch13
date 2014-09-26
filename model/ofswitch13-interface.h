@@ -221,6 +221,7 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
  * message data into the buffer using wire format.
  * \param msg The ofl_msg_* structure.
  * \param xid The transaction id to use.
+ * \param exp Experiment handler.
  * \return The OpenFlow Buffer created from the message.
  */
 ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp = NULL);
