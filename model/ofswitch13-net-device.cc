@@ -100,7 +100,7 @@ OFSwitch13NetDevice::GetTypeId (void)
                    MakeTimeChecker ())
     .AddAttribute ("DatapathTimeout",
                    "The interval between timeout operations on pipeline.",
-                   TimeValue (Seconds (1)),
+                   TimeValue (Seconds (0.5)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_timeout),
                    MakeTimeChecker ())
     .AddAttribute ("EchoInterval",
@@ -465,9 +465,9 @@ OFSwitch13NetDevice::DoDispose ()
   m_ctrlSocket = 0;
 
   // FIXME Theses methods may cause errors... check
-  // pipeline_destroy (m_datapath->pipeline);
-  // group_table_destroy (m_datapath->groups);
-  // meter_table_destroy (m_datapath->meters);
+  pipeline_destroy (m_datapath->pipeline);
+  group_table_destroy (m_datapath->groups);
+  meter_table_destroy (m_datapath->meters);
 
   NetDevice::DoDispose ();
 }
@@ -523,7 +523,7 @@ OFSwitch13NetDevice::DatapathNew ()
 void
 OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 {
-  meter_table_add_tokens (dp->meters);  // FIXME Com qual frequencia deveria chamar isso?
+  meter_table_add_tokens (dp->meters);
   
   // Check flow entry timeout
   for (int i = 0; i < PIPELINE_TABLES; i++) 
@@ -1746,7 +1746,7 @@ OFSwitch13NetDevice::HandleMsgFeaturesRequest (datapath *dp, ofl_msg_header *msg
   reply.datapath_id  = GetDatapathId ();
   reply.n_buffers    = dp_buffers_size (dp->buffers);
   reply.n_tables     = PIPELINE_TABLES;
-  reply.auxiliary_id = 0; // FIXME No auxiliary connection support by now
+  reply.auxiliary_id = 0; // No auxiliary connections
   reply.capabilities = DP_SUPPORTED_CAPABILITIES;
   reply.reserved     = 0x00000000;
 
@@ -2132,8 +2132,9 @@ OFSwitch13NetDevice::HandleMsgBarrierRequest (datapath *dp, ofl_msg_header *msg,
 {
   NS_LOG_FUNCTION (this);
   
+  // FIXME  Issue #19
   // Note: the implementation is single-threaded, so a barrier request can
-  // simply be replied. // FIXME  Issue #19
+  // simply be replied. 
   ofl_msg_header reply;
   reply.type = OFPT_BARRIER_REPLY;
 
@@ -2341,7 +2342,7 @@ OFSwitch13NetDevice::MultipartMsgTableFeatures (datapath *dp,
 {
   NS_LOG_FUNCTION (this);
   
-  // FIXME Implement this Issue #14
+  // FIXME Issue #14 (Implement)
   return ofl_error (OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_TABLE);
   //return 0;
 }

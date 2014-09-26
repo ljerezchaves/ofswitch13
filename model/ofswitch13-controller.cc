@@ -450,8 +450,8 @@ ofl_err
 OFSwitch13Controller::HandleMsgHello (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid) 
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
-  // Nothing to do: the ofsoftswitch13 already checks for OpenFlow version when
-  // unpacking the message
+  // Nothing to do: the ofsoftswitch13 already checks 
+  // for OpenFlow version when unpacking the message
 
   // All handlers must free the message when everything is ok
   ofl_msg_free (msg, NULL/*exp*/);
@@ -861,7 +861,6 @@ OFSwitch13Controller::DpctlFlowModCommand (SwitchInfo swtch, int argc, char *arg
       make_all_match (&(msg->match));
     }
 
-  // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)msg, ++m_xid));
 }
@@ -901,7 +900,6 @@ OFSwitch13Controller::DpctlGroupModCommand (SwitchInfo swtch, int argc, char *ar
         }
     }
 
-  // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)&msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
 }
@@ -931,7 +929,6 @@ OFSwitch13Controller::DpctlMeterModCommand (SwitchInfo swtch, int argc, char *ar
         }
     }
 
-  // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)&msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
 }
@@ -947,10 +944,8 @@ OFSwitch13Controller::DpctlSetConfigCommand (SwitchInfo swtch, int argc, char *a
   msg.config->flags = OFPC_FRAG_NORMAL;
   msg.config->miss_send_len = OFP_DEFAULT_MISS_SEND_LEN;
 
-  // Parse set-config dpctl command
   parse_config (argv[0], msg.config); 
   
-  // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)&msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
 }
@@ -984,7 +979,6 @@ OFSwitch13Controller::DpctlStatsFlowCommand (SwitchInfo swtch, int argc, char *a
       make_all_match (&(msg.match));
     }
   
-  // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)&msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
 }
