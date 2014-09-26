@@ -84,11 +84,11 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
       NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
       bytes = RequestGroupFeatures (swtch);
     }
-  //else if (strcmp (argv[0], "meter-features") == 0)
-  //  {
-  //    NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
-  //    bytes = RequestMeterFeatures (swtch);
-  //  }
+  else if (strcmp (argv[0], "meter-features") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
+      bytes = RequestMeterFeatures (swtch);
+    }
   else if (strcmp (argv[0], "stats-desc") == 0)
     {
       NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
@@ -129,16 +129,16 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
       NS_ASSERT_MSG (argc == 1 || argc == 2 , "Invalid number of arguments for command " << argv[0]);
       bytes = DpctlStatsGroupDescCommand (swtch, --argc, ++argv);
     }
-  //else if (strcmp (argv[0], "stats-meter") == 0)
-  //  {
-  //    NS_ASSERT_MSG (argc == 1 || argc == 2 , "Invalid number of arguments for command " << argv[0]);
-  //    bytes = DpctlStatsMeterCommand (swtch, --argc, ++argv);
-  //  }
-  //else if (strcmp (argv[0], "meter-config") == 0)
-  //  {
-  //    NS_ASSERT_MSG (argc == 1 || argc == 2 , "Invalid number of arguments for command " << argv[0]);
-  //    bytes = DpctlMeterConfigCommand (swtch, --argc, ++argv);
-  //  }
+  else if (strcmp (argv[0], "stats-meter") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1 || argc == 2 , "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlStatsMeterCommand (swtch, --argc, ++argv);
+    }
+  else if (strcmp (argv[0], "meter-config") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1 || argc == 2 , "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlMeterConfigCommand (swtch, --argc, ++argv);
+    }
   else if (strcmp (argv[0], "port-desc") == 0)
     {
       NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
@@ -159,11 +159,11 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
       NS_ASSERT_MSG (argc >= 2 && argc <= UINT8_MAX, "Invalid number of arguments for command " << argv[0]);
       bytes = DpctlGroupModCommand (swtch, --argc, ++argv);
     }
-  //else if (strcmp (argv[0], "meter-mod") == 0)
-  //  {
-  //    NS_ASSERT_MSG (argc >= 2 && argc <= UINT8_MAX, "Invalid number of arguments for command " << argv[0]);
-  //    bytes = DpctlMeterModCommand (swtch, --argc, ++argv);
-  //  }
+  else if (strcmp (argv[0], "meter-mod") == 0)
+    {
+      NS_ASSERT_MSG (argc >= 2 && argc <= UINT8_MAX, "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlMeterModCommand (swtch, --argc, ++argv);
+    }
   else if (strcmp (argv[0], "get-async") == 0)
     {
       NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
@@ -419,6 +419,20 @@ OFSwitch13Controller::RequestGroupFeatures (SwitchInfo swtch)
 }
 
 int
+OFSwitch13Controller::RequestMeterFeatures (SwitchInfo swtch)
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  ofl_msg_multipart_request_header msg;
+  msg.header.type = OFPT_MULTIPART_REQUEST;
+  msg.type = OFPMP_METER_FEATURES;
+  msg.flags = 0x0000;
+  
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
+}
+
+int
 OFSwitch13Controller::RequestPortDesc (SwitchInfo swtch)
 {
   NS_LOG_FUNCTION (swtch.ipv4);
@@ -436,8 +450,8 @@ ofl_err
 OFSwitch13Controller::HandleMsgHello (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid) 
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
-  // Nothing to do: the ofsoftswitch13 already checks for OpenFlow version when
-  // unpacking the message
+  // Nothing to do: the ofsoftswitch13 already checks 
+  // for OpenFlow version when unpacking the message
 
   // All handlers must free the message when everything is ok
   ofl_msg_free (msg, NULL/*exp*/);
@@ -647,7 +661,7 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer)
   if (!error)
     {
       LogOflMsg ((ofl_msg_header*)msg, true/*Rx*/);
-      /* Dispatches control messages to appropriate handler functions. */
+      // Dispatches control messages to appropriate handler functions.
       switch (msg->type)
         {
           case OFPT_HELLO:
@@ -666,7 +680,7 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer)
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
             break;
 
-          /* Switch configuration messages. */
+          // Switch configuration messages.
           case OFPT_FEATURES_REQUEST:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
@@ -683,7 +697,7 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer)
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
 
-          /* Asynchronous messages. */
+          // Asynchronous messages.
           case OFPT_PACKET_IN:
             error = HandleMsgPacketIn ((ofl_msg_packet_in*)msg, swtch, xid);
             break;
@@ -694,7 +708,7 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer)
             error = HandleMsgPortStatus ((ofl_msg_port_status*)msg, swtch, xid);
             break;
 
-          /* Controller command messages. */
+          // Controller command messages.
           case OFPT_GET_ASYNC_REQUEST:
           case OFPT_SET_ASYNC:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
@@ -718,7 +732,7 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer)
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
 
-          /* Statistics messages. */
+          // Statistics messages.
           case OFPT_MULTIPART_REQUEST:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
@@ -726,7 +740,7 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer)
             error = HandleMsgMultipartReply ((ofl_msg_multipart_reply_header*)msg, swtch, xid);
             break;
 
-          /* Barrier messages. */
+          // Barrier messages.
           case OFPT_BARRIER_REQUEST:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
@@ -734,7 +748,7 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer)
             error = HandleMsgBarrierReply (msg, swtch, xid);
             break;
           
-          /* Role messages. */
+          // Role messages.
           case OFPT_ROLE_REQUEST:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
@@ -742,7 +756,7 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer)
             error = HandleMsgRoleReply ((ofl_msg_role_request*)msg, swtch, xid);
             break;
 
-          /* Queue Configuration messages. */
+          // Queue Configuration messages.
           case OFPT_QUEUE_GET_CONFIG_REQUEST:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
@@ -758,12 +772,10 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer)
         }
       if (error)
       {
-        /**
-         * NOTE: It is assumed that if a handler returns with error, it did not
-         * use any part of the control message, thus it can be freed up. If no
-         * error is returned however, the message must be freed inside the
-         * handler (because the handler might keep parts of the message) 
-         */
+        // NOTE: It is assumed that if a handler returns with error, it did not
+        // use any part of the control message, thus it can be freed up. If no
+        // error is returned however, the message must be freed inside the
+        // handler (because the handler might keep parts of the message) 
         ofl_msg_free (msg, NULL/*exp*/);
       }
     }
@@ -821,11 +833,9 @@ OFSwitch13Controller::DpctlFlowModCommand (SwitchInfo swtch, int argc, char *arg
             } 
           else 
             {
-              /**
-               * We copy the value because we don't know if it is an
-               * instruction or match.  If the match is empty, the argv is
-               * modified causing errors to instructions parsing
-               */
+              // We copy the value because we don't know if it is an
+              // instruction or match.  If the match is empty, the argv is
+              // modified causing errors to instructions parsing
               char *cpy = (char*)malloc (strlen (argv[1]) + 1);
               memset (cpy, 0x00, strlen (argv[1]) + 1);
               memcpy (cpy, argv[1], strlen (argv[1])); 
@@ -851,7 +861,6 @@ OFSwitch13Controller::DpctlFlowModCommand (SwitchInfo swtch, int argc, char *arg
       make_all_match (&(msg->match));
     }
 
-  // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)msg, ++m_xid));
 }
@@ -859,7 +868,7 @@ OFSwitch13Controller::DpctlFlowModCommand (SwitchInfo swtch, int argc, char *arg
 int
 OFSwitch13Controller::DpctlGroupModCommand (SwitchInfo swtch, int argc, char *argv[])
 {
-  struct ofl_msg_group_mod msg;
+  ofl_msg_group_mod msg;
   msg.header.type = OFPT_GROUP_MOD;
   msg.command = OFPGC_ADD;
   msg.type = OFPGT_ALL;
@@ -891,7 +900,35 @@ OFSwitch13Controller::DpctlGroupModCommand (SwitchInfo swtch, int argc, char *ar
         }
     }
 
-  // Create packet, free memory and send
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
+}
+
+int
+OFSwitch13Controller::DpctlMeterModCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  ofl_msg_meter_mod msg;
+  msg.header.type = OFPT_METER_MOD;
+  msg.command = OFPMC_ADD;
+  msg.flags = OFPMF_KBPS;
+  msg.meter_id = 0;
+  msg.meter_bands_num = 0;
+  msg.bands = NULL;
+
+  parse_meter_mod_args (argv[0], &msg);
+
+  if (argc > 1) 
+    {
+      size_t i;
+      size_t bands_num = argc - 1;
+      msg.meter_bands_num = bands_num;
+      msg.bands = (ofl_meter_band_header**)xmalloc (sizeof (ofl_meter_band_header*) * bands_num);
+      for (i=0; i < bands_num; i++) 
+        {
+          parse_band (argv[i+1], &msg, &msg.bands[i]);
+        }
+    }
+
   LogOflMsg ((ofl_msg_header*)&msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
 }
@@ -907,10 +944,8 @@ OFSwitch13Controller::DpctlSetConfigCommand (SwitchInfo swtch, int argc, char *a
   msg.config->flags = OFPC_FRAG_NORMAL;
   msg.config->miss_send_len = OFP_DEFAULT_MISS_SEND_LEN;
 
-  // Parse set-config dpctl command
   parse_config (argv[0], msg.config); 
   
-  // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)&msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
 }
@@ -944,7 +979,6 @@ OFSwitch13Controller::DpctlStatsFlowCommand (SwitchInfo swtch, int argc, char *a
       make_all_match (&(msg.match));
     }
   
-  // Create packet, free memory and send
   LogOflMsg ((ofl_msg_header*)&msg);
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
 }
@@ -1033,7 +1067,42 @@ OFSwitch13Controller::DpctlStatsGroupDescCommand (SwitchInfo swtch, int argc, ch
   return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
 }
 
-  int
+int 
+OFSwitch13Controller::DpctlStatsMeterCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  struct ofl_msg_multipart_meter_request msg;
+  msg.header.header.type = OFPT_MULTIPART_REQUEST;
+  msg.header.type = OFPMP_METER;
+  msg.header.flags = 0x0000;
+  msg.meter_id = OFPM_ALL;
+
+  parse_meter (argv[0], &msg.meter_id);
+   
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
+}
+
+int 
+OFSwitch13Controller::DpctlMeterConfigCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  struct ofl_msg_multipart_meter_request msg;
+  msg.header.header.type = OFPT_MULTIPART_REQUEST;
+  msg.header.type = OFPMP_METER_CONFIG;
+  msg.header.flags = 0x0000;
+  msg.meter_id = OFPM_ALL;
+
+  parse_meter (argv[0], &msg.meter_id);
+   
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
+}
+
+
+int
 OFSwitch13Controller::DpctlPortModCommand (SwitchInfo swtch, int argc, char *argv[])
 {
   NS_LOG_FUNCTION (swtch.ipv4);

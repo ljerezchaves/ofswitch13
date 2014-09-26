@@ -100,7 +100,7 @@ OFSwitch13NetDevice::GetTypeId (void)
                    MakeTimeChecker ())
     .AddAttribute ("DatapathTimeout",
                    "The interval between timeout operations on pipeline.",
-                   TimeValue (Seconds (1)),
+                   TimeValue (Seconds (0.5)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_timeout),
                    MakeTimeChecker ())
     .AddAttribute ("EchoInterval",
@@ -465,9 +465,9 @@ OFSwitch13NetDevice::DoDispose ()
   m_ctrlSocket = 0;
 
   // FIXME Theses methods may cause errors... check
-  // pipeline_destroy (m_datapath->pipeline);
-  // group_table_destroy (m_datapath->groups);
-  // meter_table_destroy (m_datapath->meters);
+  pipeline_destroy (m_datapath->pipeline);
+  group_table_destroy (m_datapath->groups);
+  meter_table_destroy (m_datapath->meters);
 
   NetDevice::DoDispose ();
 }
@@ -523,8 +523,7 @@ OFSwitch13NetDevice::DatapathNew ()
 void
 OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 {
-  // FIXME No meter support by now
-  // meter_table_add_tokens (dp->meters);
+  meter_table_add_tokens (dp->meters);
   
   // Check flow entry timeout
   for (int i = 0; i < PIPELINE_TABLES; i++) 
@@ -741,10 +740,9 @@ OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
           case OFPT_QUEUE_GET_CONFIG_REPLY:
             error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
             break;
-          //case OFPT_METER_MOD:
-          //  error = meter_table_handle_meter_mod (dp->meters, 
-          //              (ofl_msg_meter_mod*)msg, sender);
-          //  break;            
+          case OFPT_METER_MOD:
+            error = HandleMsgMeterMod (dp, (ofl_msg_meter_mod*)msg, xid);
+            break;            
           
           default: 
             error = ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
@@ -1062,9 +1060,8 @@ OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
             }
           case OFPIT_METER: 
             {
-              // FIXME No meter support by now
-              // ofl_instruction_meter *im = (ofl_instruction_meter*)inst;
-              // meter_table_apply(pl->dp->meters, pkt , im->meter_id);
+              ofl_instruction_meter *im = (ofl_instruction_meter*)inst;
+              meter_table_apply (pl->dp->meters, pkt, im->meter_id);
               break;
             }
           case OFPIT_EXPERIMENTER: 
@@ -1536,6 +1533,61 @@ OFSwitch13NetDevice::GroupEntryDestroy (group_entry *entry)
   free (entry);
 }
 
+ofl_err 
+OFSwitch13NetDevice::MeterTableDelete (meter_table *table, ofl_msg_meter_mod *mod)
+{
+  if (mod->meter_id == OFPM_ALL) 
+    {
+      meter_entry *entry, *next;
+      HMAP_FOR_EACH_SAFE (entry, next, meter_entry, node, &table->meter_entries) 
+        {
+          MeterEntryDestroy (entry);
+        }
+      hmap_destroy (&table->meter_entries);
+      hmap_init (&table->meter_entries);
+      table->entries_num = 0;
+      table->bands_num = 0;
+    } 
+  else 
+    {
+      meter_entry *entry;
+      entry = meter_table_find (table, mod->meter_id);
+
+      if (entry != NULL) 
+        {
+          table->entries_num--;
+          table->bands_num -= entry->stats->meter_bands_num;
+          hmap_remove (&table->meter_entries, &entry->node);
+          MeterEntryDestroy (entry);
+        }
+    }
+
+  ofl_msg_free_meter_mod (mod, false);
+  return 0;
+}
+
+void 
+OFSwitch13NetDevice::MeterEntryDestroy (meter_entry *entry)
+{
+  flow_ref_entry *ref, *next;
+
+  // remove all referencing flows
+  LIST_FOR_EACH_SAFE (ref, next, flow_ref_entry, node, &entry->flow_refs) 
+    {
+      FlowEntryRemove (ref->entry, OFPRR_METER_DELETE); // OFPRR_METER_DELETE ??
+      // Note: the flow_ref_entry will be destroyed after 
+      // a chain of calls in flow_entry_remove
+    }
+
+  OFL_UTILS_FREE_ARR_FUN (entry->config->bands, entry->config->meter_bands_num, 
+      ofl_structs_free_meter_bands);
+  free (entry->config);
+
+  OFL_UTILS_FREE_ARR (entry->stats->band_stats, entry->stats->meter_bands_num);
+  free (entry->stats);
+  free (entry);
+}
+
 void
 OFSwitch13NetDevice::AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
     Mac48Address dest, uint16_t protocolNumber)
@@ -1694,7 +1746,7 @@ OFSwitch13NetDevice::HandleMsgFeaturesRequest (datapath *dp, ofl_msg_header *msg
   reply.datapath_id  = GetDatapathId ();
   reply.n_buffers    = dp_buffers_size (dp->buffers);
   reply.n_tables     = PIPELINE_TABLES;
-  reply.auxiliary_id = 0; // FIXME No auxiliary connection support by now
+  reply.auxiliary_id = 0; // No auxiliary connections
   reply.capabilities = DP_SUPPORTED_CAPABILITIES;
   reply.reserved     = 0x00000000;
 
@@ -2080,8 +2132,9 @@ OFSwitch13NetDevice::HandleMsgBarrierRequest (datapath *dp, ofl_msg_header *msg,
 {
   NS_LOG_FUNCTION (this);
   
+  // FIXME  Issue #19
   // Note: the implementation is single-threaded, so a barrier request can
-  // simply be replied. // FIXME  Issue #19
+  // simply be replied. 
   ofl_msg_header reply;
   reply.type = OFPT_BARRIER_REPLY;
 
@@ -2124,6 +2177,31 @@ OFSwitch13NetDevice::HandleMsgSetAsync (datapath *dp,
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
   return 0;
+}
+
+ofl_err 
+OFSwitch13NetDevice::HandleMsgMeterMod (datapath *dp, ofl_msg_meter_mod *msg, 
+    uint64_t xid)
+{
+  NS_LOG_FUNCTION (this);
+  
+  // Modifications to meter table from the controller are done with the
+  // OFPT_METER_MOD message (including add, modify or delete).
+  // \see meter_table_handle_meter_mod () at udatapath/meter_table.c
+  switch (msg->command) 
+    {
+      case (OFPMC_ADD):
+        return meter_table_add (dp->meters, msg);
+      
+      case (OFPMC_MODIFY):
+        return meter_table_modify (dp->meters, msg);
+
+      case (OFPMC_DELETE):
+        return MeterTableDelete (dp->meters, msg);
+
+      default:
+        return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+    }
 }
 
 ofl_err
@@ -2264,7 +2342,7 @@ OFSwitch13NetDevice::MultipartMsgTableFeatures (datapath *dp,
 {
   NS_LOG_FUNCTION (this);
   
-  // FIXME Implement this Issue #14
+  // FIXME Issue #14 (Implement)
   return ofl_error (OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_TABLE);
   //return 0;
 }

@@ -438,6 +438,28 @@ private:
   void GroupEntryDestroy (group_entry *entry); 
   //\}
 
+  ///\name Meter table methods
+  //\{
+  /**
+   * Handles a meter_mod msg with OFPMC_DELETE command. 
+   * \see ofsoftswitch13 meter_table_delete () at udatapath/meter_table.c
+   * \param table The meter table.
+   * \param mod The ofl_msg_meter_mod message.
+   * \return 0 if sucess or OpenFlow error code.
+   */
+  ofl_err MeterTableDelete (meter_table *table, ofl_msg_meter_mod *mod);
+  //\}
+
+  ///\name Meter entry methods
+  //\{
+  /**
+   * Destroy a meter entry and referencing flow entries. 
+   * \see ofsoftswitch13 meter_entry_destroy () at udatapath/meter_entry.c
+   * \param entry The meter entry to destroy
+   */
+  void MeterEntryDestroy (meter_entry *entry); 
+  //\}
+
   /**
    * Add an Ethernet header and trailer to the packet. This is an workaround
    * to facilitate the creation of the openflow buffer. When the packet gets
@@ -494,6 +516,7 @@ private:
   ofl_err HandleMsgFlowMod          (datapath *dp, ofl_msg_flow_mod *msg, uint64_t xid);
   ofl_err HandleMsgPortMod          (datapath *dp, ofl_msg_port_mod *msg, uint64_t xid);
   ofl_err HandleMsgGroupMod         (datapath *dp, ofl_msg_group_mod *msg, uint64_t xid);
+  ofl_err HandleMsgMeterMod         (datapath *dp, ofl_msg_meter_mod *msg, uint64_t xid);
   ofl_err HandleMsgTableMod         (datapath *dp, ofl_msg_table_mod *msg, uint64_t xid);
   ofl_err HandleMsgMultipartRequest (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err HandleMsgBarrierRequest   (datapath *dp, ofl_msg_header *msg, uint64_t xid);
