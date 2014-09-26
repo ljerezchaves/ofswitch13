@@ -40,60 +40,73 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13NetDevice");
 
-// Structure to store all OFSwitch13NetDevices in simulation
-typedef std::map<uint64_t, Ptr<OFSwitch13NetDevice> > SwitchMap_t;
-static SwitchMap_t g_switchMap;
+/** 
+ * As the integration of ofsoftswitch13 and ns3 involve overriding some C
+ * functions, we are using a global map to store a pointer to all
+ * OFSwitch13NetDevices in simulation, and allow faster object retrive by
+ * datapath id. In this way, functions like dp_send_message can get the object
+ * pointer and call SendToController method. 
+ */
+static std::map<uint64_t, Ptr<OFSwitch13NetDevice> > g_switchMap;
 
+/** 
+ * Insert a new openflow device in global map. This is called automatically
+ * every time a new datapath is created in simulation. 
+ * \param id The datapath id.
+ * \param dev The Ptr<OFSwitch13NetDevice> pointer.
+ */
 void 
 RegisterDatapath (uint64_t id, Ptr<OFSwitch13NetDevice> dev)
 {
-  g_switchMap.insert (std::pair<uint64_t, Ptr<OFSwitch13NetDevice> > (id, dev));
+  std::pair <std::map<uint64_t, Ptr<OFSwitch13NetDevice> >::iterator, bool> ret;
+  ret = g_switchMap.insert (std::pair<uint64_t, Ptr<OFSwitch13NetDevice> > (id, dev));
+  if (ret.second == false) 
+    {
+      NS_LOG_ERROR ("Error inserting datapath device into global map.");
+    }
 }
 
+/** 
+ * Remove an existing openflow device from global map. This is called automatically
+ * every time a datapath is destroyed in simulation. 
+ * \param id The datapath id.
+ */
 void 
 UnregisterDatapath (uint64_t id)
 {
-  g_switchMap.erase (id);
-}
-
-Ptr<OFSwitch13NetDevice>
-GetDatapathDevice (uint64_t id)
-{
-  return g_switchMap.find (id)->second;
+  std::map<uint64_t, Ptr<OFSwitch13NetDevice> >::iterator it;
+  it = g_switchMap.find (id);
+  if (it != g_switchMap.end ())
+    {
+      g_switchMap.erase (it);
+    }
+  else
+    {
+      NS_LOG_ERROR ("Error removing datapath device from global map.");
+    }
 }
 
 /**
- * Overriding ofsoftswitch13 dp_send_message weak function from
- * udatapath/datapath.c. Sends the given OFLib message to the connection
- * represented by sender, or to all open connections, if sender is null. Note
- * that in current ns3 implementation we only support a single controller.
- * \param dp The datapath.
- * \param msg The OFlib message to send.
- * \param sender The sender information (including xid).
- * \return 0 if everything's ok, error number otherwise.
+ * Retrieve and existing openflow device at global map by its datapath id 
+ * \param id The datapath id.
+ * \return The OpenFlow OFSwitch13NetDevice pointer.
  */
-int
-dp_send_message (struct datapath *dp, struct ofl_msg_header *msg, 
-    const struct sender *sender) 
+Ptr<OFSwitch13NetDevice>
+GetDatapathDevice (uint64_t id)
 {
-  int error = 0;
-  uint32_t xid;
-  
-  char *msg_str = ofl_msg_to_string (msg, dp->exp);
-  NS_LOG_DEBUG ("TX to ctrl: " << msg_str);
-  free(msg_str);
-
-  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
-  xid = dev->GetNextXid ();
-
-  error = dev->SendToController (ofs::PacketFromMsg (msg, xid));
-  if (!error) 
+  std::map<uint64_t, Ptr<OFSwitch13NetDevice> >::iterator it;
+  it = g_switchMap.find (id);
+  if (it != g_switchMap.end ())
     {
-      NS_LOG_WARN ("There was an error sending the message!");
-      return -1;
-  }
-  return 0;
+      return it->second;
+    }
+  else
+    {
+      NS_LOG_ERROR ("Error retrieving datapath device from global map.");
+      return NULL;
+    }
 }
+
 
 // ---- OpenFlow switch code -------------------------------
 namespace ns3 {

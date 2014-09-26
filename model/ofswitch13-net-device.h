@@ -95,6 +95,15 @@ public:
   int AddSwitchPort (Ptr<NetDevice> switchPort);
 
   /**
+   * Send a message to the controller. This method is the key to communicating
+   * with the controller, it does the actual sending. The other Send methods
+   * call this one when they are ready to send the packet.
+   * \param packet The packet to send.
+   * \return The number of bytes transmitted.
+   */
+  int SendToController (Ptr<Packet> packet);
+
+  /**
    * \return Number of switch ports attached to this switch.
    */
   uint32_t GetNSwitchPorts (void) const;
@@ -113,15 +122,6 @@ public:
    * Set up the TCP connection between switch and controller.
    */
   void StartControllerConnection ();
-
-  /**
-   * Send a message to the controller. This method is the key to communicating
-   * with the controller, it does the actual sending. The other Send methods
-   * call this one when they are ready to send the packet.
-   * \param packet The packet to send.
-   * \return The number of bytes transmitted.
-   */
-  int SendToController (Ptr<Packet> packet);
 
   // Inherited from NetDevice base class
   virtual void SetIfIndex (const uint32_t index);
@@ -216,7 +216,6 @@ private:
    * \return 0 if everything's ok, otherwise an error number.
    */
   int ReceiveFromController (ofpbuf* buffer);
- 
 
   /**
    * Called when a packet is received on one of the switch's ports. This method

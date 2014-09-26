@@ -20,10 +20,10 @@
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
 
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
+
 namespace ns3 {
 namespace ofs {
-
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 
 Port::Port (Ptr<NetDevice> netdev, uint32_t no) 
   : flags (0),
@@ -208,6 +208,8 @@ Ptr<Packet> PacketFromInternalPacket (packet *pkt)
 
 using namespace ns3;
 
+Ptr<OFSwitch13NetDevice> GetDatapathDevice (uint64_t id);
+
 /** 
  * Overriding ofsoftswitch13 time_now weak function from lib/timeval.c.
  * \return The current simulation time, in seconds. 
@@ -227,4 +229,38 @@ time_msec (void)
 {
   return (long long int)Simulator::Now ().GetMilliSeconds ();
 }
+
+/**
+ * Overriding ofsoftswitch13 dp_send_message weak function from
+ * udatapath/datapath.c. Sends the given OFLib message to the connection
+ * represented by sender, or to all open connections, if sender is null. Note
+ * that in current ns3 implementation we only support a single controller.
+ * \param dp The datapath.
+ * \param msg The OFlib message to send.
+ * \param sender The sender information (including xid).
+ * \return 0 if everything's ok, error number otherwise.
+ */
+int
+dp_send_message (struct datapath *dp, struct ofl_msg_header *msg, 
+    const struct sender *sender) 
+{
+  int error = 0;
+  uint32_t xid;
+  
+  char *msg_str = ofl_msg_to_string (msg, dp->exp);
+  NS_LOG_DEBUG ("TX to ctrl: " << msg_str);
+  free(msg_str);
+
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
+  xid = sender ? sender->xid : dev->GetNextXid ();
+
+  error = dev->SendToController (ofs::PacketFromMsg (msg, xid));
+  if (!error) 
+    {
+      NS_LOG_WARN ("There was an error sending the message!");
+      return -1;
+  }
+  return 0;
+}
+
 #endif // NS3_OFSWITCH13
