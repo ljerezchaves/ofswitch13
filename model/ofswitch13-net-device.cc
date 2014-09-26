@@ -36,15 +36,9 @@
 #include "ns3/arp-l3-protocol.h"
 #include "ns3/inet-socket-address.h"
 
+using namespace ns3;
+
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13NetDevice");
-
-namespace ns3 {
-
-NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
-
-// Initializing OFSwitch13NetDevice static members
-uint64_t OFSwitch13NetDevice::m_globalDpId = 0;
-uint32_t OFSwitch13NetDevice::m_globalXid = 0;
 
 // Structure to store all OFSwitch13NetDevices in simulation
 typedef std::map<uint64_t, Ptr<OFSwitch13NetDevice> > SwitchMap_t;
@@ -70,8 +64,8 @@ GetDatapathDevice (uint64_t id)
 
 /**
  * Overriding ofsoftswitch13 dp_send_message weak function from
- * udatapath/datapath.c.  Sends the given OFLib message to the connection
- * represented by sender, or to all open connections, if sender is null.  Note
+ * udatapath/datapath.c. Sends the given OFLib message to the connection
+ * represented by sender, or to all open connections, if sender is null. Note
  * that in current ns3 implementation we only support a single controller.
  * \param dp The datapath.
  * \param msg The OFlib message to send.
@@ -79,24 +73,36 @@ GetDatapathDevice (uint64_t id)
  * \return 0 if everything's ok, error number otherwise.
  */
 int
-dp_send_message (struct datapath *dp, struct ofl_msg_header *msg, const struct sender *sender) 
+dp_send_message (struct datapath *dp, struct ofl_msg_header *msg, 
+    const struct sender *sender) 
 {
   int error = 0;
-  NS_LOG_UNCOND ("**************** Estive aqui!");
+  uint32_t xid;
+  
   char *msg_str = ofl_msg_to_string (msg, dp->exp);
-  NS_LOG_UNCOND ("TX to ctrl: " << msg_str);
+  NS_LOG_DEBUG ("TX to ctrl: " << msg_str);
   free(msg_str);
 
-  Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, 0/*++m_xid*/);
   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
-  dev->SendToController (packet);
+  xid = dev->GetNextXid ();
+
+  error = dev->SendToController (ofs::PacketFromMsg (msg, xid));
   if (!error) 
     {
-      NS_LOG_UNCOND ("There was an error sending the message!");
+      NS_LOG_WARN ("There was an error sending the message!");
       return -1;
   }
   return 0;
 }
+
+// ---- OpenFlow switch code -------------------------------
+namespace ns3 {
+
+NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
+
+// Initializing OFSwitch13NetDevice static members
+uint64_t OFSwitch13NetDevice::m_globalDpId = 0;
+uint32_t OFSwitch13NetDevice::m_globalXid = 0;
 
 static uint32_t 
 HashInt (uint32_t x, uint32_t basis)
@@ -259,7 +265,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
       msg.reason = OFPPR_ADD;
       msg.desc = p.conf;
 
-      Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+      Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, GetNextXid ());
       LogOflMsg ((ofl_msg_header*)&msg);
       SendToController (packet);
     }
@@ -281,6 +287,12 @@ uint64_t
 OFSwitch13NetDevice::GetDatapathId (void) const
 {
   return m_dpId;
+}
+
+uint32_t
+OFSwitch13NetDevice::GetNextXid ()
+{
+  return ++m_xid;
 }
 
 void
@@ -572,7 +584,7 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
   // Check flow entry timeout
   for (int i = 0; i < PIPELINE_TABLES; i++) 
     {
-      FlowTableTimeout (dp->pipeline->tables[i]);
+      flow_table_timeout (dp->pipeline->tables[i]);
     }
 
   // Check for changes in port status
@@ -587,7 +599,7 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
           msg.reason = OFPPR_MODIFY;
           msg.desc = p->conf;
 
-          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, GetNextXid ());
           LogOflMsg ((ofl_msg_header*)&msg);
           SendToController (packet);
         }
@@ -1390,7 +1402,7 @@ OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
           msg.reason = (ofp_flow_removed_reason)reason;
           msg.stats  = entry->stats;
 
-          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, GetNextXid ());
           LogOflMsg ((ofl_msg_header*)&msg);
           SendToController (packet);
         }
@@ -1695,7 +1707,7 @@ OFSwitch13NetDevice::CreatePacketIn (pipeline* pl, packet *pkt, uint8_t tableId,
   msg.match = (ofl_match_header*)&pkt->handle_std->match;
  
   LogOflMsg ((ofl_msg_header*)&msg);
-  return ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
+  return ofs::PacketFromMsg ((ofl_msg_header*)&msg, GetNextXid ());
 }
 
 void
@@ -1709,7 +1721,7 @@ OFSwitch13NetDevice::SendEchoRequest ()
   msg.data_length = 0;
   msg.data        = 0;
  
-  uint64_t xid = ++m_xid;
+  uint64_t xid = GetNextXid ();
   ofs::EchoInfo echo (InetSocketAddress::ConvertFrom (m_ctrlAddr).GetIpv4 ());
   m_echoMap.insert (std::pair<uint64_t, ofs::EchoInfo> (xid, echo));
 
@@ -2080,7 +2092,7 @@ OFSwitch13NetDevice::HandleMsgPortMod (datapath *dp, ofl_msg_port_mod *msg,
   reply.reason = OFPPR_MODIFY; 
   reply.desc = p->conf;
 
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, ++m_xid);
+  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, GetNextXid ());
   LogOflMsg ((ofl_msg_header*)&reply);
   SendToController (pkt);
 
@@ -2636,7 +2648,7 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
   ofl_msg_header msg;
   msg.type = OFPT_HELLO;
   LogOflMsg (&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
+  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, GetNextXid ());
   SendToController (pkt);
   
   // Schedule first echo message
@@ -2650,5 +2662,5 @@ OFSwitch13NetDevice::SocketCtrlFailed (Ptr<Socket> socket)
   NS_LOG_ERROR ("Controller did not accepted connection request!");
 }
 
-} // namespace ns3
+} // ------------- namespace ns3 -------------
 #endif // NS3_OFSWITCH13

@@ -105,6 +105,11 @@ public:
   uint64_t GetDatapathId (void) const;
 
   /**
+   * \return The next transaction ID for this switch.
+   */
+  uint32_t GetNextXid ();
+
+  /**
    * Set up the TCP connection between switch and controller.
    */
   void StartControllerConnection ();
@@ -547,10 +552,10 @@ private:
   NetDevice::PromiscReceiveCallback m_promiscRxCallback; //!< Promiscuous receive callback
  
   static uint64_t         m_globalDpId;       //!< Global counter of datapath IDs
-  static uint32_t         m_globalXid;        //!< Global transaction idx
+  static uint32_t         m_globalXid;        //!< Global transaction ID counter
   
   uint64_t                m_dpId;             //!< This datapath id
-  uint32_t                m_xid;              //!< This transaction idx
+  uint32_t                m_xid;              //!< Transaction idx sequence
   Mac48Address            m_address;          //!< Address of this device
   Ptr<BridgeChannel>      m_channel;          //!< Port channels into the Switch Channel
   Ptr<Node>               m_node;             //!< Node this device is installed on
@@ -567,6 +572,5 @@ private:
   ofs::Ports_t            m_ports;            //!< Metadata for switch ports
 
 }; // Class OFSwitch13NetDevice
-
 } // namespace ns3
 #endif /* OFSWITCH13_NET_DEVICE_H */
