@@ -79,6 +79,16 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
       NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
       bytes = RequestTableFeatures (swtch);
     }
+  else if (strcmp (argv[0], "group-features") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
+      bytes = RequestGroupFeatures (swtch);
+    }
+  //else if (strcmp (argv[0], "meter-features") == 0)
+  //  {
+  //    NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
+  //    bytes = RequestMeterFeatures (swtch);
+  //  }
   else if (strcmp (argv[0], "stats-desc") == 0)
     {
       NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
@@ -104,6 +114,31 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
       NS_ASSERT_MSG (argc == 1 || argc == 2 , "Invalid number of arguments for command " << argv[0]);
       bytes = DpctlStatsPortCommand (swtch, --argc, ++argv);
     }
+  //else if (strcmp (argv[0], "stats-queue") == 0)
+  //  {
+  //    NS_ASSERT_MSG (argc >= 1 && argc <= 3 , "Invalid number of arguments for command " << argv[0]);
+  //    bytes = DpctlStatsQueueCommand (swtch, --argc, ++argv);
+  //  }
+  else if (strcmp (argv[0], "stats-group") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1 || argc == 2 , "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlStatsGroupCommand (swtch, --argc, ++argv);
+    }
+  else if (strcmp (argv[0], "stats-group-desc") == 0)
+    {
+      NS_ASSERT_MSG (argc == 1 || argc == 2 , "Invalid number of arguments for command " << argv[0]);
+      bytes = DpctlStatsGroupDescCommand (swtch, --argc, ++argv);
+    }
+  //else if (strcmp (argv[0], "stats-meter") == 0)
+  //  {
+  //    NS_ASSERT_MSG (argc == 1 || argc == 2 , "Invalid number of arguments for command " << argv[0]);
+  //    bytes = DpctlStatsMeterCommand (swtch, --argc, ++argv);
+  //  }
+  //else if (strcmp (argv[0], "meter-config") == 0)
+  //  {
+  //    NS_ASSERT_MSG (argc == 1 || argc == 2 , "Invalid number of arguments for command " << argv[0]);
+  //    bytes = DpctlMeterConfigCommand (swtch, --argc, ++argv);
+  //  }
   else if (strcmp (argv[0], "port-desc") == 0)
     {
       NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
@@ -124,6 +159,11 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
       NS_ASSERT_MSG (argc >= 2 && argc <= UINT8_MAX, "Invalid number of arguments for command " << argv[0]);
       bytes = DpctlGroupModCommand (swtch, --argc, ++argv);
     }
+  //else if (strcmp (argv[0], "meter-mod") == 0)
+  //  {
+  //    NS_ASSERT_MSG (argc >= 2 && argc <= UINT8_MAX, "Invalid number of arguments for command " << argv[0]);
+  //    bytes = DpctlMeterModCommand (swtch, --argc, ++argv);
+  //  }
   else if (strcmp (argv[0], "get-async") == 0)
     {
       NS_ASSERT_MSG (argc == 1, "Invalid number of arguments for command " << argv[0]);
@@ -140,6 +180,10 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
       bytes = DpctlTableModCommand (swtch, --argc, ++argv);
     }
   // set-table-match ??
+  // set-desc
+  // queue-get-config
+  // queue-mod
+  // queue-del
 
   wordfree (&cmd);
   return bytes;
@@ -361,6 +405,20 @@ OFSwitch13Controller::RequestTableFeatures (SwitchInfo swtch)
 }
 
 int
+OFSwitch13Controller::RequestGroupFeatures (SwitchInfo swtch)
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  ofl_msg_multipart_request_header msg;
+  msg.header.type = OFPT_MULTIPART_REQUEST;
+  msg.type = OFPMP_GROUP_FEATURES;
+  msg.flags = 0x0000;
+  
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
+}
+
+int
 OFSwitch13Controller::RequestPortDesc (SwitchInfo swtch)
 {
   NS_LOG_FUNCTION (swtch.ipv4);
@@ -508,8 +566,8 @@ ofl_err
 OFSwitch13Controller::HandleMsgMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint64_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
-  // There are several types of multipart replies. Derived controlleres can
-  // handle these messages as they wish.
+  // There are several types of multipart replies. 
+  // Derived controlleres can handle these messages as they wish.
   
   // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, NULL/*exp*/);
@@ -941,7 +999,41 @@ OFSwitch13Controller::DpctlStatsPortCommand (SwitchInfo swtch, int argc, char *a
     }
 }
 
-int
+int 
+OFSwitch13Controller::DpctlStatsGroupCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  struct ofl_msg_multipart_request_group msg;
+  msg.header.header.type = OFPT_MULTIPART_REQUEST;
+  msg.header.type = OFPMP_GROUP;
+  msg.header.flags = 0x0000;
+  msg.group_id = OFPG_ALL;
+
+  parse_group (argv[0], &msg.group_id);
+
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
+}
+
+int 
+OFSwitch13Controller::DpctlStatsGroupDescCommand (SwitchInfo swtch, int argc, char *argv[])
+{
+  NS_LOG_FUNCTION (swtch.ipv4);
+
+  struct ofl_msg_multipart_request_group msg;
+  msg.header.header.type = OFPT_MULTIPART_REQUEST;
+  msg.header.type = OFPMP_GROUP_DESC;
+  msg.header.flags = 0x0000;
+  msg.group_id = OFPG_ALL;
+
+  parse_group (argv[0], &msg.group_id);
+   
+  LogOflMsg ((ofl_msg_header*)&msg);
+  return SendToSwitch (swtch, ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid));
+}
+
+  int
 OFSwitch13Controller::DpctlPortModCommand (SwitchInfo swtch, int argc, char *argv[])
 {
   NS_LOG_FUNCTION (swtch.ipv4);
