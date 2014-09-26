@@ -42,12 +42,60 @@ namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
 
-static uint64_t
-GenerateId ()
+// Initializing OFSwitch13NetDevice static members
+uint64_t OFSwitch13NetDevice::m_globalDpId = 0;
+uint32_t OFSwitch13NetDevice::m_globalXid = 0;
+
+// Structure to store all OFSwitch13NetDevices in simulation
+typedef std::map<uint64_t, Ptr<OFSwitch13NetDevice> > SwitchMap_t;
+static SwitchMap_t g_switchMap;
+
+void 
+RegisterDatapath (uint64_t id, Ptr<OFSwitch13NetDevice> dev)
 {
-  uint8_t ea[ETH_ADDR_LEN];
-  eth_addr_random (ea);
-  return eth_addr_to_uint64 (ea);
+  g_switchMap.insert (std::pair<uint64_t, Ptr<OFSwitch13NetDevice> > (id, dev));
+}
+
+void 
+UnregisterDatapath (uint64_t id)
+{
+  g_switchMap.erase (id);
+}
+
+Ptr<OFSwitch13NetDevice>
+GetDatapathDevice (uint64_t id)
+{
+  return g_switchMap.find (id)->second;
+}
+
+/**
+ * Overriding ofsoftswitch13 dp_send_message weak function from
+ * udatapath/datapath.c.  Sends the given OFLib message to the connection
+ * represented by sender, or to all open connections, if sender is null.  Note
+ * that in current ns3 implementation we only support a single controller.
+ * \param dp The datapath.
+ * \param msg The OFlib message to send.
+ * \param sender The sender information (including xid).
+ * \return 0 if everything's ok, error number otherwise.
+ */
+int
+dp_send_message (struct datapath *dp, struct ofl_msg_header *msg, const struct sender *sender) 
+{
+  int error = 0;
+  NS_LOG_UNCOND ("**************** Estive aqui!");
+  char *msg_str = ofl_msg_to_string (msg, dp->exp);
+  NS_LOG_UNCOND ("TX to ctrl: " << msg_str);
+  free(msg_str);
+
+  Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, 0/*++m_xid*/);
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
+  dev->SendToController (packet);
+  if (!error) 
+    {
+      NS_LOG_UNCOND ("There was an error sending the message!");
+      return -1;
+  }
+  return 0;
 }
 
 static uint32_t 
@@ -88,12 +136,13 @@ OFSwitch13NetDevice::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::OFSwitch13NetDevice")
     .SetParent<NetDevice> ()
     .AddConstructor<OFSwitch13NetDevice> ()
-    .AddAttribute ("ID",
+    .AddAttribute ("DatapathId",
                    "The identification of the OFSwitch13NetDevice/Datapath.",
-                   UintegerValue (GenerateId ()),
-                   MakeUintegerAccessor (&OFSwitch13NetDevice::SetDatapathId),
+                   TypeId::ATTR_GET,
+                   UintegerValue (0),
+                   MakeUintegerAccessor (&OFSwitch13NetDevice::m_dpId),
                    MakeUintegerChecker<uint64_t> ())
-    .AddAttribute ("FlowTableLookupDelay",
+    .AddAttribute ("FlowTableDelay",
                    "Overhead for looking up in the flow table (Default: standard TCAM on an FPGA).",
                    TimeValue (NanoSeconds (30)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_lookupDelay),
@@ -118,7 +167,7 @@ OFSwitch13NetDevice::GetTypeId (void)
 }
 
 OFSwitch13NetDevice::OFSwitch13NetDevice ()
-  : m_xid (0xff000000),
+  : m_dpId (++m_globalDpId),
     m_node (0),
     m_ctrlSocket (0),
     m_ifIndex (0),
@@ -130,8 +179,9 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   m_ctrlAddr = Address ();
   m_channel = CreateObject<BridgeChannel> ();
   SetAddress (Mac48Address::Allocate ()); 
-
+ 
   m_datapath = DatapathNew ();
+  RegisterDatapath (m_dpId, Ptr<OFSwitch13NetDevice> (this));
 }
 
 OFSwitch13NetDevice::~OFSwitch13NetDevice ()
@@ -230,14 +280,7 @@ OFSwitch13NetDevice::GetNSwitchPorts (void) const
 uint64_t
 OFSwitch13NetDevice::GetDatapathId (void) const
 {
-  return m_datapath->id;
-}
-
-void
-OFSwitch13NetDevice::SetDatapathId (uint64_t id)
-{
-  NS_ASSERT (m_datapath);
-  m_datapath->id = id;
+  return m_dpId;
 }
 
 void
@@ -469,6 +512,7 @@ OFSwitch13NetDevice::DoDispose ()
   group_table_destroy (m_datapath->groups);
   meter_table_destroy (m_datapath->meters);
 
+  UnregisterDatapath (m_dpId);
   NetDevice::DoDispose ();
 }
 
@@ -495,7 +539,7 @@ OFSwitch13NetDevice::DatapathNew ()
   dp->listeners_aux = NULL;
   dp->n_listeners_aux = 0;
   
-  dp->id = 0;
+  dp->id = m_dpId;
   dp->last_timeout = time_now ();
   
   dp->buffers = dp_buffers_create (dp); 
@@ -2586,7 +2630,7 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
   socket->SetRecvCallback (MakeCallback (&OFSwitch13NetDevice::SocketCtrlRead, this));
 
   // Randomize xid
-  m_xid = HashInt (m_xid, GetDatapathId () & UINT32_MAX);
+  m_xid = HashInt (++m_globalDpId, GetDatapathId () & UINT32_MAX);
 
   // Send Hello message
   ofl_msg_header msg;

@@ -32,7 +32,7 @@
 
 namespace ns3 {
 
-class OFSwitch13Controller;
+//class OFSwitch13Controller;
 
 /**
  * \ingroup ofswitch13
@@ -105,14 +105,18 @@ public:
   uint64_t GetDatapathId (void) const;
 
   /**
-   * Set the datapath ID.
-   */
-  void SetDatapathId (uint64_t id);
-
-  /**
    * Set up the TCP connection between switch and controller.
    */
   void StartControllerConnection ();
+
+  /**
+   * Send a message to the controller. This method is the key to communicating
+   * with the controller, it does the actual sending. The other Send methods
+   * call this one when they are ready to send the packet.
+   * \param packet The packet to send.
+   * \return The number of bytes transmitted.
+   */
+  int SendToController (Ptr<Packet> packet);
 
   // Inherited from NetDevice base class
   virtual void SetIfIndex (const uint32_t index);
@@ -208,14 +212,6 @@ private:
    */
   int ReceiveFromController (ofpbuf* buffer);
  
-  /**
-   * Send a message to the controller. This method is the key to communicating
-   * with the controller, it does the actual sending. The other Send methods
-   * call this one when they are ready to send the packet.
-   * \param packet The packet to send.
-   * \return The number of bytes transmitted.
-   */
-  int SendToController (Ptr<Packet> packet);
 
   /**
    * Called when a packet is received on one of the switch's ports. This method
@@ -549,23 +545,26 @@ private:
   /// NetDevice callbacks
   NetDevice::ReceiveCallback        m_rxCallback;        //!< Receive callback
   NetDevice::PromiscReceiveCallback m_promiscRxCallback; //!< Promiscuous receive callback
+ 
+  static uint64_t         m_globalDpId;       //!< Global counter of datapath IDs
+  static uint32_t         m_globalXid;        //!< Global transaction idx
   
-  ofs::EchoMsgMap_t       m_echoMap;          //!< Metadata for echo requests
-  uint32_t                m_xid;              //!< Global transaction idx
+  uint64_t                m_dpId;             //!< This datapath id
+  uint32_t                m_xid;              //!< This transaction idx
   Mac48Address            m_address;          //!< Address of this device
-  Ptr<BridgeChannel>      m_channel;          //!< Collection of port channels into the Switch Channel
+  Ptr<BridgeChannel>      m_channel;          //!< Port channels into the Switch Channel
   Ptr<Node>               m_node;             //!< Node this device is installed on
-  Address                 m_ctrlAddr;         //!< Controller Address
   Ptr<Socket>             m_ctrlSocket;       //!< Tcp Socket to controller
+  Address                 m_ctrlAddr;         //!< Controller Address
   uint32_t                m_ifIndex;          //!< Interface Index
   uint16_t                m_mtu;              //!< Maximum Transmission Unit
   Time                    m_echo;             //!< Echo request interval
   Time                    m_timeout;          //!< Datapath Timeout
   Time                    m_lookupDelay;      //!< Flow Table Lookup Delay [overhead].
   ofl_async_config        m_asyncConfig;      //!< Asynchronous messages configuration
-  
   datapath*               m_datapath;         //!< The OpenFlow datapath
-  ofs::Ports_t            m_ports;            //!< Switch's ports
+  ofs::EchoMsgMap_t       m_echoMap;          //!< Metadata for echo requests
+  ofs::Ports_t            m_ports;            //!< Metadata for switch ports
 
 }; // Class OFSwitch13NetDevice
 

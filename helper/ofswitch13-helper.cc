@@ -35,8 +35,7 @@ class OFSwitch13Controller;
 OFSwitch13Helper::OFSwitch13Helper ()
   : m_ctrlNode (0),
     m_ctrlApp (0),
-    m_ctrlDev (0),
-    m_dpId (0)
+    m_ctrlDev (0)
 {
   NS_LOG_FUNCTION (this);
   m_ctrlFactory.SetTypeId ("ns3::LearningController");
@@ -66,20 +65,12 @@ OFSwitch13Helper::SetDeviceAttribute (std::string n1, const AttributeValue &v1)
   m_ndevFactory.Set (n1, v1);
 }
 
-// void
-// OFSwitch13Helper::SetControllerAttribute (std::string n1, const AttributeValue &v1)
-// {
-//   NS_LOG_FUNCTION (this);
-//   m_ctrlFactory.Set (n1, v1);
-// }
-
 NetDeviceContainer
 OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_DEBUG ("Installing OpenFlow switch device on node " << swNode->GetId ());
   
-  SetDeviceAttribute ("ID", UintegerValue (++m_dpId));
   Ptr<OFSwitch13NetDevice> openFlowDev = m_ndevFactory.Create<OFSwitch13NetDevice> ();
   swNode->AddDevice (openFlowDev);
   m_devices.Add (openFlowDev);
