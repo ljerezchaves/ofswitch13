@@ -51,6 +51,7 @@ extern "C"
 #define delete _delete
 #define list List
 
+#include "udatapath/datapath.h"
 #include "udatapath/packet.h"
 #include "udatapath/pipeline.h"
 #include "udatapath/flow_table.h"
@@ -68,6 +69,8 @@ extern "C"
 #include "lib/ofpbuf.h"
 #include "lib/dynamic-string.h"
 #include "lib/hash.h"
+#include "lib/list.h"
+#include "lib/util.h"
 #include "lib/random.h"
 
 #include "oflib/ofl-structs.h"
@@ -95,6 +98,9 @@ int parse_queue(char *str, uint32_t *port);
 int parse_group(char *str, uint32_t *group);
 int parse_meter(char *str, uint32_t *meter);
 int parse_table(char *str, uint8_t *table);
+
+// From udatapath/datapath.c 
+struct remote * remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux);
 
 // From udatapath/dp_ports.c
 uint32_t port_speed(uint32_t conf);

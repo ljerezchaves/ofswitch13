@@ -190,18 +190,8 @@ private:
   void PortStatsUpdate (ofs::Port *p);
   //\}
 
-  ///\name Send/Receive methods
+  ///\name Port send/receive methods
   //\{
-  /**
-   * Called by the SocketRead when a packet is received from the controller.
-   * Dispatches control messages to appropriate handler functions.
-   * \see remote_rconn_run () at udatapath/datapath.c.
-   * \see handle_control_msg () at udatapath/dp_control.c.
-   * \param buffer The message (ofpbuf) received from the controller.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  int ReceiveFromController (ofpbuf* buffer);
-
   /**
    * Called when a packet is received on one of the switch's ports. This method
    * will send the packet to the openflow pipeline.
@@ -379,6 +369,16 @@ private:
   void SendEchoRequest ();
 
   /**
+   * Called by the SocketRead when a packet is received from the controller.
+   * Dispatches control messages to appropriate handler functions.
+   * \see handle_control_msg () at udatapath/dp_control.c.
+   * \param buffer The message (ofpbuf) received from the controller.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  ofl_err HandleControlMessage (datapath *dp, ofl_msg_header *msg, 
+    const sender *sender);
+
+  /**
    * \name OpenFlow message handlers
    * Handlers used by ReceiveFromController to proccess each type of OpenFlow
    * message received from the controller.
@@ -423,7 +423,11 @@ private:
    * \param socket The TCP socket.
    */
   //\{
-  void SocketCtrlRead       (Ptr<Socket> socket);   //!< Receive packet from controller
+  /**
+   * Receive a openflow packet from controller. 
+   * \see remote_rconn_run () at udatapath/datapath.c.
+   */
+  void SocketCtrlRead       (Ptr<Socket> socket);  
   void SocketCtrlSucceeded  (Ptr<Socket> socket);   //!< TCP request accepted
   void SocketCtrlFailed     (Ptr<Socket> socket);   //!< TCP request refused
   //\}
