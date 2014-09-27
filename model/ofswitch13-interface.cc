@@ -156,32 +156,6 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp)
   return ofpbuf;
 }
 
-packet * InternalPacketFromBuffer (datapath* dp, uint32_t in_port, ofpbuf *buf,
-    bool packet_out) 
-{
-  NS_LOG_FUNCTION_NOARGS ();
-  packet *pkt;
-  pkt = (packet*)xmalloc (sizeof (packet));
-
-  pkt->dp         = dp;
-  pkt->buffer     = buf;
-  pkt->in_port    = in_port;
-  pkt->action_set = (action_set*)xmalloc (sizeof (action_set));
-  list_init (&pkt->action_set->actions);
-
-  pkt->packet_out       = packet_out;
-  pkt->out_group        = OFPG_ANY;
-  pkt->out_port         = OFPP_ANY;
-  pkt->out_port_max_len = 0;
-  pkt->out_queue        = 0;
-  pkt->buffer_id        = NO_BUFFER;
-  pkt->table_id         = 0;
-
-  // Note: here, the nblink will parse the packet
-  pkt->handle_std = packet_handle_std_create (pkt);
-  return pkt;
-}
-
 Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
 {
   return PacketFromBufferAndFree (BufferFromMsg (msg, xid));

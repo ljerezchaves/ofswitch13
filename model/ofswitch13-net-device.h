@@ -32,8 +32,6 @@
 
 namespace ns3 {
 
-//class OFSwitch13Controller;
-
 /**
  * \ingroup ofswitch13
  *
@@ -61,7 +59,9 @@ public:
    */
   OFSwitch13NetDevice ();
 
-  /** Dummy destructor, see DoDispose. */
+  /** 
+   * Dummy destructor, see DoDispose. 
+   */
   virtual ~OFSwitch13NetDevice ();    
   
  /**
@@ -81,6 +81,8 @@ public:
    * Send a message to the controller. This method is the key to communicating
    * with the controller, it does the actual sending. The other Send methods
    * call this one when they are ready to send the packet.
+   * \internal This method is public as the 'C' dp_send_message overriding
+   * function use this 'C++' member function to send their messages.
    * \param packet The packet to send.
    * \return The number of bytes transmitted.
    */
@@ -97,12 +99,12 @@ public:
   uint64_t GetDatapathId (void) const;
 
   /**
-   * \return The next transaction ID for this switch.
+   * \return The next (in sequence) transaction ID for this switch.
    */
   uint32_t GetNextXid ();
 
   /**
-   * Set up the TCP connection between switch and controller.
+   * Starts the TCP connection between switch and controller.
    */
   void StartControllerConnection ();
 

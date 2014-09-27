@@ -238,6 +238,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
   int no = m_ports.size () + 1;
   ofs::Port p (switchPort, no);
   m_ports.push_back (p);
+  m_datapath->ports_num++;
   NS_LOG_INFO ("Port # " << no);
   
   // Notify the controller that this port has been added
@@ -528,12 +529,13 @@ OFSwitch13NetDevice::DatapathNew ()
   strncpy (dp->serial_num, "1.1", DESC_STR_LEN);
 
   // Not used
-  dp->generation_id = -1;
-  dp->listeners = NULL;
-  dp->n_listeners = 0;
-  dp->listeners_aux = NULL;
-  dp->n_listeners_aux = 0;
-  
+    dp->generation_id = -1;
+    dp->listeners = NULL;
+    dp->n_listeners = 0;
+    dp->listeners_aux = NULL;
+    dp->n_listeners_aux = 0;
+  // Not used
+
   dp->id = m_dpId;
   dp->last_timeout = time_now ();
   
@@ -547,14 +549,14 @@ OFSwitch13NetDevice::DatapathNew ()
                                        // use OFPCML_NO_BUFFER to send hole ptk
   dp->exp = NULL;
 
-  // Not used
+  // Not used ?
   dp->ports_num = 0;
   dp->max_queues = 0;
   dp->local_port = NULL;
-
-  Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, dp);
+  // Not used ? 
   
-  m_ports.reserve (DP_MAX_PORTS+1);
+  Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, dp);
+  m_ports.reserve (DP_MAX_PORTS+1); // FIXME +1?
 
   return dp;
 }
@@ -892,8 +894,8 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   uint32_t headRoom = 128 + 2;
   uint32_t bodyRoom = netdev->GetMtu () + VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofs::BufferFromPacket (pktCopy, bodyRoom, headRoom);
-  struct packet *pkt = ofs::InternalPacketFromBuffer (m_datapath, 
-      inPort->stats->port_no, buffer, false);
+  struct packet *pkt = packet_create (m_datapath, inPort->stats->port_no, 
+      buffer, false);
 
   // Update port stats
   inPort->stats->rx_packets++;
@@ -1607,7 +1609,7 @@ OFSwitch13NetDevice::HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg,
       buf = ofpbuf_new (0);
       ofpbuf_use (buf, msg->data, msg->data_length);
       ofpbuf_put_uninit (buf, msg->data_length);
-      pkt = ofs::InternalPacketFromBuffer (dp, msg->in_port, buf, true);
+      pkt = packet_create (dp, msg->in_port, buf, true);
     } 
   else 
     {

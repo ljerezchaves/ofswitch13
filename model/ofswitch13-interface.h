@@ -224,21 +224,6 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp = NULL);
 
 /**
  * \ingroup ofswitch13
- * Creates an OpenFlow internal packet from openflow buffer. This packet in an
- * internal ofsoftswitch13 structure to represent the packet, and it is used to
- * parse fields, lookup for flow matchs, etc.
- * \see ofsoftswitch13 function packet_create () at udatapath/packet.c
- * \param dp The datapath.
- * \param in_port The id of the input port.
- * \param buf The openflow buffer with the packet.
- * \param packet_out True if the packet arrived in a packet out msg.
- * \return The pointer to the created packet.
- */
-packet* InternalPacketFromBuffer (datapath* dp, uint32_t in_port, ofpbuf *buf,
-    bool packet_out);
-
-/**
- * \ingroup ofswitch13
  * Create an ns3::Packet from internal ofl_msg_*.  Takes a ofl_msg_* structure
  * and generates an Ptr<Packet> from it, packing message data into the packet
  * using wire format.
