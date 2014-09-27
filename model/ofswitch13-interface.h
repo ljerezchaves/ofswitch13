@@ -102,6 +102,14 @@ int parse_table(char *str, uint8_t *table);
 // From udatapath/datapath.c 
 struct remote * remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux);
 
+// From udatapath/dp_control.c
+ofl_err handle_control_barrier_request(struct datapath *dp, struct ofl_msg_header *msg, const struct sender *sender);
+ofl_err handle_control_features_request(struct datapath *dp, struct ofl_msg_header *msg, const struct sender *sender);
+ofl_err handle_control_get_config_request(struct datapath *dp, struct ofl_msg_header *msg, const struct sender *sender);
+ofl_err handle_control_set_config(struct datapath *dp, struct ofl_msg_set_config *msg, const struct sender *sender UNUSED);
+ofl_err handle_control_echo_request(struct datapath *dp, struct ofl_msg_echo *msg, const struct sender *sender);
+ofl_err handle_control_stats_request (struct datapath *dp, struct ofl_msg_multipart_request_header *msg, const struct sender *sender);
+
 // From udatapath/dp_ports.c
 uint32_t port_speed(uint32_t conf);
 
@@ -118,11 +126,6 @@ ofl_err group_table_delete(struct group_table *table, struct ofl_msg_group_mod *
 size_t select_from_select_group(struct group_entry *entry);
 size_t select_from_ff_group(struct group_entry *entry);
 
-// From udatapath/meter_table.c
-ofl_err meter_table_add(struct meter_table *table, struct ofl_msg_meter_mod *mod);
-ofl_err meter_table_modify(struct meter_table *table, struct ofl_msg_meter_mod *mod);
-ofl_err meter_table_delete(struct meter_table *table, struct ofl_msg_meter_mod *mod);
-
 // From udatapath/pipeline.c
 int inst_compare(const void *inst1, const void *inst2);
 
@@ -135,16 +138,6 @@ void del_meter_refs(struct flow_entry *entry);
 #undef delete
 }
 
-// Capabilities supported by this implementation (from dp_capabilities.h)
-#define DP_SUPPORTED_CAPABILITIES ( \
-    OFPC_FLOW_STATS     \
-  | OFPC_PORT_STATS     \
-  | OFPC_TABLE_STATS    \
-  | OFPC_GROUP_STATS    )
-/*| OFPC_IP_REASM */     
-/*| OFPC_QUEUE_STATS */   
-/*| OFPC_PORT_BLOCKED */   
-  
 namespace ns3 {
 namespace ofs {
 

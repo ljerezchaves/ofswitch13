@@ -368,41 +368,35 @@ private:
    */
   void SendEchoRequest ();
 
+ 
   /**
-   * Called by the SocketRead when a packet is received from the controller.
+   * \name OpenFlow message handlers
+   * Handlers used to proccess each OpenFlow message received from
+   * controller.
+   * \param dp The datapath.
+   * \param msg The OFLib message received.
+   * \param sender The sender (controller) information (including xid).
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  //\{
+  /**
+   * Called by the SocketRead when a packet is received from controller.
    * Dispatches control messages to appropriate handler functions.
    * \see handle_control_msg () at udatapath/dp_control.c.
-   * \param buffer The message (ofpbuf) received from the controller.
-   * \return 0 if everything's ok, otherwise an error number.
    */
   ofl_err HandleControlMessage (datapath *dp, ofl_msg_header *msg, 
     const sender *sender);
 
-  /**
-   * \name OpenFlow message handlers
-   * Handlers used by ReceiveFromController to proccess each type of OpenFlow
-   * message received from the controller.
-   * \param msg The OpenFlow message.
-   * \param xid The transaction id from the request message.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  //\{
-  ofl_err HandleMsgHello            (datapath *dp, ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgEchoRequest      (datapath *dp, ofl_msg_echo *msg, uint64_t xid);
-  ofl_err HandleMsgEchoReply        (datapath *dp, ofl_msg_echo *msg, uint64_t xid);
-  ofl_err HandleMsgFeaturesRequest  (datapath *dp, ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgGetConfigRequest (datapath *dp, ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgSetConfig        (datapath *dp, ofl_msg_set_config *msg, uint64_t xid);
-  ofl_err HandleMsgPacketOut        (datapath *dp, ofl_msg_packet_out *msg, uint64_t xid);
-  ofl_err HandleMsgFlowMod          (datapath *dp, ofl_msg_flow_mod *msg, uint64_t xid);
-  ofl_err HandleMsgPortMod          (datapath *dp, ofl_msg_port_mod *msg, uint64_t xid);
-  ofl_err HandleMsgGroupMod         (datapath *dp, ofl_msg_group_mod *msg, uint64_t xid);
-  ofl_err HandleMsgMeterMod         (datapath *dp, ofl_msg_meter_mod *msg, uint64_t xid);
-  ofl_err HandleMsgTableMod         (datapath *dp, ofl_msg_table_mod *msg, uint64_t xid);
-  ofl_err HandleMsgMultipartRequest (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
-  ofl_err HandleMsgBarrierRequest   (datapath *dp, ofl_msg_header *msg, uint64_t xid);
-  ofl_err HandleMsgGetAsyncRequest  (datapath *dp, ofl_msg_async_config *msg, uint64_t xid);
-  ofl_err HandleMsgSetAsync         (datapath *dp, ofl_msg_async_config *msg, uint64_t xid);
+  ofl_err HandleMsgEchoReply (datapath *dp, ofl_msg_echo *msg, const sender *sender);
+  ofl_err HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg, const sender *sender);
+  ofl_err HandleMsgFlowMod   (datapath *dp, ofl_msg_flow_mod *msg, const sender *sender);
+  ofl_err HandleMsgPortMod   (datapath *dp, ofl_msg_port_mod *msg, const sender *sender);
+  ofl_err HandleMsgGroupMod  (datapath *dp, ofl_msg_group_mod *msg, const sender *sender);
+  ofl_err HandleControlMultipartRequest (datapath *dp, ofl_msg_multipart_request_header *msg, const sender *sender);
+
+  ofl_err PortMultipartStats (datapath *dp, ofl_msg_multipart_request_port *msg, const sender *sender);
+  ofl_err PortMultipartDesc (datapath *dp, ofl_msg_multipart_request_header *msg, const sender *sender);
+
 
   ofl_err MultipartMsgDesc          (datapath *dp, ofl_msg_multipart_request_header *msg, uint64_t xid);
   ofl_err MultipartMsgFlow          (datapath *dp, ofl_msg_multipart_request_flow *msg, uint64_t xid);
