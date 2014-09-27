@@ -232,12 +232,15 @@ time_msec (void)
 
 /**
  * Overriding ofsoftswitch13 dp_send_message weak function from
- * udatapath/datapath.c. Sends the given OFLib message to the connection
- * represented by sender, or to all open connections, if sender is null. Note
- * that in current ns3 implementation we only support a single controller.
+ * udatapath/datapath.c. Sends the given OFLib message to the controller
+ * associated with the datapath. The sender parameter is not current in use
+ * (except for transaction xid field). Note that the current ns3 implementation
+ * only supports a single controller per datapath.
+ * \internal This function relies on the global map that stores ofpenflow
+ * devices (\see ofswitch13-net-device.cc).
  * \param dp The datapath.
  * \param msg The OFlib message to send.
- * \param sender The sender information (including xid).
+ * \param sender The sender information (xid).
  * \return 0 if everything's ok, error number otherwise.
  */
 int

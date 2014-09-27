@@ -208,36 +208,6 @@ OFSwitch13NetDevice::~OFSwitch13NetDevice ()
   NS_LOG_FUNCTION (this);
 }
 
-const char *
-OFSwitch13NetDevice::GetManufacturerDescription ()
-{
-  return "The ns-3 team";
-}
-
-const char *
-OFSwitch13NetDevice::GetHardwareDescription ()
-{
-  return "N/A";
-}
-
-const char *
-OFSwitch13NetDevice::GetSoftwareDescription ()
-{
-  return "Simulated OpenFlow Switch datapath version 1.3";
-}
-
-const char *
-OFSwitch13NetDevice::GetSerialNumber ()
-{
-  return "1";
-}
-
-const char *
-OFSwitch13NetDevice::GetDatapathDescrtiption ()
-{
-  return "N/A";
-}
-
 int 
 OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
 {
@@ -546,16 +516,16 @@ OFSwitch13NetDevice::DatapathNew ()
 {
   datapath* dp = (datapath*)xmalloc (sizeof (datapath));
 
-  dp->mfr_desc   = (char*)xmalloc (DESC_STR_LEN); 
-  dp->hw_desc    = (char*)xmalloc (DESC_STR_LEN);
-  dp->sw_desc    = (char*)xmalloc (DESC_STR_LEN);
-  dp->dp_desc    = (char*)xmalloc (DESC_STR_LEN);
+  dp->mfr_desc = (char*)xmalloc (DESC_STR_LEN); 
+  dp->hw_desc = (char*)xmalloc (DESC_STR_LEN);
+  dp->sw_desc = (char*)xmalloc (DESC_STR_LEN);
+  dp->dp_desc = (char*)xmalloc (DESC_STR_LEN);
   dp->serial_num = (char*)xmalloc (DESC_STR_LEN);
-  strcpy (dp->mfr_desc ,  GetManufacturerDescription ());
-  strcpy (dp->hw_desc,    GetHardwareDescription ());
-  strcpy (dp->sw_desc,    GetSoftwareDescription ());
-  strcpy (dp->dp_desc,    GetDatapathDescrtiption ());
-  strcpy (dp->serial_num, GetSerialNumber ());
+  strncpy (dp->mfr_desc, "The ns-3 team", DESC_STR_LEN);
+  strncpy (dp->hw_desc, "N/A", DESC_STR_LEN);
+  strncpy (dp->sw_desc, "ns3 OpenFlow datapath version 1.3", DESC_STR_LEN);
+  strncpy (dp->dp_desc, "ofsoftswitch13 (from CPqD)", DESC_STR_LEN);
+  strncpy (dp->serial_num, "1.1", DESC_STR_LEN);
 
   // Not used
   dp->generation_id = -1;

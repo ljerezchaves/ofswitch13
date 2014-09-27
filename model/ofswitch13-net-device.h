@@ -64,23 +64,6 @@ public:
   /** Dummy destructor, see DoDispose. */
   virtual ~OFSwitch13NetDevice ();    
   
-  /**
-   * \name OFSwitch13NetDevice Description Data
-   * These four data describe the OFSwitch13NetDevice as if it were a real
-   * OpenFlow switch. There is a type of stats request that OpenFlow switches
-   * are supposed to handle that returns the description of the OpenFlow
-   * switch. Currently manufactured by "The ns-3 team", software description is
-   * "Simulated OpenFlow Switch datapath version 1.3", hardware description is
-   * "N/A", serial number is 1, and datapath description is "N/A".
-   */
-  //\{
-  static const char * GetManufacturerDescription ();
-  static const char * GetHardwareDescription ();
-  static const char * GetSoftwareDescription ();
-  static const char * GetSerialNumber ();
-  static const char * GetDatapathDescrtiption ();
-  //\}
-
  /**
    * Add a 'port' to the switch device. This method adds a new switch
    * port to a OFSwitch13NetDevice, so that the new switch port NetDevice
