@@ -483,7 +483,6 @@ private:
   NetDevice::PromiscReceiveCallback m_promiscRxCallback; //!< Promiscuous receive callback
  
   static uint64_t         m_globalDpId;       //!< Global counter of datapath IDs
-  static uint32_t         m_globalXid;        //!< Global transaction ID counter
   
   uint64_t                m_dpId;             //!< This datapath id
   uint32_t                m_xid;              //!< Transaction idx sequence

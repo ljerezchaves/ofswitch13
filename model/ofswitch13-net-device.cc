@@ -108,9 +108,9 @@ GetDatapathDevice (uint64_t id)
 }
 
 /**
- * Fast hash function used by hash map.
+ * A fast hash function used by hash map.
+ * \see hash_int () in lib/hash.h
  */
-static uint32_t 
 HashInt (uint32_t x, uint32_t basis)
 {
   x -= x << 6;
@@ -131,7 +131,6 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
 
 // Initializing OFSwitch13NetDevice static members
 uint64_t OFSwitch13NetDevice::m_globalDpId = 0;
-uint32_t OFSwitch13NetDevice::m_globalXid = 0;
 
 /********** Public methods **********/
 TypeId
@@ -254,7 +253,7 @@ OFSwitch13NetDevice::SendToController (ofl_msg_header *msg, const sender *sender
   
   char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
   NS_LOG_DEBUG ("TX to ctrl: " << msg_str);
-  free(msg_str);
+  free (msg_str);
 
   uint32_t xid = sender ? sender->xid : GetNextXid ();
   ofpbuf *buffer = ofs::BufferFromMsg (msg, xid, m_datapath->exp);
@@ -1850,7 +1849,7 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
   socket->SetRecvCallback (MakeCallback (&OFSwitch13NetDevice::SocketCtrlRead, this));
 
   // Randomize local xid
-  m_xid = HashInt (++m_globalDpId, GetDatapathId () & UINT32_MAX);
+  m_xid = rand () & UINT32_MAX;
 
   // Save remote info in datapath
   remote_create (m_datapath, NULL, NULL);

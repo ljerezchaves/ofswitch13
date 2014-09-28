@@ -53,7 +53,7 @@ public:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid);
+  ofl_err HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid);
 
   /**
    * Handle flow removed messages sent from switch to this controller. Look for L2
@@ -64,7 +64,7 @@ public:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandleMsgFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid);
+  ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid);
 
 
 private:

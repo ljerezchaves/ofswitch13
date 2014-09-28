@@ -189,7 +189,7 @@ struct EchoInfo
 };
 
 /** Structure to store echo information */
-typedef std::map<uint64_t, EchoInfo> EchoMsgMap_t;
+typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
 
 /**
  * \ingroup ofswitch13
@@ -237,6 +237,16 @@ Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid = 0);
  * \return The ns3::Packet created.
  */
 Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer);
+
+/**
+ * \ingroup ofswitch13
+ * Create an ns3::Packet from OpenFlow buffer. Takes an OpenFlow buffer
+ * (ofpbuf*) and generates a Ptr<Packet> from it, load the data as well as its
+ * headers into the packet.
+ * \param buffer The ofpbuf buffer.
+ * \return The ns3::Packet created.
+ */
+Ptr<Packet> PacketFromBuffer (ofpbuf* buffer);
 
 /**
  * \ingroup ofswitch13

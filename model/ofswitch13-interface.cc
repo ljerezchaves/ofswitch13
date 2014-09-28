@@ -109,7 +109,8 @@ EchoInfo::EchoInfo (Ipv4Address ip)
   destIp = ip;
 }
 
-Time EchoInfo::GetRtt ()
+Time 
+EchoInfo::GetRtt ()
 {
   if (waiting)
     {
@@ -122,7 +123,8 @@ Time EchoInfo::GetRtt ()
     }
 }
 
-ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
+ofpbuf* 
+BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
     size_t headRoom)
 {
   NS_LOG_FUNCTION_NOARGS ();
@@ -135,7 +137,8 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
   return buffer;
 }
 
-ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp)
+ofpbuf*
+BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -156,12 +159,14 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp)
   return ofpbuf;
 }
 
-Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
+Ptr<Packet>
+PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
 {
   return PacketFromBufferAndFree (BufferFromMsg (msg, xid));
 }
 
-Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer)
+Ptr<Packet> 
+PacketFromBufferAndFree (ofpbuf* buffer)
 {
   NS_LOG_FUNCTION_NOARGS ();
   Ptr<Packet> packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
@@ -169,7 +174,17 @@ Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer)
   return packet;
 }
 
-Ptr<Packet> PacketFromInternalPacket (packet *pkt)
+Ptr<Packet> 
+PacketFromBuffer (ofpbuf* buffer)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+  Ptr<Packet> packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
+  return packet;
+}
+
+
+Ptr<Packet> 
+PacketFromInternalPacket (packet *pkt)
 {
   NS_LOG_FUNCTION_NOARGS ();
   ofpbuf *buffer = pkt->buffer;
@@ -209,14 +224,13 @@ time_msec (void)
 /**
  * Overriding ofsoftswitch13 dp_send_message weak function from
  * udatapath/datapath.c. Sends the given OFLib message to the controller
- * associated with the datapath. The sender parameter is not current in use
- * (except for transaction xid field). Note that the current ns3 implementation
- * only supports a single controller per datapath.
+ * associated with the datapath. 
  * \internal This function relies on the global map that stores ofpenflow
- * devices (\see ofswitch13-net-device.cc).
+ * devices to call the method on the correct object (\see
+ * ofswitch13-net-device.cc).
  * \param dp The datapath.
  * \param msg The OFlib message to send.
- * \param sender The sender information (xid).
+ * \param sender The sender information.
  * \return 0 if everything's ok, error number otherwise.
  */
 int
