@@ -62,6 +62,7 @@ extern "C"
 #include "udatapath/meter_entry.h"
 #include "udatapath/dp_ports.h"
 #include "udatapath/dp_actions.h"
+#include "udatapath/dp_control.h"
 #include "udatapath/action_set.h"
 #include "udatapath/dp_buffers.h"
 #include "udatapath/packet_handle_std.h"
@@ -103,11 +104,6 @@ int parse_table(char *str, uint8_t *table);
 struct remote * remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux);
 
 // From udatapath/dp_control.c
-ofl_err handle_control_barrier_request(struct datapath *dp, struct ofl_msg_header *msg, const struct sender *sender);
-ofl_err handle_control_features_request(struct datapath *dp, struct ofl_msg_header *msg, const struct sender *sender);
-ofl_err handle_control_get_config_request(struct datapath *dp, struct ofl_msg_header *msg, const struct sender *sender);
-ofl_err handle_control_set_config(struct datapath *dp, struct ofl_msg_set_config *msg, const struct sender *sender UNUSED);
-ofl_err handle_control_echo_request(struct datapath *dp, struct ofl_msg_echo *msg, const struct sender *sender);
 ofl_err handle_control_stats_request (struct datapath *dp, struct ofl_msg_multipart_request_header *msg, const struct sender *sender);
 
 // From udatapath/dp_ports.c
