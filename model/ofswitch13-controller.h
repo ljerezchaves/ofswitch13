@@ -59,12 +59,20 @@ public:
   virtual ~OFSwitch13Controller (); //!< Dummy destructor, see DoDispose.
 
   /**
+   * Switch TCP connection started callback
+   * \param The switch metadata that initiated a connection with controller
+   */
+  typedef Callback<void, SwitchInfo> SwitchConnectionCallback_t;
+  
+  /**
    * Register this type.
    * \return The object TypeId.
    */
   static TypeId GetTypeId (void);
 
-  /** Destructor implementation */
+  /** 
+   * Destructor implementation 
+   */
   virtual void DoDispose ();
 
   /**
@@ -72,12 +80,6 @@ public:
    * \param swInfo The switch metadata
    */
   void RegisterSwitchMetadata (SwitchInfo swInfo);
-
-  /**
-   * Switch TCP connection started callback
-   * \param The switch metadata that initiated a connection with controller
-   */
-  typedef Callback<void, SwitchInfo> SwitchConnectionCallback_t;
 
   /**
    * \brief Register a TCP connection callback
@@ -101,83 +103,94 @@ protected:
   virtual void StopApplication (void);
 
   /**
-   * Send a ns3 packet to a registered switch. 
-   * \param swtch The switch to receive the message
-   * \param pkt The packet to send
-   * \return The number of bytes sent
+   * \return The next (in sequence) transaction ID for this controller.
    */
-  int SendToSwitch (SwitchInfo swtch, Ptr<Packet> pkt);
+  uint32_t GetNextXid ();
 
   /**
-   * \name OpenFlow symmetric messages
-   * Methods to send messages without solicitation
-   * \param swtch The target switch metadata
-   * \return The number of transmitted bytes.
+   * Send a OFLib message to a registered switch. 
+   * \param swtch The switch to receive the message
+   * \param msg The OFLib message to send.
+   * \param xid The transaction id to use.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  int SendToSwitch (SwitchInfo swtch, ofl_msg_header *msg, uint32_t xid = 0);
+
+  /**
+   * \name Symmetric messages
+   * These methods can send messages to switch at any time.
+   * \param swtch The target switch metadata.
+   * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  int SendHello (SwitchInfo swtch); //!< Send a hello message (upon connection establishment)
-  int SendEchoRequest (SwitchInfo swtch, size_t payloadSize = 0); //!< Send an echo request
+  int SendHello (SwitchInfo swtch); //!< Send a hello message
+  int SendEcho (SwitchInfo swtch, size_t payloadSize = 0); //!< Send an echo request
+  int SendBarrier (SwitchInfo swtch); //!< Send a barrier request
   //\}
 
   /**
-   * \name OpenFlow controller-to-switch messages
-   * \brief Send request messages to switch
-   *
-   * These methods can be used by controller to query switch configuration,
-   * description or statistics. The response sent by switch will be received by
-   * handlers methods.
-   *
-   * \param swtch The target switch metadata
-   * \return The number of transmitted bytes.
+   * \name Controller-to-switch messages
+   * These methods can be used by controller to query or set switch
+   * configuration, description and statistics. The response sent by switch
+   * will be received by handlers methods.
+   * \param swtch The target switch metadata.
+   * \param argc The number of arguments.
+   * \param argv The argument's values in Dcptl syntax.
+   * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  int RequestBarrier (SwitchInfo swtch);          //!< Send a barrier request
-  int RequestAsync (SwitchInfo swtch);            //!< Query the asynchronous messages that it wants to receive
-  int RequestFeatures (SwitchInfo swtch);         //!< Query switch features (during handshake)
-  int RequestConfig (SwitchInfo swtch);           //!< Query switch configuration
-  int RequestSwitchDesc (SwitchInfo swtch);       //!< Query switch datapath description
-  int RequestTableStats (SwitchInfo swtch);       //!< Query table statistics
-  int RequestPortStats (SwitchInfo swtch, uint32_t port = OFPP_ANY); //!< Query port statistcs (default: all ports)
-  int RequestTableFeatures (SwitchInfo swtch);    //!< Query table features
-  int RequestPortDesc (SwitchInfo swtch);         //!< Query port description
+  int RequestFeatures (SwitchInfo swtch);      //!< Query switch for features
+  int RequestConfig (SwitchInfo swtch);        //!< Query switch configuration
+  int RequestTableFeatures (SwitchInfo swtch); //!< Query table features
+  int RequestGroupFeatures (SwitchInfo swtch); //!< Query group features
+  int RequestMeterFeatures (SwitchInfo swtch); //!< Query meter features
+  int RequestSwitchDesc (SwitchInfo swtch);    //!< Query switch description
+  int RequestFlowStats (SwitchInfo swtch, int argc, char *argv[]);  //!< Query flow statistics
+  int RequestFlowAggr (SwitchInfo swtch, int argc, char *argv[]);   //!< Query flow aggregated statistics
+  int RequestPortStats (SwitchInfo swtch, int argc, char *argv[]);  //!< Query port statistics
+  int RequestGroupStats (SwitchInfo swtch, int argc, char *argv[]); //!< Query group statistics
+  int RequestGroupDesc (SwitchInfo swtch, int argc, char *argv[]);  //!< Query group description
+  int RequestMeterStats (SwitchInfo swtch, int argc, char *argv[]); //!< Query meter statistics
+  int RequestPortDesc (SwitchInfo swtch);     //!< Query port description
+  int RequestTableStats (SwitchInfo swtch);   //!< Query table statistics
+  int RequestAsyncConfig (SwitchInfo swtch);  //!< Query asynchronous configuration
+  int MeterConfig (SwitchInfo swtch, int argc, char *argv[]); //!< Set a meter configuration
+  int SetConfig (SwitchInfo swtch, int argc, char *argv[]); //!< Set switch configuration
+  int FlowMod (SwitchInfo swtch, int argc, char *argv[]);   //!< Send a flow-mod command
+  int GroupMod (SwitchInfo swtch, int argc, char *argv[]);  //!< Send a group-mod command
+  int MeterMod (SwitchInfo swtch, int argc, char *argv[]);  //!< Send a meter-mod command
+  int PortMod (SwitchInfo swtch, int argc, char *argv[]);   //!< Send a port-mod command
+  int TableMod (SwitchInfo swtch, int argc, char *argv[]);  //!< Send a table-mod command
   //\}
 
   /**
    * \name OpenFlow message handlers
-   * \brief Handlers used by ReceiveFromSwitch to proccess each type of
-   *
-   * OpenFlow message received from the switch. 
-   * Some handler methods can not be overwritten by derived class (hello, echo
-   * request/reply and barrier reply, as they must behave as already
-   * implemented. In constrast, packetIn must be implementd by the derived
-   * controller, to proper handle packets sent from switch to controller. The
-   * current implementation of other virtual methods does nothing: just free
-   * the received message and returns 0.
-   *
+   * Handlers used by ReceiveFromSwitch to proccess each type of OpenFlow
+   * message received from the switch. Some handler methods can not be
+   * overwritten by derived class (echo request/reply), as they must behave as
+   * already implemented. In constrast, packetIn must be implementd by the
+   * derived controller, to proper handle packets sent from switch to
+   * controller. The current implementation of other virtual methods does
+   * nothing: just free the received message and returns 0.
    * \attention Handlers \em MUST free received msg when everything is ok.
-   *
    * \param msg The OpenFlow message.
    * \param swtch The source switch metadata.
    * \param xid The transaction id from the request message.
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  ofl_err HandleMsgHello (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
-  ofl_err HandleMsgBarrierReply (ofl_msg_header *msg, SwitchInfo swtch, uint64_t xid);
-  
-  virtual ofl_err HandleMsgPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid) = 0;
-  
-  virtual ofl_err HandleMsgError (ofl_msg_error *msg, SwitchInfo swtch, uint64_t xid);
-  virtual ofl_err HandleMsgFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint64_t xid);
-  virtual ofl_err HandleMsgGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
-  virtual ofl_err HandleMsgFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid);
-  virtual ofl_err HandleMsgPortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint64_t xid);
-  virtual ofl_err HandleMsgAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint64_t xid);
-  virtual ofl_err HandleMsgMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint64_t xid);
-  virtual ofl_err HandleMsgRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint64_t xid);
-  virtual ofl_err HandleMsgQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
+  ofl_err HandleEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
+  ofl_err HandleEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid) = 0;
+  virtual ofl_err HandleError (ofl_msg_error *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandlePortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint64_t xid);
+  virtual ofl_err HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
   //\}
 
   typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;   //!< Structure to map IPv4 to switch info
@@ -185,31 +198,14 @@ protected:
 
 private:
   /**
-   * \brief Called by the SocketRead when a packet is received from the switch.
+   * Called by the SocketRead when a packet is received from the switch.
    * Dispatches control messages to appropriate handler functions.
    * \param swtch The switch the message was received from.
-   * \param buffer The pointer to the buffer containing the message.
+   * \param msg The OFLib message received.
+   * \param xid The transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int ReceiveFromSwitch (SwitchInfo swtch, ofpbuf* buffer);
-
-  /**
-   * \name Dcptl commands
-   * Methods to create the openflow messages based on dpctl commands
-   * \param swtch The target switch metadata
-   * \param argc The number of arguments 
-   * \param argv The argument's values
-   * \return The number of bytes sent
-   */
-  //\{
-  int DpctlFlowModCommand (SwitchInfo swtch, int argc, char *argv[]);
-  int DpctlSetConfigCommand (SwitchInfo swtch, int argc, char *argv[]);
-  int DpctlStatsFlowCommand (SwitchInfo swtch, int argc, char *argv[]);
-  int DpctlStatsAggrCommand (SwitchInfo swtch, int argc, char *argv[]);
-  int DpctlStatsPortCommand (SwitchInfo swtch, int argc, char *argv[]);
-  int DpctlPortModCommand (SwitchInfo swtch, int argc, char *argv[]);
-  int DpctlTableModCommand (SwitchInfo swtch, int argc, char *argv[]);
-  //\}
+  int ReceiveFromSwitch (SwitchInfo swtch, ofl_msg_header *msg, uint32_t xid);
 
   /**
    * \name Socket callbacks
@@ -226,12 +222,12 @@ private:
   void SocketPeerError  (Ptr<Socket> socket);                       //!< TCP connection error
   //\}
 
-  uint32_t              m_xid;          //!< Global transaction idx
-  uint16_t              m_port;         //!< Local controller tcp port
-  Ptr<Socket>           m_serverSocket; //!< Listening server socket
+  uint32_t              m_xid;                      //!< Global transaction idx
+  uint16_t              m_port;                     //!< Local controller tcp port
+  Ptr<Socket>           m_serverSocket;             //!< Listening server socket
   
-  ofs::EchoMsgMap_t m_echoMap;                     //!< Metadata for echo requests
-  SwitchConnectionCallback_t m_connectionCallback; //!< TCP connection callback
+  ofs::EchoMsgMap_t m_echoMap;                      //!< Metadata for echo requests
+  SwitchConnectionCallback_t m_connectionCallback;  //!< TCP connection callback
 };
 
 } // namespace ns3

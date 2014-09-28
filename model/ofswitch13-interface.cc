@@ -20,37 +20,38 @@
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
 
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
+
 namespace ns3 {
 namespace ofs {
 
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
-
-Port::Port (Ptr<NetDevice> netdev, uint32_t no) : 
-            flags (0),
-            netdev (netdev)
+Port::Port (Ptr<NetDevice> netdev, uint32_t no) 
+  : flags (0),
+    netdev (netdev)
 {  
-    port_no = no;
-    conf = (ofl_port*)xmalloc (sizeof (ofl_port));
-    memset (conf, 0x00, sizeof (ofl_port));
-    conf->name = (char*)xmalloc (4);
-    snprintf(conf->name, 8, "Port %d", no);
-    conf->port_no = no;
-    conf->config = 0x00000000;
-    conf->state = 0x00000000 | OFPPS_LIVE;
-    netdev->GetAddress ().CopyTo (conf->hw_addr);
-    
-    conf->curr       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-    conf->advertised = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-    conf->supported  = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-    // conf->peer       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-    conf->curr_speed = port_speed (conf->curr);
-    conf->max_speed  = port_speed (conf->supported);
-    
-    stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
-    memset (stats, 0x00, sizeof (ofl_port_stats));
-    stats->port_no = no;
+  port_no = no;
+  conf = (ofl_port*)xmalloc (sizeof (ofl_port));
+  memset (conf, 0x00, sizeof (ofl_port));
+  conf->name = (char*)xmalloc (4);
+  snprintf(conf->name, 8, "Port %d", no);
+  conf->port_no = no;
+  conf->config = 0x00000000;
+  conf->state = 0x00000000 | OFPPS_LIVE;
+  netdev->GetAddress ().CopyTo (conf->hw_addr);
+  
+  conf->curr       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+  conf->advertised = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+  conf->supported  = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+  // conf->peer       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
+  conf->curr_speed = port_speed (conf->curr);
+  conf->max_speed  = port_speed (conf->supported);
+  
+  stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
+  memset (stats, 0x00, sizeof (ofl_port_stats));
+  stats->port_no = no;
 
-    flags |= SWP_USED;
+  flags |= SWP_USED;
+  created = Simulator::Now ().ToInteger (Time::MS);
 }
 
 uint32_t 
@@ -108,7 +109,8 @@ EchoInfo::EchoInfo (Ipv4Address ip)
   destIp = ip;
 }
 
-Time EchoInfo::GetRtt ()
+Time 
+EchoInfo::GetRtt ()
 {
   if (waiting)
     {
@@ -121,7 +123,8 @@ Time EchoInfo::GetRtt ()
     }
 }
 
-ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
+ofpbuf* 
+BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
     size_t headRoom)
 {
   NS_LOG_FUNCTION_NOARGS ();
@@ -134,7 +137,8 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
   return buffer;
 }
 
-ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid)
+ofpbuf*
+BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -144,7 +148,7 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid)
   ofpbuf *ofpbuf = ofpbuf_new (0);
   
   // Pack message into ofpbuf using wire format
-  error = ofl_msg_pack (msg, xid, &buf, &buf_size, NULL/*ofl_exp *exp*/);
+  error = ofl_msg_pack (msg, xid, &buf, &buf_size, exp);
   if (error)
     {
       NS_LOG_ERROR ("Error packing message.");
@@ -155,38 +159,14 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid)
   return ofpbuf;
 }
 
-packet * InternalPacketFromBuffer (uint32_t in_port, ofpbuf *buf,
-    bool packet_out) 
-{
-  NS_LOG_FUNCTION_NOARGS ();
-  packet *pkt;
-  pkt = (packet*)xmalloc (sizeof (packet));
-
-  pkt->dp         = NULL;
-  pkt->buffer     = buf;
-  pkt->in_port    = in_port;
-  pkt->action_set = (action_set*)xmalloc (sizeof (action_set));
-  list_init (&pkt->action_set->actions);
-
-  pkt->packet_out       = packet_out;
-  pkt->out_group        = OFPG_ANY;
-  pkt->out_port         = OFPP_ANY;
-  pkt->out_port_max_len = 0;
-  pkt->out_queue        = 0;
-  pkt->buffer_id        = NO_BUFFER;
-  pkt->table_id         = 0;
-
-  // Note: here, the nblink will parse the packet
-  pkt->handle_std = packet_handle_std_create (pkt);
-  return pkt;
-}
-
-Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
+Ptr<Packet>
+PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
 {
   return PacketFromBufferAndFree (BufferFromMsg (msg, xid));
 }
 
-Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer)
+Ptr<Packet> 
+PacketFromBufferAndFree (ofpbuf* buffer)
 {
   NS_LOG_FUNCTION_NOARGS ();
   Ptr<Packet> packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
@@ -194,7 +174,17 @@ Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer)
   return packet;
 }
 
-Ptr<Packet> PacketFromInternalPacket (packet *pkt)
+Ptr<Packet> 
+PacketFromBuffer (ofpbuf* buffer)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+  Ptr<Packet> packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
+  return packet;
+}
+
+
+Ptr<Packet> 
+PacketFromInternalPacket (packet *pkt)
 {
   NS_LOG_FUNCTION_NOARGS ();
   ofpbuf *buffer = pkt->buffer;
@@ -204,4 +194,58 @@ Ptr<Packet> PacketFromInternalPacket (packet *pkt)
 
 } // namespace ofs
 } // namespace ns3
+
+
+
+using namespace ns3;
+
+Ptr<OFSwitch13NetDevice> GetDatapathDevice (uint64_t id);
+
+/** 
+ * Overriding ofsoftswitch13 time_now weak function from lib/timeval.c.
+ * \return The current simulation time, in seconds. 
+ */
+time_t 
+time_now (void)
+{
+  return (time_t)Simulator::Now ().ToInteger (Time::S);
+}
+
+/**
+ * Overriding ofsoftswitch13 time_msec weak function from lib/timeval.c.
+ * \return The current simulation time, in ms.
+ */
+long long int
+time_msec (void)
+{
+  return (long long int)Simulator::Now ().GetMilliSeconds ();
+}
+
+/**
+ * Overriding ofsoftswitch13 dp_send_message weak function from
+ * udatapath/datapath.c. Sends the given OFLib message to the controller
+ * associated with the datapath. 
+ * \internal This function relies on the global map that stores ofpenflow
+ * devices to call the method on the correct object (\see
+ * ofswitch13-net-device.cc).
+ * \param dp The datapath.
+ * \param msg The OFlib message to send.
+ * \param sender The sender information.
+ * \return 0 if everything's ok, error number otherwise.
+ */
+int
+dp_send_message (struct datapath *dp, struct ofl_msg_header *msg, 
+    const struct sender *sender) 
+{
+  int error = 0;
+
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
+  error = dev->SendToController (msg, sender);
+  if (!error)
+    {
+      NS_LOG_WARN ("There was an error sending the message!");
+    }
+  return !error;
+}
+
 #endif // NS3_OFSWITCH13

@@ -142,7 +142,6 @@ private:
   Ptr<OFSwitch13Controller> m_ctrlApp;      //!< Controller App
   Ptr<NetDevice>            m_ctrlDev;      //!< Controller CsmaNetDevice (switch connection)
   Address                   m_ctrlAddr;     //!< Controller Addr 
-  uint64_t                  m_dpId;         //!< Datapath (switch) ID
 
   typedef std::vector<SwitchInfo> SwitchInfoVector_t; //!< Structure to store switch information
   SwitchInfoVector_t        m_unregSw;      //!< OpenFlow switches not registered yet
