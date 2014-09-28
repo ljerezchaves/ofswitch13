@@ -20,10 +20,10 @@
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
 
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
+
 namespace ns3 {
 namespace ofs {
-
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 
 Port::Port (Ptr<NetDevice> netdev, uint32_t no) 
   : flags (0),
@@ -156,32 +156,6 @@ ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp)
   return ofpbuf;
 }
 
-packet * InternalPacketFromBuffer (datapath* dp, uint32_t in_port, ofpbuf *buf,
-    bool packet_out) 
-{
-  NS_LOG_FUNCTION_NOARGS ();
-  packet *pkt;
-  pkt = (packet*)xmalloc (sizeof (packet));
-
-  pkt->dp         = dp;
-  pkt->buffer     = buf;
-  pkt->in_port    = in_port;
-  pkt->action_set = (action_set*)xmalloc (sizeof (action_set));
-  list_init (&pkt->action_set->actions);
-
-  pkt->packet_out       = packet_out;
-  pkt->out_group        = OFPG_ANY;
-  pkt->out_port         = OFPP_ANY;
-  pkt->out_port_max_len = 0;
-  pkt->out_queue        = 0;
-  pkt->buffer_id        = NO_BUFFER;
-  pkt->table_id         = 0;
-
-  // Note: here, the nblink will parse the packet
-  pkt->handle_std = packet_handle_std_create (pkt);
-  return pkt;
-}
-
 Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
 {
   return PacketFromBufferAndFree (BufferFromMsg (msg, xid));
@@ -206,25 +180,58 @@ Ptr<Packet> PacketFromInternalPacket (packet *pkt)
 } // namespace ofs
 } // namespace ns3
 
+
+
+using namespace ns3;
+
+Ptr<OFSwitch13NetDevice> GetDatapathDevice (uint64_t id);
+
 /** 
- * \ingroup ofswitch13
  * Overriding ofsoftswitch13 time_now weak function from lib/timeval.c.
  * \return The current simulation time, in seconds. 
  */
 time_t 
-time_now(void)
+time_now (void)
 {
-  return (time_t)ns3::Simulator::Now ().ToInteger (ns3::Time::S);
+  return (time_t)Simulator::Now ().ToInteger (Time::S);
 }
 
 /**
- * \ingroup ofswitch13
  * Overriding ofsoftswitch13 time_msec weak function from lib/timeval.c.
  * \return The current simulation time, in ms.
  */
 long long int
-time_msec(void)
+time_msec (void)
 {
-  return (long long int)ns3::Simulator::Now ().ToInteger (ns3::Time::MS);
+  return (long long int)Simulator::Now ().GetMilliSeconds ();
 }
+
+/**
+ * Overriding ofsoftswitch13 dp_send_message weak function from
+ * udatapath/datapath.c. Sends the given OFLib message to the controller
+ * associated with the datapath. The sender parameter is not current in use
+ * (except for transaction xid field). Note that the current ns3 implementation
+ * only supports a single controller per datapath.
+ * \internal This function relies on the global map that stores ofpenflow
+ * devices (\see ofswitch13-net-device.cc).
+ * \param dp The datapath.
+ * \param msg The OFlib message to send.
+ * \param sender The sender information (xid).
+ * \return 0 if everything's ok, error number otherwise.
+ */
+int
+dp_send_message (struct datapath *dp, struct ofl_msg_header *msg, 
+    const struct sender *sender) 
+{
+  int error = 0;
+
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
+  error = dev->SendToController (msg, sender);
+  if (!error)
+    {
+      NS_LOG_WARN ("There was an error sending the message!");
+    }
+  return !error;
+}
+
 #endif // NS3_OFSWITCH13

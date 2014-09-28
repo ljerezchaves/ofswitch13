@@ -36,20 +36,80 @@
 #include "ns3/arp-l3-protocol.h"
 #include "ns3/inet-socket-address.h"
 
+using namespace ns3;
+
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13NetDevice");
 
-namespace ns3 {
+/** 
+ * As the integration of ofsoftswitch13 and ns3 involve overriding some C
+ * functions, we are using a global map to store a pointer to all
+ * OFSwitch13NetDevices in simulation, and allow faster object retrive by
+ * datapath id. In this way, functions like dp_send_message can get the object
+ * pointer and call SendToController method. 
+ */
+static std::map<uint64_t, Ptr<OFSwitch13NetDevice> > g_switchMap;
 
-NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
-
-static uint64_t
-GenerateId ()
+/** 
+ * Insert a new openflow device in global map. This is called automatically
+ * every time a new datapath is created in simulation. 
+ * \param id The datapath id.
+ * \param dev The Ptr<OFSwitch13NetDevice> pointer.
+ */
+static void 
+RegisterDatapath (uint64_t id, Ptr<OFSwitch13NetDevice> dev)
 {
-  uint8_t ea[ETH_ADDR_LEN];
-  eth_addr_random (ea);
-  return eth_addr_to_uint64 (ea);
+  std::pair <std::map<uint64_t, Ptr<OFSwitch13NetDevice> >::iterator, bool> ret;
+  ret = g_switchMap.insert (std::pair<uint64_t, Ptr<OFSwitch13NetDevice> > (id, dev));
+  if (ret.second == false) 
+    {
+      NS_LOG_ERROR ("Error inserting datapath device into global map.");
+    }
 }
 
+/** 
+ * Remove an existing openflow device from global map. This is called automatically
+ * every time a datapath is destroyed in simulation. 
+ * \param id The datapath id.
+ */
+static void 
+UnregisterDatapath (uint64_t id)
+{
+  std::map<uint64_t, Ptr<OFSwitch13NetDevice> >::iterator it;
+  it = g_switchMap.find (id);
+  if (it != g_switchMap.end ())
+    {
+      g_switchMap.erase (it);
+    }
+  else
+    {
+      NS_LOG_ERROR ("Error removing datapath device from global map.");
+    }
+}
+
+/**
+ * Retrieve and existing openflow device at global map by its datapath id 
+ * \param id The datapath id.
+ * \return The OpenFlow OFSwitch13NetDevice pointer.
+ */
+Ptr<OFSwitch13NetDevice>
+GetDatapathDevice (uint64_t id)
+{
+  std::map<uint64_t, Ptr<OFSwitch13NetDevice> >::iterator it;
+  it = g_switchMap.find (id);
+  if (it != g_switchMap.end ())
+    {
+      return it->second;
+    }
+  else
+    {
+      NS_LOG_ERROR ("Error retrieving datapath device from global map.");
+      return NULL;
+    }
+}
+
+/**
+ * Fast hash function used by hash map.
+ */
 static uint32_t 
 HashInt (uint32_t x, uint32_t basis)
 {
@@ -64,22 +124,14 @@ HashInt (uint32_t x, uint32_t basis)
   return x;
 }
 
-static void
-LogOflMsg (ofl_msg_header *msg, bool isRx=false)
-{
-  char *str;
-  str = ofl_msg_to_string (msg, NULL);
-  if (isRx)
-    {
-      NS_LOG_INFO ("RX from ctrl: " << str);
-    }
-  else
-    {
-      NS_LOG_INFO ("TX to ctrl: " << str);
-    }
-  free (str);
-}
+// ---- OpenFlow switch code -------------------------------
+namespace ns3 {
 
+NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
+
+// Initializing OFSwitch13NetDevice static members
+uint64_t OFSwitch13NetDevice::m_globalDpId = 0;
+uint32_t OFSwitch13NetDevice::m_globalXid = 0;
 
 /********** Public methods **********/
 TypeId
@@ -88,12 +140,13 @@ OFSwitch13NetDevice::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::OFSwitch13NetDevice")
     .SetParent<NetDevice> ()
     .AddConstructor<OFSwitch13NetDevice> ()
-    .AddAttribute ("ID",
+    .AddAttribute ("DatapathId",
                    "The identification of the OFSwitch13NetDevice/Datapath.",
-                   UintegerValue (GenerateId ()),
-                   MakeUintegerAccessor (&OFSwitch13NetDevice::SetDatapathId),
+                   TypeId::ATTR_GET,
+                   UintegerValue (0),
+                   MakeUintegerAccessor (&OFSwitch13NetDevice::m_dpId),
                    MakeUintegerChecker<uint64_t> ())
-    .AddAttribute ("FlowTableLookupDelay",
+    .AddAttribute ("FlowTableDelay",
                    "Overhead for looking up in the flow table (Default: standard TCAM on an FPGA).",
                    TimeValue (NanoSeconds (30)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_lookupDelay),
@@ -118,7 +171,7 @@ OFSwitch13NetDevice::GetTypeId (void)
 }
 
 OFSwitch13NetDevice::OFSwitch13NetDevice ()
-  : m_xid (0xff000000),
+  : m_dpId (++m_globalDpId),
     m_node (0),
     m_ctrlSocket (0),
     m_ifIndex (0),
@@ -130,43 +183,16 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   m_ctrlAddr = Address ();
   m_channel = CreateObject<BridgeChannel> ();
   SetAddress (Mac48Address::Allocate ()); 
-
+ 
   m_datapath = DatapathNew ();
+  m_ports.reserve (DP_MAX_PORTS);
+  RegisterDatapath (m_dpId, Ptr<OFSwitch13NetDevice> (this));
+  Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, m_datapath);
 }
 
 OFSwitch13NetDevice::~OFSwitch13NetDevice ()
 {
   NS_LOG_FUNCTION (this);
-}
-
-const char *
-OFSwitch13NetDevice::GetManufacturerDescription ()
-{
-  return "The ns-3 team";
-}
-
-const char *
-OFSwitch13NetDevice::GetHardwareDescription ()
-{
-  return "N/A";
-}
-
-const char *
-OFSwitch13NetDevice::GetSoftwareDescription ()
-{
-  return "Simulated OpenFlow Switch datapath version 1.3";
-}
-
-const char *
-OFSwitch13NetDevice::GetSerialNumber ()
-{
-  return "1";
-}
-
-const char *
-OFSwitch13NetDevice::GetDatapathDescrtiption ()
-{
-  return "N/A";
 }
 
 int 
@@ -199,6 +225,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
   int no = m_ports.size () + 1;
   ofs::Port p (switchPort, no);
   m_ports.push_back (p);
+  m_datapath->ports_num++;
   NS_LOG_INFO ("Port # " << no);
   
   // Notify the controller that this port has been added
@@ -209,9 +236,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
       msg.reason = OFPPR_ADD;
       msg.desc = p.conf;
 
-      Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-      LogOflMsg ((ofl_msg_header*)&msg);
-      SendToController (packet);
+      SendToController ((ofl_msg_header*)&msg);
     }
 
   NS_LOG_LOGIC ("RegisterProtocolHandler for " << switchPort->GetInstanceTypeId ().GetName ());
@@ -219,6 +244,105 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
       MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this), 0, switchPort, true);
   m_channel->AddChannel (switchPort->GetChannel ());
   return 0;
+}
+
+int
+OFSwitch13NetDevice::SendToController (ofl_msg_header *msg, const sender *sender)
+{
+  NS_LOG_FUNCTION (this);
+  NS_ASSERT (m_ctrlSocket);
+  
+  char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
+  NS_LOG_DEBUG ("TX to ctrl: " << msg_str);
+  free(msg_str);
+
+  uint32_t xid = sender ? sender->xid : GetNextXid ();
+  ofpbuf *buffer = ofs::BufferFromMsg (msg, xid, m_datapath->exp);
+
+  if (sender) 
+    {
+      // This is a reply... send back to the sender.
+      return !m_ctrlSocket->Send (ofs::PacketFromBufferAndFree (buffer));
+    } 
+  else 
+    {
+      // This is an asynchronous message. Check for asynchronous configuration
+      bool send = true;
+      uint8_t msg_type;
+      memcpy (&msg_type, ((char* ) buffer->data) + 1, sizeof (uint8_t));
+      remote *r = CONTAINER_OF (list_front (&m_datapath->remotes), remote, node);
+      
+      // do not send to remotes with slave role apart from port status
+      if (r->role == OFPCR_ROLE_EQUAL || r->role == OFPCR_ROLE_MASTER)
+        {
+          // Check if the message is enabled in the asynchronous configuration
+          switch (msg_type)
+            {
+              case (OFPT_PACKET_IN):
+                {
+                  ofp_packet_in *p = (ofp_packet_in*)buffer->data;
+                  if (((p->reason == OFPR_NO_MATCH)    && !(r->config.packet_in_mask[0] & 0x1)) ||
+                      ((p->reason == OFPR_ACTION)      && !(r->config.packet_in_mask[0] & 0x2)) ||
+                      ((p->reason == OFPR_INVALID_TTL) && !(r->config.packet_in_mask[0] & 0x4)))
+                    {
+                      send = false;
+                    }
+                  break;
+                }
+              case (OFPT_PORT_STATUS):
+                {
+                  ofp_port_status *p = (ofp_port_status*)buffer->data;
+                  if (((p->reason == OFPPR_ADD)    && !(r->config.port_status_mask[0] & 0x1)) ||
+                      ((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[0] & 0x2)) ||
+                      ((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[0] & 0x4)))
+                    {
+                      send = false;
+                    }
+                }
+              case (OFPT_FLOW_REMOVED):
+                {
+                  ofp_flow_removed *p= (ofp_flow_removed *)buffer->data;
+                  if (((p->reason == OFPRR_IDLE_TIMEOUT) && !(r->config.port_status_mask[0] & 0x1)) ||
+                      ((p->reason == OFPRR_HARD_TIMEOUT) && !(r->config.port_status_mask[0] & 0x2)) ||
+                      ((p->reason == OFPRR_DELETE)       && !(r->config.packet_in_mask[0] & 0x4))   ||
+                      ((p->reason == OFPRR_GROUP_DELETE) && !(r->config.packet_in_mask[0] & 0x8))   ||
+                      ((p->reason == OFPRR_METER_DELETE) && !(r->config.packet_in_mask[0] & 0x10)))
+                    {
+                      send = false;
+                    }
+                }
+            }
+        }
+      else 
+        {
+          // In this implementation we assume that a controller with role slave
+          // is able to receive only port stats messages.
+          if (r->role == OFPCR_ROLE_SLAVE && msg_type != OFPT_PORT_STATUS) 
+            {
+              send = false;
+            }
+          else 
+            {
+              struct ofp_port_status *p = (struct ofp_port_status*)buffer->data;
+              if (((p->reason == OFPPR_ADD)    && !(r->config.port_status_mask[1] & 0x1)) ||
+                  ((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[1] & 0x2)) ||
+                  ((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[1] & 0x4)))
+                {
+                  send = false;
+                }
+            }
+        }
+
+      if (send)
+        {
+          return !m_ctrlSocket->Send (ofs::PacketFromBufferAndFree (buffer));
+        }
+      else 
+        {
+          ofpbuf_delete(buffer);
+          return 0;
+        }
+    }
 }
 
 uint32_t
@@ -230,14 +354,13 @@ OFSwitch13NetDevice::GetNSwitchPorts (void) const
 uint64_t
 OFSwitch13NetDevice::GetDatapathId (void) const
 {
-  return m_datapath->id;
+  return m_dpId;
 }
 
-void
-OFSwitch13NetDevice::SetDatapathId (uint64_t id)
+uint32_t
+OFSwitch13NetDevice::GetNextXid ()
 {
-  NS_ASSERT (m_datapath);
-  m_datapath->id = id;
+  return ++m_xid;
 }
 
 void
@@ -469,6 +592,7 @@ OFSwitch13NetDevice::DoDispose ()
   group_table_destroy (m_datapath->groups);
   meter_table_destroy (m_datapath->meters);
 
+  UnregisterDatapath (m_dpId);
   NetDevice::DoDispose ();
 }
 
@@ -477,25 +601,28 @@ OFSwitch13NetDevice::DatapathNew ()
 {
   datapath* dp = (datapath*)xmalloc (sizeof (datapath));
 
-  dp->mfr_desc   = (char*)xmalloc (DESC_STR_LEN); 
-  dp->hw_desc    = (char*)xmalloc (DESC_STR_LEN);
-  dp->sw_desc    = (char*)xmalloc (DESC_STR_LEN);
-  dp->dp_desc    = (char*)xmalloc (DESC_STR_LEN);
+  dp->mfr_desc = (char*)xmalloc (DESC_STR_LEN); 
+  dp->hw_desc = (char*)xmalloc (DESC_STR_LEN);
+  dp->sw_desc = (char*)xmalloc (DESC_STR_LEN);
+  dp->dp_desc = (char*)xmalloc (DESC_STR_LEN);
   dp->serial_num = (char*)xmalloc (DESC_STR_LEN);
-  strcpy (dp->mfr_desc ,  GetManufacturerDescription ());
-  strcpy (dp->hw_desc,    GetHardwareDescription ());
-  strcpy (dp->sw_desc,    GetSoftwareDescription ());
-  strcpy (dp->dp_desc,    GetDatapathDescrtiption ());
-  strcpy (dp->serial_num, GetSerialNumber ());
+  strncpy (dp->mfr_desc, "The ns-3 team", DESC_STR_LEN);
+  strncpy (dp->hw_desc, "N/A", DESC_STR_LEN);
+  strncpy (dp->sw_desc, "ns3 OpenFlow datapath version 1.3", DESC_STR_LEN);
+  strncpy (dp->dp_desc, "ofsoftswitch13 (from CPqD)", DESC_STR_LEN);
+  strncpy (dp->serial_num, "1.1", DESC_STR_LEN);
 
-  // Not used
-  dp->generation_id = -1;
-  dp->listeners = NULL;
-  dp->n_listeners = 0;
-  dp->listeners_aux = NULL;
-  dp->n_listeners_aux = 0;
-  
-  dp->id = 0;
+  dp->id = m_dpId;
+  list_init (&dp->remotes);
+
+  // unused
+    dp->generation_id = -1;
+    dp->listeners = NULL;
+    dp->n_listeners = 0;
+    dp->listeners_aux = NULL;
+    dp->n_listeners_aux = 0;
+  // unused
+
   dp->last_timeout = time_now ();
   
   dp->buffers = dp_buffers_create (dp); 
@@ -506,17 +633,14 @@ OFSwitch13NetDevice::DatapathNew ()
   dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling
   dp->config.miss_send_len = 128;      // send first 128 bytes to controller 
                                        // use OFPCML_NO_BUFFER to send hole ptk
-  dp->exp = NULL;
-
-  // Not used
-  dp->ports_num = 0;
-  dp->max_queues = 0;
-  dp->local_port = NULL;
-
-  Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, dp);
+  // unused
+    dp->max_queues = 0;
+    dp->local_port = NULL;
+  // unused
   
-  m_ports.reserve (DP_MAX_PORTS+1);
-
+  dp->ports_num = 0;
+  dp->exp = NULL;
+  
   return dp;
 }
 
@@ -528,7 +652,7 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
   // Check flow entry timeout
   for (int i = 0; i < PIPELINE_TABLES; i++) 
     {
-      FlowTableTimeout (dp->pipeline->tables[i]);
+      flow_table_timeout (dp->pipeline->tables[i]);
     }
 
   // Check for changes in port status
@@ -543,14 +667,30 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
           msg.reason = OFPPR_MODIFY;
           msg.desc = p->conf;
 
-          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-          LogOflMsg ((ofl_msg_header*)&msg);
-          SendToController (packet);
+          SendToController ((ofl_msg_header*)&msg);
         }
     }
 
   Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, dp);
   dp->last_timeout = time_now ();
+}
+
+void
+OFSwitch13NetDevice::DatapathSendEchoRequest ()
+{
+  NS_LOG_FUNCTION (this);
+  
+  // Send echo message
+  ofl_msg_echo msg;
+  msg.header.type = OFPT_ECHO_REQUEST;
+  msg.data_length = 0;
+  msg.data        = 0;
+ 
+  ofs::EchoInfo echo (InetSocketAddress::ConvertFrom (m_ctrlAddr).GetIpv4 ());
+  m_echoMap.insert (std::pair<uint64_t, ofs::EchoInfo> (m_xid, echo));
+  SendToController ((ofl_msg_header*)&msg);
+  
+  Simulator::Schedule (m_echo, &OFSwitch13NetDevice::DatapathSendEchoRequest, this);
 }
 
 ofs::Port*
@@ -619,170 +759,127 @@ OFSwitch13NetDevice::PortStatsUpdate (ofs::Port *p)
   p->stats->duration_nsec = ((time_msec() - p->created) % 1000) * 1000;
 }
 
-int
-OFSwitch13NetDevice::ReceiveFromController (ofpbuf* buffer)
-{ 
-  NS_LOG_FUNCTION (this);
-  NS_ASSERT (buffer);
-
-  uint32_t xid;
-  ofl_msg_header *msg;
-  ofl_err error;
-  
-  error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, &xid, NULL/*&ofl_exp*/);
-  if (!error)
-    {
-      LogOflMsg ((ofl_msg_header*)msg, true/*Rx*/);
-      // Dispatches control messages to appropriate handler functions.
-      datapath *dp = m_datapath;
-      switch (msg->type)
-        {
-          case OFPT_HELLO:
-            error = HandleMsgHello (dp, msg, xid);
-            break;
-          case OFPT_ERROR:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-            break;
-          case OFPT_ECHO_REQUEST:
-            error = HandleMsgEchoRequest (dp, (ofl_msg_echo*)msg, xid);
-            break;
-          case OFPT_ECHO_REPLY:
-            error = HandleMsgEchoReply (dp, (ofl_msg_echo*)msg, xid);
-            break;
-          case OFPT_EXPERIMENTER:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
-            //dp_exp_message(dp, (struct ofl_msg_experimenter *)msg, sender); // TODO
-            break;
-
-          // Switch configuration messages.
-          case OFPT_FEATURES_REQUEST:
-            error = HandleMsgFeaturesRequest (dp, msg, xid);
-            break;
-          case OFPT_FEATURES_REPLY:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-            break;
-          case OFPT_GET_CONFIG_REQUEST:
-            error = HandleMsgGetConfigRequest (dp, msg, xid);
-            break;
-          case OFPT_GET_CONFIG_REPLY:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-            break;
-          case OFPT_SET_CONFIG:
-            error = HandleMsgSetConfig (dp, (ofl_msg_set_config*)msg, xid);
-            break;
-
-          // Asynchronous messages.
-          case OFPT_PACKET_IN:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-            break;
-          case OFPT_FLOW_REMOVED:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-            break;
-          case OFPT_PORT_STATUS:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-            break;
-
-          // Controller command messages.
-          case OFPT_GET_ASYNC_REQUEST:
-            error = HandleMsgGetAsyncRequest (dp, (ofl_msg_async_config*)msg, xid);
-            break;     
-          case OFPT_SET_ASYNC:
-            error = HandleMsgSetAsync (dp, (ofl_msg_async_config*)msg, xid);
-            break;       
-          case OFPT_GET_ASYNC_REPLY:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-            break;
-          case OFPT_PACKET_OUT:
-            error = HandleMsgPacketOut (dp, (ofl_msg_packet_out*)msg, xid);
-            break;
-          case OFPT_FLOW_MOD:
-            error = HandleMsgFlowMod (dp, (ofl_msg_flow_mod*)msg, xid); 
-            break;
-          case OFPT_GROUP_MOD:
-            error = HandleMsgGroupMod (dp, (ofl_msg_group_mod*)msg, xid);
-            break;
-          case OFPT_PORT_MOD:
-            error = HandleMsgPortMod (dp, (ofl_msg_port_mod*)msg, xid);
-            break;
-          case OFPT_TABLE_MOD:
-            error = HandleMsgTableMod (dp, (ofl_msg_table_mod*)msg, xid);
-            break;
-
-          // Statistics messages.
-          case OFPT_MULTIPART_REQUEST:
-            error = HandleMsgMultipartRequest (dp, (ofl_msg_multipart_request_header*)msg, xid);
-            break;
-          case OFPT_MULTIPART_REPLY:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-            break;
-
-          // Barrier messages.
-          case OFPT_BARRIER_REQUEST:
-            error = HandleMsgBarrierRequest (dp, msg, xid);
-            break;
-          case OFPT_BARRIER_REPLY:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-            break;
-          
-          // Role messages.
-          //case OFPT_ROLE_REQUEST:
-          //  error = dp_handle_role_request (dp, (ofl_msg_role_request*)msg, sender);
-          //  break;
-          case OFPT_ROLE_REPLY:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-            break;
-
-          // Queue Configuration messages.
-          //case OFPT_QUEUE_GET_CONFIG_REQUEST:
-          //  error = dp_ports_handle_queue_get_config_request (dp, 
-          //           (ofl_msg_queue_get_config_request*)msg, sender);
-          //  break;
-          case OFPT_QUEUE_GET_CONFIG_REPLY:
-            error = ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-            break;
-          case OFPT_METER_MOD:
-            error = HandleMsgMeterMod (dp, (ofl_msg_meter_mod*)msg, xid);
-            break;            
-          
-          default: 
-            error = ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
-        }
-      if (error)
-      {
-        // NOTE: It is assumed that if a handler returns with error, it did not
-        // use any part of the control message, thus it can be freed up. If no
-        // error is returned however, the message must be freed inside the
-        // handler (because the handler might keep parts of the message) 
-        ofl_msg_free (msg, dp->exp);
-      }
-    }
-  
-  if (error)
-    {
-      NS_LOG_WARN ("Error processing OpenFlow message received from controller.");
-      // Notify the controller
-      ofl_msg_error err;
-      err.header.type = OFPT_ERROR;
-      err.type = (ofp_error_type)ofl_error_type (error);
-      err.code = ofl_error_code (error);
-      err.data_length = buffer->size;
-      err.data = (uint8_t*)buffer->data;
-      
-      Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&err, xid);
-      LogOflMsg ((ofl_msg_header*)&msg);
-      SendToController (packet);
-    }
-  ofpbuf_delete (buffer);
-  return error; 
-}
-
-int
-OFSwitch13NetDevice::SendToController (Ptr<Packet> packet)
+ofl_err
+OFSwitch13NetDevice::PortMultipartStats (datapath *dp, 
+    ofl_msg_multipart_request_port *msg, const sender *sender)
 {
   NS_LOG_FUNCTION (this);
-  NS_ASSERT (m_ctrlSocket);
+  
+  ofs::Port *port;
+  size_t i = 0;
 
-  return m_ctrlSocket->Send (packet);
+  ofl_msg_multipart_reply_port reply;
+  reply.header.header.type = OFPT_MULTIPART_REPLY;
+  reply.header.type  = OFPMP_PORT_STATS;
+  reply.header.flags = 0x0000;
+  
+  if (msg->port_no == OFPP_ANY) 
+    {
+      reply.stats_num = GetNSwitchPorts ();
+      reply.stats = (ofl_port_stats**)xmalloc (sizeof (ofl_port_stats*) * reply.stats_num);
+
+      // Using port number (not position in vector)
+      for (i = 1; i <= GetNSwitchPorts (); i++)
+        {
+          port = PortGetOfsPort (i);
+          PortStatsUpdate (port);
+          reply.stats[i-1] = port->stats;
+        }
+    } 
+  else 
+    {
+      port = PortGetOfsPort (msg->port_no);
+      if (port != NULL && port->netdev != NULL) 
+        {
+          reply.stats_num = 1;
+          reply.stats = (ofl_port_stats**)xmalloc (sizeof (ofl_port_stats*));
+          PortStatsUpdate (port);
+          reply.stats[0] = port->stats;
+        }
+    }
+  SendToController ((ofl_msg_header*)&reply, sender);
+
+  free (reply.stats);
+  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
+  return 0;
+}
+
+ofl_err
+OFSwitch13NetDevice::PortMultipartDesc (datapath *dp, 
+    ofl_msg_multipart_request_header *msg, const sender *sender)
+{
+  NS_LOG_FUNCTION (this);
+  
+  ofs::Port *port;
+  size_t i = 0;
+  
+  ofl_msg_multipart_reply_port_desc reply;
+  reply.header.header.type = OFPT_MULTIPART_REPLY;
+  reply.header.type  = OFPMP_PORT_DESC;
+  reply.header.flags = 0x0000;
+  reply.stats_num    = GetNSwitchPorts ();
+  reply.stats = (ofl_port**)xmalloc (sizeof (ofl_port*) * reply.stats_num);
+  
+  // Using port number (not position in vector)
+  for (i = 1; i <= GetNSwitchPorts (); i++)
+    {
+      port = PortGetOfsPort (i);
+      reply.stats[i-1] = port->conf;
+    }
+  SendToController ((ofl_msg_header*)&reply, sender);
+  
+  free (reply.stats);
+  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
+  return 0;
+}
+
+ofl_err
+OFSwitch13NetDevice::PortHandlePortMod (datapath *dp, ofl_msg_port_mod *msg, 
+    const sender *sender) 
+{
+  NS_LOG_FUNCTION (this);
+  
+  ofs::Port *p = PortGetOfsPort (msg->port_no);
+  if (p == NULL) 
+    {
+      return ofl_error (OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_PORT);
+    }
+
+  // Make sure the port id hasn't changed since this was sent
+  uint8_t p_addr[ETH_ADDR_LEN];
+  p->netdev->GetAddress ().CopyTo (p_addr);
+  if (memcmp (msg->hw_addr, p_addr, ETH_ADDR_LEN) != 0) 
+    {
+      return ofl_error (OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_HW_ADDR);
+    }
+
+  if (msg->mask) 
+    {
+      p->conf->config &= ~msg->mask;
+      p->conf->config |= msg->config & msg->mask;
+      if ((p->conf->state & OFPPS_LINK_DOWN) || 
+          (p->conf->config & OFPPC_PORT_DOWN)) 
+        {
+          // Port not live
+          p->conf->state &= ~OFPPS_LIVE;
+        } 
+      else 
+        {
+          // Port is live
+          p->conf->state |= OFPPS_LIVE;
+        }
+    }
+
+  // Notify the controller that the port status has changed
+  ofl_msg_port_status reply;
+  reply.header.type = OFPT_PORT_STATUS;
+  reply.reason = OFPPR_MODIFY; 
+  reply.desc = p->conf;
+  
+  SendToController ((ofl_msg_header*)&reply, sender);
+
+  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
+  return 0;
 }
 
 void
@@ -853,8 +950,8 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   uint32_t headRoom = 128 + 2;
   uint32_t bodyRoom = netdev->GetMtu () + VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofs::BufferFromPacket (pktCopy, bodyRoom, headRoom);
-  struct packet *pkt = ofs::InternalPacketFromBuffer (m_datapath, 
-      inPort->stats->port_no, buffer, false);
+  struct packet *pkt = packet_create (m_datapath, inPort->stats->port_no, 
+      buffer, false);
 
   // Update port stats
   inPort->stats->rx_packets++;
@@ -865,20 +962,34 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
       this, m_datapath->pipeline, pkt);
 }
 
-bool
-OFSwitch13NetDevice::FloodToSwitchPorts (packet *pkt)
+void
+OFSwitch13NetDevice::AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
+    Mac48Address dest, uint16_t protocolNumber)
 {
-  ofs::Port *p;
-  for (uint32_t i = 1; i <= GetNSwitchPorts (); i++)
+  NS_LOG_FUNCTION (packet << source << dest << protocolNumber);
+
+  EthernetHeader header (false);
+  header.SetSource (source);
+  header.SetDestination (dest);
+
+  EthernetTrailer trailer;
+  if (packet->GetSize () < 46)
     {
-      p = PortGetOfsPort (i);
-      if (p->port_no == pkt->in_port)
-        {
-          continue;
-        }
-      SendToSwitchPort (pkt, p);
+      uint8_t buffer[46];
+      memset (buffer, 0, 46);
+      Ptr<Packet> padd = Create<Packet> (buffer, 46 - packet->GetSize ());
+      packet->AddAtEnd (padd);
     }
-  return true;
+
+  header.SetLengthType (protocolNumber);
+  packet->AddHeader (header);
+
+  if (Node::ChecksumEnabled ())
+    {
+      trailer.EnableFcs (true);
+    }
+  trailer.CalcFcs (packet);
+  packet->AddTrailer (trailer);
 }
 
 bool
@@ -920,6 +1031,22 @@ OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
   return false;
 }
 
+bool
+OFSwitch13NetDevice::FloodToSwitchPorts (packet *pkt)
+{
+  ofs::Port *p;
+  for (uint32_t i = 1; i <= GetNSwitchPorts (); i++)
+    {
+      p = PortGetOfsPort (i);
+      if (p->port_no == pkt->in_port)
+        {
+          continue;
+        }
+      SendToSwitchPort (pkt, p);
+    }
+  return true;
+}
+
 void
 OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
 {
@@ -934,8 +1061,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
       if ((pl->dp->config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) 
         {
           NS_LOG_WARN ("Packet has invalid TTL, sending to controller.");
-          Ptr<Packet> ns3pkt = CreatePacketIn (pl, pkt, 0, OFPR_INVALID_TTL, UINT64_MAX);
-          SendToController (ns3pkt);
+          PipelineSendPacketIn (pl, pkt, 0, OFPR_INVALID_TTL, UINT64_MAX);
         } 
       else 
         {
@@ -1073,6 +1199,153 @@ OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
     }
 }
 
+ofl_err
+OFSwitch13NetDevice::PipelineHandleFlowMod (pipeline *pl, ofl_msg_flow_mod *msg, 
+    const sender *sender)
+{
+  NS_LOG_FUNCTION (this);
+  
+  // Modifications to a flow table from the controller are done with the
+  // OFPT_FLOW_MOD message (including add, modify or delete).
+  // \see ofsoftswitch13 pipeline_handle_flow_mod () at udatapath/pipeline.c
+  // and flow_table_flow_mod () at udatapath/flow_table.c
+  ofl_err error;
+  size_t i;
+  bool match_kept, insts_kept;
+  match_kept = false;
+  insts_kept = false;
+  
+  // Sort by execution oder
+  qsort (msg->instructions, msg->instructions_num, 
+      sizeof (ofl_instruction_header*), inst_compare);
+  
+  // Validate actions in flow_mod
+  for (i = 0; i < msg->instructions_num; i++) 
+    {
+      if (msg->instructions[i]->type == OFPIT_APPLY_ACTIONS || 
+          msg->instructions[i]->type == OFPIT_WRITE_ACTIONS) 
+        {
+          ofl_instruction_actions *ia = (ofl_instruction_actions*)msg->instructions[i];
+  
+          error = ActionsValidate (pl->dp, (size_t)ia->actions_num, ia->actions);
+          if (error) 
+            {
+              return error;
+            }
+          error = dp_actions_check_set_field_req (msg, ia->actions_num, ia->actions);
+          if (error) 
+            {
+              return error;
+            }
+        }
+      // Reject goto in the last table.
+      if ((msg->table_id == (PIPELINE_TABLES - 1)) && 
+          (msg->instructions[i]->type == OFPIT_GOTO_TABLE))
+        {
+          return ofl_error (OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
+        }
+    }
+  
+  if (msg->table_id == 0xff) 
+    {
+      // Note: the result of using table_id = 0xff is undefined in the spec.
+      // For now it is accepted for delete commands, meaning to delete from
+      // all tables 
+      if (msg->command == OFPFC_DELETE || 
+          msg->command == OFPFC_DELETE_STRICT) 
+        {
+          size_t i;
+          error = 0;
+          for (i = 0; i < PIPELINE_TABLES; i++) 
+            {
+              error = flow_table_flow_mod (pl->tables[i], msg, &match_kept, &insts_kept);
+              if (error) 
+                {
+                  break;
+                }
+            }
+          if (error) 
+            {
+              return error;
+            } 
+          else 
+            {
+              ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, pl->dp->exp);
+              return 0;
+            }
+        }
+      else
+        {
+          return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
+        }
+    }
+  else
+    {
+      // Execute flow modification at proper table
+      error = flow_table_flow_mod (pl->tables[msg->table_id], msg, &match_kept, &insts_kept); 
+      if (error) 
+        {
+          return error;
+        }
+      
+      if ((msg->command == OFPFC_ADD || msg->command == OFPFC_MODIFY || 
+           msg->command == OFPFC_MODIFY_STRICT) && msg->buffer_id != NO_BUFFER) 
+        {
+          // Run buffered message through pipeline
+          packet *pkt;
+          pkt = dp_buffers_retrieve (pl->dp->buffers, msg->buffer_id);
+          if (pkt != NULL) 
+            {
+              PipelineProcessPacket (pl, pkt);
+            } 
+          else 
+            {
+              NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << 
+                  msg->buffer_id);
+            }
+        }
+      
+      // All handlers must free the message when everything is ok
+      ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, pl->dp->exp);
+      return 0;
+    }
+}
+
+int
+OFSwitch13NetDevice::PipelineSendPacketIn (pipeline* pl, packet *pkt, 
+    uint8_t tableId, ofp_packet_in_reason reason, uint64_t cookie)
+{
+  NS_LOG_FUNCTION (this); 
+  
+  ofl_msg_packet_in msg;
+  msg.header.type = OFPT_PACKET_IN;
+  msg.total_len = pkt->buffer->size;
+  msg.reason = reason;
+  msg.table_id = tableId;
+  msg.data = (uint8_t*)pkt->buffer->data;
+  msg.cookie = cookie;
+
+  if (pl->dp->config.miss_send_len != OFPCML_NO_BUFFER)
+    {
+      dp_buffers_save (pl->dp->buffers, pkt);
+      msg.buffer_id = pkt->buffer_id;
+      msg.data_length = MIN (pl->dp->config.miss_send_len, pkt->buffer->size);
+    }
+  else 
+    {
+      msg.buffer_id = OFP_NO_BUFFER;
+      msg.data_length = pkt->buffer->size;
+    }
+
+  if (!pkt->handle_std->valid)
+    {
+      packet_handle_std_validate (pkt->handle_std);
+    }
+  msg.match = (ofl_match_header*)&pkt->handle_std->match;
+ 
+  return SendToController ((ofl_msg_header*)&msg);
+}
+
 void
 OFSwitch13NetDevice::ActionsListExecute (packet *pkt, size_t actions_num,
     ofl_action_header **actions, uint64_t cookie) 
@@ -1172,9 +1445,8 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
         }
       case (OFPP_CONTROLLER): 
         {
-          Ptr<Packet> ns3pkt = CreatePacketIn (pkt->dp->pipeline, pkt, pkt->table_id, 
+          PipelineSendPacketIn (pkt->dp->pipeline, pkt, pkt->table_id, 
               (pkt->handle_std->table_miss ? OFPR_NO_MATCH : OFPR_ACTION), cookie);
-          SendToController (ns3pkt);
           break;
         }
       case (OFPP_FLOOD):
@@ -1230,184 +1502,6 @@ OFSwitch13NetDevice::ActionsValidate (datapath *dp, size_t num,
       
     }
   return 0;
-}
-
-ofl_err 
-OFSwitch13NetDevice::FlowTableFlowMod (flow_table *table, ofl_msg_flow_mod *mod, 
-      bool *match_kept, bool *insts_kept)
-{
-  switch (mod->command) 
-    {
-      case (OFPFC_ADD): 
-        {
-          bool overlap = ((mod->flags & OFPFF_CHECK_OVERLAP) != 0);
-          return flow_table_add (table, mod, overlap, match_kept, insts_kept);
-        }
-      case (OFPFC_MODIFY): 
-        {
-          return flow_table_modify (table, mod, false, insts_kept);
-        }
-      case (OFPFC_MODIFY_STRICT): 
-        {
-          return flow_table_modify (table, mod, true, insts_kept);
-        }
-      case (OFPFC_DELETE): 
-        {
-          return FlowTableDelete (table, mod, false);
-        }
-      case (OFPFC_DELETE_STRICT): 
-        {
-          return FlowTableDelete (table, mod, true);
-        }
-      default: 
-        {
-          return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_COMMAND);
-        }
-    }
-}
-
-ofl_err 
-OFSwitch13NetDevice::FlowTableDelete (flow_table *table, ofl_msg_flow_mod *mod,
-    bool strict)
-{
-  NS_LOG_FUNCTION (this);
-  
-  flow_entry *entry, *next;
-
-  LIST_FOR_EACH_SAFE (entry, next, flow_entry, match_node, &table->match_entries) 
-    {
-      if ((mod->out_port  == OFPP_ANY || flow_entry_has_out_port (entry, mod->out_port)) &&
-          (mod->out_group == OFPG_ANY || flow_entry_has_out_group (entry, mod->out_group)) &&
-           flow_entry_matches (entry, mod, strict, true/*check_cookie*/)) 
-        {
-           FlowEntryRemove (entry, OFPRR_DELETE);
-        }
-    }
-  return 0;
-}
-
-void
-OFSwitch13NetDevice::FlowTableTimeout (flow_table *table) 
-{
-  struct flow_entry *entry, *next;
-
-  LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, hard_node, &table->hard_entries) 
-    {
-      if (!FlowEntryHardTimeout (entry)) 
-        {
-          break;
-        }
-    }
-
-  LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, idle_node, &table->idle_entries) 
-    {
-      FlowEntryIdleTimeout (entry);
-    }
-}
-
-bool 
-OFSwitch13NetDevice::FlowEntryIdleTimeout (flow_entry *entry)
-{
-  bool timeout = (entry->stats->idle_timeout != 0) && 
-      ((uint64_t)time_msec () > entry->last_used + entry->stats->idle_timeout * 1000);
-  
-  if (timeout) 
-    {
-      FlowEntryRemove (entry, OFPRR_IDLE_TIMEOUT);
-    }
-  return timeout;
-}
-
-bool 
-OFSwitch13NetDevice::FlowEntryHardTimeout (flow_entry *entry)
-{
-  bool timeout = (entry->remove_at != 0) && 
-      ((uint64_t)time_msec () > entry->remove_at);
-
-  if (timeout) 
-    {
-      FlowEntryRemove (entry, OFPRR_HARD_TIMEOUT);
-    }
-  return timeout;
-}
-
-void
-OFSwitch13NetDevice::FlowEntryRemove (flow_entry *entry, uint8_t reason)
-{
-  NS_LOG_FUNCTION (this);
-
-  if (entry->send_removed)
-    {
-      flow_entry_update (entry);
-        {
-          NS_LOG_DEBUG ("Flow entry expired. Notifying the controller...");
-          ofl_msg_flow_removed msg;
-          msg.header.type = OFPT_FLOW_REMOVED;
-          msg.reason = (ofp_flow_removed_reason)reason;
-          msg.stats  = entry->stats;
-
-          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-          LogOflMsg ((ofl_msg_header*)&msg);
-          SendToController (packet);
-        }
-    }
-
-  list_remove (&entry->match_node);
-  list_remove (&entry->hard_node);
-  list_remove (&entry->idle_node);
-  entry->table->stats->active_count--;
- 
-  del_group_refs (entry);
-  del_meter_refs (entry);
-  ofl_structs_free_flow_stats (entry->stats, entry->dp->exp);
-  free (entry);
-}
-
-ofl_err 
-OFSwitch13NetDevice::GroupTableDelete (group_table *table, ofl_msg_group_mod *mod)
-{
-  if (mod->group_id == OFPG_ALL) 
-    {
-      group_entry *entry, *next;
-      HMAP_FOR_EACH_SAFE (entry, next, group_entry, node, &table->entries) 
-        {
-          GroupEntryDestroy (entry);
-        }
-      hmap_destroy (&table->entries);
-      hmap_init (&table->entries);
-      table->entries_num = 0;
-      table->buckets_num = 0;
-
-      ofl_msg_free_group_mod (mod, true, table->dp->exp);
-      return 0;
-    } 
-  else 
-    {
-      group_entry *entry, *e;
-      entry = group_table_find (table, mod->group_id);
-
-      // NOTE: The spec. does not define what happens when groups refer to
-      // groups which are being deleted. For now deleting such a group is not
-      // allowed.
-      if (entry != NULL) 
-        {
-          HMAP_FOR_EACH(e, group_entry, node, &table->entries) 
-            {
-              if (group_entry_has_out_group (e, entry->stats->group_id)) 
-                {
-                  return ofl_error (OFPET_GROUP_MOD_FAILED, OFPGMFC_CHAINING_UNSUPPORTED);
-                }
-            }
-          table->entries_num--;
-          table->buckets_num -= entry->desc->buckets_num;
-          hmap_remove (&table->entries, &entry->node);
-          GroupEntryDestroy (entry);
-        }
-
-      // No error should be sent, if delete is for a non-existing group.
-      ofl_msg_free_group_mod (mod, true, table->dp->exp);
-      return 0;
-    }
 }
 
 void 
@@ -1513,211 +1607,112 @@ OFSwitch13NetDevice::GroupEntryExecuteBucket (group_entry *entry, packet *pkt, s
   packet_destroy (p);
 }
 
-void
-OFSwitch13NetDevice::GroupEntryDestroy (group_entry *entry)
+ofl_err 
+OFSwitch13NetDevice::GroupHandleGroupMod (group_table *table, ofl_msg_group_mod *msg, 
+    const sender *sender)
 {
-  flow_ref_entry *ref, *next;
-
-  // remove all referencing flows
-  LIST_FOR_EACH_SAFE (ref, next, flow_ref_entry, node, &entry->flow_refs) 
-    {
-      FlowEntryRemove (ref->entry, OFPRR_GROUP_DELETE);
-      // Note: the flow_ref_entryf will be destroyed after a chain of calls in
-      // flow_entry_remove no point in decreasing stats counter, as the group
-      // is destroyed anyway
-    }
+  NS_LOG_FUNCTION (this);
   
-  ofl_structs_free_group_desc_stats (entry->desc, entry->dp->exp);
-  ofl_structs_free_group_stats (entry->stats);
-  free (entry->data);
-  free (entry);
+  // Modifications to group table from the controller are done with the
+  // OFPT_FLOW_MOD message (including add, modify or delete).
+  // \see group_table_handle_group_mod () at udatapath/group_table.c
+  ofl_err error;
+  size_t i;
+
+  for (i = 0; i< msg->buckets_num; i++) 
+    {
+      error = ActionsValidate (table->dp, msg->buckets[i]->actions_num, 
+          msg->buckets[i]->actions);
+      if (error) 
+        {
+          return error;
+        }
+    }
+
+  switch (msg->command) 
+    {
+      case (OFPGC_ADD):
+        return group_table_add (table, msg);
+      
+      case (OFPGC_MODIFY):
+        return group_table_modify (table, msg);
+
+      case (OFPGC_DELETE):
+        return group_table_delete (table, msg);
+
+      default:
+        return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+    }
+}
+
+ofl_err
+OFSwitch13NetDevice::HandleControlMessage (datapath *dp, ofl_msg_header *msg, 
+    const sender *sender)
+{ 
+  NS_LOG_FUNCTION (this);
+
+  // Only some control message handlers were reimplemented. The other still use
+  // existing library functions.
+  switch (msg->type)
+    {
+      case OFPT_ECHO_REPLY:
+        return HandleMsgEchoReply (dp, (ofl_msg_echo*)msg, sender);
+      
+      case OFPT_PACKET_OUT:
+        return HandleMsgPacketOut (dp, (ofl_msg_packet_out*)msg, sender);
+      
+      case OFPT_FLOW_MOD:
+        return PipelineHandleFlowMod (dp->pipeline, (ofl_msg_flow_mod*)msg, sender); 
+      
+      case OFPT_GROUP_MOD:
+        return GroupHandleGroupMod (dp->groups, (ofl_msg_group_mod*)msg, sender);
+      
+      case OFPT_PORT_MOD:
+        return PortHandlePortMod (dp, (ofl_msg_port_mod*)msg, sender);
+      
+      case OFPT_MULTIPART_REQUEST:
+        return HandleControlMultipartRequest (dp, 
+            (ofl_msg_multipart_request_header*)msg, sender);
+      
+      // Currently not supported
+      case OFPT_EXPERIMENTER:
+      case OFPT_ROLE_REQUEST:
+      case OFPT_QUEUE_GET_CONFIG_REQUEST:
+        return ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
+
+      default: 
+        return handle_control_msg (dp, msg, sender);
+    }
 }
 
 ofl_err 
-OFSwitch13NetDevice::MeterTableDelete (meter_table *table, ofl_msg_meter_mod *mod)
-{
-  if (mod->meter_id == OFPM_ALL) 
-    {
-      meter_entry *entry, *next;
-      HMAP_FOR_EACH_SAFE (entry, next, meter_entry, node, &table->meter_entries) 
-        {
-          MeterEntryDestroy (entry);
-        }
-      hmap_destroy (&table->meter_entries);
-      hmap_init (&table->meter_entries);
-      table->entries_num = 0;
-      table->bands_num = 0;
-    } 
-  else 
-    {
-      meter_entry *entry;
-      entry = meter_table_find (table, mod->meter_id);
-
-      if (entry != NULL) 
-        {
-          table->entries_num--;
-          table->bands_num -= entry->stats->meter_bands_num;
-          hmap_remove (&table->meter_entries, &entry->node);
-          MeterEntryDestroy (entry);
-        }
-    }
-
-  ofl_msg_free_meter_mod (mod, false);
-  return 0;
-}
-
-void 
-OFSwitch13NetDevice::MeterEntryDestroy (meter_entry *entry)
-{
-  flow_ref_entry *ref, *next;
-
-  // remove all referencing flows
-  LIST_FOR_EACH_SAFE (ref, next, flow_ref_entry, node, &entry->flow_refs) 
-    {
-      FlowEntryRemove (ref->entry, OFPRR_METER_DELETE); // OFPRR_METER_DELETE ??
-      // Note: the flow_ref_entry will be destroyed after 
-      // a chain of calls in flow_entry_remove
-    }
-
-  OFL_UTILS_FREE_ARR_FUN (entry->config->bands, entry->config->meter_bands_num, 
-      ofl_structs_free_meter_bands);
-  free (entry->config);
-
-  OFL_UTILS_FREE_ARR (entry->stats->band_stats, entry->stats->meter_bands_num);
-  free (entry->stats);
-  free (entry);
-}
-
-void
-OFSwitch13NetDevice::AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
-    Mac48Address dest, uint16_t protocolNumber)
-{
-  NS_LOG_FUNCTION (packet << source << dest << protocolNumber);
-
-  EthernetHeader header (false);
-  header.SetSource (source);
-  header.SetDestination (dest);
-
-  EthernetTrailer trailer;
-  if (packet->GetSize () < 46)
-    {
-      uint8_t buffer[46];
-      memset (buffer, 0, 46);
-      Ptr<Packet> padd = Create<Packet> (buffer, 46 - packet->GetSize ());
-      packet->AddAtEnd (padd);
-    }
-
-  header.SetLengthType (protocolNumber);
-  packet->AddHeader (header);
-
-  if (Node::ChecksumEnabled ())
-    {
-      trailer.EnableFcs (true);
-    }
-  trailer.CalcFcs (packet);
-  packet->AddTrailer (trailer);
-}
-
-Ptr<Packet> 
-OFSwitch13NetDevice::CreatePacketIn (pipeline* pl, packet *pkt, uint8_t tableId,
-    ofp_packet_in_reason reason, uint64_t cookie)
-{
-  NS_LOG_FUNCTION (this); 
-  
-  ofl_msg_packet_in msg;
-  msg.header.type = OFPT_PACKET_IN;
-  msg.total_len = pkt->buffer->size;
-  msg.reason = reason;
-  msg.table_id = tableId;
-  msg.data = (uint8_t*)pkt->buffer->data;
-  msg.cookie = cookie;
-
-  if (pl->dp->config.miss_send_len != OFPCML_NO_BUFFER)
-    {
-      dp_buffers_save (pl->dp->buffers, pkt);
-      msg.buffer_id = pkt->buffer_id;
-      msg.data_length = MIN (pl->dp->config.miss_send_len, pkt->buffer->size);
-    }
-  else 
-    {
-      msg.buffer_id = OFP_NO_BUFFER;
-      msg.data_length = pkt->buffer->size;
-    }
-
-  if (!pkt->handle_std->valid)
-    {
-      packet_handle_std_validate (pkt->handle_std);
-    }
-  msg.match = (ofl_match_header*)&pkt->handle_std->match;
- 
-  LogOflMsg ((ofl_msg_header*)&msg);
-  return ofs::PacketFromMsg ((ofl_msg_header*)&msg, ++m_xid);
-}
-
-void
-OFSwitch13NetDevice::SendEchoRequest ()
+OFSwitch13NetDevice::HandleControlMultipartRequest (datapath *dp, 
+    ofl_msg_multipart_request_header *msg, const sender *sender)
 {
   NS_LOG_FUNCTION (this);
-  
-  // Send echo message
-  ofl_msg_echo msg;
-  msg.header.type = OFPT_ECHO_REQUEST;
-  msg.data_length = 0;
-  msg.data        = 0;
- 
-  uint64_t xid = ++m_xid;
-  ofs::EchoInfo echo (InetSocketAddress::ConvertFrom (m_ctrlAddr).GetIpv4 ());
-  m_echoMap.insert (std::pair<uint64_t, ofs::EchoInfo> (xid, echo));
 
-  LogOflMsg ((ofl_msg_header*)&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, xid);
-  SendToController (pkt);
-
-  // TODO: start a timer and wait for a reply
-
-  Simulator::Schedule (m_echo, &OFSwitch13NetDevice::SendEchoRequest, this);
+  // Only port_stats e port_desc need to be reimplemented
+  switch (msg->type) 
+    {
+      case (OFPMP_PORT_STATS): 
+        return PortMultipartStats (dp, (ofl_msg_multipart_request_port*)msg, sender); 
+      
+      case OFPMP_PORT_DESC:
+        return PortMultipartDesc (dp, msg, sender);
+      
+      default: 
+        return handle_control_stats_request (dp, msg, sender);
+    }
 }
 
-ofl_err
-OFSwitch13NetDevice::HandleMsgHello (datapath *dp, ofl_msg_header *msg, 
-    uint64_t xid) 
-{
-  NS_LOG_FUNCTION (this);
-  // Nothing to do: the ofsoftswitch13 already checks for 
-  // OpenFlow version when unpacking the message
-  
-  // All handlers must free the message when everything is ok
-  ofl_msg_free (msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::HandleMsgEchoRequest (datapath *dp, ofl_msg_echo *msg, 
-    uint64_t xid) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofl_msg_echo reply;
-  reply.header.type = OFPT_ECHO_REPLY;
-  reply.data_length = msg->data_length;
-  reply.data        = msg->data;
-  
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
 
 ofl_err
 OFSwitch13NetDevice::HandleMsgEchoReply (datapath *dp, ofl_msg_echo *msg, 
-    uint64_t xid) 
+    const sender *sender) 
 {
   NS_LOG_FUNCTION (this);
  
-  ofs::EchoMsgMap_t::iterator it = m_echoMap.find (xid);
+  ofs::EchoMsgMap_t::iterator it = m_echoMap.find (sender->xid);
   if (it == m_echoMap.end ())
     {
       NS_LOG_WARN ("Received echo response for unknonw echo request.");
@@ -1736,73 +1731,8 @@ OFSwitch13NetDevice::HandleMsgEchoReply (datapath *dp, ofl_msg_echo *msg,
 }
 
 ofl_err
-OFSwitch13NetDevice::HandleMsgFeaturesRequest (datapath *dp, ofl_msg_header *msg, 
-    uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofl_msg_features_reply reply;
-  reply.header.type  = OFPT_FEATURES_REPLY;
-  reply.datapath_id  = GetDatapathId ();
-  reply.n_buffers    = dp_buffers_size (dp->buffers);
-  reply.n_tables     = PIPELINE_TABLES;
-  reply.auxiliary_id = 0; // No auxiliary connections
-  reply.capabilities = DP_SUPPORTED_CAPABILITIES;
-  reply.reserved     = 0x00000000;
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-  
-  // All handlers must free the message when everything is ok
-  ofl_msg_free (msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::HandleMsgGetConfigRequest (datapath *dp, ofl_msg_header *msg, 
-    uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofl_msg_get_config_reply reply;
-  reply.header.type = OFPT_GET_CONFIG_REPLY;
-  reply.config      = &dp->config;
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-  
-  // All handlers must free the message when everything is ok
-  ofl_msg_free (msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::HandleMsgSetConfig (datapath *dp, ofl_msg_set_config *msg, 
-    uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  uint16_t flags;
-
-  flags = msg->config->flags & OFPC_FRAG_MASK;
-  if ((flags & OFPC_FRAG_MASK) != OFPC_FRAG_NORMAL
-      && (flags & OFPC_FRAG_MASK) != OFPC_FRAG_DROP) {
-      flags = (flags & ~OFPC_FRAG_MASK) | OFPC_FRAG_DROP;
-  }
-
-  dp->config.flags = flags;
-  dp->config.miss_send_len = msg->config->miss_send_len;
-  
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err
 OFSwitch13NetDevice::HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg, 
-    uint64_t xid) 
+    const sender *sender) 
 {
   NS_LOG_FUNCTION (this);
   
@@ -1821,7 +1751,7 @@ OFSwitch13NetDevice::HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg,
       buf = ofpbuf_new (0);
       ofpbuf_use (buf, msg->data, msg->data_length);
       ofpbuf_put_uninit (buf, msg->data_length);
-      pkt = ofs::InternalPacketFromBuffer (dp, msg->in_port, buf, true);
+      pkt = packet_create (dp, msg->in_port, buf, true);
     } 
   else 
     {
@@ -1843,720 +1773,15 @@ OFSwitch13NetDevice::HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg,
   return 0;
 }
 
-ofl_err
-OFSwitch13NetDevice::HandleMsgFlowMod (datapath *dp, ofl_msg_flow_mod *msg, 
-    uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  // Modifications to a flow table from the controller are done with the
-  // OFPT_FLOW_MOD message (including add, modify or delete).
-  // \see ofsoftswitch13 pipeline_handle_flow_mod () at udatapath/pipeline.c
-  // and flow_table_flow_mod () at udatapath/flow_table.c
-  pipeline *pl = dp->pipeline;
-  ofl_err error;
-  size_t i;
-  bool match_kept, insts_kept;
-  match_kept = false;
-  insts_kept = false;
-  
-  // Sort by execution oder
-  qsort (msg->instructions, msg->instructions_num, 
-      sizeof (ofl_instruction_header*), inst_compare);
-  
-  // Validate actions in flow_mod
-  for (i = 0; i < msg->instructions_num; i++) 
-    {
-      if (msg->instructions[i]->type == OFPIT_APPLY_ACTIONS || 
-          msg->instructions[i]->type == OFPIT_WRITE_ACTIONS) 
-        {
-          ofl_instruction_actions *ia = (ofl_instruction_actions*)msg->instructions[i];
-  
-          error = ActionsValidate (dp, (size_t)ia->actions_num, ia->actions);
-          if (error) 
-            {
-              return error;
-            }
-          error = dp_actions_check_set_field_req (msg, ia->actions_num, ia->actions);
-          if (error) 
-            {
-              return error;
-            }
-        }
-      // Reject goto in the last table.
-      if ((msg->table_id == (PIPELINE_TABLES - 1)) && 
-          (msg->instructions[i]->type == OFPIT_GOTO_TABLE))
-        {
-          return ofl_error (OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
-        }
-    }
-  
-  if (msg->table_id == 0xff) 
-    {
-      // Note: the result of using table_id = 0xff is undefined in the spec.
-      // For now it is accepted for delete commands, meaning to delete from
-      // all tables 
-      if (msg->command == OFPFC_DELETE || 
-          msg->command == OFPFC_DELETE_STRICT) 
-        {
-          size_t i;
-          error = 0;
-          for (i = 0; i < PIPELINE_TABLES; i++) 
-            {
-              error = FlowTableFlowMod (pl->tables[i], msg, &match_kept, &insts_kept);
-              if (error) 
-                {
-                  break;
-                }
-            }
-          if (error) 
-            {
-              return error;
-            } 
-          else 
-            {
-              ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, pl->dp->exp);
-              return 0;
-            }
-        }
-      else
-        {
-          return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
-        }
-    }
-  else
-    {
-      // Execute flow modification at proper table
-      error = FlowTableFlowMod (pl->tables[msg->table_id], msg, &match_kept, &insts_kept); 
-      if (error) 
-        {
-          return error;
-        }
-      
-      if ((msg->command == OFPFC_ADD || msg->command == OFPFC_MODIFY || 
-           msg->command == OFPFC_MODIFY_STRICT) && msg->buffer_id != NO_BUFFER) 
-        {
-          // Run buffered message through pipeline
-          packet *pkt;
-          pkt = dp_buffers_retrieve (dp->buffers, msg->buffer_id);
-          if (pkt != NULL) 
-            {
-              PipelineProcessPacket (pl, pkt);
-            } 
-          else 
-            {
-              NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << 
-                  msg->buffer_id);
-            }
-        }
-      
-      // All handlers must free the message when everything is ok
-      ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, dp->exp);
-      return 0;
-    }
-}
-
-ofl_err 
-OFSwitch13NetDevice::HandleMsgGroupMod (datapath *dp, ofl_msg_group_mod *msg, 
-    uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  // Modifications to group table from the controller are done with the
-  // OFPT_FLOW_MOD message (including add, modify or delete).
-  // \see group_table_handle_group_mod () at udatapath/group_table.c
-  ofl_err error;
-  size_t i;
-
-  for (i = 0; i< msg->buckets_num; i++) 
-    {
-      error = ActionsValidate (dp, msg->buckets[i]->actions_num, msg->buckets[i]->actions);
-      if (error) 
-        {
-          return error;
-        }
-    }
-
-  switch (msg->command) 
-    {
-      case (OFPGC_ADD):
-        return group_table_add (dp->groups, msg);
-      
-      case (OFPGC_MODIFY):
-        return group_table_modify (dp->groups, msg);
-
-      case (OFPGC_DELETE):
-        return GroupTableDelete (dp->groups, msg);
-
-      default:
-        return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-    }
-}
-
-ofl_err
-OFSwitch13NetDevice::HandleMsgPortMod (datapath *dp, ofl_msg_port_mod *msg, 
-    uint64_t xid) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofs::Port *p = PortGetOfsPort (msg->port_no);
-  if (p == NULL) 
-    {
-      return ofl_error (OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_PORT);
-    }
-
-  // Make sure the port id hasn't changed since this was sent
-  uint8_t p_addr[ETH_ADDR_LEN];
-  p->netdev->GetAddress ().CopyTo (p_addr);
-  if (memcmp (msg->hw_addr, p_addr, ETH_ADDR_LEN) != 0) 
-    {
-      return ofl_error (OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_HW_ADDR);
-    }
-
-  if (msg->mask) 
-    {
-      p->conf->config &= ~msg->mask;
-      p->conf->config |= msg->config & msg->mask;
-      if ((p->conf->state & OFPPS_LINK_DOWN) || 
-          (p->conf->config & OFPPC_PORT_DOWN)) 
-        {
-          // Port not live
-          p->conf->state &= ~OFPPS_LIVE;
-        } 
-      else 
-        {
-          // Port is live
-          p->conf->state |= OFPPS_LIVE;
-        }
-    }
-
-  // Notify the controller that the port status has changed
-  ofl_msg_port_status reply;
-  reply.header.type = OFPT_PORT_STATUS;
-  reply.reason = OFPPR_MODIFY; 
-  reply.desc = p->conf;
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, ++m_xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::HandleMsgTableMod (datapath *dp, ofl_msg_table_mod *msg, 
-    uint64_t xid) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  if (msg->table_id == 0xff) 
-    {
-      size_t i;
-      for (i = 0; i < PIPELINE_TABLES; i++) {
-          dp->pipeline->tables[i]->features->config = msg->config;
-      }
-    }
-  else 
-    {
-      dp->pipeline->tables[msg->table_id]->features->config = msg->config;
-    }
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err 
-OFSwitch13NetDevice::HandleMsgMultipartRequest (datapath *dp, 
-    ofl_msg_multipart_request_header *msg, uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  switch (msg->type) 
-    {
-      case (OFPMP_DESC): 
-        return MultipartMsgDesc (dp, msg, xid);
-
-      case (OFPMP_FLOW):
-        return MultipartMsgFlow (dp, (ofl_msg_multipart_request_flow*)msg, xid);
-      
-      case (OFPMP_AGGREGATE): 
-        return MultipartMsgAggregate (dp, (ofl_msg_multipart_request_flow*)msg, xid);
-      
-      case (OFPMP_TABLE): 
-        return MultipartMsgTable (dp, msg, xid);
-      
-      case (OFPMP_TABLE_FEATURES):
-        return MultipartMsgTableFeatures (dp, msg, xid);
-      
-      case (OFPMP_PORT_STATS): 
-        return MultipartMsgPortStats (dp, (ofl_msg_multipart_request_port*)msg, xid); 
-      
-      case (OFPMP_QUEUE): 
-        //return dp_ports_handle_stats_request_queue(dp, (ofl_msg_multipart_request_queue*)msg, sender);
-      
-      case (OFPMP_GROUP): 
-        return MultipartMsgGroup (dp, (ofl_msg_multipart_request_group*)msg, xid);
-      
-      case (OFPMP_GROUP_DESC): 
-        return MultipartMsgGroupDesc (dp, msg, xid);
-      
-      case (OFPMP_GROUP_FEATURES):
-        return MultipartMsgGroupFeatures (dp, msg, xid);
-      
-      case (OFPMP_METER):
-        //return meter_table_handle_stats_request_meter(dp->meters,(ofl_msg_multipart_meter_request*)msg, sender);
-      
-      case (OFPMP_METER_CONFIG):
-        //return meter_table_handle_stats_request_meter_conf(dp->meters,(ofl_msg_multipart_meter_request*)msg, sender);        
-      
-      case OFPMP_METER_FEATURES:
-        //return meter_table_handle_features_request(dp->meters, msg, sender);
-      
-      case OFPMP_PORT_DESC:
-        return MultipartMsgPortDesc (dp, msg, xid);        
-      
-      case (OFPMP_EXPERIMENTER): 
-        //return dp_exp_stats(dp, (ofl_msg_multipart_request_experimenter*)msg, sender);
-      
-      default: 
-        return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_MULTIPART);
-    }
-}
-
-ofl_err
-OFSwitch13NetDevice::HandleMsgBarrierRequest (datapath *dp, ofl_msg_header *msg, 
-    uint64_t xid) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  // FIXME  Issue #19
-  // Note: the implementation is single-threaded, so a barrier request can
-  // simply be replied. 
-  ofl_msg_header reply;
-  reply.type = OFPT_BARRIER_REPLY;
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg (&reply, xid);
-  LogOflMsg (&reply);
-  SendToController (pkt);
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free (msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::HandleMsgGetAsyncRequest (datapath *dp, 
-    ofl_msg_async_config *msg, uint64_t xid) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofl_msg_async_config reply;
-  reply.header.type = OFPT_GET_ASYNC_REPLY;
-  reply.config = &m_asyncConfig;
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::HandleMsgSetAsync (datapath *dp, 
-    ofl_msg_async_config *msg, uint64_t xid) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  memcpy (&m_asyncConfig, msg->config, sizeof (ofl_async_config));
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err 
-OFSwitch13NetDevice::HandleMsgMeterMod (datapath *dp, ofl_msg_meter_mod *msg, 
-    uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  // Modifications to meter table from the controller are done with the
-  // OFPT_METER_MOD message (including add, modify or delete).
-  // \see meter_table_handle_meter_mod () at udatapath/meter_table.c
-  switch (msg->command) 
-    {
-      case (OFPMC_ADD):
-        return meter_table_add (dp->meters, msg);
-      
-      case (OFPMC_MODIFY):
-        return meter_table_modify (dp->meters, msg);
-
-      case (OFPMC_DELETE):
-        return MeterTableDelete (dp->meters, msg);
-
-      default:
-        return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-    }
-}
-
-ofl_err
-OFSwitch13NetDevice::MultipartMsgDesc (datapath *dp, 
-    ofl_msg_multipart_request_header *msg, uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
- 
-  ofl_msg_reply_desc reply;
-  reply.header.header.type = OFPT_MULTIPART_REPLY;
-  reply.header.type  = OFPMP_DESC;
-  reply.header.flags = 0x0000;
-  reply.mfr_desc     = dp->mfr_desc;
-  reply.hw_desc      = dp->hw_desc;
-  reply.sw_desc      = dp->sw_desc;
-  reply.serial_num   = dp->serial_num;
-  reply.dp_desc      = dp->dp_desc;
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::MultipartMsgFlow (datapath *dp, 
-    ofl_msg_multipart_request_flow *msg, uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofl_flow_stats **stats = (ofl_flow_stats**)xmalloc ( sizeof(ofl_flow_stats*));
-  size_t stats_size = 1;
-  size_t stats_num = 0;
-
-  if (msg->table_id == 0xff) 
-    {
-      size_t i;
-      for (i=0; i<PIPELINE_TABLES; i++) 
-        {
-          flow_table_stats (dp->pipeline->tables[i], msg, 
-              &stats, &stats_size, &stats_num);
-        }
-    } 
-  else 
-    {
-      flow_table_stats (dp->pipeline->tables[msg->table_id], 
-          msg, &stats, &stats_size, &stats_num);
-    }
-
-  ofl_msg_multipart_reply_flow reply;
-  reply.header.header.type = OFPT_MULTIPART_REPLY;
-  reply.header.type = OFPMP_FLOW;
-  reply.header.flags = 0x0000;
-  reply.stats = stats;
-  reply.stats_num = stats_num;
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-  free(stats);
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::MultipartMsgAggregate (datapath *dp, 
-    ofl_msg_multipart_request_flow *msg, uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofl_msg_multipart_reply_aggregate reply;
-  reply.header.header.type = OFPT_MULTIPART_REPLY;
-  reply.header.type = OFPMP_AGGREGATE;
-  reply.header.flags = 0x0000;
-  reply.packet_count = 0;
-  reply.byte_count   = 0;
-  reply.flow_count   = 0;
-
-  if (msg->table_id == 0xff) 
-    {
-      size_t i;
-      for (i=0; i<PIPELINE_TABLES; i++) {
-          flow_table_aggregate_stats (dp->pipeline->tables[i], msg, 
-              &reply.packet_count, &reply.byte_count, &reply.flow_count);
-      }
-    } 
-  else 
-    {
-      flow_table_aggregate_stats (dp->pipeline->tables[msg->table_id], 
-          msg, &reply.packet_count, &reply.byte_count, &reply.flow_count);
-    }
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::MultipartMsgTable (datapath *dp, 
-    ofl_msg_multipart_request_header *msg, uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofl_msg_multipart_reply_table reply;
-  reply.header.header.type = OFPT_MULTIPART_REPLY;
-  reply.header.type = OFPMP_TABLE;
-  reply.header.flags = 0x0000;
-  reply.stats_num = PIPELINE_TABLES;
-  reply.stats = (ofl_table_stats**)xmalloc (sizeof (ofl_table_stats*) * PIPELINE_TABLES);
-
-  for (size_t i = 0; i < PIPELINE_TABLES; i++) 
-    {
-      reply.stats[i] = dp->pipeline->tables[i]->stats;
-    }
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-
-  // All handlers must free the message when everything is ok
-  free (reply.stats);
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::MultipartMsgTableFeatures (datapath *dp, 
-    ofl_msg_multipart_request_header *msg, uint64_t xid) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  // FIXME Issue #14 (Implement)
-  return ofl_error (OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_TABLE);
-  //return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::MultipartMsgPortStats (datapath *dp, 
-    ofl_msg_multipart_request_port *msg, uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofs::Port *port;
-  size_t i = 0;
-
-  ofl_msg_multipart_reply_port reply;
-  reply.header.header.type = OFPT_MULTIPART_REPLY;
-  reply.header.type  = OFPMP_PORT_STATS;
-  reply.header.flags = 0x0000;
-  
-  if (msg->port_no == OFPP_ANY) 
-    {
-      reply.stats_num = GetNSwitchPorts ();
-      reply.stats = (ofl_port_stats**)xmalloc (sizeof (ofl_port_stats*) * reply.stats_num);
-
-      // Using port number (not position in vector)
-      for (i = 1; i <= GetNSwitchPorts (); i++)
-        {
-          port = PortGetOfsPort (i);
-          PortStatsUpdate (port);
-          reply.stats[i-1] = port->stats;
-        }
-    } 
-  else 
-    {
-      port = PortGetOfsPort (msg->port_no);
-      if (port != NULL && port->netdev != NULL) 
-        {
-          reply.stats_num = 1;
-          reply.stats = (ofl_port_stats**)xmalloc (sizeof (ofl_port_stats*));
-          PortStatsUpdate (port);
-          reply.stats[0] = port->stats;
-        }
-    }
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-
-  // All handlers must free the message when everything is ok
-  free (reply.stats);
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err 
-OFSwitch13NetDevice::MultipartMsgGroup (datapath *dp, 
-    ofl_msg_multipart_request_group *msg, uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-
-  group_table *table = dp->groups;
-  group_entry *entry;
-  if (msg->group_id == OFPG_ALL) 
-    {
-      entry = NULL;
-    } 
-  else 
-    {
-      entry = group_table_find (table, msg->group_id);
-      if (entry == NULL) 
-        {
-          return ofl_error (OFPET_GROUP_MOD_FAILED, OFPGMFC_UNKNOWN_GROUP);
-        }
-    }
-
-  ofl_msg_multipart_reply_group reply;
-  reply.header.header.type = OFPT_MULTIPART_REPLY;
-  reply.header.type = OFPMP_GROUP;
-  reply.header.flags = 0x0000;
-  reply.stats_num = msg->group_id == OFPG_ALL ? table->entries_num : 1,
-  reply.stats  = (ofl_group_stats**)xmalloc (sizeof (ofl_group_stats*) * 
-      (msg->group_id == OFPG_ALL ? table->entries_num : 1));
-
-  if (msg->group_id == OFPG_ALL) 
-    {
-      group_entry *e;
-      size_t i = 0;
-
-      HMAP_FOR_EACH (e, group_entry, node, &table->entries) 
-        {
-           group_entry_update (e);
-           reply.stats[i] = e->stats;
-           i++;
-        }
-    } 
-  else 
-    {
-      group_entry_update (entry);
-      reply.stats[0] = entry->stats;
-    }
-  
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
- 
-  // All handlers must free the message when everything is ok
-  free (reply.stats);
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::MultipartMsgGroupDesc (datapath *dp, 
-    ofl_msg_multipart_request_header *msg, uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-
-  group_table *table = dp->groups;
-  group_entry *entry;
-  size_t i = 0;
-
-  ofl_msg_multipart_reply_group_desc reply;
-  reply.header.header.type = OFPT_MULTIPART_REPLY;
-  reply.header.type = OFPMP_GROUP_DESC; 
-  reply.header.flags = 0x0000;
-  reply.stats_num = table->entries_num,
-  reply.stats = (ofl_group_desc_stats**)xmalloc (sizeof (ofl_group_desc_stats *) * 
-      table->entries_num);
-
-  HMAP_FOR_EACH (entry, group_entry, node, &table->entries) 
-    {
-      reply.stats[i] = entry->desc;
-      i++;
-    }
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
- 
-  // All handlers must free the message when everything is ok
-  free (reply.stats);
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::MultipartMsgGroupFeatures (datapath *dp, 
-    ofl_msg_multipart_request_header *msg, uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
- 
-  group_table *table = dp->groups;
-  size_t i = 0;
-
-  struct ofl_msg_multipart_reply_group_features reply;
-  reply.header.header.type = OFPT_MULTIPART_REPLY;
-  reply.header.type = OFPMP_GROUP_FEATURES;
-  reply.header.flags = 0x0000;
-  reply.types = table->features->types;
-  reply.capabilities = table->features->capabilities;
-
-  for (i = 0; i < 4; i++)
-    {
-      reply.max_groups[i] = table->features->max_groups[i];
-      reply.actions[i] = table->features->actions[i];
-    } 
-  
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
- 
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::MultipartMsgPortDesc (datapath *dp, 
-    ofl_msg_multipart_request_header *msg, uint64_t xid)
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofs::Port *port;
-  size_t i = 0;
-  
-  ofl_msg_multipart_reply_port_desc reply;
-  reply.header.header.type = OFPT_MULTIPART_REPLY;
-  reply.header.type  = OFPMP_PORT_DESC;
-  reply.header.flags = 0x0000;
-  reply.stats_num    = GetNSwitchPorts ();
-  reply.stats = (ofl_port**)xmalloc (sizeof (ofl_port*) * reply.stats_num);
-  
-  // Using port number (not position in vector)
-  for (i = 1; i <= GetNSwitchPorts (); i++)
-    {
-      port = PortGetOfsPort (i);
-      reply.stats[i-1] = port->conf;
-    }
-  
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-  
-  // All handlers must free the message when everything is ok
-  free (reply.stats);
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
 void 
 OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
   Ptr<Packet> packet;
   Address from;
+  ofl_msg_header *msg;
+  ofl_err error;
+
   while ((packet = socket->RecvFrom (from)))
     {
       if (packet->GetSize () == 0)
@@ -2571,9 +1796,48 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
                        << InetSocketAddress::ConvertFrom(from).GetIpv4 ()
                        << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
 
-          // Create and process the openflow buffer
+          // Get the openflow buffer, unpack the message and send to handler
           ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
-          ReceiveFromController (buffer);
+          
+          // Gets the single remote in datapath (first in list).
+          struct sender sender;
+          sender.remote = CONTAINER_OF (list_front (&m_datapath->remotes), remote, node);
+          sender.conn_id = 0; // No auxiliary connections 
+
+          error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, 
+                      &sender.xid, m_datapath->exp);
+
+          if (!error)
+            {
+              char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
+              NS_LOG_DEBUG ("Rx from ctrl: " << msg_str);
+              free (msg_str);
+              
+              error = HandleControlMessage (m_datapath, msg, &sender);
+              if (error)
+                {
+                  // NOTE: It is assumed that if a handler returns with error,
+                  // it did not use any part of the control message, thus it
+                  // can be freed up. If no error is returned however, the
+                  // message must be freed inside the handler (because the
+                  // handler might keep parts of the message) 
+                  ofl_msg_free (msg, m_datapath->exp);
+                }
+            }
+          if (error)
+            {
+              NS_LOG_WARN ("Error processing OpenFlow message received from controller.");
+              // Notify the controller
+              ofl_msg_error err;
+              err.header.type = OFPT_ERROR;
+              err.type = (ofp_error_type)ofl_error_type (error);
+              err.code = ofl_error_code (error);
+              err.data_length = buffer->size;
+              err.data = (uint8_t*)buffer->data;
+              
+              SendToController ((ofl_msg_header*)&err, &sender);
+            }
+          ofpbuf_delete (buffer);
         }
     }
 }
@@ -2585,18 +1849,19 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
   NS_LOG_LOGIC ("Controller accepted connection request!");
   socket->SetRecvCallback (MakeCallback (&OFSwitch13NetDevice::SocketCtrlRead, this));
 
-  // Randomize xid
-  m_xid = HashInt (m_xid, GetDatapathId () & UINT32_MAX);
+  // Randomize local xid
+  m_xid = HashInt (++m_globalDpId, GetDatapathId () & UINT32_MAX);
+
+  // Save remote info in datapath
+  remote_create (m_datapath, NULL, NULL);
 
   // Send Hello message
   ofl_msg_header msg;
   msg.type = OFPT_HELLO;
-  LogOflMsg (&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, ++m_xid);
-  SendToController (pkt);
+  SendToController (&msg);
   
   // Schedule first echo message
-  Simulator::Schedule (m_echo, &OFSwitch13NetDevice::SendEchoRequest, this);
+  Simulator::Schedule (m_echo, &OFSwitch13NetDevice::DatapathSendEchoRequest, this);
 }
 
 void
@@ -2606,5 +1871,5 @@ OFSwitch13NetDevice::SocketCtrlFailed (Ptr<Socket> socket)
   NS_LOG_ERROR ("Controller did not accepted connection request!");
 }
 
-} // namespace ns3
+} // ------------- namespace ns3 -------------
 #endif // NS3_OFSWITCH13

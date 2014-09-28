@@ -19,16 +19,11 @@
 /** 
  * \defgroup ofswitch13 OpenFlow 1.3 softswitch
  * This section documents the API of ns3 OpenFlow 1.3 compatible switch
- * datapath implementation.
- */
-
-/** 
- * \ingroup ofswitch13
- * This module follows the OpenFlow 1.3 switch specification
+ * datapath and base controller implementation. This module follows the
+ * OpenFlow 1.3 switch specification
  * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
- * It depends on the CPqD ofsoftswitch13
- * <https://github.com/ljerezchaves/ofsoftswitch13> implementation compiled
- * as a library (use ./configure --enable-ns3-lib).
+ * It depends on the CPqD ofsoftswitch13 <https://github.com/ljerezchaves/ofsoftswitch13> 
+ * implementation compiled as a library (use ./configure --enable-ns3-lib).
  *
  * \attention Currently, only a subset of features are supported.
  */
@@ -37,15 +32,14 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <set>
+#include <map>
+#include <limits>
 
 #include "ns3/simulator.h"
 #include "ns3/log.h"
 #include "ns3/net-device.h"
 #include "ns3/csma-module.h"
-
-#include <set>
-#include <map>
-#include <limits>
 
 #include <boost/static_assert.hpp>
 #include "openflow/openflow.h"
@@ -57,6 +51,7 @@ extern "C"
 #define delete _delete
 #define list List
 
+#include "udatapath/datapath.h"
 #include "udatapath/packet.h"
 #include "udatapath/pipeline.h"
 #include "udatapath/flow_table.h"
@@ -67,6 +62,7 @@ extern "C"
 #include "udatapath/meter_entry.h"
 #include "udatapath/dp_ports.h"
 #include "udatapath/dp_actions.h"
+#include "udatapath/dp_control.h"
 #include "udatapath/action_set.h"
 #include "udatapath/dp_buffers.h"
 #include "udatapath/packet_handle_std.h"
@@ -74,6 +70,8 @@ extern "C"
 #include "lib/ofpbuf.h"
 #include "lib/dynamic-string.h"
 #include "lib/hash.h"
+#include "lib/list.h"
+#include "lib/util.h"
 #include "lib/random.h"
 
 #include "oflib/ofl-structs.h"
@@ -102,6 +100,12 @@ int parse_group(char *str, uint32_t *group);
 int parse_meter(char *str, uint32_t *meter);
 int parse_table(char *str, uint8_t *table);
 
+// From udatapath/datapath.c 
+struct remote * remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux);
+
+// From udatapath/dp_control.c
+ofl_err handle_control_stats_request (struct datapath *dp, struct ofl_msg_multipart_request_header *msg, const struct sender *sender);
+
 // From udatapath/dp_ports.c
 uint32_t port_speed(uint32_t conf);
 
@@ -112,14 +116,11 @@ ofl_err flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, b
 // From udatapath/group_table.c
 ofl_err group_table_add(struct group_table *table, struct ofl_msg_group_mod *mod);
 ofl_err group_table_modify(struct group_table *table, struct ofl_msg_group_mod *mod); 
+ofl_err group_table_delete(struct group_table *table, struct ofl_msg_group_mod *mod);
 
 // From udatapath/group_entry.c
 size_t select_from_select_group(struct group_entry *entry);
 size_t select_from_ff_group(struct group_entry *entry);
-
-// From udatapath/meter_table.c
-ofl_err meter_table_add(struct meter_table *table, struct ofl_msg_meter_mod *mod);
-ofl_err meter_table_modify(struct meter_table *table, struct ofl_msg_meter_mod *mod);
 
 // From udatapath/pipeline.c
 int inst_compare(const void *inst1, const void *inst2);
@@ -133,16 +134,6 @@ void del_meter_refs(struct flow_entry *entry);
 #undef delete
 }
 
-// Capabilities supported by this implementation (from dp_capabilities.h)
-#define DP_SUPPORTED_CAPABILITIES ( \
-    OFPC_FLOW_STATS     \
-  | OFPC_PORT_STATS     \
-  | OFPC_TABLE_STATS    \
-  | OFPC_GROUP_STATS    )
-/*| OFPC_IP_REASM */     
-/*| OFPC_QUEUE_STATS */   
-/*| OFPC_PORT_BLOCKED */   
-  
 namespace ns3 {
 namespace ofs {
 
@@ -225,21 +216,6 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
  * \return The OpenFlow Buffer created from the message.
  */
 ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp = NULL);
-
-/**
- * \ingroup ofswitch13
- * Creates an OpenFlow internal packet from openflow buffer. This packet in an
- * internal ofsoftswitch13 structure to represent the packet, and it is used to
- * parse fields, lookup for flow matchs, etc.
- * \see ofsoftswitch13 function packet_create () at udatapath/packet.c
- * \param dp The datapath.
- * \param in_port The id of the input port.
- * \param buf The openflow buffer with the packet.
- * \param packet_out True if the packet arrived in a packet out msg.
- * \return The pointer to the created packet.
- */
-packet* InternalPacketFromBuffer (datapath* dp, uint32_t in_port, ofpbuf *buf,
-    bool packet_out);
 
 /**
  * \ingroup ofswitch13
