@@ -111,6 +111,7 @@ GetDatapathDevice (uint64_t id)
  * A fast hash function used by hash map.
  * \see hash_int () in lib/hash.h
  */
+uint32_t
 HashInt (uint32_t x, uint32_t basis)
 {
   x -= x << 6;

@@ -81,53 +81,47 @@ extern "C"
 #include "utilities/dpctl.h"
 
 // From utilities/dpctl.c
-void parse_flow_mod_args(char *str, struct ofl_msg_flow_mod *req);
-void parse_group_mod_args(char *str, struct ofl_msg_group_mod *req);
-void parse_meter_mod_args(char *str, struct ofl_msg_meter_mod *req);
-void parse_bucket(char *str, struct ofl_bucket *b);
-void parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req);
-void parse_match(char *str, struct ofl_match_header **match);
-void parse_inst(char *str, struct ofl_instruction_header **inst);
-void parse_actions(char *str, size_t *acts_num, struct ofl_action_header ***acts);
-void parse_config(char *str, struct ofl_config *config);
-void parse_port_mod(char *str, struct ofl_msg_port_mod *msg);
-void parse_table_mod(char *str, struct ofl_msg_table_mod *msg);
-void parse_band(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_header **b);
-void make_all_match(struct ofl_match_header **match);
-int parse_port(char *str, uint32_t *port);
-int parse_queue(char *str, uint32_t *port);
-int parse_group(char *str, uint32_t *group);
-int parse_meter(char *str, uint32_t *meter);
-int parse_table(char *str, uint8_t *table);
+void parse_flow_mod_args (char *str, struct ofl_msg_flow_mod *req);
+void parse_group_mod_args (char *str, struct ofl_msg_group_mod *req);
+void parse_meter_mod_args (char *str, struct ofl_msg_meter_mod *req);
+void parse_bucket (char *str, struct ofl_bucket *b);
+void parse_flow_stat_args (char *str, struct ofl_msg_multipart_request_flow *req);
+void parse_match (char *str, struct ofl_match_header **match);
+void parse_inst (char *str, struct ofl_instruction_header **inst);
+void parse_actions (char *str, size_t *acts_num, struct ofl_action_header ***acts);
+void parse_config (char *str, struct ofl_config *config);
+void parse_port_mod (char *str, struct ofl_msg_port_mod *msg);
+void parse_table_mod (char *str, struct ofl_msg_table_mod *msg);
+void parse_band (char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_header **b);
+void make_all_match (struct ofl_match_header **match);
+int parse_port (char *str, uint32_t *port);
+int parse_queue (char *str, uint32_t *port);
+int parse_group (char *str, uint32_t *group);
+int parse_meter (char *str, uint32_t *meter);
+int parse_table (char *str, uint8_t *table);
 
 // From udatapath/datapath.c 
-struct remote * remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux);
+struct remote* remote_create (struct datapath *dp, 
+        struct rconn *rconn, struct rconn *rconn_aux);
 
 // From udatapath/dp_control.c
-ofl_err handle_control_stats_request (struct datapath *dp, struct ofl_msg_multipart_request_header *msg, const struct sender *sender);
-
-// From udatapath/dp_ports.c
-uint32_t port_speed(uint32_t conf);
-
-// From udatapath/flow_table.c
-ofl_err flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool strict, bool *insts_kept);
-ofl_err flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept);
-
-// From udatapath/group_table.c
-ofl_err group_table_add(struct group_table *table, struct ofl_msg_group_mod *mod);
-ofl_err group_table_modify(struct group_table *table, struct ofl_msg_group_mod *mod); 
-ofl_err group_table_delete(struct group_table *table, struct ofl_msg_group_mod *mod);
-
-// From udatapath/group_entry.c
-size_t select_from_select_group(struct group_entry *entry);
-size_t select_from_ff_group(struct group_entry *entry);
+ofl_err handle_control_stats_request (struct datapath *dp, 
+        struct ofl_msg_multipart_request_header *msg, const struct sender *sender);
 
 // From udatapath/pipeline.c
-int inst_compare(const void *inst1, const void *inst2);
+int inst_compare (const void *inst1, const void *inst2);
 
-// From udatapath/flow_entry.
-void del_group_refs(struct flow_entry *entry);
-void del_meter_refs(struct flow_entry *entry);
+// From udatapath/dp_ports.c
+uint32_t port_speed (uint32_t conf);
+
+// From udatapath/group_table.c
+ofl_err group_table_add (struct group_table *table, struct ofl_msg_group_mod *mod);
+ofl_err group_table_modify (struct group_table *table, struct ofl_msg_group_mod *mod); 
+ofl_err group_table_delete (struct group_table *table, struct ofl_msg_group_mod *mod);
+
+// From udatapath/group_entry.c
+size_t select_from_select_group (struct group_entry *entry);
+size_t select_from_ff_group (struct group_entry *entry);
 
 #undef list
 #undef private
