@@ -83,10 +83,11 @@ public:
    * call this one when they are ready to send the packet.
    * \internal This method is public as the 'C' dp_send_message overriding
    * function use this 'C++' member function to send their messages.
+   * \see send_openflow_buffer () at udatapath/datapath.c.
    * \param msg The OFLib message to send.
    * \param sender When replying to controller, the sender (controller)
    * information, incluind xid.
-   * \return The number of bytes transmitted.
+   * \return 0 if everything's ok, otherwise an error number.
    */
   int SendToController (ofl_msg_header *msg, const sender *sender = NULL);
 
@@ -326,7 +327,7 @@ private:
    * \param tableId Table id with with entry match.
    * \param reason The reason to send this packet to controller.
    * \param cookie Controller data used to filter flow statistics.
-   * \return The number of bytes transmitted.
+   * \return 0 if everything's ok, otherwise an error number.
    */
   int PipelineSendPacketIn (pipeline* pl, packet *pkt, 
       uint8_t tableId, ofp_packet_in_reason reason, uint64_t cookie);

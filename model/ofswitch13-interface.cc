@@ -230,9 +230,8 @@ dp_send_message (struct datapath *dp, struct ofl_msg_header *msg,
   if (!error)
     {
       NS_LOG_WARN ("There was an error sending the message!");
-      return 1;
-  }
-  return 0;
+    }
+  return !error;
 }
 
 #endif // NS3_OFSWITCH13

@@ -251,15 +251,98 @@ OFSwitch13NetDevice::SendToController (ofl_msg_header *msg, const sender *sender
 {
   NS_LOG_FUNCTION (this);
   NS_ASSERT (m_ctrlSocket);
-
+  
   char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
   NS_LOG_DEBUG ("TX to ctrl: " << msg_str);
   free(msg_str);
 
   uint32_t xid = sender ? sender->xid : GetNextXid ();
+  ofpbuf *buffer = ofs::BufferFromMsg (msg, xid, m_datapath->exp);
 
-  Ptr<Packet> packet = ofs::PacketFromMsg (msg, xid);
-  return m_ctrlSocket->Send (packet);
+  if (sender) 
+    {
+      // This is a reply... send back to the sender.
+      return !m_ctrlSocket->Send (ofs::PacketFromBufferAndFree (buffer));
+    } 
+  else 
+    {
+      // This is an asynchronous message. Check for asynchronous configuration
+      bool send = true;
+      uint8_t msg_type;
+      memcpy (&msg_type, ((char* ) buffer->data) + 1, sizeof (uint8_t));
+      remote *r = CONTAINER_OF (list_front (&m_datapath->remotes), remote, node);
+      
+      // do not send to remotes with slave role apart from port status
+      if (r->role == OFPCR_ROLE_EQUAL || r->role == OFPCR_ROLE_MASTER)
+        {
+          // Check if the message is enabled in the asynchronous configuration
+          switch (msg_type)
+            {
+              case (OFPT_PACKET_IN):
+                {
+                  ofp_packet_in *p = (ofp_packet_in*)buffer->data;
+                  if (((p->reason == OFPR_NO_MATCH)    && !(r->config.packet_in_mask[0] & 0x1)) ||
+                      ((p->reason == OFPR_ACTION)      && !(r->config.packet_in_mask[0] & 0x2)) ||
+                      ((p->reason == OFPR_INVALID_TTL) && !(r->config.packet_in_mask[0] & 0x4)))
+                    {
+                      send = false;
+                    }
+                  break;
+                }
+              case (OFPT_PORT_STATUS):
+                {
+                  ofp_port_status *p = (ofp_port_status*)buffer->data;
+                  if (((p->reason == OFPPR_ADD)    && !(r->config.port_status_mask[0] & 0x1)) ||
+                      ((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[0] & 0x2)) ||
+                      ((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[0] & 0x4)))
+                    {
+                      send = false;
+                    }
+                }
+              case (OFPT_FLOW_REMOVED):
+                {
+                  ofp_flow_removed *p= (ofp_flow_removed *)buffer->data;
+                  if (((p->reason == OFPRR_IDLE_TIMEOUT) && !(r->config.port_status_mask[0] & 0x1)) ||
+                      ((p->reason == OFPRR_HARD_TIMEOUT) && !(r->config.port_status_mask[0] & 0x2)) ||
+                      ((p->reason == OFPRR_DELETE)       && !(r->config.packet_in_mask[0] & 0x4))   ||
+                      ((p->reason == OFPRR_GROUP_DELETE) && !(r->config.packet_in_mask[0] & 0x8))   ||
+                      ((p->reason == OFPRR_METER_DELETE) && !(r->config.packet_in_mask[0] & 0x10)))
+                    {
+                      send = false;
+                    }
+                }
+            }
+        }
+      else 
+        {
+          // In this implementation we assume that a controller with role slave
+          // is able to receive only port stats messages.
+          if (r->role == OFPCR_ROLE_SLAVE && msg_type != OFPT_PORT_STATUS) 
+            {
+              send = false;
+            }
+          else 
+            {
+              struct ofp_port_status *p = (struct ofp_port_status*)buffer->data;
+              if (((p->reason == OFPPR_ADD)    && !(r->config.port_status_mask[1] & 0x1)) ||
+                  ((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[1] & 0x2)) ||
+                  ((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[1] & 0x4)))
+                {
+                  send = false;
+                }
+            }
+        }
+
+      if (send)
+        {
+          return !m_ctrlSocket->Send (ofs::PacketFromBufferAndFree (buffer));
+        }
+      else 
+        {
+          ofpbuf_delete(buffer);
+          return 0;
+        }
+    }
 }
 
 uint32_t
