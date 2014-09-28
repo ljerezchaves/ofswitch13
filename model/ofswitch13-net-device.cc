@@ -686,13 +686,10 @@ OFSwitch13NetDevice::DatapathSendEchoRequest ()
   msg.data_length = 0;
   msg.data        = 0;
  
-  // FIXME Xid problem
-  uint64_t xid = GetNextXid ();
   ofs::EchoInfo echo (InetSocketAddress::ConvertFrom (m_ctrlAddr).GetIpv4 ());
-  m_echoMap.insert (std::pair<uint64_t, ofs::EchoInfo> (xid, echo));
-
+  m_echoMap.insert (std::pair<uint64_t, ofs::EchoInfo> (m_xid, echo));
   SendToController ((ofl_msg_header*)&msg);
-
+  
   Simulator::Schedule (m_echo, &OFSwitch13NetDevice::DatapathSendEchoRequest, this);
 }
 
