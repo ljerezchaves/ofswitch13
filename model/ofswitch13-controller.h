@@ -108,7 +108,7 @@ protected:
   uint32_t GetNextXid ();
 
   /**
-   * Send a ns3 packet to a registered switch. 
+   * Send a OFLib message to a registered switch. 
    * \param swtch The switch to receive the message
    * \param msg The OFLib message to send.
    * \param xid The transaction id to use.
