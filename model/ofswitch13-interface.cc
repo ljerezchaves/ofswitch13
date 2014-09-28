@@ -224,20 +224,13 @@ dp_send_message (struct datapath *dp, struct ofl_msg_header *msg,
     const struct sender *sender) 
 {
   int error = 0;
-  uint32_t xid;
-  
-  char *msg_str = ofl_msg_to_string (msg, dp->exp);
-  NS_LOG_DEBUG ("TX to ctrl: " << msg_str);
-  free(msg_str);
 
   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
-  xid = sender ? sender->xid : dev->GetNextXid ();
-
-  error = dev->SendToController (ofs::PacketFromMsg (msg, xid));
-  if (!error) 
+  error = dev->SendToController (msg, sender);
+  if (!error)
     {
       NS_LOG_WARN ("There was an error sending the message!");
-      return -1;
+      return 1;
   }
   return 0;
 }

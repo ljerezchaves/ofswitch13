@@ -79,14 +79,16 @@ public:
 
   /**
    * Send a message to the controller. This method is the key to communicating
-   * with the controller, it does the actual sending. The other Send methods
+   * with the controller, it does the actual sending. The other send methods
    * call this one when they are ready to send the packet.
    * \internal This method is public as the 'C' dp_send_message overriding
    * function use this 'C++' member function to send their messages.
-   * \param packet The packet to send.
+   * \param msg The OFLib message to send.
+   * \param sender When replying to controller, the sender (controller)
+   * information, incluind xid.
    * \return The number of bytes transmitted.
    */
-  int SendToController (Ptr<Packet> packet);
+  int SendToController (ofl_msg_header *msg, const sender *sender = NULL);
 
   /**
    * \return Number of switch ports attached to this switch.
@@ -317,16 +319,16 @@ private:
       const sender *sender);
 
   /**
-   * Create a packet_in to send to controller.
+   * Create and send a packet_in to controller.
    * \see ofsoftswitch13 send_packet_to_controller () at udatapath/pipeline.c.
    * \param pl The pipeline.
    * \param pkt The internal packet to send.
    * \param tableId Table id with with entry match.
    * \param reason The reason to send this packet to controller.
    * \param cookie Controller data used to filter flow statistics.
-   * \return The ns3 packet created.
+   * \return The number of bytes transmitted.
    */
-  Ptr<Packet> PipelineCreatePacketIn (pipeline* pl, packet *pkt, 
+  int PipelineSendPacketIn (pipeline* pl, packet *pkt, 
       uint8_t tableId, ofp_packet_in_reason reason, uint64_t cookie);
   //\}
 

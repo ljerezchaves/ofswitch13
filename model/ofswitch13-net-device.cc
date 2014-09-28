@@ -133,23 +133,6 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
 uint64_t OFSwitch13NetDevice::m_globalDpId = 0;
 uint32_t OFSwitch13NetDevice::m_globalXid = 0;
 
-static void
-LogOflMsg (ofl_msg_header *msg, bool isRx=false)
-{
-  char *str;
-  str = ofl_msg_to_string (msg, NULL);
-  if (isRx)
-    {
-      NS_LOG_INFO ("RX from ctrl: " << str);
-    }
-  else
-    {
-      NS_LOG_INFO ("TX to ctrl: " << str);
-    }
-  free (str);
-}
-
-
 /********** Public methods **********/
 TypeId
 OFSwitch13NetDevice::GetTypeId (void)
@@ -253,9 +236,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
       msg.reason = OFPPR_ADD;
       msg.desc = p.conf;
 
-      Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, GetNextXid ());
-      LogOflMsg ((ofl_msg_header*)&msg);
-      SendToController (packet);
+      SendToController ((ofl_msg_header*)&msg);
     }
 
   NS_LOG_LOGIC ("RegisterProtocolHandler for " << switchPort->GetInstanceTypeId ().GetName ());
@@ -266,11 +247,18 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
 }
 
 int
-OFSwitch13NetDevice::SendToController (Ptr<Packet> packet)
+OFSwitch13NetDevice::SendToController (ofl_msg_header *msg, const sender *sender)
 {
   NS_LOG_FUNCTION (this);
   NS_ASSERT (m_ctrlSocket);
 
+  char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
+  NS_LOG_DEBUG ("TX to ctrl: " << msg_str);
+  free(msg_str);
+
+  uint32_t xid = sender ? sender->xid : GetNextXid ();
+
+  Ptr<Packet> packet = ofs::PacketFromMsg (msg, xid);
   return m_ctrlSocket->Send (packet);
 }
 
@@ -596,9 +584,7 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
           msg.reason = OFPPR_MODIFY;
           msg.desc = p->conf;
 
-          Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&msg, GetNextXid ());
-          LogOflMsg ((ofl_msg_header*)&msg);
-          SendToController (packet);
+          SendToController ((ofl_msg_header*)&msg);
         }
     }
 
@@ -617,15 +603,12 @@ OFSwitch13NetDevice::DatapathSendEchoRequest ()
   msg.data_length = 0;
   msg.data        = 0;
  
+  // FIXME Xid problem
   uint64_t xid = GetNextXid ();
   ofs::EchoInfo echo (InetSocketAddress::ConvertFrom (m_ctrlAddr).GetIpv4 ());
   m_echoMap.insert (std::pair<uint64_t, ofs::EchoInfo> (xid, echo));
 
-  LogOflMsg ((ofl_msg_header*)&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&msg, xid);
-  SendToController (pkt);
-
-  // TODO: start a timer and wait for a reply
+  SendToController ((ofl_msg_header*)&msg);
 
   Simulator::Schedule (m_echo, &OFSwitch13NetDevice::DatapathSendEchoRequest, this);
 }
@@ -734,12 +717,8 @@ OFSwitch13NetDevice::PortMultipartStats (datapath *dp,
           reply.stats[0] = port->stats;
         }
     }
+  SendToController ((ofl_msg_header*)&reply, sender);
 
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, sender->xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-
-  // All handlers must free the message when everything is ok
   free (reply.stats);
   ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
   return 0;
@@ -767,12 +746,8 @@ OFSwitch13NetDevice::PortMultipartDesc (datapath *dp,
       port = PortGetOfsPort (i);
       reply.stats[i-1] = port->conf;
     }
+  SendToController ((ofl_msg_header*)&reply, sender);
   
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, sender->xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-  
-  // All handlers must free the message when everything is ok
   free (reply.stats);
   ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
   return 0;
@@ -820,12 +795,9 @@ OFSwitch13NetDevice::PortHandlePortMod (datapath *dp, ofl_msg_port_mod *msg,
   reply.header.type = OFPT_PORT_STATUS;
   reply.reason = OFPPR_MODIFY; 
   reply.desc = p->conf;
+  
+  SendToController ((ofl_msg_header*)&reply, sender);
 
-  Ptr<Packet> pkt = ofs::PacketFromMsg ((ofl_msg_header*)&reply, sender->xid);
-  LogOflMsg ((ofl_msg_header*)&reply);
-  SendToController (pkt);
-
-  // All handlers must free the message when everything is ok
   ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
   return 0;
 }
@@ -1009,9 +981,7 @@ OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
       if ((pl->dp->config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) 
         {
           NS_LOG_WARN ("Packet has invalid TTL, sending to controller.");
-          Ptr<Packet> ns3pkt = PipelineCreatePacketIn (pl, pkt, 0, 
-              OFPR_INVALID_TTL, UINT64_MAX);
-          SendToController (ns3pkt);
+          PipelineSendPacketIn (pl, pkt, 0, OFPR_INVALID_TTL, UINT64_MAX);
         } 
       else 
         {
@@ -1261,8 +1231,8 @@ OFSwitch13NetDevice::PipelineHandleFlowMod (pipeline *pl, ofl_msg_flow_mod *msg,
     }
 }
 
-Ptr<Packet> 
-OFSwitch13NetDevice::PipelineCreatePacketIn (pipeline* pl, packet *pkt, 
+int
+OFSwitch13NetDevice::PipelineSendPacketIn (pipeline* pl, packet *pkt, 
     uint8_t tableId, ofp_packet_in_reason reason, uint64_t cookie)
 {
   NS_LOG_FUNCTION (this); 
@@ -1293,8 +1263,7 @@ OFSwitch13NetDevice::PipelineCreatePacketIn (pipeline* pl, packet *pkt,
     }
   msg.match = (ofl_match_header*)&pkt->handle_std->match;
  
-  LogOflMsg ((ofl_msg_header*)&msg);
-  return ofs::PacketFromMsg ((ofl_msg_header*)&msg, GetNextXid ());
+  return SendToController ((ofl_msg_header*)&msg);
 }
 
 void
@@ -1396,9 +1365,8 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
         }
       case (OFPP_CONTROLLER): 
         {
-          Ptr<Packet> ns3pkt = PipelineCreatePacketIn (pkt->dp->pipeline, pkt, pkt->table_id, 
+          PipelineSendPacketIn (pkt->dp->pipeline, pkt, pkt->table_id, 
               (pkt->handle_std->table_miss ? OFPR_NO_MATCH : OFPR_ACTION), cookie);
-          SendToController (ns3pkt);
           break;
         }
       case (OFPP_FLOOD):
@@ -1761,7 +1729,10 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
 
           if (!error)
             {
-              LogOflMsg ((ofl_msg_header*)msg, true/*Rx*/);
+              char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
+              NS_LOG_DEBUG ("Rx from ctrl: " << msg_str);
+              free (msg_str);
+              
               error = HandleControlMessage (m_datapath, msg, &sender);
               if (error)
                 {
@@ -1784,9 +1755,7 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
               err.data_length = buffer->size;
               err.data = (uint8_t*)buffer->data;
               
-              Ptr<Packet> packet = ofs::PacketFromMsg ((ofl_msg_header*)&err, sender.xid);
-              LogOflMsg ((ofl_msg_header*)&msg);
-              SendToController (packet);
+              SendToController ((ofl_msg_header*)&err, &sender);
             }
           ofpbuf_delete (buffer);
         }
@@ -1809,9 +1778,7 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
   // Send Hello message
   ofl_msg_header msg;
   msg.type = OFPT_HELLO;
-  LogOflMsg (&msg);
-  Ptr<Packet> pkt = ofs::PacketFromMsg (&msg, GetNextXid ());
-  SendToController (pkt);
+  SendToController (&msg);
   
   // Schedule first echo message
   Simulator::Schedule (m_echo, &OFSwitch13NetDevice::DatapathSendEchoRequest, this);
