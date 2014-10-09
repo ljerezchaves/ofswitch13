@@ -615,6 +615,7 @@ OFSwitch13NetDevice::DatapathNew ()
   strncpy (dp->serial_num, "1.1", DESC_STR_LEN);
 
   dp->id = m_dpId;
+  dp->last_timeout = time_now ();
   list_init (&dp->remotes);
 
   // unused
@@ -624,24 +625,23 @@ OFSwitch13NetDevice::DatapathNew ()
     dp->listeners_aux = NULL;
     dp->n_listeners_aux = 0;
   // unused
-
-  dp->last_timeout = time_now ();
   
+  memset (dp->ports, 0x00, sizeof (dp->ports));
+  dp->local_port = NULL;
+
   dp->buffers = dp_buffers_create (dp); 
   dp->pipeline = pipeline_create (dp);
   dp->groups = group_table_create (dp);
   dp->meters = meter_table_create (dp);
+    
+  list_init (&dp->port_list);
+  dp->ports_num = 0;
+  dp->max_queues = 0; // FIXME
+  dp->exp = NULL;
   
   dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling
-  dp->config.miss_send_len = 128;      // send first 128 bytes to controller 
-                                       // use OFPCML_NO_BUFFER to send hole ptk
-  // unused
-    dp->max_queues = 0;
-    dp->local_port = NULL;
-  // unused
-  
-  dp->ports_num = 0;
-  dp->exp = NULL;
+  dp->config.miss_send_len = OFP_DEFAULT_MISS_SEND_LEN; // 128 bytes 
+                          // OFPCML_NO_BUFFER           // entire ptk
   
   return dp;
 }
@@ -693,6 +693,54 @@ OFSwitch13NetDevice::DatapathSendEchoRequest ()
   SendToController ((ofl_msg_header*)&msg);
   
   Simulator::Schedule (m_echo, &OFSwitch13NetDevice::DatapathSendEchoRequest, this);
+}
+
+int 
+OFSwitch13NetDevice::PortNew (Ptr<NetDevice> netdev, datapath *dp, sw_port *port, 
+    uint32_t port_no, const char *netdev_name, uint32_t max_queues)
+{
+  uint64_t now;
+
+  now = time_msec ();
+  max_queues = MIN (max_queues, NETDEV_MAX_QUEUES);
+
+  /* NOTE: port struct is already allocated in struct dp */
+  memset(port, '\0', sizeof *port);
+
+  port->dp = dp;
+
+  port->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
+  memset (port->conf, 0x00, sizeof (ofl_port));
+  port->conf->port_no    = port_no;
+  netdev->GetAddress ().CopyTo (port->conf->hw_addr);
+  port->conf->name       = strcpy ((char*)xmalloc (strlen (netdev_name) + 1), netdev_name);
+  port->conf->config     = 0x00000000;
+  port->conf->state      = 0x00000000 | OFPPS_LIVE;
+  // port->conf->curr       = netdev_get_features (netdev, NETDEV_FEAT_CURRENT);
+  // port->conf->advertised = netdev_get_features (netdev, NETDEV_FEAT_ADVERTISED);
+  // port->conf->supported  = netdev_get_features (netdev, NETDEV_FEAT_SUPPORTED);
+  // port->conf->peer       = netdev_get_features (netdev, NETDEV_FEAT_PEER);
+  port->conf->curr_speed = port_speed (port->conf->curr);
+  port->conf->max_speed  = port_speed (port->conf->supported);
+
+  dp_port_live_update (port);
+
+  port->stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
+  memset (port->stats, 0x00, sizeof (ofl_port_stats));
+  port->stats->port_no = port_no;
+  port->flags |= SWP_USED;
+  
+  port->netdev = NULL;
+  port->max_queues = max_queues;
+  port->num_queues = 0;
+  port->created = now;
+
+  memset (port->queues, 0x00, sizeof (port->queues));
+
+  list_push_back (&dp->port_list, &port->node);
+  dp->ports_num++;
+
+  return 0;
 }
 
 ofs::Port*

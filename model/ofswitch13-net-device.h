@@ -169,6 +169,19 @@ private:
   ///\name Port methods
   //\{
   /**
+   * Creates a new port (with queues) and save it into datapath.
+   * \param netdev The Ptr<NetDevice> pointer to device.
+   * \param dp The datapath.
+   * \param port The port structure.
+   * \param port_no The port number.
+   * \param netdev_name The name describing this port.
+   * \param max_queues The max number of queues for this port.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  int PortNew (Ptr<NetDevice> netdev, datapath *dp, sw_port *port, 
+      uint32_t port_no, const char *netdev_name,  uint32_t max_queues);
+
+  /**
    * Search the switch ports looking for a specific device.
    * \param dev The Ptr<CsmaNetDevice> pointer to device.
    * \return A pointer to the corresponding ofs::Port.
