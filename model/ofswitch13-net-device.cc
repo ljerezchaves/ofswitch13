@@ -229,15 +229,12 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
   NS_LOG_INFO ("Port # " << no);
   
   // Notify the controller that this port has been added
-  if (m_ctrlSocket)
-    {
-      ofl_msg_port_status msg;
-      msg.header.type = OFPT_PORT_STATUS;
-      msg.reason = OFPPR_ADD;
-      msg.desc = p.conf;
+  ofl_msg_port_status msg;
+  msg.header.type = OFPT_PORT_STATUS;
+  msg.reason = OFPPR_ADD;
+  msg.desc = p.conf;
 
-      SendToController ((ofl_msg_header*)&msg);
-    }
+  SendToController ((ofl_msg_header*)&msg);
 
   NS_LOG_LOGIC ("RegisterProtocolHandler for " << switchPort->GetInstanceTypeId ().GetName ());
   m_node->RegisterProtocolHandler (
@@ -250,7 +247,12 @@ int
 OFSwitch13NetDevice::SendToController (ofl_msg_header *msg, const sender *sender)
 {
   NS_LOG_FUNCTION (this);
-  NS_ASSERT (m_ctrlSocket);
+  if (!m_ctrlSocket)
+    {
+      NS_LOG_WARN ("No controller connection. Discarding message... ");
+      ofl_msg_free (msg, NULL);
+      return -1;
+    }
   
   char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
   NS_LOG_DEBUG ("TX to ctrl: " << msg_str);
