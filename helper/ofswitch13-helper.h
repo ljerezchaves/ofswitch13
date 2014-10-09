@@ -84,8 +84,8 @@ public:
   NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
   
   /**
-   * This method creates a new ns3::LearningController application and add
-   * it to cNode. It also installs the TCP/IP stack into cNode, and connect it
+   * This method creates a new ns3::LearningController application and install it
+   * into cNode. It also installs the TCP/IP stack into cNode, and connects it
    * to the csma gigabit network, using IPv4 network 10.100.150.0/24. Finally,
    * start the switch <--> controller connection for all already registered
    * switches. 
@@ -97,7 +97,7 @@ public:
 
   /**
    * This method installs the given ns3::OFSwitch13Controller application into
-   * cNode. It also installs the TCP/IP stack into cNode, and connect it
+   * cNode. It also installs the TCP/IP stack into cNode, and connects it
    * to the csma gigabit network, using IPv4 network 10.100.150.0/24. Finally,
    * start the switch <--> controller connection for all already registered
    * switches. 
@@ -110,12 +110,14 @@ public:
       Ptr<OFSwitch13Controller> controller);
 
   /**
-   * This method configures the cNode with TCP/IP stack, and connect it to the
-   * csma gigabit network, using IPv4 network 10.100.150.0/24. Finally, start
-   * the switch <--> controller connection for all already registered switches.
+   * This method prepares the cNode so it can connect to an external OpenFlow
+   * controller over TapBridge. It also installs the TCP/IP stack into cNode,
+   * and connects it to the csma gigabit network, using IPv4 network
+   * 10.100.150.0/24. Finally, start the switch <--> controller connection for
+   * all already registered switches.
    * 
-   * \attention It is expected that this method is used with TabBridge to
-   * provide an external controller.
+   * \attention It is expected that this method is used togheter with TabBridge
+   * to provide an external OpenFlow controller.
    *
    * \param cNode The node to install the controller
    * \returns The CsmaNetDevice to bind to TapBridge
@@ -125,12 +127,10 @@ public:
   /**
    * Enable pacp traces at the OpenFlow channel between controller and switches
    */
-  void EnableOpenFlowPcap ();
+  void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
    
 private:
-  ObjectFactory             m_ctrlFactory;  //!< Controller App factory
-  ObjectFactory             m_ndevFactory;  //!< OpenFlow device factory
-  ObjectFactory             m_chanFactory;  //!< Csma channel factory
+  ObjectFactory             m_ndevFactory;  //!< OpenFlow NetDevice factory
 
   NetDeviceContainer        m_devices;      //!< OFSwitch13NetDevices
   InternetStackHelper       m_internet;     //!< Helper for installing TCP/IP
@@ -144,7 +144,7 @@ private:
   Address                   m_ctrlAddr;     //!< Controller Addr 
 
   typedef std::vector<SwitchInfo> SwitchInfoVector_t; //!< Structure to store switch information
-  SwitchInfoVector_t        m_unregSw;      //!< OpenFlow switches not registered yet
+  SwitchInfoVector_t        m_unregSw;      //!< OpenFlow switches not registered to controller yet
 };
 
 } // namespace ns3

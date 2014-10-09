@@ -38,12 +38,13 @@ OFSwitch13Helper::OFSwitch13Helper ()
     m_ctrlDev (0)
 {
   NS_LOG_FUNCTION (this);
-  m_ctrlFactory.SetTypeId ("ns3::LearningController");
+  //m_ctrlFactory.SetTypeId ("ns3::LearningController");
   m_ndevFactory.SetTypeId ("ns3::OFSwitch13NetDevice");
-  m_chanFactory.SetTypeId ("ns3::CsmaChannel");
     
   m_ipv4helper.SetBase ("10.100.150.0", "255.255.255.0");
 
+  ObjectFactory m_chanFactory;
+  m_chanFactory.SetTypeId ("ns3::CsmaChannel");
   m_chanFactory.Set ("DataRate", DataRateValue (DataRate ("1Gbps")));
   m_chanFactory.Set ("Delay", TimeValue (MilliSeconds (2)));
   m_csmaChannel = m_chanFactory.Create ()->GetObject<CsmaChannel> ();
@@ -119,17 +120,17 @@ OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controlle
 
   if (m_ctrlApp == 0)
     {
-      // Install the controller App in the controller node
+      // Install the controller App into controller node
       m_ctrlApp = controller;
       m_ctrlApp->SetStartTime (Seconds (0));
       cNode->AddApplication (m_ctrlApp);
       
-      // Registering previous configured switches
+      // Registering previous configured switches to this controller
       if (!m_unregSw.empty ())
         {
           for (SwitchInfoVector_t::iterator it = m_unregSw.begin (); it != m_unregSw.end (); it++)
             {
-               m_ctrlApp->RegisterSwitchMetadata (*it);
+              m_ctrlApp->RegisterSwitchMetadata (*it);
             }
           m_unregSw.clear ();
         }
@@ -142,7 +143,7 @@ Ptr<OFSwitch13Controller>
 OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
 {
   NS_LOG_FUNCTION (this);
-  Ptr<LearningController> ctrl = m_ctrlFactory.Create<LearningController> ();
+  Ptr<LearningController> ctrl = CreateObject<LearningController> ();
   return InstallControllerApp (cNode, ctrl);
 }
 
@@ -178,10 +179,10 @@ OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
 }
 
 void
-OFSwitch13Helper::EnableOpenFlowPcap ()
+OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix)
 {
   NS_LOG_FUNCTION (this);
-  m_csmaHelper.EnablePcap ("openflow-channel", m_ctrlDev, true);
+  m_csmaHelper.EnablePcap (prefix, m_ctrlDev, true);
 }
 
 } // namespace ns3
