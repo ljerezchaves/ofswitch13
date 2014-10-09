@@ -51,15 +51,6 @@ public:
   OFSwitch13Helper ();
   virtual ~OFSwitch13Helper ();
 
-  // /**
-  //  * Set an attribute for the ns3::LearningController created by
-  //  * OFSwitch13Helper::InstallControllerApp
-  //  *
-  //  * \param n1 the name of the attribute to set
-  //  * \param v1 the value of the attribute to set
-  //  */
-  // void SetControllerAttribute (std::string n1, const AttributeValue &v1);
-
   /**
    * Set an attribute on each ns3::OFSwitch13NetDevice created by
    * OFSwitch13Helper::InstallSwitch

@@ -38,7 +38,7 @@ OFSwitch13Helper::OFSwitch13Helper ()
     m_ctrlDev (0)
 {
   NS_LOG_FUNCTION (this);
-  //m_ctrlFactory.SetTypeId ("ns3::LearningController");
+  
   m_ndevFactory.SetTypeId ("ns3::OFSwitch13NetDevice");
     
   m_ipv4helper.SetBase ("10.100.150.0", "255.255.255.0");
