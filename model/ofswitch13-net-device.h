@@ -194,18 +194,20 @@ private:
   ///\name Port methods
   //\{
   /**
-   * Creates a new port (with queues) and save it into datapath.
-   * \param dp The datapath.
+   * Creates a new sw_port (with queues) and save it into datapath.
    * \see new_port () at udatapath/dp_ports.c.
-   * \param port The port structure.
+   * \param dp The datapath.
+   * \param port The sw_port structure.
    * \param port_no The port number.
    * \param netdev_name The name describing this port.
    * \param new_mac Mac address of device port.
    * \param max_queues The max number of queues for this port.
+   * \param netDev The pointer to ns3 NetDevice.
    * \return 0 if everything's ok, otherwise an error number.
    */
   int PortNew (datapath *dp, sw_port *port, uint32_t port_no, 
-    const char *netdev_name, const uint8_t *new_mac, uint32_t max_queues, Ptr<CsmaNetDevice> netdev);
+      const char *netdev_name, const uint8_t *new_mac, 
+      uint32_t max_queues, Ptr<CsmaNetDevice> netdev);
 
   /**
    * Search the switch ports looking for a specific device.
@@ -220,26 +222,6 @@ private:
    * \return A pointer to the corresponding ofs::Port.
    */
   ofs::Port* PortGetOfsPort (uint32_t no);
-
-  /**
-   * Update the port status field of the switch port. A non-zero return value
-   * indicates some field has changed.
-   * \see ofsoftswitch13 dp_port_live_update () at udatapath/dp_ports.c
-   * \param port Port to update its config and flag fields.
-   * \return 0 if unchanged, any value otherwise.
-   */
-  int PortLiveUpdate (sw_port *port);
-
-  /**
-   * Handles a port mod message.
-   * \see dp_ports_handle_port_mod () at udatapath/dp_ports.c.
-   * \param dp The datapath.
-   * \param msg The OFLib message received.
-   * \param sender The sender (controller) information (including xid).
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  ofl_err PortHandlePortMod (datapath *dp, ofl_msg_port_mod *msg, 
-      const sender *sender);
 
   /**
    * Called when a packet is received on one of the switch's ports. This method

@@ -73,6 +73,7 @@ extern "C"
 #include "lib/list.h"
 #include "lib/util.h"
 #include "lib/random.h"
+#include "lib/netdev.h"
 
 #include "oflib/ofl-structs.h"
 #include "oflib/ofl-utils.h"

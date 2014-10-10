@@ -285,11 +285,11 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
   ns3Port->portNo = portNo;
   ns3Port->netdev = csmaSwitchPort;
   ns3Port->swPort = swPort;
+  m_ports.push_back (ns3Port);
   
   PortNew (m_datapath, swPort, portNo, portName, NULL/*macaddr*/, 
       m_datapath->max_queues, csmaSwitchPort);
   swPort->ns3port = ns3Port;
-  m_ports.push_back (ns3Port);
 
   free (portName);
  
@@ -635,11 +635,9 @@ OFSwitch13NetDevice::DoDispose ()
   // No need to notify the controller that this port has been deleted
   for (ofs::Ports_t::iterator b = m_ports.begin (), e = m_ports.end (); b != e; b++)
     {
-      ofs::Port *p = *b;
-      p->netdev = 0;
-      p->swPort->netdev = NULL;
-      ofl_structs_free_port (p->swPort->conf);
-      free (p->swPort->stats);
+      (*b)->netdev = 0;
+      ofl_structs_free_port ((*b)->swPort->conf);
+      free ((*b)->swPort->stats);
     }
   m_ports.clear ();
   m_echoMap.clear ();
@@ -648,7 +646,6 @@ OFSwitch13NetDevice::DoDispose ()
   m_node = 0;
   m_ctrlSocket = 0;
 
-  // FIXME Theses methods may cause errors... check
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
   meter_table_destroy (m_datapath->meters);
@@ -695,7 +692,7 @@ OFSwitch13NetDevice::DatapathNew ()
     
   list_init (&dp->port_list);
   dp->ports_num = 0;
-  dp->max_queues = 0; // FIXME
+  dp->max_queues = 0; // No queue support by now
   dp->exp = NULL;
   
   dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling
@@ -716,17 +713,30 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
       flow_table_timeout (dp->pipeline->tables[i]);
     }
 
-  // Check for changes in port status
+  // Check for changes in links (port) status
+  ofs::Port *ns3Port;
+  uint32_t orig_state;
   for (size_t i = 1; i < GetNSwitchPorts (); i++)
     {
-      sw_port *swPort = dp_ports_lookup (m_datapath, i);
-      if (PortLiveUpdate (swPort))
+      ns3Port = PortGetOfsPort (i);
+      orig_state = ns3Port->swPort->conf->state;
+      if (ns3Port->netdev->IsLinkUp ())
         {
-          NS_LOG_DEBUG ("Port configuration has changed. Notifying the controller...");
+          ns3Port->swPort->conf->state &= ~OFPPS_LINK_DOWN;
+        }
+      else
+        {
+          ns3Port->swPort->conf->state |= OFPPS_LINK_DOWN;
+        }
+      dp_port_live_update (ns3Port->swPort);
+  
+      if (orig_state != ns3Port->swPort->conf->state)
+        {
+          NS_LOG_DEBUG ("Port status has changed. Notifying the controller...");
           ofl_msg_port_status msg;
           msg.header.type = OFPT_PORT_STATUS;
           msg.reason = OFPPR_MODIFY;
-          msg.desc = swPort->conf;
+          msg.desc = ns3Port->swPort->conf;
 
           SendToController ((ofl_msg_header*)&msg);
         }
@@ -773,7 +783,7 @@ OFSwitch13NetDevice::PortNew (datapath *dp, sw_port *port, uint32_t port_no,
   port->conf->curr = PortGetFeatures (netdev);
   port->conf->advertised = PortGetFeatures (netdev);
   port->conf->supported = PortGetFeatures (netdev);
-  // port->conf->peer = PortGetFeatures (netdev);
+  port->conf->peer = PortGetFeatures (netdev);
   port->conf->curr_speed = port_speed (port->conf->curr);
   port->conf->max_speed = port_speed (port->conf->supported);
 
@@ -783,10 +793,12 @@ OFSwitch13NetDevice::PortNew (datapath *dp, sw_port *port, uint32_t port_no,
   memset (port->stats, 0x00, sizeof (ofl_port_stats));
   port->stats->port_no = port_no;
   port->flags |= SWP_USED;
-  
-  port->netdev = NULL; // FIXME Tem que colocar alguma coisa diferente de null aqui...
+ 
+  // To avoid a null check failure in dp_ports_handle_stats_request_port (), 
+  // we are pointing port->netdev to port, but it will never be used. 
+  port->netdev = (struct netdev*)port;
   port->max_queues = MIN (max_queues, NETDEV_MAX_QUEUES);
-  port->num_queues = 0;
+  port->num_queues = 0; // No queue support by now
   port->created = time_msec ();
 
   memset (port->queues, 0x00, sizeof (port->queues));
@@ -838,79 +850,6 @@ OFSwitch13NetDevice::PortGetOfsPort (uint32_t no)
     }
   NS_LOG_ERROR ("No port found!");
   return NULL;
-}
-
-int
-OFSwitch13NetDevice::PortLiveUpdate (sw_port *port)
-{
-  uint32_t orig_config = port->conf->config;
-  uint32_t orig_state = port->conf->state;
-  ofs::Port *p = (ofs::Port*)port->ns3port;
-
-  // Port is always enabled
-  port->conf->config &= ~OFPPC_PORT_DOWN;
-
-  if (p->netdev->IsLinkUp ())
-    {
-       port->conf->state &= ~OFPPS_LINK_DOWN;
-    }
-  else
-    {
-       port->conf->state |= OFPPS_LINK_DOWN;
-    }
-// FIXME should call dp_port_live_update?????
-  return ((orig_config != port->conf->config) || 
-          (orig_state !=  port->conf->state));
-}
-
-ofl_err
-OFSwitch13NetDevice::PortHandlePortMod (datapath *dp, ofl_msg_port_mod *msg, 
-    const sender *sender) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  sw_port *swPort = dp_ports_lookup (dp, msg->port_no);
-  ofs::Port *p = (ofs::Port*)swPort->ns3port;
-  if (p == NULL) 
-    {
-      return ofl_error (OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_PORT);
-    }
-
-  // Make sure the port id hasn't changed since this was sent
-  uint8_t p_addr[ETH_ADDR_LEN];
-  p->netdev->GetAddress ().CopyTo (p_addr);
-  if (memcmp (msg->hw_addr, p_addr, ETH_ADDR_LEN) != 0) 
-    {
-      return ofl_error (OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_HW_ADDR);
-    }
-
-  if (msg->mask) 
-    {
-      p->swPort->conf->config &= ~msg->mask;
-      p->swPort->conf->config |= msg->config & msg->mask;
-      if ((p->swPort->conf->state & OFPPS_LINK_DOWN) || 
-          (p->swPort->conf->config & OFPPC_PORT_DOWN)) 
-        {
-          // Port not live
-          p->swPort->conf->state &= ~OFPPS_LIVE;
-        } 
-      else 
-        {
-          // Port is live
-          p->swPort->conf->state |= OFPPS_LIVE;
-        }
-    }
-
-  // Notify the controller that the port status has changed
-  ofl_msg_port_status reply;
-  reply.header.type = OFPT_PORT_STATUS;
-  reply.reason = OFPPR_MODIFY; 
-  reply.desc = p->swPort->conf;
-  
-  SendToController ((ofl_msg_header*)&reply, sender);
-
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
 }
 
 void
@@ -1656,9 +1595,6 @@ OFSwitch13NetDevice::HandleControlMessage (datapath *dp, ofl_msg_header *msg,
       
       case OFPT_FLOW_MOD:
         return PipelineHandleFlowMod (dp->pipeline, (ofl_msg_flow_mod*)msg, sender); 
-      
-      case OFPT_PORT_MOD:
-        return PortHandlePortMod (dp, (ofl_msg_port_mod*)msg, sender);
       
       // Currently not supported
       case OFPT_EXPERIMENTER:
