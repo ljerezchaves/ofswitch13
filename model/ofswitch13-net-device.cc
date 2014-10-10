@@ -107,23 +107,23 @@ GetDatapathDevice (uint64_t id)
     }
 }
 
-/**
- * A fast hash function used by hash map.
- * \see hash_int () in lib/hash.h
- */
-uint32_t
-HashInt (uint32_t x, uint32_t basis)
-{
-  x -= x << 6;
-  x ^= x >> 17;
-  x -= x << 9;
-  x ^= x << 4;
-  x += basis;
-  x -= x << 3;
-  x ^= x << 10;
-  x ^= x >> 15;
-  return x;
-}
+// /**
+//  * A fast hash function used by hash map.
+//  * \see hash_int () in lib/hash.h
+//  */
+// uint32_t
+// HashInt (uint32_t x, uint32_t basis)
+// {
+//   x -= x << 6;
+//   x ^= x >> 17;
+//   x -= x << 9;
+//   x ^= x << 4;
+//   x += basis;
+//   x -= x << 3;
+//   x ^= x << 10;
+//   x ^= x >> 15;
+//   return x;
+// }
 
 /**
  * Get netdev data rate and set Openflow port features config.
@@ -697,8 +697,7 @@ OFSwitch13NetDevice::DatapathNew ()
   
   dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling
   dp->config.miss_send_len = OFP_DEFAULT_MISS_SEND_LEN; // 128 bytes 
-                          // OFPCML_NO_BUFFER           // entire ptk
-  
+                          // OFPCML_NO_BUFFER           // entire ptk  
   return dp;
 }
 

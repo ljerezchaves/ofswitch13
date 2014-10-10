@@ -105,15 +105,8 @@ int parse_table (char *str, uint8_t *table);
 struct remote* remote_create (struct datapath *dp, 
     struct rconn *rconn, struct rconn *rconn_aux);
 
-// From udatapath/pipeline.c
-int inst_compare (const void *inst1, const void *inst2);
-
 // From udatapath/dp_ports.c
 uint32_t port_speed (uint32_t conf);
-
-// From udatapath/group_entry.c
-size_t select_from_select_group (struct group_entry *entry);
-size_t select_from_ff_group (struct group_entry *entry);
 
 #undef list
 #undef private
