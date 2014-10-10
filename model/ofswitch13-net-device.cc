@@ -950,26 +950,6 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t
   return false;
 }
 
-ofl_err
-OFSwitch13NetDevice::HandleControlMessage (datapath *dp, ofl_msg_header *msg, 
-    const sender *sender)
-{ 
-  NS_LOG_FUNCTION (this);
-
-  switch (msg->type)
-    {
-      // Currently not supported. Return error.
-      case OFPT_EXPERIMENTER:
-      case OFPT_ROLE_REQUEST:
-      case OFPT_QUEUE_GET_CONFIG_REQUEST:
-        return ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
-
-      // For others, let the lib handle them
-      default: 
-        return handle_control_msg (dp, msg, sender);
-    }
-}
-
 void 
 OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
 {
@@ -1010,7 +990,7 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
               NS_LOG_DEBUG ("Rx from ctrl: " << msg_str);
               free (msg_str);
               
-              error = HandleControlMessage (m_datapath, msg, &sender);
+              error = handle_control_msg (m_datapath, msg, &sender);
               if (error)
                 {
                   // NOTE: It is assumed that if a handler returns with error,

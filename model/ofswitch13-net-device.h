@@ -268,25 +268,6 @@ private:
   //\}
 
   /**
-   * \name OpenFlow message handlers
-   * Handlers used to proccess each OpenFlow message received from
-   * controller.
-   * \param dp The datapath.
-   * \param msg The OFLib message received.
-   * \param sender The sender (controller) information (including xid).
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  //\{
-  /**
-   * Called by SocketRead when a packet is received from controller.
-   * Dispatches control messages to appropriate handler functions.
-   * \see handle_control_msg () at udatapath/dp_control.c.
-   */
-  ofl_err HandleControlMessage (datapath *dp, ofl_msg_header *msg, 
-    const sender *sender);
-  //\}
-
-  /**
    * \name Socket callbacks
    * Handlers used as socket callbacks to TCP communication between this
    * switch and the controller.
