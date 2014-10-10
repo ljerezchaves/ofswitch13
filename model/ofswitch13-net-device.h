@@ -230,28 +230,6 @@ private:
    */
   int PortLiveUpdate (sw_port *port);
 
-//  /**
-//   * Handles a port stats request message. 
-//   * \see dp_ports_handle_stats_request_port () at udatapath/dp_ports.c.
-//   * \param dp The datapath.
-//   * \param msg The OFLib message received.
-//   * \param sender The sender (controller) information (including xid).
-//   * \return 0 if everything's ok, otherwise an error number.
-//   */
-//  ofl_err PortMultipartStats (datapath *dp, 
-//      ofl_msg_multipart_request_port *msg, const sender *sender);
-//  
-//  /**
-//   * Handles a port description request message.
-//   * \see dp_ports_handle_port_desc_request () at udatapath/dp_ports.c.
-//   * \param dp The datapath.
-//   * \param msg The OFLib message received.
-//   * \param sender The sender (controller) information (including xid).
-//   * \return 0 if everything's ok, otherwise an error number.
-//   */
-//  ofl_err PortMultipartDesc (datapath *dp, 
-//      ofl_msg_multipart_request_header *msg, const sender *sender);
-  
   /**
    * Handles a port mod message.
    * \see dp_ports_handle_port_mod () at udatapath/dp_ports.c.
@@ -397,17 +375,6 @@ private:
    */
   void ActionOutputPort (packet *pkt, uint32_t out_port, uint32_t out_queue,
       uint16_t max_len, uint64_t cookie);
-
-  /**
-   * Validate actions before applying it.
-   * \see ofsoftswitch13 dp_actions_validate () at udatapath/dp_actions.c.
-   * \param dp The datapath.
-   * \param num The number of actions.
-   * \param actions The actions structure.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  ofl_err ActionsValidate (datapath *dp, size_t num, 
-      ofl_action_header **actions);
   //\}
   
   ///\name Group methods
@@ -438,17 +405,6 @@ private:
    * \param i Bucket index.
    */
   void GroupEntryExecuteBucket (group_entry *entry, packet *pkt, size_t i); 
-
-  /**
-   * Handles a group mod message.
-   * \see group_table_handle_group_mod () at udatapath/group_table.c.
-   * \param table The group table.
-   * \param msg The OFLib message received.
-   * \param sender The sender (controller) information (including xid).
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  ofl_err GroupHandleGroupMod  (group_table *table, ofl_msg_group_mod *msg, 
-      const sender *sender);
   //\}
 
   /**
@@ -469,15 +425,6 @@ private:
   ofl_err HandleControlMessage (datapath *dp, ofl_msg_header *msg, 
     const sender *sender);
   
-  /**
-   * Called by HandleControlMessage when a multipart request is received from
-   * controller. Dispatches multipart request to appropriate handler
-   * functions.
-   * \see handle_control_stats_request () at udatapath/dp_control.c.
-   */
-  ofl_err HandleControlMultipartRequest (datapath *dp, 
-      ofl_msg_multipart_request_header *msg, const sender *sender);
-
   /**
    * Handles a echo reply message.
    * \see handle_control_echo_reply () at udatapath/dp_control.c.

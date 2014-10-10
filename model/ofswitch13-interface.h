@@ -104,20 +104,11 @@ int parse_table (char *str, uint8_t *table);
 struct remote* remote_create (struct datapath *dp, 
     struct rconn *rconn, struct rconn *rconn_aux);
 
-// From udatapath/dp_control.c
-ofl_err handle_control_stats_request (struct datapath *dp, 
-    struct ofl_msg_multipart_request_header *msg, const struct sender *sender);
-
 // From udatapath/pipeline.c
 int inst_compare (const void *inst1, const void *inst2);
 
 // From udatapath/dp_ports.c
 uint32_t port_speed (uint32_t conf);
-
-// From udatapath/group_table.c
-ofl_err group_table_add (struct group_table *table, struct ofl_msg_group_mod *mod);
-ofl_err group_table_modify (struct group_table *table, struct ofl_msg_group_mod *mod); 
-ofl_err group_table_delete (struct group_table *table, struct ofl_msg_group_mod *mod);
 
 // From udatapath/group_entry.c
 size_t select_from_select_group (struct group_entry *entry);

@@ -784,7 +784,7 @@ OFSwitch13NetDevice::PortNew (datapath *dp, sw_port *port, uint32_t port_no,
   port->stats->port_no = port_no;
   port->flags |= SWP_USED;
   
-  port->netdev = NULL; // Trick to ofsoftswitch assertions
+  port->netdev = NULL; // FIXME Tem que colocar alguma coisa diferente de null aqui...
   port->max_queues = MIN (max_queues, NETDEV_MAX_QUEUES);
   port->num_queues = 0;
   port->created = time_msec ();
@@ -862,80 +862,6 @@ OFSwitch13NetDevice::PortLiveUpdate (sw_port *port)
   return ((orig_config != port->conf->config) || 
           (orig_state !=  port->conf->state));
 }
-
-// ofl_err
-// OFSwitch13NetDevice::PortMultipartStats (datapath *dp, 
-//     ofl_msg_multipart_request_port *msg, const sender *sender)
-// {
-//   NS_LOG_FUNCTION (this);
-//   
-//   ofs::Port *port;
-//   size_t i = 0;
-// 
-//   ofl_msg_multipart_reply_port reply;
-//   reply.header.header.type = OFPT_MULTIPART_REPLY;
-//   reply.header.type  = OFPMP_PORT_STATS;
-//   reply.header.flags = 0x0000;
-//   
-//   if (msg->port_no == OFPP_ANY) 
-//     {
-//       reply.stats_num = GetNSwitchPorts ();
-//       reply.stats = (ofl_port_stats**)xmalloc (sizeof (ofl_port_stats*) * reply.stats_num);
-// 
-//       // Using port number (not position in vector)
-//       for (i = 1; i <= GetNSwitchPorts (); i++)
-//         {
-//           port = PortGetOfsPort (i);
-//           PortStatsUpdate (port);
-//           reply.stats[i-1] = port->stats;
-//         }
-//     } 
-//   else 
-//     {
-//       port = PortGetOfsPort (msg->port_no);
-//       if (port != NULL && port->netdev != NULL) 
-//         {
-//           reply.stats_num = 1;
-//           reply.stats = (ofl_port_stats**)xmalloc (sizeof (ofl_port_stats*));
-//           PortStatsUpdate (port);
-//           reply.stats[0] = port->stats;
-//         }
-//     }
-//   SendToController ((ofl_msg_header*)&reply, sender);
-// 
-//   free (reply.stats);
-//   ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-//   return 0;
-// }
-// 
-// ofl_err
-// OFSwitch13NetDevice::PortMultipartDesc (datapath *dp, 
-//     ofl_msg_multipart_request_header *msg, const sender *sender)
-// {
-//   NS_LOG_FUNCTION (this);
-//   
-//   ofs::Port *port;
-//   size_t i = 0;
-//   
-//   ofl_msg_multipart_reply_port_desc reply;
-//   reply.header.header.type = OFPT_MULTIPART_REPLY;
-//   reply.header.type  = OFPMP_PORT_DESC;
-//   reply.header.flags = 0x0000;
-//   reply.stats_num    = GetNSwitchPorts ();
-//   reply.stats = (ofl_port**)xmalloc (sizeof (ofl_port*) * reply.stats_num);
-//   
-//   // Using port number (not position in vector)
-//   for (i = 1; i <= GetNSwitchPorts (); i++)
-//     {
-//       port = PortGetOfsPort (i);
-//       reply.stats[i-1] = port->conf;
-//     }
-//   SendToController ((ofl_msg_header*)&reply, sender);
-//   
-//   free (reply.stats);
-//   ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-//   return 0;
-// }
 
 ofl_err
 OFSwitch13NetDevice::PortHandlePortMod (datapath *dp, ofl_msg_port_mod *msg, 
@@ -1332,7 +1258,7 @@ OFSwitch13NetDevice::PipelineHandleFlowMod (pipeline *pl, ofl_msg_flow_mod *msg,
         {
           ofl_instruction_actions *ia = (ofl_instruction_actions*)msg->instructions[i];
   
-          error = ActionsValidate (pl->dp, (size_t)ia->actions_num, ia->actions);
+          error = dp_actions_validate (pl->dp, (size_t)ia->actions_num, ia->actions);
           if (error) 
             {
               return error;
@@ -1576,38 +1502,38 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
     }
 }
 
-ofl_err 
-OFSwitch13NetDevice::ActionsValidate (datapath *dp, size_t num, 
-    ofl_action_header **actions)
-{
-  NS_LOG_FUNCTION (this);
-  
-  for (size_t i = 0; i < num; i++) 
-    {
-      if (actions[i]->type == OFPAT_OUTPUT) 
-        {
-          ofl_action_output *ao = (ofl_action_output*)actions[i];
-          if (ao->port <= OFPP_MAX && !(PortGetOfsPort (ao->port) != NULL)) 
-            {
-              NS_LOG_WARN ("Output action for invalid port " << ao->port);
-              return ofl_error (OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);
-            }
-        }
-      
-      if (actions[i]->type == OFPAT_GROUP) 
-        {
-          ofl_action_group *ag = (ofl_action_group*)actions[i];
-          if (ag->group_id <= OFPG_MAX && 
-              group_table_find (dp->groups, ag->group_id) == NULL) 
-            {
-              NS_LOG_WARN ("Group action for invalid group " << ag->group_id);
-              return ofl_error (OFPET_BAD_ACTION, OFPBAC_BAD_OUT_GROUP);
-            }
-        }
-      
-    }
-  return 0;
-}
+// ofl_err 
+// OFSwitch13NetDevice::ActionsValidate (datapath *dp, size_t num, 
+//     ofl_action_header **actions)
+// {
+//   NS_LOG_FUNCTION (this);
+//   
+//   for (size_t i = 0; i < num; i++) 
+//     {
+//       if (actions[i]->type == OFPAT_OUTPUT) 
+//         {
+//           ofl_action_output *ao = (ofl_action_output*)actions[i];
+//           if (ao->port <= OFPP_MAX && !(PortGetOfsPort (ao->port) != NULL)) 
+//             {
+//               NS_LOG_WARN ("Output action for invalid port " << ao->port);
+//               return ofl_error (OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);
+//             }
+//         }
+//       
+//       if (actions[i]->type == OFPAT_GROUP) 
+//         {
+//           ofl_action_group *ag = (ofl_action_group*)actions[i];
+//           if (ag->group_id <= OFPG_MAX && 
+//               group_table_find (dp->groups, ag->group_id) == NULL) 
+//             {
+//               NS_LOG_WARN ("Group action for invalid group " << ag->group_id);
+//               return ofl_error (OFPET_BAD_ACTION, OFPBAC_BAD_OUT_GROUP);
+//             }
+//         }
+//       
+//     }
+//   return 0;
+// }
 
 void 
 OFSwitch13NetDevice::GroupTableExecute (group_table *table, packet *packet, 
@@ -1712,44 +1638,6 @@ OFSwitch13NetDevice::GroupEntryExecuteBucket (group_entry *entry, packet *pkt, s
   packet_destroy (p);
 }
 
-ofl_err 
-OFSwitch13NetDevice::GroupHandleGroupMod (group_table *table, ofl_msg_group_mod *msg, 
-    const sender *sender)
-{
-  NS_LOG_FUNCTION (this);
-  
-  // Modifications to group table from the controller are done with the
-  // OFPT_FLOW_MOD message (including add, modify or delete).
-  // \see group_table_handle_group_mod () at udatapath/group_table.c
-  ofl_err error;
-  size_t i;
-
-  for (i = 0; i< msg->buckets_num; i++) 
-    {
-      error = ActionsValidate (table->dp, msg->buckets[i]->actions_num, 
-          msg->buckets[i]->actions);
-      if (error) 
-        {
-          return error;
-        }
-    }
-
-  switch (msg->command) 
-    {
-      case (OFPGC_ADD):
-        return group_table_add (table, msg);
-      
-      case (OFPGC_MODIFY):
-        return group_table_modify (table, msg);
-
-      case (OFPGC_DELETE):
-        return group_table_delete (table, msg);
-
-      default:
-        return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-    }
-}
-
 ofl_err
 OFSwitch13NetDevice::HandleControlMessage (datapath *dp, ofl_msg_header *msg, 
     const sender *sender)
@@ -1769,15 +1657,8 @@ OFSwitch13NetDevice::HandleControlMessage (datapath *dp, ofl_msg_header *msg,
       case OFPT_FLOW_MOD:
         return PipelineHandleFlowMod (dp->pipeline, (ofl_msg_flow_mod*)msg, sender); 
       
-      case OFPT_GROUP_MOD:
-        return GroupHandleGroupMod (dp->groups, (ofl_msg_group_mod*)msg, sender);
-      
       case OFPT_PORT_MOD:
         return PortHandlePortMod (dp, (ofl_msg_port_mod*)msg, sender);
-      
-      case OFPT_MULTIPART_REQUEST:
-        return HandleControlMultipartRequest (dp, 
-            (ofl_msg_multipart_request_header*)msg, sender);
       
       // Currently not supported
       case OFPT_EXPERIMENTER:
@@ -1785,31 +1666,11 @@ OFSwitch13NetDevice::HandleControlMessage (datapath *dp, ofl_msg_header *msg,
       case OFPT_QUEUE_GET_CONFIG_REQUEST:
         return ofl_error (OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
 
+      // For others, let the lib handle them
       default: 
         return handle_control_msg (dp, msg, sender);
     }
 }
-
-ofl_err 
-OFSwitch13NetDevice::HandleControlMultipartRequest (datapath *dp, 
-    ofl_msg_multipart_request_header *msg, const sender *sender)
-{
-  NS_LOG_FUNCTION (this);
-
-  // Only port_stats e port_desc need to be reimplemented
-  switch (msg->type) 
-    {
-//      case (OFPMP_PORT_STATS): 
-//        return PortMultipartStats (dp, (ofl_msg_multipart_request_port*)msg, sender); 
-//      
-//      case OFPMP_PORT_DESC:
-//        return PortMultipartDesc (dp, msg, sender);
-      
-      default: 
-        return handle_control_stats_request (dp, msg, sender);
-    }
-}
-
 
 ofl_err
 OFSwitch13NetDevice::HandleMsgEchoReply (datapath *dp, ofl_msg_echo *msg, 
@@ -1844,7 +1705,7 @@ OFSwitch13NetDevice::HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg,
   packet *pkt;
   int error;
 
-  error = ActionsValidate (dp, msg->actions_num, msg->actions);
+  error = dp_actions_validate (dp, msg->actions_num, msg->actions);
   if (error) 
     {
       return error;
