@@ -53,14 +53,7 @@ struct Port
 };
 
 /** Structure to store port information. */
-typedef std::vector<Port> Ports_t;     
-
-/**
- * Get netdev data rate and set Openflow port features config.
- * \param netdev Switch port device.
- * \return the configure port features.
- */
-uint32_t PortGetFeatures (Ptr<CsmaNetDevice> netdev);
+typedef std::vector<ofs::Port*> Ports_t;     
 
 } // namespace ofs
 
@@ -237,35 +230,27 @@ private:
    */
   int PortLiveUpdate (sw_port *port);
 
-  /**
-   * Updates the time fields of the port statistics. Used before
-   * generating port statistics messages.
-   * \see ofsoftswitch13 dp_port_stats_update () at udatapath/dp_ports.c
-   * \param p Port to update.
-   */
-  void PortStatsUpdate (ofs::Port *p);
-
-  /**
-   * Handles a port stats request message. 
-   * \see dp_ports_handle_stats_request_port () at udatapath/dp_ports.c.
-   * \param dp The datapath.
-   * \param msg The OFLib message received.
-   * \param sender The sender (controller) information (including xid).
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  ofl_err PortMultipartStats (datapath *dp, 
-      ofl_msg_multipart_request_port *msg, const sender *sender);
-  
-  /**
-   * Handles a port description request message.
-   * \see dp_ports_handle_port_desc_request () at udatapath/dp_ports.c.
-   * \param dp The datapath.
-   * \param msg The OFLib message received.
-   * \param sender The sender (controller) information (including xid).
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  ofl_err PortMultipartDesc (datapath *dp, 
-      ofl_msg_multipart_request_header *msg, const sender *sender);
+//  /**
+//   * Handles a port stats request message. 
+//   * \see dp_ports_handle_stats_request_port () at udatapath/dp_ports.c.
+//   * \param dp The datapath.
+//   * \param msg The OFLib message received.
+//   * \param sender The sender (controller) information (including xid).
+//   * \return 0 if everything's ok, otherwise an error number.
+//   */
+//  ofl_err PortMultipartStats (datapath *dp, 
+//      ofl_msg_multipart_request_port *msg, const sender *sender);
+//  
+//  /**
+//   * Handles a port description request message.
+//   * \see dp_ports_handle_port_desc_request () at udatapath/dp_ports.c.
+//   * \param dp The datapath.
+//   * \param msg The OFLib message received.
+//   * \param sender The sender (controller) information (including xid).
+//   * \return 0 if everything's ok, otherwise an error number.
+//   */
+//  ofl_err PortMultipartDesc (datapath *dp, 
+//      ofl_msg_multipart_request_header *msg, const sender *sender);
   
   /**
    * Handles a port mod message.

@@ -125,6 +125,11 @@ HashInt (uint32_t x, uint32_t basis)
   return x;
 }
 
+/**
+ * Get netdev data rate and set Openflow port features config.
+ * \param netdev Switch port device.
+ * \return the configure port features.
+ */
 uint32_t 
 PortGetFeatures (Ptr<CsmaNetDevice> netdev)
 {
@@ -233,7 +238,7 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   SetAddress (Mac48Address::Allocate ()); 
  
   m_datapath = DatapathNew ();
-  //m_ports.reserve (DP_MAX_PORTS);
+  m_ports.reserve (DP_MAX_PORTS);
   RegisterDatapath (m_dpId, Ptr<OFSwitch13NetDevice> (this));
   Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, m_datapath);
 }
@@ -249,7 +254,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
   NS_LOG_FUNCTION (this << switchPort);
   NS_LOG_INFO ("Adding port addr " << switchPort->GetAddress ());
   
-  if (m_datapath->ports_num >= DP_MAX_PORTS)
+  if (GetNSwitchPorts () >= DP_MAX_PORTS)
     {
       return EXFULL;
     }
@@ -283,7 +288,8 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
   
   PortNew (m_datapath, swPort, portNo, portName, NULL/*macaddr*/, 
       m_datapath->max_queues, csmaSwitchPort);
-    swPort->ns3port = &ns3Port;
+  swPort->ns3port = ns3Port;
+  m_ports.push_back (ns3Port);
 
   free (portName);
  
@@ -301,7 +307,7 @@ OFSwitch13NetDevice::SendToController (ofl_msg_header *msg, const sender *sender
   if (!m_ctrlSocket)
     {
       NS_LOG_WARN ("No controller connection. Discarding message... ");
-      ofl_msg_free (msg, NULL);
+      // ofl_msg_free (msg, NULL);
       return -1;
     }
   
@@ -626,15 +632,16 @@ OFSwitch13NetDevice::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
  
-  // FIXME: implementar o free das portas
   // No need to notify the controller that this port has been deleted
-  // for (ofs::Ports_t::iterator b = m_ports.begin (), e = m_ports.end (); b != e; b++)
-  //   {
-  //     b->netdev = 0;
-  //     ofl_structs_free_port (b->conf);
-  //     free (b->stats);
-  //   }
-  // m_ports.clear ();
+  for (ofs::Ports_t::iterator b = m_ports.begin (), e = m_ports.end (); b != e; b++)
+    {
+      ofs::Port *p = *b;
+      p->netdev = 0;
+      p->swPort->netdev = NULL;
+      ofl_structs_free_port (p->swPort->conf);
+      free (p->swPort->stats);
+    }
+  m_ports.clear ();
   m_echoMap.clear ();
   
   m_channel = 0;
@@ -710,7 +717,7 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
     }
 
   // Check for changes in port status
-  for (size_t i = 1; i < m_datapath->ports_num; i++)
+  for (size_t i = 1; i < GetNSwitchPorts (); i++)
     {
       sw_port *swPort = dp_ports_lookup (m_datapath, i);
       if (PortLiveUpdate (swPort))
@@ -777,7 +784,7 @@ OFSwitch13NetDevice::PortNew (datapath *dp, sw_port *port, uint32_t port_no,
   port->stats->port_no = port_no;
   port->flags |= SWP_USED;
   
-  port->netdev = NULL;
+  port->netdev = NULL; // Trick to ofsoftswitch assertions
   port->max_queues = MIN (max_queues, NETDEV_MAX_QUEUES);
   port->num_queues = 0;
   port->created = time_msec ();
@@ -802,9 +809,9 @@ OFSwitch13NetDevice::PortGetOfsPort (Ptr<NetDevice> dev)
   NS_LOG_FUNCTION (this << dev);
   for (size_t i = 0; i < m_ports.size (); i++)
     {
-      if (m_ports[i].netdev == dev)
+      if (m_ports[i]->netdev == dev)
         {
-          return &m_ports[i];
+          return m_ports[i];
         }
     }
   NS_LOG_ERROR ("No port found!");
@@ -817,16 +824,16 @@ OFSwitch13NetDevice::PortGetOfsPort (uint32_t no)
   NS_LOG_FUNCTION (this << no);
   NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Invalid port number");
 
-  if (m_ports[no-1].portNo == no)
+  if (m_ports[no-1]->portNo == no)
     {
-      return &m_ports[no-1];
+      return m_ports[no-1];
     }
   
   for (size_t i = 0; i < m_ports.size (); i++)
     {
-      if (m_ports[i].portNo == no)
+      if (m_ports[i]->portNo == no)
         {
-          return &m_ports[i];
+          return m_ports[i];
         }
     }
   NS_LOG_ERROR ("No port found!");
@@ -838,7 +845,7 @@ OFSwitch13NetDevice::PortLiveUpdate (sw_port *port)
 {
   uint32_t orig_config = port->conf->config;
   uint32_t orig_state = port->conf->state;
-  ofs::Port p = port->ns3Port;
+  ofs::Port *p = (ofs::Port*)port->ns3port;
 
   // Port is always enabled
   port->conf->config &= ~OFPPC_PORT_DOWN;
@@ -856,86 +863,79 @@ OFSwitch13NetDevice::PortLiveUpdate (sw_port *port)
           (orig_state !=  port->conf->state));
 }
 
-void 
-OFSwitch13NetDevice::PortStatsUpdate (ofs::Port *p)
-{
-  p->stats->duration_sec  =  (time_msec() - p->created) / 1000;
-  p->stats->duration_nsec = ((time_msec() - p->created) % 1000) * 1000;
-}
-
-ofl_err
-OFSwitch13NetDevice::PortMultipartStats (datapath *dp, 
-    ofl_msg_multipart_request_port *msg, const sender *sender)
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofs::Port *port;
-  size_t i = 0;
-
-  ofl_msg_multipart_reply_port reply;
-  reply.header.header.type = OFPT_MULTIPART_REPLY;
-  reply.header.type  = OFPMP_PORT_STATS;
-  reply.header.flags = 0x0000;
-  
-  if (msg->port_no == OFPP_ANY) 
-    {
-      reply.stats_num = GetNSwitchPorts ();
-      reply.stats = (ofl_port_stats**)xmalloc (sizeof (ofl_port_stats*) * reply.stats_num);
-
-      // Using port number (not position in vector)
-      for (i = 1; i <= GetNSwitchPorts (); i++)
-        {
-          port = PortGetOfsPort (i);
-          PortStatsUpdate (port);
-          reply.stats[i-1] = port->stats;
-        }
-    } 
-  else 
-    {
-      port = PortGetOfsPort (msg->port_no);
-      if (port != NULL && port->netdev != NULL) 
-        {
-          reply.stats_num = 1;
-          reply.stats = (ofl_port_stats**)xmalloc (sizeof (ofl_port_stats*));
-          PortStatsUpdate (port);
-          reply.stats[0] = port->stats;
-        }
-    }
-  SendToController ((ofl_msg_header*)&reply, sender);
-
-  free (reply.stats);
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-ofl_err
-OFSwitch13NetDevice::PortMultipartDesc (datapath *dp, 
-    ofl_msg_multipart_request_header *msg, const sender *sender)
-{
-  NS_LOG_FUNCTION (this);
-  
-  ofs::Port *port;
-  size_t i = 0;
-  
-  ofl_msg_multipart_reply_port_desc reply;
-  reply.header.header.type = OFPT_MULTIPART_REPLY;
-  reply.header.type  = OFPMP_PORT_DESC;
-  reply.header.flags = 0x0000;
-  reply.stats_num    = GetNSwitchPorts ();
-  reply.stats = (ofl_port**)xmalloc (sizeof (ofl_port*) * reply.stats_num);
-  
-  // Using port number (not position in vector)
-  for (i = 1; i <= GetNSwitchPorts (); i++)
-    {
-      port = PortGetOfsPort (i);
-      reply.stats[i-1] = port->conf;
-    }
-  SendToController ((ofl_msg_header*)&reply, sender);
-  
-  free (reply.stats);
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
+// ofl_err
+// OFSwitch13NetDevice::PortMultipartStats (datapath *dp, 
+//     ofl_msg_multipart_request_port *msg, const sender *sender)
+// {
+//   NS_LOG_FUNCTION (this);
+//   
+//   ofs::Port *port;
+//   size_t i = 0;
+// 
+//   ofl_msg_multipart_reply_port reply;
+//   reply.header.header.type = OFPT_MULTIPART_REPLY;
+//   reply.header.type  = OFPMP_PORT_STATS;
+//   reply.header.flags = 0x0000;
+//   
+//   if (msg->port_no == OFPP_ANY) 
+//     {
+//       reply.stats_num = GetNSwitchPorts ();
+//       reply.stats = (ofl_port_stats**)xmalloc (sizeof (ofl_port_stats*) * reply.stats_num);
+// 
+//       // Using port number (not position in vector)
+//       for (i = 1; i <= GetNSwitchPorts (); i++)
+//         {
+//           port = PortGetOfsPort (i);
+//           PortStatsUpdate (port);
+//           reply.stats[i-1] = port->stats;
+//         }
+//     } 
+//   else 
+//     {
+//       port = PortGetOfsPort (msg->port_no);
+//       if (port != NULL && port->netdev != NULL) 
+//         {
+//           reply.stats_num = 1;
+//           reply.stats = (ofl_port_stats**)xmalloc (sizeof (ofl_port_stats*));
+//           PortStatsUpdate (port);
+//           reply.stats[0] = port->stats;
+//         }
+//     }
+//   SendToController ((ofl_msg_header*)&reply, sender);
+// 
+//   free (reply.stats);
+//   ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
+//   return 0;
+// }
+// 
+// ofl_err
+// OFSwitch13NetDevice::PortMultipartDesc (datapath *dp, 
+//     ofl_msg_multipart_request_header *msg, const sender *sender)
+// {
+//   NS_LOG_FUNCTION (this);
+//   
+//   ofs::Port *port;
+//   size_t i = 0;
+//   
+//   ofl_msg_multipart_reply_port_desc reply;
+//   reply.header.header.type = OFPT_MULTIPART_REPLY;
+//   reply.header.type  = OFPMP_PORT_DESC;
+//   reply.header.flags = 0x0000;
+//   reply.stats_num    = GetNSwitchPorts ();
+//   reply.stats = (ofl_port**)xmalloc (sizeof (ofl_port*) * reply.stats_num);
+//   
+//   // Using port number (not position in vector)
+//   for (i = 1; i <= GetNSwitchPorts (); i++)
+//     {
+//       port = PortGetOfsPort (i);
+//       reply.stats[i-1] = port->conf;
+//     }
+//   SendToController ((ofl_msg_header*)&reply, sender);
+//   
+//   free (reply.stats);
+//   ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
+//   return 0;
+// }
 
 ofl_err
 OFSwitch13NetDevice::PortHandlePortMod (datapath *dp, ofl_msg_port_mod *msg, 
@@ -943,7 +943,8 @@ OFSwitch13NetDevice::PortHandlePortMod (datapath *dp, ofl_msg_port_mod *msg,
 {
   NS_LOG_FUNCTION (this);
   
-  ofs::Port *p = PortGetOfsPort (msg->port_no);
+  sw_port *swPort = dp_ports_lookup (dp, msg->port_no);
+  ofs::Port *p = (ofs::Port*)swPort->ns3port;
   if (p == NULL) 
     {
       return ofl_error (OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_PORT);
@@ -959,18 +960,18 @@ OFSwitch13NetDevice::PortHandlePortMod (datapath *dp, ofl_msg_port_mod *msg,
 
   if (msg->mask) 
     {
-      p->conf->config &= ~msg->mask;
-      p->conf->config |= msg->config & msg->mask;
-      if ((p->conf->state & OFPPS_LINK_DOWN) || 
-          (p->conf->config & OFPPC_PORT_DOWN)) 
+      p->swPort->conf->config &= ~msg->mask;
+      p->swPort->conf->config |= msg->config & msg->mask;
+      if ((p->swPort->conf->state & OFPPS_LINK_DOWN) || 
+          (p->swPort->conf->config & OFPPC_PORT_DOWN)) 
         {
           // Port not live
-          p->conf->state &= ~OFPPS_LIVE;
+          p->swPort->conf->state &= ~OFPPS_LIVE;
         } 
       else 
         {
           // Port is live
-          p->conf->state |= OFPPS_LIVE;
+          p->swPort->conf->state |= OFPPS_LIVE;
         }
     }
 
@@ -978,7 +979,7 @@ OFSwitch13NetDevice::PortHandlePortMod (datapath *dp, ofl_msg_port_mod *msg,
   ofl_msg_port_status reply;
   reply.header.type = OFPT_PORT_STATUS;
   reply.reason = OFPPR_MODIFY; 
-  reply.desc = p->conf;
+  reply.desc = p->swPort->conf;
   
   SendToController ((ofl_msg_header*)&reply, sender);
 
@@ -1035,7 +1036,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   // Get the input port and check configuration
   ofs::Port* inPort = PortGetOfsPort (netdev);
   NS_ASSERT_MSG (inPort != NULL, "This device is not registered as a switch port");
-  if (inPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) 
+  if (inPort->swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) 
     {
       NS_LOG_WARN ("This port is down or inoperating. Discarding packet");
       return;
@@ -1054,12 +1055,11 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   uint32_t headRoom = 128 + 2;
   uint32_t bodyRoom = netdev->GetMtu () + VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofs::BufferFromPacket (pktCopy, bodyRoom, headRoom);
-  struct packet *pkt = packet_create (m_datapath, inPort->stats->port_no, 
-      buffer, false);
+  struct packet *pkt = packet_create (m_datapath, inPort->portNo, buffer, false);
 
   // Update port stats
-  inPort->stats->rx_packets++;
-  inPort->stats->rx_bytes += buffer->size;
+  inPort->swPort->stats->rx_packets++;
+  inPort->swPort->stats->rx_bytes += buffer->size;
 
   // Runs the packet through the pipeline
   Simulator::Schedule (m_lookupDelay, &OFSwitch13NetDevice::PipelineProcessPacket, 
@@ -1106,8 +1106,9 @@ OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
       NS_LOG_ERROR ("can't forward to invalid port.");
       return false;
     }
+  sw_port *swPort = port->swPort;
   
-  if ((port->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN))) == 0)
+  if ((swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN))) == 0)
     {
       // Removing the ethernet header and trailer from packet, which will be
       // included again by CsmaNetDevice
@@ -1122,12 +1123,12 @@ OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
           header.GetDestination (), header.GetLengthType ());
       if (status)
         {
-          port->stats->tx_packets++;
-          port->stats->tx_bytes += packet->GetSize ();
+          swPort->stats->tx_packets++;
+          swPort->stats->tx_bytes += packet->GetSize ();
         }
       else
         {
-          port->stats->tx_dropped++;
+          swPort->stats->tx_dropped++;
         }
       return status;
     }
@@ -1798,11 +1799,11 @@ OFSwitch13NetDevice::HandleControlMultipartRequest (datapath *dp,
   // Only port_stats e port_desc need to be reimplemented
   switch (msg->type) 
     {
-      case (OFPMP_PORT_STATS): 
-        return PortMultipartStats (dp, (ofl_msg_multipart_request_port*)msg, sender); 
-      
-      case OFPMP_PORT_DESC:
-        return PortMultipartDesc (dp, msg, sender);
+//      case (OFPMP_PORT_STATS): 
+//        return PortMultipartStats (dp, (ofl_msg_multipart_request_port*)msg, sender); 
+//      
+//      case OFPMP_PORT_DESC:
+//        return PortMultipartDesc (dp, msg, sender);
       
       default: 
         return handle_control_stats_request (dp, msg, sender);
