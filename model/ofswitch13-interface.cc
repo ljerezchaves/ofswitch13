@@ -25,27 +25,6 @@ NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 namespace ns3 {
 namespace ofs {
 
-EchoInfo::EchoInfo (Ipv4Address ip)
-{
-  waiting = true;
-  send = Simulator::Now ();
-  destIp = ip;
-}
-
-Time 
-EchoInfo::GetRtt ()
-{
-  if (waiting)
-    {
-      return Time (-1);
-    }
-  else
-    {
-      Time rtt = recv - send;
-      return recv-send; 
-    }
-}
-
 ofpbuf* 
 BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
     size_t headRoom)
@@ -118,8 +97,6 @@ PacketFromInternalPacket (packet *pkt)
 } // namespace ofs
 } // namespace ns3
 
-
-
 using namespace ns3;
 
 Ptr<OFSwitch13NetDevice> GetDatapathDevice (uint64_t id);
@@ -170,7 +147,6 @@ dp_send_message (struct datapath *dp, struct ofl_msg_header *msg,
     }
   return !error;
 }
-
 
 /**
  * Overriding ofsoftswitch13 dp_ports_output weak function from

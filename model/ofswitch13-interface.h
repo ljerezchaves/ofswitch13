@@ -31,14 +31,10 @@
 #define OFSWITCH13_INTERFACE_H
 
 #include <assert.h>
-#include <errno.h>
-#include <set>
-#include <map>
-#include <limits>
 
 #include "ns3/simulator.h"
 #include "ns3/log.h"
-#include "ns3/net-device.h"
+#include "ns3/packet.h"
 #include "ns3/csma-module.h"
 
 #include <boost/static_assert.hpp>
@@ -51,32 +47,17 @@ extern "C"
 #define delete _delete
 #define list List
 
-#include "udatapath/datapath.h"
 #include "udatapath/packet.h"
 #include "udatapath/pipeline.h"
 #include "udatapath/flow_table.h"
-#include "udatapath/flow_entry.h"
 #include "udatapath/group_table.h"
-#include "udatapath/group_entry.h"
 #include "udatapath/meter_table.h"
-#include "udatapath/meter_entry.h"
 #include "udatapath/dp_ports.h"
-#include "udatapath/dp_actions.h"
 #include "udatapath/dp_control.h"
-#include "udatapath/action_set.h"
-#include "udatapath/dp_buffers.h"
-#include "udatapath/packet_handle_std.h"
 
 #include "lib/ofpbuf.h"
-#include "lib/dynamic-string.h"
-#include "lib/hash.h"
-#include "lib/list.h"
-#include "lib/util.h"
-#include "lib/random.h"
-#include "lib/netdev.h"
 
 #include "oflib/ofl-structs.h"
-#include "oflib/ofl-utils.h"
 #include "oflib/oxm-match.h"
 
 #include "utilities/dpctl.h"
@@ -102,8 +83,7 @@ int parse_meter (char *str, uint32_t *meter);
 int parse_table (char *str, uint8_t *table);
 
 // From udatapath/datapath.c 
-struct remote* remote_create (struct datapath *dp, 
-    struct rconn *rconn, struct rconn *rconn_aux);
+struct remote* remote_create (struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux);
 
 // From udatapath/dp_ports.c
 uint32_t port_speed (uint32_t conf);
@@ -117,24 +97,6 @@ namespace ns3 {
 namespace ofs {
 
 class OFSwitch13NetDevice;
-
-/**
- * \ingroup ofswitch13
- * \brief Echo request metadata.
- */
-struct EchoInfo
-{
-  bool waiting;       //!< True when waiting for reply
-  Time send;          //!< Send time
-  Time recv;          //!< Received time
-  Ipv4Address destIp; //!< Destination IPv4
-
-  EchoInfo (Ipv4Address ip);  //!< Constructor
-  Time GetRtt ();   //!< Compute the echo RTT
-};
-
-/** Structure to store echo information */
-typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
 
 /**
  * \ingroup ofswitch13

@@ -27,14 +27,36 @@ NS_LOG_COMPONENT_DEFINE ("OFSwitch13Controller");
 
 namespace ns3 {
 
-NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller);
+EchoInfo::EchoInfo (Ipv4Address ip)
+{
+  waiting = true;
+  send = Simulator::Now ();
+  destIp = ip;
+}
+
+Time 
+EchoInfo::GetRtt ()
+{
+  if (waiting)
+    {
+      return Time (-1);
+    }
+  else
+    {
+      Time rtt = recv - send;
+      return recv-send; 
+    }
+}
 
 InetSocketAddress
 SwitchInfo::GetInet ()
 {
   return InetSocketAddress (ipv4, port);
 }
+
 /********** Public methods ***********/
+NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller);
+
 OFSwitch13Controller::OFSwitch13Controller ()
 {
   NS_LOG_FUNCTION (this);
@@ -315,8 +337,8 @@ OFSwitch13Controller::SendEcho (SwitchInfo swtch, size_t payloadSize)
     }
 
   uint32_t xid = GetNextXid ();
-  ofs::EchoInfo echo (swtch.ipv4);
-  m_echoMap.insert (std::pair<uint32_t, ofs::EchoInfo> (xid, echo));
+  EchoInfo echo (swtch.ipv4);
+  m_echoMap.insert (std::pair<uint32_t, EchoInfo> (xid, echo));
   
   int error = SendToSwitch (swtch, (ofl_msg_header*)&msg, xid);
   
@@ -820,7 +842,7 @@ OFSwitch13Controller::HandleEchoReply (ofl_msg_echo *msg,
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   
-  ofs::EchoMsgMap_t::iterator it = m_echoMap.find (xid);
+  EchoMsgMap_t::iterator it = m_echoMap.find (xid);
   if (it == m_echoMap.end ())
     {
       NS_LOG_WARN ("Received echo response for unknonw echo request.");

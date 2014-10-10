@@ -18,40 +18,33 @@
 #ifdef NS3_OFSWITCH13
 
 #include "ofswitch13-net-device.h"
-#include "ofswitch13-interface.h"
-
-#include "ns3/simulator.h"
-#include "ns3/string.h"
-#include "ns3/integer.h"
-#include "ns3/uinteger.h"
-#include "ns3/log.h"
-
-#include "ns3/csma-net-device.h"
-#include "ns3/ethernet-header.h"
-#include "ns3/ethernet-trailer.h"
-#include "ns3/arp-header.h"
-#include "ns3/tcp-header.h"
-#include "ns3/udp-header.h"
-#include "ns3/ipv4-l3-protocol.h"
-#include "ns3/arp-l3-protocol.h"
+#include "ofswitch13-interface.h"    
+                                     
+#include "ns3/simulator.h"           
+#include "ns3/integer.h"             
+#include "ns3/uinteger.h"            
+#include "ns3/log.h"                 
+#include "ns3/ethernet-header.h"     
+#include "ns3/ethernet-trailer.h"    
+#include "ns3/tcp-header.h"          
 #include "ns3/inet-socket-address.h"
-
-using namespace ns3;
-
+                                     
+using namespace ns3;                 
+                                     
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13NetDevice");
-
-/** 
+                                     
+/**                                  
  * As the integration of ofsoftswitch13 and ns3 involve overriding some C
  * functions, we are using a global map to store a pointer to all
- * OFSwitch13NetDevices in simulation, and allow faster object retrive by
- * datapath id. In this way, functions like dp_send_message can get the object
- * pointer and call SendToController method. 
+ * OFSwitch13NetDevices objects in simulation, and allow faster object retrive
+ * by datapath id. In this way, functions like dp_send_message /
+ * dp_ports_output can get the object pointer and call SendToController
+ * SendToSwitchPort methods. 
  */
 static std::map<uint64_t, Ptr<OFSwitch13NetDevice> > g_switchMap;
 
 /** 
- * Insert a new openflow device in global map. This is called automatically
- * every time a new datapath is created in simulation. 
+ * Insert a new openflow device in global map. Called by device constructor.
  * \param id The datapath id.
  * \param dev The Ptr<OFSwitch13NetDevice> pointer.
  */
@@ -67,8 +60,7 @@ RegisterDatapath (uint64_t id, Ptr<OFSwitch13NetDevice> dev)
 }
 
 /** 
- * Remove an existing openflow device from global map. This is called automatically
- * every time a datapath is destroyed in simulation. 
+ * Remove an existing openflow device from global map. Called by DoDispose.
  * \param id The datapath id.
  */
 static void 
@@ -87,7 +79,7 @@ UnregisterDatapath (uint64_t id)
 }
 
 /**
- * Retrieve and existing openflow device at global map by its datapath id 
+ * Retrieve and existing openflow device object by its datapath id 
  * \param id The datapath id.
  * \return The OpenFlow OFSwitch13NetDevice pointer.
  */
@@ -107,31 +99,9 @@ GetDatapathDevice (uint64_t id)
     }
 }
 
-// /**
-//  * A fast hash function used by hash map.
-//  * \see hash_int () in lib/hash.h
-//  */
-// uint32_t
-// HashInt (uint32_t x, uint32_t basis)
-// {
-//   x -= x << 6;
-//   x ^= x >> 17;
-//   x -= x << 9;
-//   x ^= x << 4;
-//   x += basis;
-//   x -= x << 3;
-//   x ^= x << 10;
-//   x ^= x >> 15;
-//   return x;
-// }
-
-/**
- * Get netdev data rate and set Openflow port features config.
- * \param netdev Switch port device.
- * \return the configure port features.
- */
+// ---- OpenFlow port code -------------------------------
 uint32_t 
-PortGetFeatures (Ptr<CsmaNetDevice> netdev)
+OfPort::PortGetFeatures ()
 {
   DataRateValue drv;
   DataRate dr;
@@ -178,6 +148,59 @@ PortGetFeatures (Ptr<CsmaNetDevice> netdev)
   return feat;
 }
 
+OfPort::OfPort (datapath *dp, Ptr<NetDevice> dev)
+{
+  netdev = dev;
+  portNo = ++(dp->ports_num);;
+  swPort = &dp->ports[portNo];
+
+  memset (swPort, '\0', sizeof *swPort);
+  
+  swPort->dp = dp;
+  swPort->ns3port = this;
+    
+  swPort->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
+  memset (swPort->conf, 0x00, sizeof (ofl_port));
+  swPort->conf->port_no = portNo;
+  swPort->conf->name = (char*)xmalloc (OFP_MAX_PORT_NAME_LEN);
+  snprintf (swPort->conf->name, OFP_MAX_PORT_NAME_LEN, "Port %d", portNo);
+  netdev->GetAddress ().CopyTo (swPort->conf->hw_addr);
+  swPort->conf->config = 0x00000000;
+  swPort->conf->state = 0x00000000 | OFPPS_LIVE;
+  swPort->conf->curr = PortGetFeatures ();
+  swPort->conf->advertised = PortGetFeatures ();
+  swPort->conf->supported = PortGetFeatures ();
+  // swPort->conf->peer = PortGetFeatures ();
+  swPort->conf->curr_speed = port_speed (swPort->conf->curr);
+  swPort->conf->max_speed = port_speed (swPort->conf->supported);
+
+  dp_port_live_update (swPort);
+
+  swPort->stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
+  memset (swPort->stats, 0x00, sizeof (ofl_port_stats));
+  swPort->stats->port_no = portNo;
+  swPort->flags |= SWP_USED;
+ 
+  // To avoid a null check failure in dp_swPorts_handle_stats_request_swPort (), 
+  // we are pointing swPort->netdev to ns3::NetDevice, but it may? not be used. 
+  swPort->netdev = (struct netdev*)PeekPointer (dev);
+  swPort->max_queues = NETDEV_MAX_QUEUES;
+  swPort->num_queues = 0; // No queue supswPort by now
+  swPort->created = time_msec ();
+
+  memset (swPort->queues, 0x00, sizeof (swPort->queues));
+
+  list_push_back (&dp->port_list, &swPort->node);
+}
+
+OfPort::~OfPort ()
+{
+  netdev = 0;
+  ofl_structs_free_port (swPort->conf);
+  free (swPort->stats);
+}
+
+
 // ---- OpenFlow switch code -------------------------------
 namespace ns3 {
 
@@ -211,7 +234,7 @@ OFSwitch13NetDevice::GetTypeId (void)
                    MakeTimeChecker ())
     .AddAttribute ("EchoInterval",
                    "The interval between successive echo requests from switch.",
-                   TimeValue (Seconds (20)),
+                   TimeValue (Seconds (60)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_echo),
                    MakeTimeChecker ())
     .AddAttribute ("ControllerAddr",
@@ -237,8 +260,8 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   m_channel = CreateObject<BridgeChannel> ();
   SetAddress (Mac48Address::Allocate ()); 
  
-  m_datapath = DatapathNew ();
   m_ports.reserve (DP_MAX_PORTS);
+  m_datapath = DatapathNew ();
   RegisterDatapath (m_dpId, Ptr<OFSwitch13NetDevice> (this));
   Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, m_datapath);
 }
@@ -249,54 +272,46 @@ OFSwitch13NetDevice::~OFSwitch13NetDevice ()
 }
 
 int 
-OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
+OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 {
-  NS_LOG_FUNCTION (this << switchPort);
-  NS_LOG_INFO ("Adding port addr " << switchPort->GetAddress ());
+  NS_LOG_FUNCTION (this << portDevice);
+  NS_LOG_INFO ("Adding port addr " << portDevice->GetAddress ());
   
   if (GetNSwitchPorts () >= DP_MAX_PORTS)
     {
       return EXFULL;
     }
 
-  Ptr<CsmaNetDevice> csmaSwitchPort = switchPort->GetObject<CsmaNetDevice> ();
-  if (!csmaSwitchPort)
+  Ptr<CsmaNetDevice> csmaPortDevice = portDevice->GetObject<CsmaNetDevice> ();
+  if (!csmaPortDevice)
     {
       NS_FATAL_ERROR ("NetDevice must be of CsmaNetDevice type.");
     }
-  if (csmaSwitchPort->GetEncapsulationMode () != CsmaNetDevice::DIX)
+  if (csmaPortDevice->GetEncapsulationMode () != CsmaNetDevice::DIX)
     {
       NS_FATAL_ERROR ("CsmaNetDevice must use DIX encapsulation.");
     }
 
   // Update max mtu
-  if (switchPort->GetMtu () > GetMtu ())
+  if (portDevice->GetMtu () > GetMtu ())
     {
-      SetMtu (switchPort->GetMtu ());
+      SetMtu (portDevice->GetMtu ());
     }
 
-  int portNo = ++(m_datapath->ports_num);
-  sw_port *swPort = &m_datapath->ports[portNo];
-
-  char *portName = (char*)xmalloc (OFP_MAX_PORT_NAME_LEN);
-  snprintf (portName, OFP_MAX_PORT_NAME_LEN, "Port %d", portNo);
-  
-  ofs::Port *ns3Port = (ofs::Port*)xmalloc (sizeof (ofs::Port));
-  ns3Port->portNo = portNo;
-  ns3Port->netdev = csmaSwitchPort;
-  ns3Port->swPort = swPort;
-  m_ports.push_back (ns3Port);
-  
-  PortNew (m_datapath, swPort, portNo, portName, NULL/*macaddr*/, 
-      m_datapath->max_queues, csmaSwitchPort);
-  swPort->ns3port = ns3Port;
-
-  free (portName);
+  Ptr<OfPort> ofPort = Create<OfPort> (m_datapath, csmaPortDevice);
+  m_ports.push_back (ofPort);
  
-  NS_LOG_LOGIC ("RegisterProtocolHandler for " << switchPort->GetInstanceTypeId ().GetName ());
+  // Notify the controller that this port has been added
+  ofl_msg_port_status msg;
+  msg.header.type = OFPT_PORT_STATUS;
+  msg.reason = OFPPR_ADD;
+  msg.desc = ofPort->swPort->conf;
+  SendToController ((ofl_msg_header*)&msg);
+
+  NS_LOG_LOGIC ("RegisterProtocolHandler for " << portDevice->GetInstanceTypeId ().GetName ());
   m_node->RegisterProtocolHandler (
-      MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this), 0, switchPort, true);
-  m_channel->AddChannel (switchPort->GetChannel ());
+      MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this), 0, portDevice, true);
+  m_channel->AddChannel (portDevice->GetChannel ());
   return 0;
 }
 
@@ -631,21 +646,12 @@ void
 OFSwitch13NetDevice::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
- 
-  // No need to notify the controller that this port has been deleted
-  for (ofs::Ports_t::iterator b = m_ports.begin (), e = m_ports.end (); b != e; b++)
-    {
-      (*b)->netdev = 0;
-      ofl_structs_free_port ((*b)->swPort->conf);
-      free ((*b)->swPort->stats);
-    }
-  m_ports.clear ();
-  m_echoMap.clear ();
   
   m_channel = 0;
   m_node = 0;
   m_ctrlSocket = 0;
-
+  m_ports.clear ();
+  
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
   meter_table_destroy (m_datapath->meters);
@@ -705,19 +711,14 @@ void
 OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 {
   meter_table_add_tokens (dp->meters);
-  
-  // Check flow entry timeout
-  for (int i = 0; i < PIPELINE_TABLES; i++) 
-    {
-      flow_table_timeout (dp->pipeline->tables[i]);
-    }
+  pipeline_timeout (dp->pipeline);
 
   // Check for changes in links (port) status
-  ofs::Port *ns3Port;
+  Ptr<OfPort> ns3Port;
   uint32_t orig_state;
   for (size_t i = 1; i < GetNSwitchPorts (); i++)
     {
-      ns3Port = PortGetOfsPort (i);
+      ns3Port = PortGetOfPort (i);
       orig_state = ns3Port->swPort->conf->state;
       if (ns3Port->netdev->IsLinkUp ())
         {
@@ -756,66 +757,12 @@ OFSwitch13NetDevice::DatapathSendEchoRequest ()
   msg.data_length = 0;
   msg.data        = 0;
  
-  ofs::EchoInfo echo (InetSocketAddress::ConvertFrom (m_ctrlAddr).GetIpv4 ());
-  m_echoMap.insert (std::pair<uint64_t, ofs::EchoInfo> (m_xid, echo));
   SendToController ((ofl_msg_header*)&msg);
-  
   Simulator::Schedule (m_echo, &OFSwitch13NetDevice::DatapathSendEchoRequest, this);
 }
 
-int 
-OFSwitch13NetDevice::PortNew (datapath *dp, sw_port *port, uint32_t port_no, 
-    const char *netdev_name, const uint8_t *new_mac, uint32_t max_queues, 
-    Ptr<CsmaNetDevice> netdev)
-{
-  /* NOTE: port struct is already allocated in struct dp */
-  memset(port, '\0', sizeof *port);
-  port->dp = dp;
-  
-  port->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
-  memset (port->conf, 0x00, sizeof (ofl_port));
-  port->conf->port_no = port_no;
-  port->conf->name = strcpy ((char*)xmalloc (strlen (netdev_name) + 1), netdev_name);
-  netdev->GetAddress ().CopyTo (port->conf->hw_addr);
-  port->conf->config = 0x00000000;
-  port->conf->state = 0x00000000 | OFPPS_LIVE;
-  port->conf->curr = PortGetFeatures (netdev);
-  port->conf->advertised = PortGetFeatures (netdev);
-  port->conf->supported = PortGetFeatures (netdev);
-  port->conf->peer = PortGetFeatures (netdev);
-  port->conf->curr_speed = port_speed (port->conf->curr);
-  port->conf->max_speed = port_speed (port->conf->supported);
-
-  dp_port_live_update (port);
-
-  port->stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
-  memset (port->stats, 0x00, sizeof (ofl_port_stats));
-  port->stats->port_no = port_no;
-  port->flags |= SWP_USED;
- 
-  // To avoid a null check failure in dp_ports_handle_stats_request_port (), 
-  // we are pointing port->netdev to port, but it will never be used. 
-  port->netdev = (struct netdev*)port;
-  port->max_queues = MIN (max_queues, NETDEV_MAX_QUEUES);
-  port->num_queues = 0; // No queue support by now
-  port->created = time_msec ();
-
-  memset (port->queues, 0x00, sizeof (port->queues));
-
-  list_push_back (&dp->port_list, &port->node);
-
-  // Notify the controller that this port has been added
-  ofl_msg_port_status msg;
-  msg.header.type = OFPT_PORT_STATUS;
-  msg.reason = OFPPR_ADD;
-  msg.desc = port->conf;
-  SendToController ((ofl_msg_header*)&msg);
-
-  return 0;
-}
-
-ofs::Port*
-OFSwitch13NetDevice::PortGetOfsPort (Ptr<NetDevice> dev)
+Ptr<OfPort>
+OFSwitch13NetDevice::PortGetOfPort (Ptr<NetDevice> dev)
 {
   NS_LOG_FUNCTION (this << dev);
   for (size_t i = 0; i < m_ports.size (); i++)
@@ -829,8 +776,8 @@ OFSwitch13NetDevice::PortGetOfsPort (Ptr<NetDevice> dev)
   return NULL;
 }
 
-ofs::Port*
-OFSwitch13NetDevice::PortGetOfsPort (uint32_t no)
+Ptr<OfPort>
+OFSwitch13NetDevice::PortGetOfPort (uint32_t no)
 {
   NS_LOG_FUNCTION (this << no);
   NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Invalid port number");
@@ -898,7 +845,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
 
   // Preparing the pipeline process...
   // Get the input port and check configuration
-  ofs::Port* inPort = PortGetOfsPort (netdev);
+  Ptr<OfPort> inPort = PortGetOfPort (netdev);
   NS_ASSERT_MSG (inPort != NULL, "This device is not registered as a switch port");
   if (inPort->swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) 
     {
@@ -967,7 +914,7 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t
   // No queue support by now
   NS_LOG_FUNCTION (this);
   
-  ofs::Port *port = PortGetOfsPort (portNo);
+  Ptr<OfPort> port = PortGetOfPort (portNo);
   if (port == 0 || port->netdev == 0)
     {
       NS_LOG_ERROR ("can't forward to invalid port.");
@@ -1003,585 +950,15 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t
   return false;
 }
 
-// void
-// OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
-// {
-//   NS_LOG_FUNCTION (this << packet_to_string (pkt));
-//   
-//   flow_entry *entry;
-//   flow_table *table, *next_table;
-//   
-//   // Check ttl
-//   if (!packet_handle_std_is_ttl_valid (pkt->handle_std)) 
-//     {
-//       if ((pl->dp->config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) 
-//         {
-//           NS_LOG_WARN ("Packet has invalid TTL, sending to controller.");
-//           PipelineSendPacketIn (pl, pkt, 0, OFPR_INVALID_TTL, UINT64_MAX);
-//         } 
-//       else 
-//         {
-//           NS_LOG_WARN ("Packet has invalid TTL, dropping.");
-//         }
-//       packet_destroy (pkt);
-//       return;
-//     }
-//   
-//   // Look for a match in flow tables
-//   next_table = pl->tables[0];
-//   while (next_table != NULL) 
-//     {
-//       NS_LOG_DEBUG ("trying table " << (short)next_table->stats->table_id);
-//   
-//       pkt->table_id = next_table->stats->table_id;
-//       table = next_table;
-//       next_table = NULL;
-//   
-//       NS_LOG_DEBUG ("searching table entry for packet match: " <<  
-//           ofl_structs_match_to_string ((ofl_match_header*)&(pkt->handle_std->match), 
-//               pl->dp->exp));
-//   
-//       entry = flow_table_lookup (table, pkt);
-//       if (entry != NULL) 
-//         {
-//           NS_LOG_DEBUG ("found matching entry: " << 
-//               ofl_structs_flow_stats_to_string (entry->stats, pkt->dp->exp));
-//        
-//           pkt->handle_std->table_miss = ((entry->stats->priority) == 0 && 
-//                                          (entry->match->length <= 4));
-//           PipelineExecuteEntry (pl, entry, &next_table, &pkt);
-//           
-//           // Packet could be destroyed by a meter instruction
-//           if (!pkt)
-//             {
-//               return;
-//             }
-//   
-//           if (next_table == NULL) 
-//             {
-//               // Pipeline end. Execute actions and free packet
-//               action_set_execute (pkt->action_set, pkt, UINT64_MAX);
-//               packet_destroy (pkt);
-//               return;
-//             }
-//         } 
-//       else 
-//         {
-//           // OpenFlow 1.3 default behavior on a table miss
-//           NS_LOG_DEBUG ("No matching entry found. Dropping packet.");
-//           packet_destroy (pkt);
-//           return;
-//         }
-//     }
-//   NS_LOG_ERROR ("Reached outside of pipeline processing cycle.");
-// }
-// 
-// void
-// OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
-//     flow_table **next_table, packet **pkt)
-// {
-//    NS_LOG_FUNCTION (this);
-//   
-//   // Instructions, when present, will be executed in the following order:
-//   // Meter, Apply-Actions, Clear-Actions, Write-Actions, Write-Metadata, and
-//   // Goto-Table.
-//   size_t i;
-//   ofl_instruction_header *inst;
-// 
-//   for (i=0; i < entry->stats->instructions_num; i++) 
-//     {
-//       // Packet was dropped by some instruction or action*/
-//       if(!(*pkt))
-//         {
-//           return;
-//         }
-//       
-//       inst = entry->stats->instructions[i];
-//       switch (inst->type) 
-//         {
-//           case OFPIT_GOTO_TABLE: 
-//             {
-//               ofl_instruction_goto_table *gi = (ofl_instruction_goto_table*)inst;
-//               *next_table = pl->tables[gi->table_id];
-//               break;
-//             }
-//           case OFPIT_WRITE_METADATA: 
-//             {
-//               ofl_instruction_write_metadata *wi = (ofl_instruction_write_metadata*)inst;
-//               ofl_match_tlv *f;
-// 
-//               packet_handle_std_validate ((*pkt)->handle_std);
-//               
-//               // Search field on the description of the packet.
-//               HMAP_FOR_EACH_WITH_HASH (f, ofl_match_tlv, hmap_node, 
-//                   HashInt (OXM_OF_METADATA, 0), &(*pkt)->handle_std->match.match_fields)
-//                 {
-//                   uint64_t *metadata = (uint64_t*) f->value;
-//                   *metadata = (*metadata & ~wi->metadata_mask) | 
-//                               (wi->metadata & wi->metadata_mask);
-//                   NS_LOG_DEBUG ("Executing write metadata: " << *metadata);
-//                 }
-//               break;
-//             }
-//           case OFPIT_WRITE_ACTIONS: 
-//             {
-//               ofl_instruction_actions *wa = (ofl_instruction_actions*)inst;
-//               action_set_write_actions ((*pkt)->action_set, wa->actions_num, wa->actions);
-//               break;
-//             }
-//           case OFPIT_APPLY_ACTIONS: 
-//             {
-//               ofl_instruction_actions *ia = (ofl_instruction_actions*)inst;
-//               dp_execute_action_list ((*pkt), ia->actions_num, ia->actions, entry->stats->cookie);
-//               break;
-//             }
-//           case OFPIT_CLEAR_ACTIONS: 
-//             {
-//               action_set_clear_actions ((*pkt)->action_set);
-//               break;
-//             }
-//           case OFPIT_METER: 
-//             {
-//               ofl_instruction_meter *im = (ofl_instruction_meter*)inst;
-//               meter_table_apply (pl->dp->meters, pkt, im->meter_id);
-//               break;
-//             }
-//           case OFPIT_EXPERIMENTER: 
-//             {
-//               // dp_exp_inst((*pkt), (ofl_instruction_experimenter*)inst);
-//               break;
-//             }
-//         }
-//     }
-// }
-// 
-// ofl_err
-// OFSwitch13NetDevice::PipelineHandleFlowMod (pipeline *pl, ofl_msg_flow_mod *msg, 
-//     const sender *sender)
-// {
-//   NS_LOG_FUNCTION (this);
-//   
-//   // Modifications to a flow table from the controller are done with the
-//   // OFPT_FLOW_MOD message (including add, modify or delete).
-//   // \see ofsoftswitch13 pipeline_handle_flow_mod () at udatapath/pipeline.c
-//   // and flow_table_flow_mod () at udatapath/flow_table.c
-//   ofl_err error;
-//   size_t i;
-//   bool match_kept, insts_kept;
-//   match_kept = false;
-//   insts_kept = false;
-//   
-//   // Sort by execution oder
-//   qsort (msg->instructions, msg->instructions_num, 
-//       sizeof (ofl_instruction_header*), inst_compare);
-//   
-//   // Validate actions in flow_mod
-//   for (i = 0; i < msg->instructions_num; i++) 
-//     {
-//       if (msg->instructions[i]->type == OFPIT_APPLY_ACTIONS || 
-//           msg->instructions[i]->type == OFPIT_WRITE_ACTIONS) 
-//         {
-//           ofl_instruction_actions *ia = (ofl_instruction_actions*)msg->instructions[i];
-//   
-//           error = dp_actions_validate (pl->dp, (size_t)ia->actions_num, ia->actions);
-//           if (error) 
-//             {
-//               return error;
-//             }
-//           error = dp_actions_check_set_field_req (msg, ia->actions_num, ia->actions);
-//           if (error) 
-//             {
-//               return error;
-//             }
-//         }
-//       // Reject goto in the last table.
-//       if ((msg->table_id == (PIPELINE_TABLES - 1)) && 
-//           (msg->instructions[i]->type == OFPIT_GOTO_TABLE))
-//         {
-//           return ofl_error (OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
-//         }
-//     }
-//   
-//   if (msg->table_id == 0xff) 
-//     {
-//       // Note: the result of using table_id = 0xff is undefined in the spec.
-//       // For now it is accepted for delete commands, meaning to delete from
-//       // all tables 
-//       if (msg->command == OFPFC_DELETE || 
-//           msg->command == OFPFC_DELETE_STRICT) 
-//         {
-//           size_t i;
-//           error = 0;
-//           for (i = 0; i < PIPELINE_TABLES; i++) 
-//             {
-//               error = flow_table_flow_mod (pl->tables[i], msg, &match_kept, &insts_kept);
-//               if (error) 
-//                 {
-//                   break;
-//                 }
-//             }
-//           if (error) 
-//             {
-//               return error;
-//             } 
-//           else 
-//             {
-//               ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, pl->dp->exp);
-//               return 0;
-//             }
-//         }
-//       else
-//         {
-//           return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
-//         }
-//     }
-//   else
-//     {
-//       // Execute flow modification at proper table
-//       error = flow_table_flow_mod (pl->tables[msg->table_id], msg, &match_kept, &insts_kept); 
-//       if (error) 
-//         {
-//           return error;
-//         }
-//       
-//       if ((msg->command == OFPFC_ADD || msg->command == OFPFC_MODIFY || 
-//            msg->command == OFPFC_MODIFY_STRICT) && msg->buffer_id != NO_BUFFER) 
-//         {
-//           // Run buffered message through pipeline
-//           packet *pkt;
-//           pkt = dp_buffers_retrieve (pl->dp->buffers, msg->buffer_id);
-//           if (pkt != NULL) 
-//             {
-//               PipelineProcessPacket (pl, pkt);
-//             } 
-//           else 
-//             {
-//               NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << 
-//                   msg->buffer_id);
-//             }
-//         }
-//       
-//       // All handlers must free the message when everything is ok
-//       ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, pl->dp->exp);
-//       return 0;
-//     }
-// }
-// 
-// int
-// OFSwitch13NetDevice::PipelineSendPacketIn (pipeline* pl, packet *pkt, 
-//     uint8_t tableId, ofp_packet_in_reason reason, uint64_t cookie)
-// {
-//   NS_LOG_FUNCTION (this); 
-//   
-//   ofl_msg_packet_in msg;
-//   msg.header.type = OFPT_PACKET_IN;
-//   msg.total_len = pkt->buffer->size;
-//   msg.reason = reason;
-//   msg.table_id = tableId;
-//   msg.data = (uint8_t*)pkt->buffer->data;
-//   msg.cookie = cookie;
-// 
-//   if (pl->dp->config.miss_send_len != OFPCML_NO_BUFFER)
-//     {
-//       dp_buffers_save (pl->dp->buffers, pkt);
-//       msg.buffer_id = pkt->buffer_id;
-//       msg.data_length = MIN (pl->dp->config.miss_send_len, pkt->buffer->size);
-//     }
-//   else 
-//     {
-//       msg.buffer_id = OFP_NO_BUFFER;
-//       msg.data_length = pkt->buffer->size;
-//     }
-// 
-//   if (!pkt->handle_std->valid)
-//     {
-//       packet_handle_std_validate (pkt->handle_std);
-//     }
-//   msg.match = (ofl_match_header*)&pkt->handle_std->match;
-//  
-//   return SendToController ((ofl_msg_header*)&msg);
-// }
-// 
-// void
-// OFSwitch13NetDevice::ActionsListExecute (packet *pkt, size_t actions_num,
-//     ofl_action_header **actions, uint64_t cookie) 
-// {
-//   NS_LOG_FUNCTION (this);
-//   
-//   size_t i;
-//   for (i=0; i < actions_num; i++) 
-//     {
-//       dp_execute_action (pkt, actions[i]);
-//       if (pkt->out_group != OFPG_ANY) 
-//         {
-//           uint32_t group = pkt->out_group;
-//           pkt->out_group = OFPG_ANY;
-//           NS_LOG_DEBUG ("Group action; executing group " << group);
-//           GroupTableExecute (pkt->dp->groups, pkt, group); 
-//         } 
-//       else if (pkt->out_port != OFPP_ANY) 
-//         {
-//           uint32_t port = pkt->out_port;
-//           uint32_t queue = pkt->out_queue;
-//           uint16_t max_len = pkt->out_port_max_len;
-//           pkt->out_port = OFPP_ANY;
-//           pkt->out_port_max_len = 0;
-//           pkt->out_queue = 0;
-//           NS_LOG_DEBUG ("Port list action; sending to port " << port);
-//           dp_actions_output_port (pkt, port, queue, max_len, cookie);
-//         }
-//     }
-// }
-// 
-// void
-// OFSwitch13NetDevice::ActionSetExecute (action_set *set, packet *pkt,  
-//     uint64_t cookie)
-// {
-//   NS_LOG_FUNCTION (this);
-//   
-//   action_set_entry *entry, *next;
-// 
-//   LIST_FOR_EACH_SAFE (entry, next, action_set_entry, node, &set->actions) 
-//     {
-//       dp_execute_action (pkt, entry->action);
-//       list_remove (&entry->node);
-//       free (entry);
-// 
-//       // According to the spec. if there was a group action, 
-//       // the output port action should be ignored
-//       if (pkt->out_group != OFPG_ANY) 
-//         {
-//           uint32_t group_id = pkt->out_group;
-//           pkt->out_group = OFPG_ANY;
-//           action_set_clear_actions (pkt->action_set);
-//           GroupTableExecute (pkt->dp->groups, pkt, group_id);
-//           return;
-//         } 
-//       else if (pkt->out_port != OFPP_ANY) 
-//         {
-//           uint32_t port = pkt->out_port;
-//           uint32_t queue = pkt->out_queue;
-//           uint16_t max_len = pkt->out_port_max_len;
-//           pkt->out_port = OFPP_ANY;
-//           pkt->out_port_max_len = 0;
-//           pkt->out_queue = 0;
-//           action_set_clear_actions (pkt->action_set);
-//           
-//           NS_LOG_DEBUG ("Port set action; sending to port " << port);
-//           dp_actions_output_port (pkt, port, queue, max_len, cookie);
-//           return;
-//         }
-//     }
-// }
-// 
-// void
-// OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
-//     uint32_t out_queue, uint16_t max_len, uint64_t cookie) 
-// {
-//   NS_LOG_FUNCTION (this);
-//   
-//   switch (out_port) 
-//     {
-//       case (OFPP_TABLE): 
-//         if (pkt->packet_out) 
-//           {
-//             pkt->packet_out = false;
-//             PipelineProcessPacket (pkt->dp->pipeline, pkt);
-//           } 
-//         else 
-//           {
-//             NS_LOG_WARN ("Trying to resubmit packet to pipeline.");
-//           }
-//         break;
-//       case (OFPP_IN_PORT):
-//         {
-//           dp_ports_output (pkt->dp, pkt->buffer, pkt->in_port, 0);
-//           break;
-//         }
-//       case (OFPP_CONTROLLER): 
-//         {
-//           PipelineSendPacketIn (pkt->dp->pipeline, pkt, pkt->table_id, 
-//               (pkt->handle_std->table_miss ? OFPR_NO_MATCH : OFPR_ACTION), cookie);
-//           break;
-//         }
-//       case (OFPP_FLOOD):
-//       case (OFPP_ALL): 
-//         {
-//           dp_ports_output_all (pkt->dp, pkt->buffer, pkt->in_port, out_port == OFPP_FLOOD);
-//           break;
-//         }
-//       case (OFPP_NORMAL):
-//       case (OFPP_LOCAL):
-//       default: 
-//         if (pkt->in_port == out_port) 
-//           {
-//             NS_LOG_WARN ("Can't directly forward to input port.");
-//           } 
-//         else 
-//           {
-//             NS_LOG_DEBUG ("Outputting packet on port " << out_port);
-//             ofs::Port *p = PortGetOfsPort (out_port);
-//             dp_ports_output (pkt->dp, pkt->buffer, p->portNo, 0);
-//           }
-//     }
-// }
-// 
-// ofl_err 
-// OFSwitch13NetDevice::ActionsValidate (datapath *dp, size_t num, 
-//     ofl_action_header **actions)
-// {
-//   NS_LOG_FUNCTION (this);
-//   
-//   for (size_t i = 0; i < num; i++) 
-//     {
-//       if (actions[i]->type == OFPAT_OUTPUT) 
-//         {
-//           ofl_action_output *ao = (ofl_action_output*)actions[i];
-//           if (ao->port <= OFPP_MAX && !(PortGetOfsPort (ao->port) != NULL)) 
-//             {
-//               NS_LOG_WARN ("Output action for invalid port " << ao->port);
-//               return ofl_error (OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);
-//             }
-//         }
-//       
-//       if (actions[i]->type == OFPAT_GROUP) 
-//         {
-//           ofl_action_group *ag = (ofl_action_group*)actions[i];
-//           if (ag->group_id <= OFPG_MAX && 
-//               group_table_find (dp->groups, ag->group_id) == NULL) 
-//             {
-//               NS_LOG_WARN ("Group action for invalid group " << ag->group_id);
-//               return ofl_error (OFPET_BAD_ACTION, OFPBAC_BAD_OUT_GROUP);
-//             }
-//         }
-//       
-//     }
-//   return 0;
-// }
-// 
-// void 
-// OFSwitch13NetDevice::GroupTableExecute (group_table *table, packet *packet, 
-//     uint32_t group_id)
-// {
-//   group_entry *entry;
-//   entry = group_table_find (table, group_id);
-// 
-//   if (entry == NULL) 
-//     {
-//       NS_LOG_WARN ("Trying to execute non-existing group " << group_id);
-//       return;
-//     }
-//   GroupEntryExecute (entry, packet);
-// }
-//   
-// void 
-// OFSwitch13NetDevice::GroupEntryExecute (group_entry *entry, packet *pkt)
-// {
-//   NS_LOG_DEBUG ("Executing group " << entry->stats->group_id);
-//   
-//   // NOTE: Packet is copied for all buckets now (even if there is only one).
-//   // This allows execution of the original packet onward. It is not clear
-//   // whether that is allowed or not according to the spec. though.
-//   size_t i;
-//   switch (entry->desc->type) 
-//     {
-//       case (OFPGT_ALL):
-//         {
-//           for (i = 0; i < entry->desc->buckets_num; i++) 
-//             {
-//               GroupEntryExecuteBucket (entry, pkt, i);
-//             }
-//           break;
-//         }
-//       case (OFPGT_SELECT):
-//         {
-//           i = select_from_select_group (entry);
-//           if ((int)i != -1)
-//             {
-//               GroupEntryExecuteBucket (entry, pkt, i);
-//             } 
-//           else 
-//             {
-//               NS_LOG_WARN ("No bucket in group.");
-//             }
-//           break;
-//         }
-//       case (OFPGT_INDIRECT): 
-//         {
-//           if (entry->desc->buckets_num > 0) 
-//             {
-//               GroupEntryExecuteBucket (entry, pkt, 0);
-//             } 
-//           else 
-//             {
-//               NS_LOG_WARN ("No bucket in group.");
-//             }
-//           break;
-//         }
-//       case (OFPGT_FF): 
-//         {
-//           i = select_from_ff_group (entry);
-//           if ((int)i != -1)
-//             {
-//               GroupEntryExecuteBucket (entry, pkt, i);
-//             } 
-//           else 
-//             {
-//               NS_LOG_WARN ("No bucket in group.");
-//             }
-//           break;
-//         }
-//       default: 
-//         NS_LOG_WARN ("Trying to execute unknown group type " << 
-//             entry->desc->type << " in group " << entry->stats->group_id);
-//     }
-// }
-// 
-// void 
-// OFSwitch13NetDevice::GroupEntryExecuteBucket (group_entry *entry, packet *pkt, size_t i)
-// {
-//   // Currently packets are always cloned. However it should be possible to see
-//   // if cloning is necessary, or not, based on bucket actions.
-//   ofl_bucket *bucket = entry->desc->buckets[i];
-//   packet *p = packet_clone (pkt);
-// 
-//   char *s = ofl_structs_bucket_to_string (bucket, entry->dp->exp);
-//   NS_LOG_DEBUG ("Writing bucket: " << s);
-//   free (s);
-// 
-//   action_set_write_actions (p->action_set, bucket->actions_num, bucket->actions);
-// 
-//   entry->stats->byte_count += p->buffer->size;
-//   entry->stats->packet_count++;
-//   entry->stats->counters[i]->byte_count += p->buffer->size;
-//   entry->stats->counters[i]->packet_count++;
-// 
-//   // Cookie field is set UINT64_MAX because we 
-//   // cannot associate to any particular flow
-//   action_set_execute (p->action_set, p, UINT64_MAX);
-//   packet_destroy (p);
-// }
-
 ofl_err
 OFSwitch13NetDevice::HandleControlMessage (datapath *dp, ofl_msg_header *msg, 
     const sender *sender)
 { 
   NS_LOG_FUNCTION (this);
 
-  // Only some control message handlers were reimplemented. The other still use
-  // existing library functions.
   switch (msg->type)
     {
-      case OFPT_ECHO_REPLY:
-        return HandleMsgEchoReply (dp, (ofl_msg_echo*)msg, sender);
-      
-//      case OFPT_PACKET_OUT:
-//        return HandleMsgPacketOut (dp, (ofl_msg_packet_out*)msg, sender);
-      
-//      case OFPT_FLOW_MOD:
-//        return PipelineHandleFlowMod (dp->pipeline, (ofl_msg_flow_mod*)msg, sender); 
-      
-      // Currently not supported
+      // Currently not supported. Return error.
       case OFPT_EXPERIMENTER:
       case OFPT_ROLE_REQUEST:
       case OFPT_QUEUE_GET_CONFIG_REQUEST:
@@ -1592,73 +969,6 @@ OFSwitch13NetDevice::HandleControlMessage (datapath *dp, ofl_msg_header *msg,
         return handle_control_msg (dp, msg, sender);
     }
 }
-
-ofl_err
-OFSwitch13NetDevice::HandleMsgEchoReply (datapath *dp, ofl_msg_echo *msg, 
-    const sender *sender) 
-{
-  NS_LOG_FUNCTION (this);
- 
-  ofs::EchoMsgMap_t::iterator it = m_echoMap.find (sender->xid);
-  if (it == m_echoMap.end ())
-    {
-      NS_LOG_WARN ("Received echo response for unknonw echo request.");
-    }
-  else 
-    {
-      it->second.waiting = false;
-      it->second.recv = Simulator::Now ();
-      NS_LOG_DEBUG ("Received echo reply from " << it->second.destIp << 
-                    " with RTT " << it->second.GetRtt ().As (Time::MS));
-    }
-
-  // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, dp->exp);
-  return 0;
-}
-
-// ofl_err
-// OFSwitch13NetDevice::HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg, 
-//     const sender *sender) 
-// {
-//   NS_LOG_FUNCTION (this);
-//   
-//   packet *pkt;
-//   int error;
-// 
-//   error = dp_actions_validate (dp, msg->actions_num, msg->actions);
-//   if (error) 
-//     {
-//       return error;
-//     }
-// 
-//   if (msg->buffer_id == NO_BUFFER) 
-//     {
-//       ofpbuf *buf;
-//       buf = ofpbuf_new (0);
-//       ofpbuf_use (buf, msg->data, msg->data_length);
-//       ofpbuf_put_uninit (buf, msg->data_length);
-//       pkt = packet_create (dp, msg->in_port, buf, true);
-//     } 
-//   else 
-//     {
-//       // NOTE: in this case packet should not have data
-//       pkt = dp_buffers_retrieve (dp->buffers, msg->buffer_id);
-//     }
-// 
-//   if (pkt == NULL) 
-//     {
-//       // This might be a wrong req., or a timed out buffer
-//       return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BUFFER_EMPTY);
-//     }
-//   
-//   dp_execute_action_list (pkt, msg->actions_num, msg->actions, UINT64_MAX);
-//   packet_destroy (pkt);
-//   
-//   // All handlers must free the message when everything is ok
-//   ofl_msg_free_packet_out (msg, false, dp->exp);
-//   return 0;
-// }
 
 void 
 OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
