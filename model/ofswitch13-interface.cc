@@ -171,4 +171,24 @@ dp_send_message (struct datapath *dp, struct ofl_msg_header *msg,
   return !error;
 }
 
+
+/**
+ * Overriding ofsoftswitch13 dp_ports_output weak function from
+ * udatapath/dp_ports.c. Outputs a datapath packet on the port. 
+ * \internal This function relies on the global map that stores ofpenflow
+ * devices to call the method on the correct object (\see
+ * ofswitch13-net-device.cc).
+ * \param dp The datapath.
+ * \param buffer The packet buffer.
+ * \param out_port The port number.
+ * \param queue_id The queue to use.
+ */
+void
+dp_ports_output (struct datapath *dp, struct ofpbuf *buffer, 
+    uint32_t out_port, uint32_t queue_id)
+{
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
+  dev->SendToSwitchPort (buffer, out_port, queue_id);
+}
+
 #endif // NS3_OFSWITCH13

@@ -962,10 +962,11 @@ OFSwitch13NetDevice::AddEthernetHeader (Ptr<Packet> packet, Mac48Address source,
 }
 
 bool
-OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
+OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t queueNo)
 {
   NS_LOG_FUNCTION (this);
   
+  ofs::Port *port = PortGetOfsPort (portNo);
   if (port == 0 || port->netdev == 0)
     {
       NS_LOG_ERROR ("can't forward to invalid port.");
@@ -977,7 +978,7 @@ OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
     {
       // Removing the ethernet header and trailer from packet, which will be
       // included again by CsmaNetDevice
-      Ptr<Packet> packet = ofs::PacketFromInternalPacket (pkt);
+      Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
       EthernetTrailer trailer;
       packet->RemoveTrailer (trailer);
       
@@ -1001,21 +1002,21 @@ OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
   return false;
 }
 
-bool
-OFSwitch13NetDevice::FloodToSwitchPorts (packet *pkt)
-{
-  ofs::Port *p;
-  for (uint32_t i = 1; i <= GetNSwitchPorts (); i++)
-    {
-      p = PortGetOfsPort (i);
-      if (p->portNo == pkt->in_port)
-        {
-          continue;
-        }
-      SendToSwitchPort (pkt, p);
-    }
-  return true;
-}
+// bool
+// OFSwitch13NetDevice::FloodToSwitchPorts (packet *pkt)
+// {
+//   ofs::Port *p;
+//   for (uint32_t i = 1; i <= GetNSwitchPorts (); i++)
+//     {
+//       p = PortGetOfsPort (i);
+//       if (p->portNo == pkt->in_port)
+//         {
+//           continue;
+//         }
+//       SendToSwitchPort (pkt->buffer, p->portNo, 0);
+//     }
+//   return true;
+// }
 
 void
 OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
@@ -1410,7 +1411,7 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
       case (OFPP_IN_PORT):
         {
           ofs::Port *p = PortGetOfsPort (pkt->in_port);
-          SendToSwitchPort (pkt, p);
+          SendToSwitchPort (pkt->buffer, p->portNo, 0);
           break;
         }
       case (OFPP_CONTROLLER): 
@@ -1422,7 +1423,7 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
       case (OFPP_FLOOD):
       case (OFPP_ALL): 
         {
-          FloodToSwitchPorts (pkt);
+          dp_ports_output_all (pkt->dp, pkt->buffer, pkt->in_port, out_port == OFPP_FLOOD);
           break;
         }
       case (OFPP_NORMAL):
@@ -1436,7 +1437,7 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
           {
             NS_LOG_DEBUG ("Outputting packet on port " << out_port);
             ofs::Port *p = PortGetOfsPort (out_port);
-            SendToSwitchPort (pkt, p);
+            SendToSwitchPort (pkt->buffer, p->portNo, 0);
           }
     }
 }

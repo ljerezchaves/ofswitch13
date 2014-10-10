@@ -32,6 +32,7 @@
 
 namespace ns3 {
 namespace ofs {
+
 /**
  * \ingroup ofswitch13
  * \brief Switch SwPort and its metadata.
@@ -39,14 +40,6 @@ namespace ofs {
  */
 struct Port
 {
-//  /**
-//   * \brief Port constructor.
-//   * \attention Port numbers should start at 1.
-//   * \param dev Pointer to NetDevice (port) at the switch.
-//   * \param port_no Number for this port.
-//   */
-//  Port (Ptr<NetDevice> dev, uint32_t no);
-
   uint32_t portNo;       //!< Port number
   Ptr<NetDevice> netdev; //!< Pointer to ns3::NetDevice
   sw_port *swPort;       //!< Pointer to datapath sw_port
@@ -115,6 +108,18 @@ public:
    * \return 0 if everything's ok, otherwise an error number.
    */
   int SendToController (ofl_msg_header *msg, const sender *sender = NULL);
+
+  /**
+   * Send a message over a specific switch port. Check port configuration,
+   * create the ns3 packet, remove the ethernet header and trailer from packet
+   * (which will be included again by CsmaNetDevice), send the packet over the
+   * proper netdevice, and update port statistics.
+   * \param buffer The internal packet buffer to send.
+   * \param portNo The port number.
+   * \param queueNo The queue number.
+   * \return True if success, false otherwise.
+   */
+  bool SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t queueNo);
 
   /**
    * \return Number of switch ports attached to this switch.
@@ -194,7 +199,7 @@ private:
   ///\name Port methods
   //\{
   /**
-   * Creates a new sw_port (with queues) and save it into datapath.
+   * Creates a new sw_port (no queues) and save it into datapath.
    * \see new_port () at udatapath/dp_ports.c.
    * \param dp The datapath.
    * \param port The sw_port structure.
@@ -255,24 +260,14 @@ private:
   void AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
       Mac48Address dest, uint16_t protocolNumber);
 
-  /**
-   * Send a message over a specific switch port. Check port configuration,
-   * create the ns3 packet, remove the ethernet header and trailer from packet
-   * (which will be included again by CsmaNetDevice), send the packet over the
-   * proper netdevice, and update port statistics.
-   * \param pkt The internal packet to send.
-   * \param port The Openflow port structure.
-   * \return True if success, false otherwise.
-   */
-  bool SendToSwitchPort (packet *pkt, ofs::Port *port);
-
-  /**
-   * Send a message over all switch ports, except input port.
-   * \see SendToSwitch ().
-   * \param pkt The internal packet to send.
-   * \return True if success, false otherwise.
-   */
-  bool FloodToSwitchPorts (packet *pkt);
+ 
+//   /**
+//    * Send a message over all switch ports, except input port.
+//    * \see SendToSwitch ().
+//    * \param pkt The internal packet to send.
+//    * \return True if success, false otherwise.
+//    */
+//   bool FloodToSwitchPorts (packet *pkt);
   //\}
 
   ///\name Pipeline methods
