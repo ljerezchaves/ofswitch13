@@ -41,7 +41,7 @@ class OFSwitch13Controller;
 
 /**
  * \ingroup ofswitch13
- * 
+ *
  * \brief Create and configure an OpenFlow 1.3 network with a single controller
  * and multiple switches.
  */
@@ -74,13 +74,13 @@ public:
    * \returns A container holding the OFSwitch13NetDevice net device.
    */
   NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
-  
+
   /**
    * This method creates a new ns3::LearningController application and install it
    * into cNode. It also installs the TCP/IP stack into cNode, and connects it
    * to the csma gigabit network, using IPv4 network 10.100.150.0/24. Finally,
    * start the switch <--> controller connection for all already registered
-   * switches. 
+   * switches.
    *
    * \param cNode The node to configure as controller
    * \returns The LearningController application created (installed into cNode)
@@ -92,14 +92,14 @@ public:
    * cNode. It also installs the TCP/IP stack into cNode, and connects it
    * to the csma gigabit network, using IPv4 network 10.100.150.0/24. Finally,
    * start the switch <--> controller connection for all already registered
-   * switches. 
+   * switches.
    *
    * \param cNode The node to configure as controller
    * \param controller The controller application to install into cNode
    * \returns The controller application (same as input)
    */
   Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode,
-      Ptr<OFSwitch13Controller> controller);
+                                                  Ptr<OFSwitch13Controller> controller);
 
   /**
    * This method prepares the cNode so it can connect to an external OpenFlow
@@ -107,7 +107,7 @@ public:
    * and connects it to the csma gigabit network, using IPv4 network
    * 10.100.150.0/24. Finally, start the switch <--> controller connection for
    * all already registered switches.
-   * 
+   *
    * \attention It is expected that this method is used togheter with TabBridge
    * to provide an external OpenFlow controller.
    *
@@ -120,7 +120,7 @@ public:
    * Enable pacp traces at the OpenFlow channel between controller and switches
    */
   void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
-   
+
 private:
   ObjectFactory             m_ndevFactory;  //!< OpenFlow NetDevice factory
 
@@ -133,7 +133,7 @@ private:
   Ptr<Node>                 m_ctrlNode;     //!< Controller Node
   Ptr<OFSwitch13Controller> m_ctrlApp;      //!< Controller App
   Ptr<NetDevice>            m_ctrlDev;      //!< Controller CsmaNetDevice (switch connection)
-  Address                   m_ctrlAddr;     //!< Controller Addr 
+  Address                   m_ctrlAddr;     //!< Controller Addr
 
   typedef std::vector<SwitchInfo> SwitchInfoVector_t; //!< Structure to store switch information
   SwitchInfoVector_t        m_unregSw;      //!< OpenFlow switches not registered to controller yet

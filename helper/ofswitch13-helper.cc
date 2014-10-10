@@ -37,9 +37,9 @@ OFSwitch13Helper::OFSwitch13Helper ()
     m_ctrlDev (0)
 {
   NS_LOG_FUNCTION (this);
-  
+
   m_ndevFactory.SetTypeId ("ns3::OFSwitch13NetDevice");
-    
+
   m_ipv4helper.SetBase ("10.100.150.0", "255.255.255.0");
 
   ObjectFactory m_chanFactory;
@@ -70,11 +70,11 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_DEBUG ("Installing OpenFlow switch device on node " << swNode->GetId ());
-  
+
   Ptr<OFSwitch13NetDevice> openFlowDev = m_ndevFactory.Create<OFSwitch13NetDevice> ();
   swNode->AddDevice (openFlowDev);
   m_devices.Add (openFlowDev);
-  
+
   for (NetDeviceContainer::Iterator i = ports.Begin (); i != ports.End (); ++i)
     {
       NS_LOG_INFO (" Adding switch port " << *i);
@@ -94,7 +94,7 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
     }
 
   // Register switch metadata into controller or save for further registration
-  SwitchInfo swInfo; 
+  SwitchInfo swInfo;
   swInfo.ipv4   = swIface.GetAddress (0);
   swInfo.netdev = openFlowDev;
   swInfo.node   = swNode;
@@ -106,12 +106,12 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
     }
   else
     {
-      m_unregSw.push_back (swInfo); 
+      m_unregSw.push_back (swInfo);
     }
   return NetDeviceContainer (openFlowDev);
 }
 
-Ptr<OFSwitch13Controller> 
+Ptr<OFSwitch13Controller>
 OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller)
 {
   NS_LOG_FUNCTION (this);
@@ -123,7 +123,7 @@ OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controlle
       m_ctrlApp = controller;
       m_ctrlApp->SetStartTime (Seconds (0));
       cNode->AddApplication (m_ctrlApp);
-      
+
       // Registering previous configured switches to this controller
       if (!m_unregSw.empty ())
         {
@@ -138,7 +138,7 @@ OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controlle
   return m_ctrlApp;
 }
 
-Ptr<OFSwitch13Controller> 
+Ptr<OFSwitch13Controller>
 OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
 {
   NS_LOG_FUNCTION (this);
@@ -156,14 +156,14 @@ OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
       NetDeviceContainer controlDev = m_csmaHelper.Install (m_ctrlNode, m_csmaChannel);
       Ipv4InterfaceContainer ctrlIface = m_ipv4helper.Assign (controlDev);
       m_ctrlDev = controlDev.Get (0);
-      
+
       uint16_t port = 6653;
       if (m_ctrlApp)
         {
           UintegerValue portValue;
           m_ctrlApp->GetAttribute ("Port", portValue);
           port = portValue.Get ();
-        } 
+        }
       m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), port);
 
       // Start switch <--> controller connection
