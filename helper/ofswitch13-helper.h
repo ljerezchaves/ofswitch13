@@ -20,6 +20,7 @@
 #define OFSWITCH13_HELPER_H
 
 #include "ns3/ofswitch13-interface.h"
+#include "ns3/ofswitch13-controller.h"
 #include "ns3/ofswitch13-net-device.h"
 #include "ns3/net-device-container.h"
 #include "ns3/ipv4-interface-container.h"

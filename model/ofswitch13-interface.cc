@@ -25,104 +25,6 @@ NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 namespace ns3 {
 namespace ofs {
 
-Port::Port (Ptr<NetDevice> netdev, uint32_t no) 
-  : flags (0),
-    netdev (netdev)
-{  
-  port_no = no;
-  conf = (ofl_port*)xmalloc (sizeof (ofl_port));
-  memset (conf, 0x00, sizeof (ofl_port));
-  conf->name = (char*)xmalloc (4);
-  snprintf(conf->name, 8, "Port %d", no);
-  conf->port_no = no;
-  conf->config = 0x00000000;
-  conf->state = 0x00000000 | OFPPS_LIVE;
-  netdev->GetAddress ().CopyTo (conf->hw_addr);
-  
-  conf->curr       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-  conf->advertised = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-  conf->supported  = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-  // conf->peer       = GetFeatures (DynamicCast<CsmaNetDevice> (netdev));
-  conf->curr_speed = port_speed (conf->curr);
-  conf->max_speed  = port_speed (conf->supported);
-  
-  stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
-  memset (stats, 0x00, sizeof (ofl_port_stats));
-  stats->port_no = no;
-
-  flags |= SWP_USED;
-  created = Simulator::Now ().ToInteger (Time::MS);
-}
-
-uint32_t 
-Port::GetFeatures (Ptr<CsmaNetDevice> netdev)
-{
-  DataRateValue drv;
-  DataRate dr;
-  Ptr<CsmaChannel> channel = DynamicCast<CsmaChannel> (netdev->GetChannel ());
-  channel->GetAttribute("DataRate", drv);
-  dr = drv.Get ();
-
-  uint32_t feat = 0x00000000;
-  feat |= OFPPF_COPPER;
-  feat |= OFPPF_AUTONEG;
-
-  if (dr == DataRate ("10Mbps"))
-    {
-      feat |= OFPPF_10MB_FD;
-    }
-  else if (dr == DataRate ("100Mbps"))
-    {
-      feat |= OFPPF_100MB_FD;
-    }
-  else if (dr == DataRate ("1Gbps"))
-    {
-      feat |= OFPPF_1GB_FD;
-    }
-  else if (dr == DataRate ("10Gbps"))
-    {
-      feat |= OFPPF_10GB_FD;
-    }
-  else if (dr == DataRate ("40Gbps"))
-    {
-      feat |= OFPPF_40GB_FD;
-    }
-  else if (dr == DataRate ("100Gbps"))
-    {
-      feat |= OFPPF_100GB_FD;
-    }
-  else if (dr == DataRate ("1Tbps"))
-    {
-      feat |= OFPPF_1TB_FD;
-    }
-  else
-    {
-      feat |= OFPPF_OTHER;
-    }
-  return feat;
-}
-
-EchoInfo::EchoInfo (Ipv4Address ip)
-{
-  waiting = true;
-  send = Simulator::Now ();
-  destIp = ip;
-}
-
-Time 
-EchoInfo::GetRtt ()
-{
-  if (waiting)
-    {
-      return Time (-1);
-    }
-  else
-    {
-      Time rtt = recv - send;
-      return recv-send; 
-    }
-}
-
 ofpbuf* 
 BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
     size_t headRoom)
@@ -195,8 +97,6 @@ PacketFromInternalPacket (packet *pkt)
 } // namespace ofs
 } // namespace ns3
 
-
-
 using namespace ns3;
 
 Ptr<OFSwitch13NetDevice> GetDatapathDevice (uint64_t id);
@@ -246,6 +146,25 @@ dp_send_message (struct datapath *dp, struct ofl_msg_header *msg,
       NS_LOG_WARN ("There was an error sending the message!");
     }
   return !error;
+}
+
+/**
+ * Overriding ofsoftswitch13 dp_ports_output weak function from
+ * udatapath/dp_ports.c. Outputs a datapath packet on the port. 
+ * \internal This function relies on the global map that stores ofpenflow
+ * devices to call the method on the correct object (\see
+ * ofswitch13-net-device.cc).
+ * \param dp The datapath.
+ * \param buffer The packet buffer.
+ * \param out_port The port number.
+ * \param queue_id The queue to use.
+ */
+void
+dp_ports_output (struct datapath *dp, struct ofpbuf *buffer, 
+    uint32_t out_port, uint32_t queue_id)
+{
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
+  dev->SendToSwitchPort (buffer, out_port, queue_id);
 }
 
 #endif // NS3_OFSWITCH13

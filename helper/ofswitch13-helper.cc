@@ -19,7 +19,6 @@
 #ifdef NS3_OFSWITCH13
 
 #include "ofswitch13-helper.h"
-#include "ns3/ofswitch13-net-device.h"
 #include "ns3/learning-controller.h"
 #include "ns3/uinteger.h"
 #include "ns3/node.h"
