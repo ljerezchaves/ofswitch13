@@ -46,18 +46,18 @@ class OfPort : public SimpleRefCount<OfPort>
   friend class OFSwitch13NetDevice;
 
 public:
-  /** 
+  /**
    * Create and populate port information.
    * \param dp The datapath.
    * \param dev The swith port ns3::NetDevice.
    */
   OfPort (datapath *dp, Ptr<NetDevice> dev);
-  
+
   /** Default destructor */
   ~OfPort ();
 
 private:
-  /** 
+  /**
    * Create the bitmaps of OFPPF_* that describe port features, based on
    * ns3::NetDevice.
    * \return Port features bitmap.
@@ -99,22 +99,22 @@ public:
    */
   OFSwitch13NetDevice ();
 
-  /** 
-   * Dummy destructor, see DoDispose. 
+  /**
+   * Dummy destructor, see DoDispose.
    */
-  virtual ~OFSwitch13NetDevice ();    
-  
- /**
-   * Add a 'port' to the switch device. This method adds a new switch
-   * port to a OFSwitch13NetDevice, so that the new switch port NetDevice
-   * becomes part of the switch and L2 frames start being forwarded to/from
-   * this NetDevice.
-   * \attention The current implementation only supports CsmaNetDevices using
-   * DIX encapsulation. Also, the csmaNetDevice that is being added as switch
-   * port must _not_ have an IP address.
-   * \param portDevice The NetDevice port to add.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
+  virtual ~OFSwitch13NetDevice ();
+
+  /**
+    * Add a 'port' to the switch device. This method adds a new switch
+    * port to a OFSwitch13NetDevice, so that the new switch port NetDevice
+    * becomes part of the switch and L2 frames start being forwarded to/from
+    * this NetDevice.
+    * \attention The current implementation only supports CsmaNetDevices using
+    * DIX encapsulation. Also, the csmaNetDevice that is being added as switch
+    * port must _not_ have an IP address.
+    * \param portDevice The NetDevice port to add.
+    * \return 0 if everything's ok, otherwise an error number.
+    */
   int AddSwitchPort (Ptr<NetDevice> portDevice);
 
   /**
@@ -181,8 +181,8 @@ public:
   virtual bool IsPointToPoint (void) const;
   virtual bool IsBridge (void) const;
   virtual bool Send (Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber);
-  virtual bool SendFrom (Ptr<Packet> packet, const Address& source, const Address& dest, 
-      uint16_t protocolNumber);
+  virtual bool SendFrom (Ptr<Packet> packet, const Address& source, const Address& dest,
+                         uint16_t protocolNumber);
   virtual Ptr<Node> GetNode (void) const;
   virtual void SetNode (Ptr<Node> node);
   virtual bool NeedsArp (void) const;
@@ -237,7 +237,7 @@ private:
   /**
    * Called when a packet is received on one of the switch's ports. This method
    * will send the packet to the openflow pipeline.
-   * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c 
+   * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
    * \param netdev The port the packet was received on.
    * \param packet The Packet itself.
    * \param protocol The protocol defining the Packet.
@@ -246,8 +246,8 @@ private:
    * \param packetType Type of the packet.
    */
   void ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Packet> packet,
-      uint16_t protocol, const Address& src, const Address& dst, PacketType
-      packetType);
+                              uint16_t protocol, const Address& src, 
+                              const Address& dst, PacketType packetType);
 
   /**
    * Add an Ethernet header and trailer to the packet. This is an workaround
@@ -263,8 +263,8 @@ private:
    * \param dest The L2 destination address.
    * \param protocolNumber The L3 protocol defining the packet.
    */
-  void AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
-      Mac48Address dest, uint16_t protocolNumber);
+  void AddEthernetHeader (Ptr<Packet> packet, Mac48Address source,
+                          Mac48Address dest, uint16_t protocolNumber);
   //\}
 
   /**
@@ -275,10 +275,10 @@ private:
    */
   //\{
   /**
-   * Receive a openflow packet from controller. 
+   * Receive a openflow packet from controller.
    * \see remote_rconn_run () at udatapath/datapath.c.
    */
-  void SocketCtrlRead       (Ptr<Socket> socket);  
+  void SocketCtrlRead       (Ptr<Socket> socket);
   void SocketCtrlSucceeded  (Ptr<Socket> socket);   //!< TCP request accepted
   void SocketCtrlFailed     (Ptr<Socket> socket);   //!< TCP request refused
   //\}
@@ -286,9 +286,9 @@ private:
   /// NetDevice callbacks
   NetDevice::ReceiveCallback        m_rxCallback;        //!< Receive callback
   NetDevice::PromiscReceiveCallback m_promiscRxCallback; //!< Promiscuous receive callback
- 
+
   static uint64_t     m_globalDpId;       //!< Global counter of datapath IDs
-  
+
   uint64_t            m_dpId;             //!< This datapath id
   uint32_t            m_xid;              //!< Transaction idx sequence
   Mac48Address        m_address;          //!< Address of this device
