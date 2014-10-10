@@ -25,14 +25,14 @@ NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 namespace ns3 {
 namespace ofs {
 
-ofpbuf* 
-BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
-    size_t headRoom)
+ofpbuf*
+BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
+                  size_t headRoom)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
   uint32_t pktSize = packet->GetSize ();
-  NS_ASSERT (pktSize <= bodyRoom); 
+  NS_ASSERT (pktSize <= bodyRoom);
 
   ofpbuf *buffer = ofpbuf_new_with_headroom (bodyRoom, headRoom);
   packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
@@ -48,7 +48,7 @@ BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp)
   uint8_t *buf;
   size_t buf_size;
   ofpbuf *ofpbuf = ofpbuf_new (0);
-  
+
   // Pack message into ofpbuf using wire format
   error = ofl_msg_pack (msg, xid, &buf, &buf_size, exp);
   if (error)
@@ -67,7 +67,7 @@ PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
   return PacketFromBufferAndFree (BufferFromMsg (msg, xid));
 }
 
-Ptr<Packet> 
+Ptr<Packet>
 PacketFromBufferAndFree (ofpbuf* buffer)
 {
   NS_LOG_FUNCTION_NOARGS ();
@@ -76,7 +76,7 @@ PacketFromBufferAndFree (ofpbuf* buffer)
   return packet;
 }
 
-Ptr<Packet> 
+Ptr<Packet>
 PacketFromBuffer (ofpbuf* buffer)
 {
   NS_LOG_FUNCTION_NOARGS ();
@@ -85,7 +85,7 @@ PacketFromBuffer (ofpbuf* buffer)
 }
 
 
-Ptr<Packet> 
+Ptr<Packet>
 PacketFromInternalPacket (packet *pkt)
 {
   NS_LOG_FUNCTION_NOARGS ();
@@ -101,14 +101,14 @@ using namespace ns3;
 
 Ptr<OFSwitch13NetDevice> GetDatapathDevice (uint64_t id);
 
-/** 
+/**
  * Overriding ofsoftswitch13 time_now weak function from lib/timeval.c.
- * \return The current simulation time, in seconds. 
+ * \return The current simulation time, in seconds.
  */
-time_t 
+time_t
 time_now (void)
 {
-  return (time_t)Simulator::Now ().ToInteger (Time::S);
+  return (time_t) Simulator::Now ().ToInteger (Time::S);
 }
 
 /**
@@ -124,7 +124,7 @@ time_msec (void)
 /**
  * Overriding ofsoftswitch13 dp_send_message weak function from
  * udatapath/datapath.c. Sends the given OFLib message to the controller
- * associated with the datapath. 
+ * associated with the datapath.
  * \internal This function relies on the global map that stores ofpenflow
  * devices to call the method on the correct object (\see
  * ofswitch13-net-device.cc).
@@ -134,8 +134,8 @@ time_msec (void)
  * \return 0 if everything's ok, error number otherwise.
  */
 int
-dp_send_message (struct datapath *dp, struct ofl_msg_header *msg, 
-    const struct sender *sender) 
+dp_send_message (struct datapath *dp, struct ofl_msg_header *msg,
+                 const struct sender *sender)
 {
   int error = 0;
 
@@ -150,7 +150,7 @@ dp_send_message (struct datapath *dp, struct ofl_msg_header *msg,
 
 /**
  * Overriding ofsoftswitch13 dp_ports_output weak function from
- * udatapath/dp_ports.c. Outputs a datapath packet on the port. 
+ * udatapath/dp_ports.c. Outputs a datapath packet on the port.
  * \internal This function relies on the global map that stores ofpenflow
  * devices to call the method on the correct object (\see
  * ofswitch13-net-device.cc).
@@ -160,8 +160,8 @@ dp_send_message (struct datapath *dp, struct ofl_msg_header *msg,
  * \param queue_id The queue to use.
  */
 void
-dp_ports_output (struct datapath *dp, struct ofpbuf *buffer, 
-    uint32_t out_port, uint32_t queue_id)
+dp_ports_output (struct datapath *dp, struct ofpbuf *buffer,
+                 uint32_t out_port, uint32_t queue_id)
 {
   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
   dev->SendToSwitchPort (buffer, out_port, queue_id);

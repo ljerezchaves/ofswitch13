@@ -16,13 +16,13 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
-/** 
+/**
  * \defgroup ofswitch13 OpenFlow 1.3 softswitch
  * This section documents the API of ns3 OpenFlow 1.3 compatible switch
  * and controller implementation. This module follows the
  * OpenFlow 1.3 switch specification
  * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
- * It depends on the CPqD ofsoftswitch13 <https://github.com/ljerezchaves/ofsoftswitch13> 
+ * It depends on the CPqD ofsoftswitch13 <https://github.com/ljerezchaves/ofsoftswitch13>
  * implementation compiled as a library (use ./configure --enable-ns3-lib).
  *
  * \attention Currently, not all OpenFlow 1.3 features are supported.
@@ -82,7 +82,7 @@ int parse_group (char *str, uint32_t *group);
 int parse_meter (char *str, uint32_t *meter);
 int parse_table (char *str, uint8_t *table);
 
-// From udatapath/datapath.c 
+// From udatapath/datapath.c
 struct remote* remote_create (struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux);
 
 // From udatapath/dp_ports.c
@@ -109,8 +109,8 @@ class OFSwitch13NetDevice;
  * \param headRoom The size to allocate for headers (left unitialized).
  * \return The OpenFlow Buffer created from the packet.
  */
-ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
-    size_t headRoom = 0);
+ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
+                          size_t headRoom = 0);
 
 /**
  * \ingroup ofswitch13
