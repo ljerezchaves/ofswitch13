@@ -927,8 +927,9 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   inPort->swPort->stats->rx_bytes += buffer->size;
 
   // Runs the packet through the pipeline
-  Simulator::Schedule (m_lookupDelay, &OFSwitch13NetDevice::PipelineProcessPacket, 
-      this, m_datapath->pipeline, pkt);
+  Simulator::Schedule (m_lookupDelay, pipeline_process_packet, m_datapath->pipeline, pkt);
+//  Simulator::Schedule (m_lookupDelay, &OFSwitch13NetDevice::PipelineProcessPacket, 
+//      this, m_datapath->pipeline, pkt);
 }
 
 void
@@ -964,6 +965,7 @@ OFSwitch13NetDevice::AddEthernetHeader (Ptr<Packet> packet, Mac48Address source,
 bool
 OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t queueNo)
 {
+  // No queue support by now
   NS_LOG_FUNCTION (this);
   
   ofs::Port *port = PortGetOfsPort (portNo);
@@ -1002,446 +1004,429 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t
   return false;
 }
 
-// bool
-// OFSwitch13NetDevice::FloodToSwitchPorts (packet *pkt)
+// void
+// OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
 // {
-//   ofs::Port *p;
-//   for (uint32_t i = 1; i <= GetNSwitchPorts (); i++)
+//   NS_LOG_FUNCTION (this << packet_to_string (pkt));
+//   
+//   flow_entry *entry;
+//   flow_table *table, *next_table;
+//   
+//   // Check ttl
+//   if (!packet_handle_std_is_ttl_valid (pkt->handle_std)) 
 //     {
-//       p = PortGetOfsPort (i);
-//       if (p->portNo == pkt->in_port)
+//       if ((pl->dp->config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) 
 //         {
-//           continue;
+//           NS_LOG_WARN ("Packet has invalid TTL, sending to controller.");
+//           PipelineSendPacketIn (pl, pkt, 0, OFPR_INVALID_TTL, UINT64_MAX);
+//         } 
+//       else 
+//         {
+//           NS_LOG_WARN ("Packet has invalid TTL, dropping.");
 //         }
-//       SendToSwitchPort (pkt->buffer, p->portNo, 0);
+//       packet_destroy (pkt);
+//       return;
 //     }
-//   return true;
+//   
+//   // Look for a match in flow tables
+//   next_table = pl->tables[0];
+//   while (next_table != NULL) 
+//     {
+//       NS_LOG_DEBUG ("trying table " << (short)next_table->stats->table_id);
+//   
+//       pkt->table_id = next_table->stats->table_id;
+//       table = next_table;
+//       next_table = NULL;
+//   
+//       NS_LOG_DEBUG ("searching table entry for packet match: " <<  
+//           ofl_structs_match_to_string ((ofl_match_header*)&(pkt->handle_std->match), 
+//               pl->dp->exp));
+//   
+//       entry = flow_table_lookup (table, pkt);
+//       if (entry != NULL) 
+//         {
+//           NS_LOG_DEBUG ("found matching entry: " << 
+//               ofl_structs_flow_stats_to_string (entry->stats, pkt->dp->exp));
+//        
+//           pkt->handle_std->table_miss = ((entry->stats->priority) == 0 && 
+//                                          (entry->match->length <= 4));
+//           PipelineExecuteEntry (pl, entry, &next_table, &pkt);
+//           
+//           // Packet could be destroyed by a meter instruction
+//           if (!pkt)
+//             {
+//               return;
+//             }
+//   
+//           if (next_table == NULL) 
+//             {
+//               // Pipeline end. Execute actions and free packet
+//               action_set_execute (pkt->action_set, pkt, UINT64_MAX);
+//               packet_destroy (pkt);
+//               return;
+//             }
+//         } 
+//       else 
+//         {
+//           // OpenFlow 1.3 default behavior on a table miss
+//           NS_LOG_DEBUG ("No matching entry found. Dropping packet.");
+//           packet_destroy (pkt);
+//           return;
+//         }
+//     }
+//   NS_LOG_ERROR ("Reached outside of pipeline processing cycle.");
 // }
-
-void
-OFSwitch13NetDevice::PipelineProcessPacket (pipeline* pl, packet* pkt)
-{
-  NS_LOG_FUNCTION (this << packet_to_string (pkt));
-  
-  flow_entry *entry;
-  flow_table *table, *next_table;
-  
-  // Check ttl
-  if (!packet_handle_std_is_ttl_valid (pkt->handle_std)) 
-    {
-      if ((pl->dp->config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) 
-        {
-          NS_LOG_WARN ("Packet has invalid TTL, sending to controller.");
-          PipelineSendPacketIn (pl, pkt, 0, OFPR_INVALID_TTL, UINT64_MAX);
-        } 
-      else 
-        {
-          NS_LOG_WARN ("Packet has invalid TTL, dropping.");
-        }
-      packet_destroy (pkt);
-      return;
-    }
-  
-  // Look for a match in flow tables
-  next_table = pl->tables[0];
-  while (next_table != NULL) 
-    {
-      NS_LOG_DEBUG ("trying table " << (short)next_table->stats->table_id);
-  
-      pkt->table_id = next_table->stats->table_id;
-      table = next_table;
-      next_table = NULL;
-  
-      NS_LOG_DEBUG ("searching table entry for packet match: " <<  
-          ofl_structs_match_to_string ((ofl_match_header*)&(pkt->handle_std->match), 
-              pl->dp->exp));
-  
-      entry = flow_table_lookup (table, pkt);
-      if (entry != NULL) 
-        {
-          NS_LOG_DEBUG ("found matching entry: " << 
-              ofl_structs_flow_stats_to_string (entry->stats, pkt->dp->exp));
-       
-          pkt->handle_std->table_miss = ((entry->stats->priority) == 0 && 
-                                         (entry->match->length <= 4));
-          PipelineExecuteEntry (pl, entry, &next_table, &pkt);
-          
-          // Packet could be destroyed by a meter instruction
-          if (!pkt)
-            {
-              return;
-            }
-  
-          if (next_table == NULL) 
-            {
-              // Pipeline end. Execute actions and free packet
-              ActionSetExecute (pkt->action_set, pkt, UINT64_MAX);
-              packet_destroy (pkt);
-              return;
-            }
-        } 
-      else 
-        {
-          // OpenFlow 1.3 default behavior on a table miss
-          NS_LOG_DEBUG ("No matching entry found. Dropping packet.");
-          packet_destroy (pkt);
-          return;
-        }
-    }
-  NS_LOG_ERROR ("Reached outside of pipeline processing cycle.");
-}
-
-void
-OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
-    flow_table **next_table, packet **pkt)
-{
-   NS_LOG_FUNCTION (this);
-  
-  // Instructions, when present, will be executed in the following order:
-  // Meter, Apply-Actions, Clear-Actions, Write-Actions, Write-Metadata, and
-  // Goto-Table.
-  size_t i;
-  ofl_instruction_header *inst;
-
-  for (i=0; i < entry->stats->instructions_num; i++) 
-    {
-      // Packet was dropped by some instruction or action*/
-      if(!(*pkt))
-        {
-          return;
-        }
-      
-      inst = entry->stats->instructions[i];
-      switch (inst->type) 
-        {
-          case OFPIT_GOTO_TABLE: 
-            {
-              ofl_instruction_goto_table *gi = (ofl_instruction_goto_table*)inst;
-              *next_table = pl->tables[gi->table_id];
-              break;
-            }
-          case OFPIT_WRITE_METADATA: 
-            {
-              ofl_instruction_write_metadata *wi = (ofl_instruction_write_metadata*)inst;
-              ofl_match_tlv *f;
-
-              packet_handle_std_validate ((*pkt)->handle_std);
-              
-              // Search field on the description of the packet.
-              HMAP_FOR_EACH_WITH_HASH (f, ofl_match_tlv, hmap_node, 
-                  HashInt (OXM_OF_METADATA, 0), &(*pkt)->handle_std->match.match_fields)
-                {
-                  uint64_t *metadata = (uint64_t*) f->value;
-                  *metadata = (*metadata & ~wi->metadata_mask) | 
-                              (wi->metadata & wi->metadata_mask);
-                  NS_LOG_DEBUG ("Executing write metadata: " << *metadata);
-                }
-              break;
-            }
-          case OFPIT_WRITE_ACTIONS: 
-            {
-              ofl_instruction_actions *wa = (ofl_instruction_actions*)inst;
-              action_set_write_actions ((*pkt)->action_set, wa->actions_num, wa->actions);
-              break;
-            }
-          case OFPIT_APPLY_ACTIONS: 
-            {
-              ofl_instruction_actions *ia = (ofl_instruction_actions*)inst;
-              ActionsListExecute ((*pkt), ia->actions_num, ia->actions, entry->stats->cookie);
-              break;
-            }
-          case OFPIT_CLEAR_ACTIONS: 
-            {
-              action_set_clear_actions ((*pkt)->action_set);
-              break;
-            }
-          case OFPIT_METER: 
-            {
-              ofl_instruction_meter *im = (ofl_instruction_meter*)inst;
-              meter_table_apply (pl->dp->meters, pkt, im->meter_id);
-              break;
-            }
-          case OFPIT_EXPERIMENTER: 
-            {
-              // dp_exp_inst((*pkt), (ofl_instruction_experimenter*)inst);
-              break;
-            }
-        }
-    }
-}
-
-ofl_err
-OFSwitch13NetDevice::PipelineHandleFlowMod (pipeline *pl, ofl_msg_flow_mod *msg, 
-    const sender *sender)
-{
-  NS_LOG_FUNCTION (this);
-  
-  // Modifications to a flow table from the controller are done with the
-  // OFPT_FLOW_MOD message (including add, modify or delete).
-  // \see ofsoftswitch13 pipeline_handle_flow_mod () at udatapath/pipeline.c
-  // and flow_table_flow_mod () at udatapath/flow_table.c
-  ofl_err error;
-  size_t i;
-  bool match_kept, insts_kept;
-  match_kept = false;
-  insts_kept = false;
-  
-  // Sort by execution oder
-  qsort (msg->instructions, msg->instructions_num, 
-      sizeof (ofl_instruction_header*), inst_compare);
-  
-  // Validate actions in flow_mod
-  for (i = 0; i < msg->instructions_num; i++) 
-    {
-      if (msg->instructions[i]->type == OFPIT_APPLY_ACTIONS || 
-          msg->instructions[i]->type == OFPIT_WRITE_ACTIONS) 
-        {
-          ofl_instruction_actions *ia = (ofl_instruction_actions*)msg->instructions[i];
-  
-          error = dp_actions_validate (pl->dp, (size_t)ia->actions_num, ia->actions);
-          if (error) 
-            {
-              return error;
-            }
-          error = dp_actions_check_set_field_req (msg, ia->actions_num, ia->actions);
-          if (error) 
-            {
-              return error;
-            }
-        }
-      // Reject goto in the last table.
-      if ((msg->table_id == (PIPELINE_TABLES - 1)) && 
-          (msg->instructions[i]->type == OFPIT_GOTO_TABLE))
-        {
-          return ofl_error (OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
-        }
-    }
-  
-  if (msg->table_id == 0xff) 
-    {
-      // Note: the result of using table_id = 0xff is undefined in the spec.
-      // For now it is accepted for delete commands, meaning to delete from
-      // all tables 
-      if (msg->command == OFPFC_DELETE || 
-          msg->command == OFPFC_DELETE_STRICT) 
-        {
-          size_t i;
-          error = 0;
-          for (i = 0; i < PIPELINE_TABLES; i++) 
-            {
-              error = flow_table_flow_mod (pl->tables[i], msg, &match_kept, &insts_kept);
-              if (error) 
-                {
-                  break;
-                }
-            }
-          if (error) 
-            {
-              return error;
-            } 
-          else 
-            {
-              ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, pl->dp->exp);
-              return 0;
-            }
-        }
-      else
-        {
-          return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
-        }
-    }
-  else
-    {
-      // Execute flow modification at proper table
-      error = flow_table_flow_mod (pl->tables[msg->table_id], msg, &match_kept, &insts_kept); 
-      if (error) 
-        {
-          return error;
-        }
-      
-      if ((msg->command == OFPFC_ADD || msg->command == OFPFC_MODIFY || 
-           msg->command == OFPFC_MODIFY_STRICT) && msg->buffer_id != NO_BUFFER) 
-        {
-          // Run buffered message through pipeline
-          packet *pkt;
-          pkt = dp_buffers_retrieve (pl->dp->buffers, msg->buffer_id);
-          if (pkt != NULL) 
-            {
-              PipelineProcessPacket (pl, pkt);
-            } 
-          else 
-            {
-              NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << 
-                  msg->buffer_id);
-            }
-        }
-      
-      // All handlers must free the message when everything is ok
-      ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, pl->dp->exp);
-      return 0;
-    }
-}
-
-int
-OFSwitch13NetDevice::PipelineSendPacketIn (pipeline* pl, packet *pkt, 
-    uint8_t tableId, ofp_packet_in_reason reason, uint64_t cookie)
-{
-  NS_LOG_FUNCTION (this); 
-  
-  ofl_msg_packet_in msg;
-  msg.header.type = OFPT_PACKET_IN;
-  msg.total_len = pkt->buffer->size;
-  msg.reason = reason;
-  msg.table_id = tableId;
-  msg.data = (uint8_t*)pkt->buffer->data;
-  msg.cookie = cookie;
-
-  if (pl->dp->config.miss_send_len != OFPCML_NO_BUFFER)
-    {
-      dp_buffers_save (pl->dp->buffers, pkt);
-      msg.buffer_id = pkt->buffer_id;
-      msg.data_length = MIN (pl->dp->config.miss_send_len, pkt->buffer->size);
-    }
-  else 
-    {
-      msg.buffer_id = OFP_NO_BUFFER;
-      msg.data_length = pkt->buffer->size;
-    }
-
-  if (!pkt->handle_std->valid)
-    {
-      packet_handle_std_validate (pkt->handle_std);
-    }
-  msg.match = (ofl_match_header*)&pkt->handle_std->match;
- 
-  return SendToController ((ofl_msg_header*)&msg);
-}
-
-void
-OFSwitch13NetDevice::ActionsListExecute (packet *pkt, size_t actions_num,
-    ofl_action_header **actions, uint64_t cookie) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  size_t i;
-  for (i=0; i < actions_num; i++) 
-    {
-      dp_execute_action (pkt, actions[i]);
-      if (pkt->out_group != OFPG_ANY) 
-        {
-          uint32_t group = pkt->out_group;
-          pkt->out_group = OFPG_ANY;
-          NS_LOG_DEBUG ("Group action; executing group " << group);
-          GroupTableExecute (pkt->dp->groups, pkt, group); 
-        } 
-      else if (pkt->out_port != OFPP_ANY) 
-        {
-          uint32_t port = pkt->out_port;
-          uint32_t queue = pkt->out_queue;
-          uint16_t max_len = pkt->out_port_max_len;
-          pkt->out_port = OFPP_ANY;
-          pkt->out_port_max_len = 0;
-          pkt->out_queue = 0;
-          NS_LOG_DEBUG ("Port list action; sending to port " << port);
-          ActionOutputPort (pkt, port, queue, max_len, cookie);
-        }
-    }
-}
-
-void
-OFSwitch13NetDevice::ActionSetExecute (action_set *set, packet *pkt,  
-    uint64_t cookie)
-{
-  NS_LOG_FUNCTION (this);
-  
-  action_set_entry *entry, *next;
-
-  LIST_FOR_EACH_SAFE (entry, next, action_set_entry, node, &set->actions) 
-    {
-      dp_execute_action (pkt, entry->action);
-      list_remove (&entry->node);
-      free (entry);
-
-      // According to the spec. if there was a group action, 
-      // the output port action should be ignored
-      if (pkt->out_group != OFPG_ANY) 
-        {
-          uint32_t group_id = pkt->out_group;
-          pkt->out_group = OFPG_ANY;
-          action_set_clear_actions (pkt->action_set);
-          GroupTableExecute (pkt->dp->groups, pkt, group_id);
-          return;
-        } 
-      else if (pkt->out_port != OFPP_ANY) 
-        {
-          uint32_t port = pkt->out_port;
-          uint32_t queue = pkt->out_queue;
-          uint16_t max_len = pkt->out_port_max_len;
-          pkt->out_port = OFPP_ANY;
-          pkt->out_port_max_len = 0;
-          pkt->out_queue = 0;
-          action_set_clear_actions (pkt->action_set);
-          
-          NS_LOG_DEBUG ("Port set action; sending to port " << port);
-          ActionOutputPort (pkt, port, queue, max_len, cookie);
-          return;
-        }
-    }
-}
-
-void
-OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
-    uint32_t out_queue, uint16_t max_len, uint64_t cookie) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  switch (out_port) 
-    {
-      case (OFPP_TABLE): 
-        if (pkt->packet_out) 
-          {
-            pkt->packet_out = false;
-            PipelineProcessPacket (pkt->dp->pipeline, pkt);
-          } 
-        else 
-          {
-            NS_LOG_WARN ("Trying to resubmit packet to pipeline.");
-          }
-        break;
-      case (OFPP_IN_PORT):
-        {
-          ofs::Port *p = PortGetOfsPort (pkt->in_port);
-          SendToSwitchPort (pkt->buffer, p->portNo, 0);
-          break;
-        }
-      case (OFPP_CONTROLLER): 
-        {
-          PipelineSendPacketIn (pkt->dp->pipeline, pkt, pkt->table_id, 
-              (pkt->handle_std->table_miss ? OFPR_NO_MATCH : OFPR_ACTION), cookie);
-          break;
-        }
-      case (OFPP_FLOOD):
-      case (OFPP_ALL): 
-        {
-          dp_ports_output_all (pkt->dp, pkt->buffer, pkt->in_port, out_port == OFPP_FLOOD);
-          break;
-        }
-      case (OFPP_NORMAL):
-      case (OFPP_LOCAL):
-      default: 
-        if (pkt->in_port == out_port) 
-          {
-            NS_LOG_WARN ("Can't directly forward to input port.");
-          } 
-        else 
-          {
-            NS_LOG_DEBUG ("Outputting packet on port " << out_port);
-            ofs::Port *p = PortGetOfsPort (out_port);
-            SendToSwitchPort (pkt->buffer, p->portNo, 0);
-          }
-    }
-}
-
+// 
+// void
+// OFSwitch13NetDevice::PipelineExecuteEntry (pipeline* pl, flow_entry *entry,
+//     flow_table **next_table, packet **pkt)
+// {
+//    NS_LOG_FUNCTION (this);
+//   
+//   // Instructions, when present, will be executed in the following order:
+//   // Meter, Apply-Actions, Clear-Actions, Write-Actions, Write-Metadata, and
+//   // Goto-Table.
+//   size_t i;
+//   ofl_instruction_header *inst;
+// 
+//   for (i=0; i < entry->stats->instructions_num; i++) 
+//     {
+//       // Packet was dropped by some instruction or action*/
+//       if(!(*pkt))
+//         {
+//           return;
+//         }
+//       
+//       inst = entry->stats->instructions[i];
+//       switch (inst->type) 
+//         {
+//           case OFPIT_GOTO_TABLE: 
+//             {
+//               ofl_instruction_goto_table *gi = (ofl_instruction_goto_table*)inst;
+//               *next_table = pl->tables[gi->table_id];
+//               break;
+//             }
+//           case OFPIT_WRITE_METADATA: 
+//             {
+//               ofl_instruction_write_metadata *wi = (ofl_instruction_write_metadata*)inst;
+//               ofl_match_tlv *f;
+// 
+//               packet_handle_std_validate ((*pkt)->handle_std);
+//               
+//               // Search field on the description of the packet.
+//               HMAP_FOR_EACH_WITH_HASH (f, ofl_match_tlv, hmap_node, 
+//                   HashInt (OXM_OF_METADATA, 0), &(*pkt)->handle_std->match.match_fields)
+//                 {
+//                   uint64_t *metadata = (uint64_t*) f->value;
+//                   *metadata = (*metadata & ~wi->metadata_mask) | 
+//                               (wi->metadata & wi->metadata_mask);
+//                   NS_LOG_DEBUG ("Executing write metadata: " << *metadata);
+//                 }
+//               break;
+//             }
+//           case OFPIT_WRITE_ACTIONS: 
+//             {
+//               ofl_instruction_actions *wa = (ofl_instruction_actions*)inst;
+//               action_set_write_actions ((*pkt)->action_set, wa->actions_num, wa->actions);
+//               break;
+//             }
+//           case OFPIT_APPLY_ACTIONS: 
+//             {
+//               ofl_instruction_actions *ia = (ofl_instruction_actions*)inst;
+//               dp_execute_action_list ((*pkt), ia->actions_num, ia->actions, entry->stats->cookie);
+//               break;
+//             }
+//           case OFPIT_CLEAR_ACTIONS: 
+//             {
+//               action_set_clear_actions ((*pkt)->action_set);
+//               break;
+//             }
+//           case OFPIT_METER: 
+//             {
+//               ofl_instruction_meter *im = (ofl_instruction_meter*)inst;
+//               meter_table_apply (pl->dp->meters, pkt, im->meter_id);
+//               break;
+//             }
+//           case OFPIT_EXPERIMENTER: 
+//             {
+//               // dp_exp_inst((*pkt), (ofl_instruction_experimenter*)inst);
+//               break;
+//             }
+//         }
+//     }
+// }
+// 
+// ofl_err
+// OFSwitch13NetDevice::PipelineHandleFlowMod (pipeline *pl, ofl_msg_flow_mod *msg, 
+//     const sender *sender)
+// {
+//   NS_LOG_FUNCTION (this);
+//   
+//   // Modifications to a flow table from the controller are done with the
+//   // OFPT_FLOW_MOD message (including add, modify or delete).
+//   // \see ofsoftswitch13 pipeline_handle_flow_mod () at udatapath/pipeline.c
+//   // and flow_table_flow_mod () at udatapath/flow_table.c
+//   ofl_err error;
+//   size_t i;
+//   bool match_kept, insts_kept;
+//   match_kept = false;
+//   insts_kept = false;
+//   
+//   // Sort by execution oder
+//   qsort (msg->instructions, msg->instructions_num, 
+//       sizeof (ofl_instruction_header*), inst_compare);
+//   
+//   // Validate actions in flow_mod
+//   for (i = 0; i < msg->instructions_num; i++) 
+//     {
+//       if (msg->instructions[i]->type == OFPIT_APPLY_ACTIONS || 
+//           msg->instructions[i]->type == OFPIT_WRITE_ACTIONS) 
+//         {
+//           ofl_instruction_actions *ia = (ofl_instruction_actions*)msg->instructions[i];
+//   
+//           error = dp_actions_validate (pl->dp, (size_t)ia->actions_num, ia->actions);
+//           if (error) 
+//             {
+//               return error;
+//             }
+//           error = dp_actions_check_set_field_req (msg, ia->actions_num, ia->actions);
+//           if (error) 
+//             {
+//               return error;
+//             }
+//         }
+//       // Reject goto in the last table.
+//       if ((msg->table_id == (PIPELINE_TABLES - 1)) && 
+//           (msg->instructions[i]->type == OFPIT_GOTO_TABLE))
+//         {
+//           return ofl_error (OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
+//         }
+//     }
+//   
+//   if (msg->table_id == 0xff) 
+//     {
+//       // Note: the result of using table_id = 0xff is undefined in the spec.
+//       // For now it is accepted for delete commands, meaning to delete from
+//       // all tables 
+//       if (msg->command == OFPFC_DELETE || 
+//           msg->command == OFPFC_DELETE_STRICT) 
+//         {
+//           size_t i;
+//           error = 0;
+//           for (i = 0; i < PIPELINE_TABLES; i++) 
+//             {
+//               error = flow_table_flow_mod (pl->tables[i], msg, &match_kept, &insts_kept);
+//               if (error) 
+//                 {
+//                   break;
+//                 }
+//             }
+//           if (error) 
+//             {
+//               return error;
+//             } 
+//           else 
+//             {
+//               ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, pl->dp->exp);
+//               return 0;
+//             }
+//         }
+//       else
+//         {
+//           return ofl_error (OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
+//         }
+//     }
+//   else
+//     {
+//       // Execute flow modification at proper table
+//       error = flow_table_flow_mod (pl->tables[msg->table_id], msg, &match_kept, &insts_kept); 
+//       if (error) 
+//         {
+//           return error;
+//         }
+//       
+//       if ((msg->command == OFPFC_ADD || msg->command == OFPFC_MODIFY || 
+//            msg->command == OFPFC_MODIFY_STRICT) && msg->buffer_id != NO_BUFFER) 
+//         {
+//           // Run buffered message through pipeline
+//           packet *pkt;
+//           pkt = dp_buffers_retrieve (pl->dp->buffers, msg->buffer_id);
+//           if (pkt != NULL) 
+//             {
+//               PipelineProcessPacket (pl, pkt);
+//             } 
+//           else 
+//             {
+//               NS_LOG_ERROR ("The buffer flow_mod referred to was empty " << 
+//                   msg->buffer_id);
+//             }
+//         }
+//       
+//       // All handlers must free the message when everything is ok
+//       ofl_msg_free_flow_mod (msg, !match_kept, !insts_kept, pl->dp->exp);
+//       return 0;
+//     }
+// }
+// 
+// int
+// OFSwitch13NetDevice::PipelineSendPacketIn (pipeline* pl, packet *pkt, 
+//     uint8_t tableId, ofp_packet_in_reason reason, uint64_t cookie)
+// {
+//   NS_LOG_FUNCTION (this); 
+//   
+//   ofl_msg_packet_in msg;
+//   msg.header.type = OFPT_PACKET_IN;
+//   msg.total_len = pkt->buffer->size;
+//   msg.reason = reason;
+//   msg.table_id = tableId;
+//   msg.data = (uint8_t*)pkt->buffer->data;
+//   msg.cookie = cookie;
+// 
+//   if (pl->dp->config.miss_send_len != OFPCML_NO_BUFFER)
+//     {
+//       dp_buffers_save (pl->dp->buffers, pkt);
+//       msg.buffer_id = pkt->buffer_id;
+//       msg.data_length = MIN (pl->dp->config.miss_send_len, pkt->buffer->size);
+//     }
+//   else 
+//     {
+//       msg.buffer_id = OFP_NO_BUFFER;
+//       msg.data_length = pkt->buffer->size;
+//     }
+// 
+//   if (!pkt->handle_std->valid)
+//     {
+//       packet_handle_std_validate (pkt->handle_std);
+//     }
+//   msg.match = (ofl_match_header*)&pkt->handle_std->match;
+//  
+//   return SendToController ((ofl_msg_header*)&msg);
+// }
+// 
+// void
+// OFSwitch13NetDevice::ActionsListExecute (packet *pkt, size_t actions_num,
+//     ofl_action_header **actions, uint64_t cookie) 
+// {
+//   NS_LOG_FUNCTION (this);
+//   
+//   size_t i;
+//   for (i=0; i < actions_num; i++) 
+//     {
+//       dp_execute_action (pkt, actions[i]);
+//       if (pkt->out_group != OFPG_ANY) 
+//         {
+//           uint32_t group = pkt->out_group;
+//           pkt->out_group = OFPG_ANY;
+//           NS_LOG_DEBUG ("Group action; executing group " << group);
+//           GroupTableExecute (pkt->dp->groups, pkt, group); 
+//         } 
+//       else if (pkt->out_port != OFPP_ANY) 
+//         {
+//           uint32_t port = pkt->out_port;
+//           uint32_t queue = pkt->out_queue;
+//           uint16_t max_len = pkt->out_port_max_len;
+//           pkt->out_port = OFPP_ANY;
+//           pkt->out_port_max_len = 0;
+//           pkt->out_queue = 0;
+//           NS_LOG_DEBUG ("Port list action; sending to port " << port);
+//           dp_actions_output_port (pkt, port, queue, max_len, cookie);
+//         }
+//     }
+// }
+// 
+// void
+// OFSwitch13NetDevice::ActionSetExecute (action_set *set, packet *pkt,  
+//     uint64_t cookie)
+// {
+//   NS_LOG_FUNCTION (this);
+//   
+//   action_set_entry *entry, *next;
+// 
+//   LIST_FOR_EACH_SAFE (entry, next, action_set_entry, node, &set->actions) 
+//     {
+//       dp_execute_action (pkt, entry->action);
+//       list_remove (&entry->node);
+//       free (entry);
+// 
+//       // According to the spec. if there was a group action, 
+//       // the output port action should be ignored
+//       if (pkt->out_group != OFPG_ANY) 
+//         {
+//           uint32_t group_id = pkt->out_group;
+//           pkt->out_group = OFPG_ANY;
+//           action_set_clear_actions (pkt->action_set);
+//           GroupTableExecute (pkt->dp->groups, pkt, group_id);
+//           return;
+//         } 
+//       else if (pkt->out_port != OFPP_ANY) 
+//         {
+//           uint32_t port = pkt->out_port;
+//           uint32_t queue = pkt->out_queue;
+//           uint16_t max_len = pkt->out_port_max_len;
+//           pkt->out_port = OFPP_ANY;
+//           pkt->out_port_max_len = 0;
+//           pkt->out_queue = 0;
+//           action_set_clear_actions (pkt->action_set);
+//           
+//           NS_LOG_DEBUG ("Port set action; sending to port " << port);
+//           dp_actions_output_port (pkt, port, queue, max_len, cookie);
+//           return;
+//         }
+//     }
+// }
+// 
+// void
+// OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
+//     uint32_t out_queue, uint16_t max_len, uint64_t cookie) 
+// {
+//   NS_LOG_FUNCTION (this);
+//   
+//   switch (out_port) 
+//     {
+//       case (OFPP_TABLE): 
+//         if (pkt->packet_out) 
+//           {
+//             pkt->packet_out = false;
+//             PipelineProcessPacket (pkt->dp->pipeline, pkt);
+//           } 
+//         else 
+//           {
+//             NS_LOG_WARN ("Trying to resubmit packet to pipeline.");
+//           }
+//         break;
+//       case (OFPP_IN_PORT):
+//         {
+//           dp_ports_output (pkt->dp, pkt->buffer, pkt->in_port, 0);
+//           break;
+//         }
+//       case (OFPP_CONTROLLER): 
+//         {
+//           PipelineSendPacketIn (pkt->dp->pipeline, pkt, pkt->table_id, 
+//               (pkt->handle_std->table_miss ? OFPR_NO_MATCH : OFPR_ACTION), cookie);
+//           break;
+//         }
+//       case (OFPP_FLOOD):
+//       case (OFPP_ALL): 
+//         {
+//           dp_ports_output_all (pkt->dp, pkt->buffer, pkt->in_port, out_port == OFPP_FLOOD);
+//           break;
+//         }
+//       case (OFPP_NORMAL):
+//       case (OFPP_LOCAL):
+//       default: 
+//         if (pkt->in_port == out_port) 
+//           {
+//             NS_LOG_WARN ("Can't directly forward to input port.");
+//           } 
+//         else 
+//           {
+//             NS_LOG_DEBUG ("Outputting packet on port " << out_port);
+//             ofs::Port *p = PortGetOfsPort (out_port);
+//             dp_ports_output (pkt->dp, pkt->buffer, p->portNo, 0);
+//           }
+//     }
+// }
+// 
 // ofl_err 
 // OFSwitch13NetDevice::ActionsValidate (datapath *dp, size_t num, 
 //     ofl_action_header **actions)
@@ -1474,109 +1459,109 @@ OFSwitch13NetDevice::ActionOutputPort (packet *pkt, uint32_t out_port,
 //     }
 //   return 0;
 // }
-
-void 
-OFSwitch13NetDevice::GroupTableExecute (group_table *table, packet *packet, 
-    uint32_t group_id)
-{
-  group_entry *entry;
-  entry = group_table_find (table, group_id);
-
-  if (entry == NULL) 
-    {
-      NS_LOG_WARN ("Trying to execute non-existing group " << group_id);
-      return;
-    }
-  GroupEntryExecute (entry, packet);
-}
-  
-void 
-OFSwitch13NetDevice::GroupEntryExecute (group_entry *entry, packet *pkt)
-{
-  NS_LOG_DEBUG ("Executing group " << entry->stats->group_id);
-  
-  // NOTE: Packet is copied for all buckets now (even if there is only one).
-  // This allows execution of the original packet onward. It is not clear
-  // whether that is allowed or not according to the spec. though.
-  size_t i;
-  switch (entry->desc->type) 
-    {
-      case (OFPGT_ALL):
-        {
-          for (i = 0; i < entry->desc->buckets_num; i++) 
-            {
-              GroupEntryExecuteBucket (entry, pkt, i);
-            }
-          break;
-        }
-      case (OFPGT_SELECT):
-        {
-          i = select_from_select_group (entry);
-          if ((int)i != -1)
-            {
-              GroupEntryExecuteBucket (entry, pkt, i);
-            } 
-          else 
-            {
-              NS_LOG_WARN ("No bucket in group.");
-            }
-          break;
-        }
-      case (OFPGT_INDIRECT): 
-        {
-          if (entry->desc->buckets_num > 0) 
-            {
-              GroupEntryExecuteBucket (entry, pkt, 0);
-            } 
-          else 
-            {
-              NS_LOG_WARN ("No bucket in group.");
-            }
-          break;
-        }
-      case (OFPGT_FF): 
-        {
-          i = select_from_ff_group (entry);
-          if ((int)i != -1)
-            {
-              GroupEntryExecuteBucket (entry, pkt, i);
-            } 
-          else 
-            {
-              NS_LOG_WARN ("No bucket in group.");
-            }
-          break;
-        }
-      default: 
-        NS_LOG_WARN ("Trying to execute unknown group type " << 
-            entry->desc->type << " in group " << entry->stats->group_id);
-    }
-}
-
-void 
-OFSwitch13NetDevice::GroupEntryExecuteBucket (group_entry *entry, packet *pkt, size_t i)
-{
-  // Currently packets are always cloned. However it should be possible to see
-  // if cloning is necessary, or not, based on bucket actions.
-  ofl_bucket *bucket = entry->desc->buckets[i];
-  packet *p = packet_clone (pkt);
-
-  char *s = ofl_structs_bucket_to_string (bucket, entry->dp->exp);
-  NS_LOG_DEBUG ("Writing bucket: " << s);
-  free (s);
-
-  action_set_write_actions (p->action_set, bucket->actions_num, bucket->actions);
-
-  entry->stats->byte_count += p->buffer->size;
-  entry->stats->packet_count++;
-  entry->stats->counters[i]->byte_count += p->buffer->size;
-  entry->stats->counters[i]->packet_count++;
-
-  // Cookie field is set UINT64_MAX because we 
-  // cannot associate to any particular flow
-  ActionSetExecute (p->action_set, p, UINT64_MAX);
-  packet_destroy (p);
-}
+// 
+// void 
+// OFSwitch13NetDevice::GroupTableExecute (group_table *table, packet *packet, 
+//     uint32_t group_id)
+// {
+//   group_entry *entry;
+//   entry = group_table_find (table, group_id);
+// 
+//   if (entry == NULL) 
+//     {
+//       NS_LOG_WARN ("Trying to execute non-existing group " << group_id);
+//       return;
+//     }
+//   GroupEntryExecute (entry, packet);
+// }
+//   
+// void 
+// OFSwitch13NetDevice::GroupEntryExecute (group_entry *entry, packet *pkt)
+// {
+//   NS_LOG_DEBUG ("Executing group " << entry->stats->group_id);
+//   
+//   // NOTE: Packet is copied for all buckets now (even if there is only one).
+//   // This allows execution of the original packet onward. It is not clear
+//   // whether that is allowed or not according to the spec. though.
+//   size_t i;
+//   switch (entry->desc->type) 
+//     {
+//       case (OFPGT_ALL):
+//         {
+//           for (i = 0; i < entry->desc->buckets_num; i++) 
+//             {
+//               GroupEntryExecuteBucket (entry, pkt, i);
+//             }
+//           break;
+//         }
+//       case (OFPGT_SELECT):
+//         {
+//           i = select_from_select_group (entry);
+//           if ((int)i != -1)
+//             {
+//               GroupEntryExecuteBucket (entry, pkt, i);
+//             } 
+//           else 
+//             {
+//               NS_LOG_WARN ("No bucket in group.");
+//             }
+//           break;
+//         }
+//       case (OFPGT_INDIRECT): 
+//         {
+//           if (entry->desc->buckets_num > 0) 
+//             {
+//               GroupEntryExecuteBucket (entry, pkt, 0);
+//             } 
+//           else 
+//             {
+//               NS_LOG_WARN ("No bucket in group.");
+//             }
+//           break;
+//         }
+//       case (OFPGT_FF): 
+//         {
+//           i = select_from_ff_group (entry);
+//           if ((int)i != -1)
+//             {
+//               GroupEntryExecuteBucket (entry, pkt, i);
+//             } 
+//           else 
+//             {
+//               NS_LOG_WARN ("No bucket in group.");
+//             }
+//           break;
+//         }
+//       default: 
+//         NS_LOG_WARN ("Trying to execute unknown group type " << 
+//             entry->desc->type << " in group " << entry->stats->group_id);
+//     }
+// }
+// 
+// void 
+// OFSwitch13NetDevice::GroupEntryExecuteBucket (group_entry *entry, packet *pkt, size_t i)
+// {
+//   // Currently packets are always cloned. However it should be possible to see
+//   // if cloning is necessary, or not, based on bucket actions.
+//   ofl_bucket *bucket = entry->desc->buckets[i];
+//   packet *p = packet_clone (pkt);
+// 
+//   char *s = ofl_structs_bucket_to_string (bucket, entry->dp->exp);
+//   NS_LOG_DEBUG ("Writing bucket: " << s);
+//   free (s);
+// 
+//   action_set_write_actions (p->action_set, bucket->actions_num, bucket->actions);
+// 
+//   entry->stats->byte_count += p->buffer->size;
+//   entry->stats->packet_count++;
+//   entry->stats->counters[i]->byte_count += p->buffer->size;
+//   entry->stats->counters[i]->packet_count++;
+// 
+//   // Cookie field is set UINT64_MAX because we 
+//   // cannot associate to any particular flow
+//   action_set_execute (p->action_set, p, UINT64_MAX);
+//   packet_destroy (p);
+// }
 
 ofl_err
 OFSwitch13NetDevice::HandleControlMessage (datapath *dp, ofl_msg_header *msg, 
@@ -1591,11 +1576,11 @@ OFSwitch13NetDevice::HandleControlMessage (datapath *dp, ofl_msg_header *msg,
       case OFPT_ECHO_REPLY:
         return HandleMsgEchoReply (dp, (ofl_msg_echo*)msg, sender);
       
-      case OFPT_PACKET_OUT:
-        return HandleMsgPacketOut (dp, (ofl_msg_packet_out*)msg, sender);
+//      case OFPT_PACKET_OUT:
+//        return HandleMsgPacketOut (dp, (ofl_msg_packet_out*)msg, sender);
       
-      case OFPT_FLOW_MOD:
-        return PipelineHandleFlowMod (dp->pipeline, (ofl_msg_flow_mod*)msg, sender); 
+//      case OFPT_FLOW_MOD:
+//        return PipelineHandleFlowMod (dp->pipeline, (ofl_msg_flow_mod*)msg, sender); 
       
       // Currently not supported
       case OFPT_EXPERIMENTER:
@@ -1633,48 +1618,48 @@ OFSwitch13NetDevice::HandleMsgEchoReply (datapath *dp, ofl_msg_echo *msg,
   return 0;
 }
 
-ofl_err
-OFSwitch13NetDevice::HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg, 
-    const sender *sender) 
-{
-  NS_LOG_FUNCTION (this);
-  
-  packet *pkt;
-  int error;
-
-  error = dp_actions_validate (dp, msg->actions_num, msg->actions);
-  if (error) 
-    {
-      return error;
-    }
-
-  if (msg->buffer_id == NO_BUFFER) 
-    {
-      ofpbuf *buf;
-      buf = ofpbuf_new (0);
-      ofpbuf_use (buf, msg->data, msg->data_length);
-      ofpbuf_put_uninit (buf, msg->data_length);
-      pkt = packet_create (dp, msg->in_port, buf, true);
-    } 
-  else 
-    {
-      // NOTE: in this case packet should not have data
-      pkt = dp_buffers_retrieve (dp->buffers, msg->buffer_id);
-    }
-
-  if (pkt == NULL) 
-    {
-      // This might be a wrong req., or a timed out buffer
-      return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BUFFER_EMPTY);
-    }
-  
-  ActionsListExecute (pkt, msg->actions_num, msg->actions, UINT64_MAX);
-  packet_destroy (pkt);
-  
-  // All handlers must free the message when everything is ok
-  ofl_msg_free_packet_out (msg, false, dp->exp);
-  return 0;
-}
+// ofl_err
+// OFSwitch13NetDevice::HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg, 
+//     const sender *sender) 
+// {
+//   NS_LOG_FUNCTION (this);
+//   
+//   packet *pkt;
+//   int error;
+// 
+//   error = dp_actions_validate (dp, msg->actions_num, msg->actions);
+//   if (error) 
+//     {
+//       return error;
+//     }
+// 
+//   if (msg->buffer_id == NO_BUFFER) 
+//     {
+//       ofpbuf *buf;
+//       buf = ofpbuf_new (0);
+//       ofpbuf_use (buf, msg->data, msg->data_length);
+//       ofpbuf_put_uninit (buf, msg->data_length);
+//       pkt = packet_create (dp, msg->in_port, buf, true);
+//     } 
+//   else 
+//     {
+//       // NOTE: in this case packet should not have data
+//       pkt = dp_buffers_retrieve (dp->buffers, msg->buffer_id);
+//     }
+// 
+//   if (pkt == NULL) 
+//     {
+//       // This might be a wrong req., or a timed out buffer
+//       return ofl_error (OFPET_BAD_REQUEST, OFPBRC_BUFFER_EMPTY);
+//     }
+//   
+//   dp_execute_action_list (pkt, msg->actions_num, msg->actions, UINT64_MAX);
+//   packet_destroy (pkt);
+//   
+//   // All handlers must free the message when everything is ok
+//   ofl_msg_free_packet_out (msg, false, dp->exp);
+//   return 0;
+// }
 
 void 
 OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)

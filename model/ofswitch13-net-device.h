@@ -259,130 +259,121 @@ private:
    */
   void AddEthernetHeader (Ptr<Packet> packet, Mac48Address source, 
       Mac48Address dest, uint16_t protocolNumber);
-
- 
-//   /**
-//    * Send a message over all switch ports, except input port.
-//    * \see SendToSwitch ().
-//    * \param pkt The internal packet to send.
-//    * \return True if success, false otherwise.
-//    */
-//   bool FloodToSwitchPorts (packet *pkt);
   //\}
 
   ///\name Pipeline methods
   //\{
-  /**
-   * Run the packet through the pipeline. Looks up in the pipeline tables for a
-   * match. If it doesn't match, it forwards the packet to the registered
-   * controller, if the flag is set.
-   * \see ofsoftswitch function process_buffer at udatapath/dp_ports.c.
-   * \see ofsoftswitch function pipeline_process_packet at udatapath/pipeline.c.
-   * \param pl The pipeline.
-   * \param pkt The internal openflow packet.
-   */
-  void PipelineProcessPacket (pipeline* pl, packet* pkt);
-
-  /**
-   * Executes the instructions associated with a flow entry.
-   * \see ofsoftswitch function execute_entry at udatapath/pipeline.c.
-   * \param pl The pipeline.
-   * \param entry The flow entry to execute.
-   * \param next_table A pointer to next table (can be modified by entry).
-   * \param pkt The packet associated with this flow entry.
-   */
-  void PipelineExecuteEntry (pipeline* pl, flow_entry *entry, 
-      flow_table **next_table, packet **pkt);
-
-  /**
-   * Handles a flow mod message.
-   * \see pipeline_handle_flow_mod () at udatapath/dp_control.c.
-   * \param pl The pipeline.
-   * \param msg The OFLib message received.
-   * \param sender The sender (controller) information (including xid).
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  ofl_err PipelineHandleFlowMod (pipeline *pl, ofl_msg_flow_mod *msg, 
-      const sender *sender);
-
-  /**
-   * Create and send a packet_in to controller.
-   * \see ofsoftswitch13 send_packet_to_controller () at udatapath/pipeline.c.
-   * \param pl The pipeline.
-   * \param pkt The internal packet to send.
-   * \param tableId Table id with with entry match.
-   * \param reason The reason to send this packet to controller.
-   * \param cookie Controller data used to filter flow statistics.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  int PipelineSendPacketIn (pipeline* pl, packet *pkt, 
-      uint8_t tableId, ofp_packet_in_reason reason, uint64_t cookie);
+//  /**
+//   * Run the packet through the pipeline. Looks up in the pipeline tables for a
+//   * match. If it doesn't match, it forwards the packet to the registered
+//   * controller, if the flag is set.
+//   * \see ofsoftswitch function process_buffer at udatapath/dp_ports.c.
+//   * \see ofsoftswitch function pipeline_process_packet at udatapath/pipeline.c.
+//   * \param pl The pipeline.
+//   * \param pkt The internal openflow packet.
+//   */
+//  void PipelineProcessPacket (pipeline* pl, packet* pkt);
+//
+//  /**
+//   * Executes the instructions associated with a flow entry.
+//   * \see ofsoftswitch function execute_entry at udatapath/pipeline.c.
+//   * \param pl The pipeline.
+//   * \param entry The flow entry to execute.
+//   * \param next_table A pointer to next table (can be modified by entry).
+//   * \param pkt The packet associated with this flow entry.
+//   */
+//  void PipelineExecuteEntry (pipeline* pl, flow_entry *entry, 
+//      flow_table **next_table, packet **pkt);
+//
+//  /**
+//   * Handles a flow mod message.
+//   * \see pipeline_handle_flow_mod () at udatapath/dp_control.c.
+//   * \param pl The pipeline.
+//   * \param msg The OFLib message received.
+//   * \param sender The sender (controller) information (including xid).
+//   * \return 0 if everything's ok, otherwise an error number.
+//   */
+//  ofl_err PipelineHandleFlowMod (pipeline *pl, ofl_msg_flow_mod *msg, 
+//      const sender *sender);
+//
+//  /**
+//   * Create and send a packet_in to controller.
+//   * \see ofsoftswitch13 send_packet_to_controller () at udatapath/pipeline.c.
+//   * \param pl The pipeline.
+//   * \param pkt The internal packet to send.
+//   * \param tableId Table id with with entry match.
+//   * \param reason The reason to send this packet to controller.
+//   * \param cookie Controller data used to filter flow statistics.
+//   * \return 0 if everything's ok, otherwise an error number.
+//   */
+//  int PipelineSendPacketIn (pipeline* pl, packet *pkt, 
+//      uint8_t tableId, ofp_packet_in_reason reason, uint64_t cookie);
   //\}
 
-  ///\name Actions methods
-  //\{
-  /**
-   * Executes the list of OFPIT_APPLY_ACTIONS actions on the given packet.
-   * \see ofsoftswitch dp_execute_action_list at udatapath/dp_actions.c.
-   * \param pkt The packet associated with this action.
-   * \param actions_num The number of actions to execute.
-   * \param actions A pointer to the list of actions.
-   * \param cookie Controller data used to filter flow statistics.
-   */
-  void ActionsListExecute (packet *pkt, size_t actions_num, 
-      ofl_action_header **actions, uint64_t cookie);
- 
-  /**
-   * Executes the set of OFPIT_WRITE_ACTIONS actions on the given packet.
-   * \see ofsoftswitch action_set_execute at udatapath/action_set.c.
-   * \param set A pointer to the set of actions.
-   * \param pkt The packet associated with this action set.
-   * \param cookie Controller data used to filter flow statistics.
-   */
-  void ActionSetExecute (action_set *set, packet *pkt, uint64_t cookie);
-
-  /**
-   * Execute the ouput action sending the packet to an output port.
-   * \see ofsoftswitch dp_actions_output_port at udatapath/dp_actions.c.
-   * \param pkt The packet associated with this action.
-   * \param out_port The port number.
-   * \param out_queue The queue to use.
-   * \param max_len The size of the packet to send.
-   * \param cookie Controller data used to filter flow statistics.
-   */
-  void ActionOutputPort (packet *pkt, uint32_t out_port, uint32_t out_queue,
-      uint16_t max_len, uint64_t cookie);
-  //\}
-  
-  ///\name Group methods
-  //\{
-  /**
-   * Executes the given group entry on the packet. 
-   * \see group_table_execute () at udatapath/group_table.c
-   * \param table The group table.
-   * \param packet The packet to execute actions.
-   * \param group_id The group entry id.
-   */
-  void GroupTableExecute (group_table *table, packet *packet, uint32_t group_id);
-  
-  /**
-   * Executes the group entry on the packet. 
-   * \see ofsoftswitch13 group_entry_execute () at udatapath/group_entry.c
-   * \param entry The group entry to execute.
-   * \param pkt The packet.
-   */
-  void GroupEntryExecute (group_entry *entry, packet *pkt);
-
-  /** 
-   * Executes a group entry of type ALL.
-   * \see ofsoftswitch13 execute_all (), execute_select (), execute_indirect ()
-   * and execute_ff () at udatapath/group_entry.c
-   * \param entry The group entry to execute.
-   * \param pkt The packet.
-   * \param i Bucket index.
-   */
-  void GroupEntryExecuteBucket (group_entry *entry, packet *pkt, size_t i); 
-  //\}
+//  ///\name Actions methods
+//  //\{
+//  /**
+//   * Executes the list of OFPIT_APPLY_ACTIONS actions on the given packet.
+//   * \see ofsoftswitch dp_execute_action_list at udatapath/dp_actions.c.
+//   * \param pkt The packet associated with this action.
+//   * \param actions_num The number of actions to execute.
+//   * \param actions A pointer to the list of actions.
+//   * \param cookie Controller data used to filter flow statistics.
+//   */
+//  void ActionsListExecute (packet *pkt, size_t actions_num, 
+//      ofl_action_header **actions, uint64_t cookie);
+// 
+//   /**
+//    * Executes the set of OFPIT_WRITE_ACTIONS actions on the given packet.
+//    * \see ofsoftswitch action_set_execute at udatapath/action_set.c.
+//    * \param set A pointer to the set of actions.
+//    * \param pkt The packet associated with this action set.
+//    * \param cookie Controller data used to filter flow statistics.
+//    */
+//   void ActionSetExecute (action_set *set, packet *pkt, uint64_t cookie);
+// 
+//  /**
+//   * Execute the ouput action sending the packet to an output port.
+//   * \see ofsoftswitch dp_actions_output_port at udatapath/dp_actions.c.
+//   * \param pkt The packet associated with this action.
+//   * \param out_port The port number.
+//   * \param out_queue The queue to use.
+//   * \param max_len The size of the packet to send.
+//   * \param cookie Controller data used to filter flow statistics.
+//   */
+//  void ActionOutputPort (packet *pkt, uint32_t out_port, uint32_t out_queue,
+//      uint16_t max_len, uint64_t cookie);
+//   //\}
+//  
+//  ///\name Group methods
+//  //\{
+//  /**
+//   * Executes the given group entry on the packet. 
+//   * \see group_table_execute () at udatapath/group_table.c
+//   * \param table The group table.
+//   * \param packet The packet to execute actions.
+//   * \param group_id The group entry id.
+//   */
+//  void GroupTableExecute (group_table *table, packet *packet, uint32_t group_id);
+//  
+//  /**
+//   * Executes the group entry on the packet. 
+//   * \see ofsoftswitch13 group_entry_execute () at udatapath/group_entry.c
+//   * \param entry The group entry to execute.
+//   * \param pkt The packet.
+//   */
+//  void GroupEntryExecute (group_entry *entry, packet *pkt);
+//
+//  /** 
+//   * Executes a group entry of type ALL.
+//   * \see ofsoftswitch13 execute_all (), execute_select (), execute_indirect ()
+//   * and execute_ff () at udatapath/group_entry.c
+//   * \param entry The group entry to execute.
+//   * \param pkt The packet.
+//   * \param i Bucket index.
+//   */
+//  void GroupEntryExecuteBucket (group_entry *entry, packet *pkt, size_t i); 
+//  //\}
 
   /**
    * \name OpenFlow message handlers
@@ -409,12 +400,12 @@ private:
   ofl_err HandleMsgEchoReply (datapath *dp, ofl_msg_echo *msg, 
       const sender *sender);
 
-  /**
-   * Handles a packet out from controller.
-   * \see handle_control_packet_out () at udatapath/dp_control.c.
-   */
-  ofl_err HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg,
-      const sender *sender);
+//  /**
+//   * Handles a packet out from controller.
+//   * \see handle_control_packet_out () at udatapath/dp_control.c.
+//   */
+//  ofl_err HandleMsgPacketOut (datapath *dp, ofl_msg_packet_out *msg,
+//      const sender *sender);
   //\}
 
    /**
