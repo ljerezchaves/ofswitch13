@@ -43,7 +43,7 @@ public:
 
   /** Destructor implementation */
   virtual void DoDispose ();
-  
+
   /**
    * Handle packet-in messages sent from switch to this controller. Look for L2
    * switching information, update the structures and send a packet-out back.
@@ -70,7 +70,7 @@ public:
 private:
   void ConnectionStarted (SwitchInfo swtch);    //!< TCP connection callback
 
-  /** 
+  /**
    * \name L2 switching structures
    */
   //\{

@@ -798,7 +798,7 @@ OFSwitch13NetDevice::PortGetOfPort (uint32_t no)
 }
 
 void
-OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Packet> packet, 
+OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Packet> packet,
                                             uint16_t protocol, const Address &src,
                                             const Address &dst, PacketType packetType)
 {
@@ -933,7 +933,7 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t
       packet->RemoveHeader (header);
 
       bool status = port->netdev->SendFrom (packet, header.GetSource (),
-                                            header.GetDestination (), 
+                                            header.GetDestination (),
                                             header.GetLengthType ());
       if (status)
         {

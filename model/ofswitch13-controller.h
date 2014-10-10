@@ -65,7 +65,7 @@ struct SwitchInfo
 };
 
 /** Structure to map IPv4 to switch info */
-typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;   
+typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
 
 /**
  * \ingroup ofswitch13
@@ -84,15 +84,15 @@ public:
    * \param The switch metadata that initiated a connection with controller
    */
   typedef Callback<void, SwitchInfo> SwitchConnectionCallback_t;
-  
+
   /**
    * Register this type.
    * \return The object TypeId.
    */
   static TypeId GetTypeId (void);
 
-  /** 
-   * Destructor implementation 
+  /**
+   * Destructor implementation
    */
   virtual void DoDispose ();
 
@@ -129,7 +129,7 @@ protected:
   uint32_t GetNextXid ();
 
   /**
-   * Send a OFLib message to a registered switch. 
+   * Send a OFLib message to a registered switch.
    * \param swtch The switch to receive the message
    * \param msg The OFLib message to send.
    * \param xid The transaction id to use.
@@ -245,7 +245,7 @@ private:
   uint32_t              m_xid;                      //!< Global transaction idx
   uint16_t              m_port;                     //!< Local controller tcp port
   Ptr<Socket>           m_serverSocket;             //!< Listening server socket
-  
+
   EchoMsgMap_t m_echoMap;                           //!< Metadata for echo requests
   SwitchConnectionCallback_t m_connectionCallback;  //!< TCP connection callback
 };

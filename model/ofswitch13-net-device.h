@@ -246,7 +246,7 @@ private:
    * \param packetType Type of the packet.
    */
   void ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Packet> packet,
-                              uint16_t protocol, const Address& src, 
+                              uint16_t protocol, const Address& src,
                               const Address& dst, PacketType packetType);
 
   /**
