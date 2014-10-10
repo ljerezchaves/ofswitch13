@@ -125,6 +125,54 @@ HashInt (uint32_t x, uint32_t basis)
   return x;
 }
 
+uint32_t 
+PortGetFeatures (Ptr<CsmaNetDevice> netdev)
+{
+  DataRateValue drv;
+  DataRate dr;
+  Ptr<CsmaChannel> channel = DynamicCast<CsmaChannel> (netdev->GetChannel ());
+  channel->GetAttribute("DataRate", drv);
+  dr = drv.Get ();
+
+  uint32_t feat = 0x00000000;
+  feat |= OFPPF_COPPER;
+  feat |= OFPPF_AUTONEG;
+
+  if (dr == DataRate ("10Mbps"))
+    {
+      feat |= OFPPF_10MB_FD;
+    }
+  else if (dr == DataRate ("100Mbps"))
+    {
+      feat |= OFPPF_100MB_FD;
+    }
+  else if (dr == DataRate ("1Gbps"))
+    {
+      feat |= OFPPF_1GB_FD;
+    }
+  else if (dr == DataRate ("10Gbps"))
+    {
+      feat |= OFPPF_10GB_FD;
+    }
+  else if (dr == DataRate ("40Gbps"))
+    {
+      feat |= OFPPF_40GB_FD;
+    }
+  else if (dr == DataRate ("100Gbps"))
+    {
+      feat |= OFPPF_100GB_FD;
+    }
+  else if (dr == DataRate ("1Tbps"))
+    {
+      feat |= OFPPF_1TB_FD;
+    }
+  else
+    {
+      feat |= OFPPF_OTHER;
+    }
+  return feat;
+}
+
 // ---- OpenFlow switch code -------------------------------
 namespace ns3 {
 
@@ -185,7 +233,7 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   SetAddress (Mac48Address::Allocate ()); 
  
   m_datapath = DatapathNew ();
-  m_ports.reserve (DP_MAX_PORTS);
+  //m_ports.reserve (DP_MAX_PORTS);
   RegisterDatapath (m_dpId, Ptr<OFSwitch13NetDevice> (this));
   Simulator::Schedule (m_timeout , &OFSwitch13NetDevice::DatapathTimeout, this, m_datapath);
 }
@@ -201,7 +249,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
   NS_LOG_FUNCTION (this << switchPort);
   NS_LOG_INFO ("Adding port addr " << switchPort->GetAddress ());
   
-  if (m_ports.size () >= DP_MAX_PORTS)
+  if (m_datapath->ports_num >= DP_MAX_PORTS)
     {
       return EXFULL;
     }
@@ -222,20 +270,23 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> switchPort)
       SetMtu (switchPort->GetMtu ());
     }
 
-  int no = m_ports.size () + 1;
-  ofs::Port p (switchPort, no);
-  m_ports.push_back (p);
-  m_datapath->ports_num++;
-  NS_LOG_INFO ("Port # " << no);
+  int portNo = ++(m_datapath->ports_num);
+  sw_port *swPort = &m_datapath->ports[portNo];
+
+  char *portName = (char*)xmalloc (OFP_MAX_PORT_NAME_LEN);
+  snprintf (portName, OFP_MAX_PORT_NAME_LEN, "Port %d", portNo);
   
-  // Notify the controller that this port has been added
-  ofl_msg_port_status msg;
-  msg.header.type = OFPT_PORT_STATUS;
-  msg.reason = OFPPR_ADD;
-  msg.desc = p.conf;
+  ofs::Port *ns3Port = (ofs::Port*)xmalloc (sizeof (ofs::Port));
+  ns3Port->portNo = portNo;
+  ns3Port->netdev = csmaSwitchPort;
+  ns3Port->swPort = swPort;
+  
+  PortNew (m_datapath, swPort, portNo, portName, NULL/*macaddr*/, 
+      m_datapath->max_queues, csmaSwitchPort);
+    swPort->ns3port = &ns3Port;
 
-  SendToController ((ofl_msg_header*)&msg);
-
+  free (portName);
+ 
   NS_LOG_LOGIC ("RegisterProtocolHandler for " << switchPort->GetInstanceTypeId ().GetName ());
   m_node->RegisterProtocolHandler (
       MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this), 0, switchPort, true);
@@ -350,7 +401,7 @@ OFSwitch13NetDevice::SendToController (ofl_msg_header *msg, const sender *sender
 uint32_t
 OFSwitch13NetDevice::GetNSwitchPorts (void) const
 {
-  return m_ports.size ();
+  return m_datapath->ports_num;
 }
 
 uint64_t
@@ -574,15 +625,16 @@ void
 OFSwitch13NetDevice::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
-  
+ 
+  // FIXME: implementar o free das portas
   // No need to notify the controller that this port has been deleted
-  for (ofs::Ports_t::iterator b = m_ports.begin (), e = m_ports.end (); b != e; b++)
-    {
-      b->netdev = 0;
-      ofl_structs_free_port (b->conf);
-      free (b->stats);
-    }
-  m_ports.clear ();
+  // for (ofs::Ports_t::iterator b = m_ports.begin (), e = m_ports.end (); b != e; b++)
+  //   {
+  //     b->netdev = 0;
+  //     ofl_structs_free_port (b->conf);
+  //     free (b->stats);
+  //   }
+  // m_ports.clear ();
   m_echoMap.clear ();
   
   m_channel = 0;
@@ -658,16 +710,16 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
     }
 
   // Check for changes in port status
-  for (size_t i = 0; i < m_ports.size (); i++)
+  for (size_t i = 1; i < m_datapath->ports_num; i++)
     {
-      ofs::Port *p = &m_ports[i];
-      if (PortLiveUpdate (p))
+      sw_port *swPort = dp_ports_lookup (m_datapath, i);
+      if (PortLiveUpdate (swPort))
         {
           NS_LOG_DEBUG ("Port configuration has changed. Notifying the controller...");
           ofl_msg_port_status msg;
           msg.header.type = OFPT_PORT_STATUS;
           msg.reason = OFPPR_MODIFY;
-          msg.desc = p->conf;
+          msg.desc = swPort->conf;
 
           SendToController ((ofl_msg_header*)&msg);
         }
@@ -696,32 +748,27 @@ OFSwitch13NetDevice::DatapathSendEchoRequest ()
 }
 
 int 
-OFSwitch13NetDevice::PortNew (Ptr<NetDevice> netdev, datapath *dp, sw_port *port, 
-    uint32_t port_no, const char *netdev_name, uint32_t max_queues)
+OFSwitch13NetDevice::PortNew (datapath *dp, sw_port *port, uint32_t port_no, 
+    const char *netdev_name, const uint8_t *new_mac, uint32_t max_queues, 
+    Ptr<CsmaNetDevice> netdev)
 {
-  uint64_t now;
-
-  now = time_msec ();
-  max_queues = MIN (max_queues, NETDEV_MAX_QUEUES);
-
   /* NOTE: port struct is already allocated in struct dp */
   memset(port, '\0', sizeof *port);
-
   port->dp = dp;
-
+  
   port->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
   memset (port->conf, 0x00, sizeof (ofl_port));
-  port->conf->port_no    = port_no;
+  port->conf->port_no = port_no;
+  port->conf->name = strcpy ((char*)xmalloc (strlen (netdev_name) + 1), netdev_name);
   netdev->GetAddress ().CopyTo (port->conf->hw_addr);
-  port->conf->name       = strcpy ((char*)xmalloc (strlen (netdev_name) + 1), netdev_name);
-  port->conf->config     = 0x00000000;
-  port->conf->state      = 0x00000000 | OFPPS_LIVE;
-  // port->conf->curr       = netdev_get_features (netdev, NETDEV_FEAT_CURRENT);
-  // port->conf->advertised = netdev_get_features (netdev, NETDEV_FEAT_ADVERTISED);
-  // port->conf->supported  = netdev_get_features (netdev, NETDEV_FEAT_SUPPORTED);
-  // port->conf->peer       = netdev_get_features (netdev, NETDEV_FEAT_PEER);
+  port->conf->config = 0x00000000;
+  port->conf->state = 0x00000000 | OFPPS_LIVE;
+  port->conf->curr = PortGetFeatures (netdev);
+  port->conf->advertised = PortGetFeatures (netdev);
+  port->conf->supported = PortGetFeatures (netdev);
+  // port->conf->peer = PortGetFeatures (netdev);
   port->conf->curr_speed = port_speed (port->conf->curr);
-  port->conf->max_speed  = port_speed (port->conf->supported);
+  port->conf->max_speed = port_speed (port->conf->supported);
 
   dp_port_live_update (port);
 
@@ -731,14 +778,20 @@ OFSwitch13NetDevice::PortNew (Ptr<NetDevice> netdev, datapath *dp, sw_port *port
   port->flags |= SWP_USED;
   
   port->netdev = NULL;
-  port->max_queues = max_queues;
+  port->max_queues = MIN (max_queues, NETDEV_MAX_QUEUES);
   port->num_queues = 0;
-  port->created = now;
+  port->created = time_msec ();
 
   memset (port->queues, 0x00, sizeof (port->queues));
 
   list_push_back (&dp->port_list, &port->node);
-  dp->ports_num++;
+
+  // Notify the controller that this port has been added
+  ofl_msg_port_status msg;
+  msg.header.type = OFPT_PORT_STATUS;
+  msg.reason = OFPPR_ADD;
+  msg.desc = port->conf;
+  SendToController ((ofl_msg_header*)&msg);
 
   return 0;
 }
@@ -764,14 +817,14 @@ OFSwitch13NetDevice::PortGetOfsPort (uint32_t no)
   NS_LOG_FUNCTION (this << no);
   NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Invalid port number");
 
-  if (m_ports[no-1].port_no == no)
+  if (m_ports[no-1].portNo == no)
     {
       return &m_ports[no-1];
     }
   
   for (size_t i = 0; i < m_ports.size (); i++)
     {
-      if (m_ports[i].port_no == no)
+      if (m_ports[i].portNo == no)
         {
           return &m_ports[i];
         }
@@ -781,25 +834,26 @@ OFSwitch13NetDevice::PortGetOfsPort (uint32_t no)
 }
 
 int
-OFSwitch13NetDevice::PortLiveUpdate (ofs::Port *p)
+OFSwitch13NetDevice::PortLiveUpdate (sw_port *port)
 {
-  uint32_t orig_config = p->conf->config;
-  uint32_t orig_state = p->conf->state;
+  uint32_t orig_config = port->conf->config;
+  uint32_t orig_state = port->conf->state;
+  ofs::Port p = port->ns3Port;
 
   // Port is always enabled
-  p->conf->config &= ~OFPPC_PORT_DOWN;
+  port->conf->config &= ~OFPPC_PORT_DOWN;
 
   if (p->netdev->IsLinkUp ())
     {
-       p->conf->state &= ~OFPPS_LINK_DOWN;
+       port->conf->state &= ~OFPPS_LINK_DOWN;
     }
   else
     {
-       p->conf->state |= OFPPS_LINK_DOWN;
+       port->conf->state |= OFPPS_LINK_DOWN;
     }
-
-  return ((orig_config != p->conf->config) || 
-          (orig_state !=  p->conf->state));
+// FIXME should call dp_port_live_update?????
+  return ((orig_config != port->conf->config) || 
+          (orig_state !=  port->conf->state));
 }
 
 void 
@@ -1077,7 +1131,7 @@ OFSwitch13NetDevice::SendToSwitchPort (packet *pkt, ofs::Port *port)
         }
       return status;
     }
-  NS_LOG_ERROR ("can't forward to bad port " << port->port_no);
+  NS_LOG_ERROR ("can't forward to bad port " << port->portNo);
   return false;
 }
 
@@ -1088,7 +1142,7 @@ OFSwitch13NetDevice::FloodToSwitchPorts (packet *pkt)
   for (uint32_t i = 1; i <= GetNSwitchPorts (); i++)
     {
       p = PortGetOfsPort (i);
-      if (p->port_no == pkt->in_port)
+      if (p->portNo == pkt->in_port)
         {
           continue;
         }

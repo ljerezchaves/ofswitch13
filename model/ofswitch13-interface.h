@@ -19,13 +19,13 @@
 /** 
  * \defgroup ofswitch13 OpenFlow 1.3 softswitch
  * This section documents the API of ns3 OpenFlow 1.3 compatible switch
- * datapath and base controller implementation. This module follows the
+ * and controller implementation. This module follows the
  * OpenFlow 1.3 switch specification
  * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
  * It depends on the CPqD ofsoftswitch13 <https://github.com/ljerezchaves/ofsoftswitch13> 
  * implementation compiled as a library (use ./configure --enable-ns3-lib).
  *
- * \attention Currently, only a subset of features are supported.
+ * \attention Currently, not all OpenFlow 1.3 features are supported.
  */
 #ifndef OFSWITCH13_INTERFACE_H
 #define OFSWITCH13_INTERFACE_H
@@ -102,11 +102,11 @@ int parse_table (char *str, uint8_t *table);
 
 // From udatapath/datapath.c 
 struct remote* remote_create (struct datapath *dp, 
-        struct rconn *rconn, struct rconn *rconn_aux);
+    struct rconn *rconn, struct rconn *rconn_aux);
 
 // From udatapath/dp_control.c
 ofl_err handle_control_stats_request (struct datapath *dp, 
-        struct ofl_msg_multipart_request_header *msg, const struct sender *sender);
+    struct ofl_msg_multipart_request_header *msg, const struct sender *sender);
 
 // From udatapath/pipeline.c
 int inst_compare (const void *inst1, const void *inst2);
@@ -132,40 +132,6 @@ namespace ns3 {
 namespace ofs {
 
 class OFSwitch13NetDevice;
-
-/**
- * \ingroup ofswitch13
- * \brief Switch SwPort and its metadata.
- * \see ofsoftswitch13 udatapath/dp_ports.h
- */
-struct Port
-{
-  /**
-   * \brief Port constructor.
-   * \see new_port () at udatapath/dp_ports.c.
-   * \attention Port numbers should start at 1.
-   * \param dev Pointer to NetDevice (port) at the switch.
-   * \param port_no Number for this port.
-   */
-  Port (Ptr<NetDevice> dev, uint32_t port_no);
-
-  /**
-   * Get netdev data rate and set Openflow port features config.
-   * \param netdev Switch port device.
-   * \return the configure port features.
-   */
-  uint32_t GetFeatures (Ptr<CsmaNetDevice> netdev);
-  
-  uint32_t flags;                 ///< SWP_* flags.
-  Ptr<NetDevice> netdev;          ///< Pointer to ns3::NetDevice
-  ofl_port *conf;                 ///< Config information
-  ofl_port_stats *stats;          ///< Statistics
-  uint32_t port_no;               ///< Port number
-  uint64_t created;               ///< Create time
-};
-
-/** Structure to store port information. */
-typedef std::vector<Port> Ports_t;     
 
 /**
  * \ingroup ofswitch13

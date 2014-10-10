@@ -31,6 +31,38 @@
 #include "ofswitch13-controller.h"
 
 namespace ns3 {
+namespace ofs {
+/**
+ * \ingroup ofswitch13
+ * \brief Switch SwPort and its metadata.
+ * \see ofsoftswitch13 udatapath/dp_ports.h
+ */
+struct Port
+{
+//  /**
+//   * \brief Port constructor.
+//   * \attention Port numbers should start at 1.
+//   * \param dev Pointer to NetDevice (port) at the switch.
+//   * \param port_no Number for this port.
+//   */
+//  Port (Ptr<NetDevice> dev, uint32_t no);
+
+  uint32_t portNo;       //!< Port number
+  Ptr<NetDevice> netdev; //!< Pointer to ns3::NetDevice
+  sw_port *swPort;       //!< Pointer to datapath sw_port
+};
+
+/** Structure to store port information. */
+typedef std::vector<Port> Ports_t;     
+
+/**
+ * Get netdev data rate and set Openflow port features config.
+ * \param netdev Switch port device.
+ * \return the configure port features.
+ */
+uint32_t PortGetFeatures (Ptr<CsmaNetDevice> netdev);
+
+} // namespace ofs
 
 /**
  * \ingroup ofswitch13
@@ -170,16 +202,17 @@ private:
   //\{
   /**
    * Creates a new port (with queues) and save it into datapath.
-   * \param netdev The Ptr<NetDevice> pointer to device.
    * \param dp The datapath.
+   * \see new_port () at udatapath/dp_ports.c.
    * \param port The port structure.
    * \param port_no The port number.
    * \param netdev_name The name describing this port.
+   * \param new_mac Mac address of device port.
    * \param max_queues The max number of queues for this port.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int PortNew (Ptr<NetDevice> netdev, datapath *dp, sw_port *port, 
-      uint32_t port_no, const char *netdev_name,  uint32_t max_queues);
+  int PortNew (datapath *dp, sw_port *port, uint32_t port_no, 
+    const char *netdev_name, const uint8_t *new_mac, uint32_t max_queues, Ptr<CsmaNetDevice> netdev);
 
   /**
    * Search the switch ports looking for a specific device.
@@ -199,10 +232,10 @@ private:
    * Update the port status field of the switch port. A non-zero return value
    * indicates some field has changed.
    * \see ofsoftswitch13 dp_port_live_update () at udatapath/dp_ports.c
-   * \param p Port to update its config and flag fields.
+   * \param port Port to update its config and flag fields.
    * \return 0 if unchanged, any value otherwise.
    */
-  int PortLiveUpdate (ofs::Port *p);
+  int PortLiveUpdate (sw_port *port);
 
   /**
    * Updates the time fields of the port statistics. Used before
