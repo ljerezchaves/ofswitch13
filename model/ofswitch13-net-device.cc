@@ -100,12 +100,14 @@ GetDatapathDevice (uint64_t id)
 }
 
 // ---- OpenFlow port code -------------------------------
+namespace ns3 {
+
 uint32_t
 OFPort::PortGetFeatures ()
 {
   DataRateValue drv;
   DataRate dr;
-  Ptr<CsmaChannel> channel = DynamicCast<CsmaChannel> (netdev->GetChannel ());
+  Ptr<CsmaChannel> channel = DynamicCast<CsmaChannel> (m_netdev->GetChannel ());
   channel->GetAttribute ("DataRate", drv);
   dr = drv.Get ();
 
@@ -150,60 +152,59 @@ OFPort::PortGetFeatures ()
 
 OFPort::OFPort (datapath *dp, Ptr<NetDevice> dev)
 {
-  netdev = dev;
-  portNo = ++(dp->ports_num);
-  swPort = &dp->ports[portNo];
+  // Internal members
+  m_netdev = dev;
+  m_portNo = ++(dp->ports_num);
+  m_swPort = &dp->ports[m_portNo];
 
-  memset (swPort, '\0', sizeof *swPort);
+  memset (m_swPort, '\0', sizeof *m_swPort);
 
-  swPort->dp = dp;
-  swPort->ns3port = this;
+  m_swPort->dp = dp;
+  m_swPort->ns3port = this;
 
-  swPort->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
-  memset (swPort->conf, 0x00, sizeof (ofl_port));
-  swPort->conf->port_no = portNo;
-  swPort->conf->name = (char*)xmalloc (OFP_MAX_PORT_NAME_LEN);
-  snprintf (swPort->conf->name, OFP_MAX_PORT_NAME_LEN, "Port %d", portNo);
-  netdev->GetAddress ().CopyTo (swPort->conf->hw_addr);
-  swPort->conf->config = 0x00000000;
-  swPort->conf->state = 0x00000000 | OFPPS_LIVE;
-  swPort->conf->curr = PortGetFeatures ();
-  swPort->conf->advertised = PortGetFeatures ();
-  swPort->conf->supported = PortGetFeatures ();
-  // swPort->conf->peer = PortGetFeatures ();
-  swPort->conf->curr_speed = port_speed (swPort->conf->curr);
-  swPort->conf->max_speed = port_speed (swPort->conf->supported);
+  m_swPort->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
+  memset (m_swPort->conf, 0x00, sizeof (ofl_port));
+  m_swPort->conf->port_no = m_portNo;
+  m_swPort->conf->name = (char*)xmalloc (OFP_MAX_PORT_NAME_LEN);
+  snprintf (m_swPort->conf->name, OFP_MAX_PORT_NAME_LEN, "Port %d", m_portNo);
+  m_netdev->GetAddress ().CopyTo (m_swPort->conf->hw_addr);
+  m_swPort->conf->config = 0x00000000;
+  m_swPort->conf->state = 0x00000000 | OFPPS_LIVE;
+  m_swPort->conf->curr = PortGetFeatures ();
+  m_swPort->conf->advertised = PortGetFeatures ();
+  m_swPort->conf->supported = PortGetFeatures ();
+  // m_swPort->conf->peer = PortGetFeatures ();
+  m_swPort->conf->curr_speed = port_speed (m_swPort->conf->curr);
+  m_swPort->conf->max_speed = port_speed (m_swPort->conf->supported);
 
-  dp_port_live_update (swPort);
+  dp_port_live_update (m_swPort);
 
-  swPort->stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
-  memset (swPort->stats, 0x00, sizeof (ofl_port_stats));
-  swPort->stats->port_no = portNo;
-  swPort->flags |= SWP_USED;
+  m_swPort->stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
+  memset (m_swPort->stats, 0x00, sizeof (ofl_port_stats));
+  m_swPort->stats->port_no = m_portNo;
+  m_swPort->flags |= SWP_USED;
 
-  // To avoid a null check failure in dp_swPorts_handle_stats_request_swPort (),
-  // we are pointing swPort->netdev to ns3::NetDevice, but it may? not be used.
-  swPort->netdev = (struct netdev*)PeekPointer (dev);
-  swPort->max_queues = NETDEV_MAX_QUEUES;
-  swPort->num_queues = 0; // No queue supswPort by now
-  swPort->created = time_msec ();
+  // To avoid a null check failure in dp_m_swPorts_handle_stats_request_m_swPort (),
+  // we are pointing m_swPort->netdev to ns3::NetDevice, but it will not be used.
+  m_swPort->netdev = (struct netdev*)PeekPointer (dev);
+  m_swPort->max_queues = NETDEV_MAX_QUEUES;
+  m_swPort->num_queues = 0; // No queue support by now
+  m_swPort->created = time_msec ();
 
-  memset (swPort->queues, 0x00, sizeof (swPort->queues));
+  memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
 
-  list_push_back (&dp->port_list, &swPort->node);
+  list_push_back (&dp->port_list, &m_swPort->node);
 }
 
 OFPort::~OFPort ()
 {
-  netdev = 0;
-  ofl_structs_free_port (swPort->conf);
-  free (swPort->stats);
+  m_netdev = 0;
+  ofl_structs_free_port (m_swPort->conf);
+  free (m_swPort->stats);
 }
 
 
 // ---- OpenFlow switch code -------------------------------
-namespace ns3 {
-
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
 
 // Initializing OFSwitch13NetDevice static members
@@ -305,7 +306,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   ofl_msg_port_status msg;
   msg.header.type = OFPT_PORT_STATUS;
   msg.reason = OFPPR_ADD;
-  msg.desc = ofPort->swPort->conf;
+  msg.desc = ofPort->m_swPort->conf;
   SendToController ((ofl_msg_header*)&msg);
 
   NS_LOG_LOGIC ("RegisterProtocolHandler for " << portDevice->GetInstanceTypeId ().GetName ());
@@ -718,24 +719,24 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
   for (size_t i = 1; i < GetNSwitchPorts (); i++)
     {
       ns3Port = PortGetOFPort (i);
-      orig_state = ns3Port->swPort->conf->state;
-      if (ns3Port->netdev->IsLinkUp ())
+      orig_state = ns3Port->m_swPort->conf->state;
+      if (ns3Port->m_netdev->IsLinkUp ())
         {
-          ns3Port->swPort->conf->state &= ~OFPPS_LINK_DOWN;
+          ns3Port->m_swPort->conf->state &= ~OFPPS_LINK_DOWN;
         }
       else
         {
-          ns3Port->swPort->conf->state |= OFPPS_LINK_DOWN;
+          ns3Port->m_swPort->conf->state |= OFPPS_LINK_DOWN;
         }
-      dp_port_live_update (ns3Port->swPort);
+      dp_port_live_update (ns3Port->m_swPort);
 
-      if (orig_state != ns3Port->swPort->conf->state)
+      if (orig_state != ns3Port->m_swPort->conf->state)
         {
           NS_LOG_DEBUG ("Port status has changed. Notifying the controller...");
           ofl_msg_port_status msg;
           msg.header.type = OFPT_PORT_STATUS;
           msg.reason = OFPPR_MODIFY;
-          msg.desc = ns3Port->swPort->conf;
+          msg.desc = ns3Port->m_swPort->conf;
 
           SendToController ((ofl_msg_header*)&msg);
         }
@@ -766,7 +767,7 @@ OFSwitch13NetDevice::PortGetOFPort (Ptr<NetDevice> dev)
   NS_LOG_FUNCTION (this << dev);
   for (size_t i = 0; i < m_ports.size (); i++)
     {
-      if (m_ports[i]->netdev == dev)
+      if (m_ports[i]->m_netdev == dev)
         {
           return m_ports[i];
         }
@@ -781,14 +782,14 @@ OFSwitch13NetDevice::PortGetOFPort (uint32_t no)
   NS_LOG_FUNCTION (this << no);
   NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Invalid port number");
 
-  if (m_ports[no - 1]->portNo == no)
+  if (m_ports[no - 1]->m_portNo == no)
     {
       return m_ports[no - 1];
     }
 
   for (size_t i = 0; i < m_ports.size (); i++)
     {
-      if (m_ports[i]->portNo == no)
+      if (m_ports[i]->m_portNo == no)
         {
           return m_ports[i];
         }
@@ -846,7 +847,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Pac
   // Get the input port and check configuration
   Ptr<OFPort> inPort = PortGetOFPort (netdev);
   NS_ASSERT_MSG (inPort != NULL, "This device is not registered as a switch port");
-  if (inPort->swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
+  if (inPort->m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
     {
       NS_LOG_WARN ("This port is down or inoperating. Discarding packet");
       return;
@@ -865,11 +866,11 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Pac
   uint32_t headRoom = 128 + 2;
   uint32_t bodyRoom = netdev->GetMtu () + VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofs::BufferFromPacket (pktCopy, bodyRoom, headRoom);
-  struct packet *pkt = packet_create (m_datapath, inPort->portNo, buffer, false);
+  struct packet *pkt = packet_create (m_datapath, inPort->m_portNo, buffer, false);
 
   // Update port stats
-  inPort->swPort->stats->rx_packets++;
-  inPort->swPort->stats->rx_bytes += buffer->size;
+  inPort->m_swPort->stats->rx_packets++;
+  inPort->m_swPort->stats->rx_bytes += buffer->size;
 
   // Runs the packet through the pipeline
   Simulator::Schedule (m_lookupDelay, pipeline_process_packet, m_datapath->pipeline, pkt);
@@ -914,14 +915,13 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t
   NS_LOG_FUNCTION (this);
 
   Ptr<OFPort> port = PortGetOFPort (portNo);
-  if (port == 0 || port->netdev == 0)
+  if (port == 0 || port->m_netdev == 0)
     {
       NS_LOG_ERROR ("can't forward to invalid port.");
       return false;
     }
-  sw_port *swPort = port->swPort;
 
-  if ((swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN))) == 0)
+  if ((port->m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN))) == 0)
     {
       // Removing the ethernet header and trailer from packet, which will be
       // included again by CsmaNetDevice
@@ -932,21 +932,21 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t
       EthernetHeader header;
       packet->RemoveHeader (header);
 
-      bool status = port->netdev->SendFrom (packet, header.GetSource (),
-                                            header.GetDestination (),
-                                            header.GetLengthType ());
+      bool status = port->m_netdev->SendFrom (packet, header.GetSource (),
+                                              header.GetDestination (),
+                                              header.GetLengthType ());
       if (status)
         {
-          swPort->stats->tx_packets++;
-          swPort->stats->tx_bytes += packet->GetSize ();
+          port->m_swPort->stats->tx_packets++;
+          port->m_swPort->stats->tx_bytes += packet->GetSize ();
         }
       else
         {
-          swPort->stats->tx_dropped++;
+          port->m_swPort->stats->tx_dropped++;
         }
       return status;
     }
-  NS_LOG_ERROR ("can't forward to bad port " << port->portNo);
+  NS_LOG_ERROR ("can't forward to bad port " << port->m_portNo);
   return false;
 }
 

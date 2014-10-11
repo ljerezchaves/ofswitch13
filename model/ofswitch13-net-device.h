@@ -48,6 +48,7 @@ class OFPort : public SimpleRefCount<OFPort>
 public:
   /**
    * Create and populate port information.
+   * \see ofsoftswitch new_port () at udatapath/dp_ports.c
    * \param dp The datapath.
    * \param dev The swith port ns3::NetDevice.
    */
@@ -58,15 +59,16 @@ public:
 
 private:
   /**
-   * Create the bitmaps of OFPPF_* that describe port features, based on
+   * Create the bitmaps of OFPPF_* describing port features, based on
    * ns3::NetDevice.
+   * \see ofsoftswitch netdev_get_features () at lib/netdev.c
    * \return Port features bitmap.
    */
   uint32_t PortGetFeatures ();
 
-  uint32_t portNo;       //!< Port number
-  Ptr<NetDevice> netdev; //!< Pointer to ns3::NetDevice
-  sw_port *swPort;       //!< Pointer to datapath sw_port
+  uint32_t       m_portNo; //!< Port number
+  Ptr<NetDevice> m_netdev; //!< Pointer to ns3::NetDevice
+  sw_port*       m_swPort; //!< Pointer to datapath sw_port
 };
 
 /** Structure to store port information. */
