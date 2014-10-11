@@ -165,11 +165,6 @@ public:
   uint64_t GetDatapathId (void) const;
 
   /**
-   * \return The next (in sequence) transaction ID for this switch.
-   */
-  uint32_t GetNextXid ();
-
-  /**
    * Starts the TCP connection between switch and controller.
    */
   void StartControllerConnection ();

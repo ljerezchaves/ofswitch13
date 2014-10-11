@@ -292,12 +292,6 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
       NS_FATAL_ERROR ("NetDevice must be of CsmaNetDevice type.");
     }
 
-  // Update max mtu
-  if (portDevice->GetMtu () > GetMtu ())
-    {
-      SetMtu (portDevice->GetMtu ());
-    }
-
   // Create the port for this device
   Ptr<OFPort> ofPort = Create<OFPort> (m_datapath, csmaPortDevice);
   m_portsByNo.insert (std::pair<uint32_t, Ptr<OFPort> > (ofPort->m_portNo, ofPort));
@@ -310,9 +304,10 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   msg.desc = ofPort->m_swPort->conf;
   SendToController ((ofl_msg_header*)&msg);
 
-  // Register a trace sink for this csmaPorDevice to get received packets and
-  // send it to pipeline. 
-  csmaPortDevice->TraceConnectWithoutContext ("OpenFlowRx", MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this));
+  // Register a trace sink for this csmaPorDevice to get packets received from
+  // device to send to pipeline. 
+  csmaPortDevice->TraceConnectWithoutContext (
+    "OpenFlowRx", MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this));
   return 0;
 }
 
@@ -331,7 +326,7 @@ OFSwitch13NetDevice::SendToController (ofl_msg_header *msg, const sender *sender
   NS_LOG_DEBUG ("TX to ctrl: " << msg_str);
   free (msg_str);
 
-  uint32_t xid = sender ? sender->xid : GetNextXid ();
+  uint32_t xid = sender ? sender->xid : ++m_xid;
   ofpbuf *buffer = ofs::BufferFromMsg (msg, xid, m_datapath->exp);
 
   if (sender)
@@ -432,12 +427,6 @@ OFSwitch13NetDevice::GetDatapathId (void) const
   return m_dpId;
 }
 
-uint32_t
-OFSwitch13NetDevice::GetNextXid ()
-{
-  return ++m_xid;
-}
-
 void
 OFSwitch13NetDevice::StartControllerConnection ()
 {
@@ -449,6 +438,7 @@ OFSwitch13NetDevice::StartControllerConnection ()
     {
       int error = 0;
       m_ctrlSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+      
       error = m_ctrlSocket->Bind ();
       if (error)
         {
@@ -466,8 +456,10 @@ OFSwitch13NetDevice::StartControllerConnection ()
       m_ctrlSocket->SetConnectCallback (
         MakeCallback (&OFSwitch13NetDevice::SocketCtrlSucceeded, this),
         MakeCallback (&OFSwitch13NetDevice::SocketCtrlFailed, this));
+      
       return;
     }
+
   NS_LOG_ERROR ("Controller already set.");
 }
 
@@ -539,7 +531,7 @@ bool
 OFSwitch13NetDevice::IsBroadcast (void) const
 {
   NS_LOG_FUNCTION (this);
-  return true;
+  return false;
 }
 
 Address
@@ -553,7 +545,7 @@ bool
 OFSwitch13NetDevice::IsMulticast (void) const
 {
   NS_LOG_FUNCTION (this);
-  return true;
+  return false;
 }
 
 Address
@@ -582,7 +574,7 @@ bool
 OFSwitch13NetDevice::IsBridge (void) const
 {
   NS_LOG_FUNCTION (this);
-  return true;
+  return false;
 }
 
 // This is a openflow device, so we don't send packets from here. Instead, we
@@ -662,8 +654,8 @@ OFSwitch13NetDevice::DoDispose ()
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
   meter_table_destroy (m_datapath->meters);
-
   UnregisterDatapath (m_dpId);
+  
   NetDevice::DoDispose ();
 }
 
@@ -743,7 +735,6 @@ Ptr<OFPort>
 OFSwitch13NetDevice::PortGetOFPort (uint32_t no)
 {
   NS_LOG_FUNCTION (this << no);
-  NS_ASSERT_MSG (no > 0 && no <= GetNSwitchPorts (), "Invalid port number");
 
   PortNoMap_t::iterator it;
   it = m_portsByNo.find (no);
@@ -811,17 +802,17 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t
       return false;
     }
 
-  if ((port->m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN))) == 0)
+  if (!(port->m_swPort->conf->config & (OFPPC_PORT_DOWN)))
     {
       // Removing the ethernet header and trailer from packet, which will be
       // included again by CsmaNetDevice
       Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
       EthernetTrailer trailer;
       packet->RemoveTrailer (trailer);
-
       EthernetHeader header;
       packet->RemoveHeader (header);
 
+      // No queue support by now
       bool status = port->m_netdev->SendFrom (packet, header.GetSource (),
                                               header.GetDestination (),
                                               header.GetLengthType ());
@@ -836,6 +827,7 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t
         }
       return status;
     }
+  /* NOTE: no need to delete buffer, it is deleted along with the packet in caller. */
   NS_LOG_ERROR ("can't forward to bad port " << port->m_portNo);
   return false;
 }
@@ -933,5 +925,5 @@ OFSwitch13NetDevice::SocketCtrlFailed (Ptr<Socket> socket)
   NS_LOG_ERROR ("Controller did not accepted connection request!");
 }
 
-} // ------------- namespace ns3 -------------
+} // namespace ns3
 #endif // NS3_OFSWITCH13
