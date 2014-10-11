@@ -277,6 +277,7 @@ private:
   /**
    * Receive a openflow packet from controller.
    * \see remote_rconn_run () at udatapath/datapath.c.
+   * \param socket The TCP socket.
    */
   void SocketCtrlRead       (Ptr<Socket> socket);
   void SocketCtrlSucceeded  (Ptr<Socket> socket);   //!< TCP request accepted
