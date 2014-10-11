@@ -102,6 +102,57 @@ GetDatapathDevice (uint64_t id)
 // ---- OpenFlow port code -------------------------------
 namespace ns3 {
 
+OFPort::OFPort (datapath *dp, Ptr<NetDevice> dev)
+{
+  // Internal members
+  m_netdev = dev;
+  m_portNo = ++(dp->ports_num);
+  m_swPort = &dp->ports[m_portNo];
+  
+  memset (m_swPort, '\0', sizeof *m_swPort);
+
+  m_swPort->dp = dp;
+  m_swPort->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
+  memset (m_swPort->conf, 0x00, sizeof (ofl_port));
+  m_swPort->conf->port_no = m_portNo;
+  m_swPort->conf->name = (char*)xmalloc (OFP_MAX_PORT_NAME_LEN);
+  snprintf (m_swPort->conf->name, OFP_MAX_PORT_NAME_LEN, "Port %d", m_portNo);
+  m_netdev->GetAddress ().CopyTo (m_swPort->conf->hw_addr);
+  m_swPort->conf->config = 0x00000000;
+  m_swPort->conf->state = 0x00000000 | OFPPS_LIVE;
+  m_swPort->conf->curr = PortGetFeatures ();
+  m_swPort->conf->advertised = PortGetFeatures ();
+  m_swPort->conf->supported = PortGetFeatures ();
+  // m_swPort->conf->peer = PortGetFeatures ();
+  m_swPort->conf->curr_speed = port_speed (m_swPort->conf->curr);
+  m_swPort->conf->max_speed = port_speed (m_swPort->conf->supported);
+
+  dp_port_live_update (m_swPort);
+
+  m_swPort->stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
+  memset (m_swPort->stats, 0x00, sizeof (ofl_port_stats));
+  m_swPort->stats->port_no = m_portNo;
+  m_swPort->flags |= SWP_USED;
+
+  // To avoid a null check failure in dp_m_swPorts_handle_stats_request_m_swPort (),
+  // we are pointing m_swPort->netdev to ns3::NetDevice, but it will not be used.
+  m_swPort->netdev = (struct netdev*)PeekPointer (dev);
+  m_swPort->max_queues = NETDEV_MAX_QUEUES;
+  m_swPort->num_queues = 0; // No queue support by now
+  m_swPort->created = time_msec ();
+
+  memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
+
+  list_push_back (&dp->port_list, &m_swPort->node);
+}
+
+OFPort::~OFPort ()
+{
+  m_netdev = 0;
+  ofl_structs_free_port (m_swPort->conf);
+  free (m_swPort->stats);
+}
+
 uint32_t
 OFPort::PortGetFeatures ()
 {
@@ -150,59 +201,21 @@ OFPort::PortGetFeatures ()
   return feat;
 }
 
-OFPort::OFPort (datapath *dp, Ptr<NetDevice> dev)
+bool
+OFPort::PortUpdateState ()
 {
-  // Internal members
-  m_netdev = dev;
-  m_portNo = ++(dp->ports_num);
-  m_swPort = &dp->ports[m_portNo];
-
-  memset (m_swPort, '\0', sizeof *m_swPort);
-
-  m_swPort->dp = dp;
-  m_swPort->ns3port = this;
-
-  m_swPort->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
-  memset (m_swPort->conf, 0x00, sizeof (ofl_port));
-  m_swPort->conf->port_no = m_portNo;
-  m_swPort->conf->name = (char*)xmalloc (OFP_MAX_PORT_NAME_LEN);
-  snprintf (m_swPort->conf->name, OFP_MAX_PORT_NAME_LEN, "Port %d", m_portNo);
-  m_netdev->GetAddress ().CopyTo (m_swPort->conf->hw_addr);
-  m_swPort->conf->config = 0x00000000;
-  m_swPort->conf->state = 0x00000000 | OFPPS_LIVE;
-  m_swPort->conf->curr = PortGetFeatures ();
-  m_swPort->conf->advertised = PortGetFeatures ();
-  m_swPort->conf->supported = PortGetFeatures ();
-  // m_swPort->conf->peer = PortGetFeatures ();
-  m_swPort->conf->curr_speed = port_speed (m_swPort->conf->curr);
-  m_swPort->conf->max_speed = port_speed (m_swPort->conf->supported);
-
+  uint32_t orig_state = m_swPort->conf->state;
+  if (m_netdev->IsLinkUp ())
+    {
+      m_swPort->conf->state &= ~OFPPS_LINK_DOWN;
+    }
+  else
+    {
+      m_swPort->conf->state |= OFPPS_LINK_DOWN;
+    }
   dp_port_live_update (m_swPort);
-
-  m_swPort->stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
-  memset (m_swPort->stats, 0x00, sizeof (ofl_port_stats));
-  m_swPort->stats->port_no = m_portNo;
-  m_swPort->flags |= SWP_USED;
-
-  // To avoid a null check failure in dp_m_swPorts_handle_stats_request_m_swPort (),
-  // we are pointing m_swPort->netdev to ns3::NetDevice, but it will not be used.
-  m_swPort->netdev = (struct netdev*)PeekPointer (dev);
-  m_swPort->max_queues = NETDEV_MAX_QUEUES;
-  m_swPort->num_queues = 0; // No queue support by now
-  m_swPort->created = time_msec ();
-
-  memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
-
-  list_push_back (&dp->port_list, &m_swPort->node);
+  return (orig_state != m_swPort->conf->state);
 }
-
-OFPort::~OFPort ()
-{
-  m_netdev = 0;
-  ofl_structs_free_port (m_swPort->conf);
-  free (m_swPort->stats);
-}
-
 
 // ---- OpenFlow switch code -------------------------------
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
@@ -246,17 +259,12 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   : m_dpId (++m_globalDpId),
     m_node (0),
     m_ctrlSocket (0),
-    m_ifIndex (0),
-    m_mtu (0x0000)
+    m_ifIndex (0)
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
 
   m_ctrlAddr = Address ();
-  m_channel = CreateObject<BridgeChannel> ();
-  SetAddress (Mac48Address::Allocate ());
-
-  m_ports.reserve (DP_MAX_PORTS);
   m_datapath = DatapathNew ();
   RegisterDatapath (m_dpId, Ptr<OFSwitch13NetDevice> (this));
   Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, this, m_datapath);
@@ -283,10 +291,6 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
     {
       NS_FATAL_ERROR ("NetDevice must be of CsmaNetDevice type.");
     }
-  if (csmaPortDevice->GetEncapsulationMode () != CsmaNetDevice::DIX)
-    {
-      NS_FATAL_ERROR ("CsmaNetDevice must use DIX encapsulation.");
-    }
 
   // Update max mtu
   if (portDevice->GetMtu () > GetMtu ())
@@ -294,8 +298,10 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
       SetMtu (portDevice->GetMtu ());
     }
 
+  // Create the port for this device
   Ptr<OFPort> ofPort = Create<OFPort> (m_datapath, csmaPortDevice);
-  m_ports.push_back (ofPort);
+  m_portsByNo.insert (std::pair<uint32_t, Ptr<OFPort> > (ofPort->m_portNo, ofPort));
+  m_portsByDev.insert (std::pair<Ptr<NetDevice>, Ptr<OFPort> > (ofPort->m_netdev, ofPort)); 
 
   // Notify the controller that this port has been added
   ofl_msg_port_status msg;
@@ -304,10 +310,9 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   msg.desc = ofPort->m_swPort->conf;
   SendToController ((ofl_msg_header*)&msg);
 
-  NS_LOG_LOGIC ("RegisterProtocolHandler for " << portDevice->GetInstanceTypeId ().GetName ());
-  m_node->RegisterProtocolHandler (
-    MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this), 0, portDevice, true);
-  m_channel->AddChannel (portDevice->GetChannel ());
+  // Register a trace sink for this csmaPorDevice to get received packets and
+  // send it to pipeline. 
+  csmaPortDevice->TraceConnectWithoutContext ("OpenFlowRx", MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this));
   return 0;
 }
 
@@ -485,29 +490,29 @@ Ptr<Channel>
 OFSwitch13NetDevice::GetChannel (void) const
 {
   NS_LOG_FUNCTION (this);
-  return m_channel;
+  return NULL;
 }
 
+// This is a openflow device, so we really don't need any kind of address
+// information. We simply ignore it.
 void
 OFSwitch13NetDevice::SetAddress (Address address)
 {
   NS_LOG_FUNCTION (this);
-  m_address = Mac48Address::ConvertFrom (address);
-  NS_LOG_INFO ("Switch addr " << m_address);
 }
 
 Address
 OFSwitch13NetDevice::GetAddress (void) const
 {
   NS_LOG_FUNCTION (this);
-  return m_address;
+  return Address ();
 }
 
+// No need to keep mtu, as we can query the port device for it. 
 bool
 OFSwitch13NetDevice::SetMtu (const uint16_t mtu)
 {
   NS_LOG_FUNCTION (this);
-  m_mtu = mtu;
   return true;
 }
 
@@ -515,7 +520,7 @@ uint16_t
 OFSwitch13NetDevice::GetMtu (void) const
 {
   NS_LOG_FUNCTION (this);
-  return m_mtu;
+  return 0xffff;
 }
 
 bool
@@ -580,19 +585,22 @@ OFSwitch13NetDevice::IsBridge (void) const
   return true;
 }
 
+// This is a openflow device, so we don't send packets from here. Instead, we
+// use port netdevices to do this. 
 bool
-OFSwitch13NetDevice::Send (Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber)
+OFSwitch13NetDevice::Send (Ptr<Packet> packet, const Address& dest, 
+                           uint16_t protocolNumber)
 {
   NS_LOG_FUNCTION (this);
-  return SendFrom (packet, m_address, dest, protocolNumber);
+  return false;
 }
 
 bool
-OFSwitch13NetDevice::SendFrom (Ptr<Packet> packet, const Address& src, const Address& dest,
-                               uint16_t protocolNumber)
+OFSwitch13NetDevice::SendFrom (Ptr<Packet> packet, const Address& src, 
+                               const Address& dest, uint16_t protocolNumber)
 {
   NS_LOG_FUNCTION (this);
-  return true;
+  return false;
 }
 
 Ptr<Node>
@@ -613,28 +621,31 @@ bool
 OFSwitch13NetDevice::NeedsArp (void) const
 {
   NS_LOG_FUNCTION (this);
-  return true;
+  return false;
 }
 
+// This is a openflow device, so we don't expect packets addressed to this
+// node. So, there is no need for receive callbacks. Install a new device on
+// this node to send/receive packets to/from it (and don't add this device as
+// switch port). This is the principle for communication between switch and
+// controller.
 void
 OFSwitch13NetDevice::SetReceiveCallback (NetDevice::ReceiveCallback cb)
 {
   NS_LOG_FUNCTION (this);
-  m_rxCallback = cb;
 }
 
 void
 OFSwitch13NetDevice::SetPromiscReceiveCallback (NetDevice::PromiscReceiveCallback cb)
 {
   NS_LOG_FUNCTION (this);
-  m_promiscRxCallback = cb;
 }
 
 bool
 OFSwitch13NetDevice::SupportsSendFrom () const
 {
   NS_LOG_FUNCTION (this);
-  return true;
+  return false;
 }
 
 /********** Private methods **********/
@@ -643,10 +654,10 @@ OFSwitch13NetDevice::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_channel = 0;
   m_node = 0;
   m_ctrlSocket = 0;
-  m_ports.clear ();
+  m_portsByNo.clear ();
+  m_portsByDev.clear ();
 
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
@@ -710,134 +721,65 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 
   // Check for changes in links (port) status
   Ptr<OFPort> ns3Port;
-  uint32_t orig_state;
   for (size_t i = 1; i < GetNSwitchPorts (); i++)
     {
       ns3Port = PortGetOFPort (i);
-      orig_state = ns3Port->m_swPort->conf->state;
-      if (ns3Port->m_netdev->IsLinkUp ())
-        {
-          ns3Port->m_swPort->conf->state &= ~OFPPS_LINK_DOWN;
-        }
-      else
-        {
-          ns3Port->m_swPort->conf->state |= OFPPS_LINK_DOWN;
-        }
-      dp_port_live_update (ns3Port->m_swPort);
-
-      if (orig_state != ns3Port->m_swPort->conf->state)
+      if (ns3Port->PortUpdateState ())
         {
           NS_LOG_DEBUG ("Port status has changed. Notifying the controller...");
           ofl_msg_port_status msg;
           msg.header.type = OFPT_PORT_STATUS;
           msg.reason = OFPPR_MODIFY;
           msg.desc = ns3Port->m_swPort->conf;
-
           SendToController ((ofl_msg_header*)&msg);
         }
     }
 
-  Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, this, dp);
   dp->last_timeout = time_now ();
-}
-
-Ptr<OFPort>
-OFSwitch13NetDevice::PortGetOFPort (Ptr<NetDevice> dev)
-{
-  NS_LOG_FUNCTION (this << dev);
-  for (size_t i = 0; i < m_ports.size (); i++)
-    {
-      if (m_ports[i]->m_netdev == dev)
-        {
-          return m_ports[i];
-        }
-    }
-  NS_LOG_ERROR ("No port found!");
-  return NULL;
+  Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, this, dp);
 }
 
 Ptr<OFPort>
 OFSwitch13NetDevice::PortGetOFPort (uint32_t no)
 {
   NS_LOG_FUNCTION (this << no);
-  NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Invalid port number");
+  NS_ASSERT_MSG (no > 0 && no <= GetNSwitchPorts (), "Invalid port number");
 
-  if (m_ports[no - 1]->m_portNo == no)
+  PortNoMap_t::iterator it;
+  it = m_portsByNo.find (no);
+  if (it != m_portsByNo.end ())
     {
-      return m_ports[no - 1];
+      return it->second;
     }
-
-  for (size_t i = 0; i < m_ports.size (); i++)
+  else
     {
-      if (m_ports[i]->m_portNo == no)
-        {
-          return m_ports[i];
-        }
+      NS_LOG_ERROR ("No port found!");
+      return NULL;
     }
-  NS_LOG_ERROR ("No port found!");
-  return NULL;
 }
 
 void
-OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Packet> packet,
-                                            uint16_t protocol, const Address &src,
-                                            const Address &dst, PacketType packetType)
+OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev, 
+                                            Ptr<const Packet> packet)
 {
   NS_LOG_FUNCTION (this);
 
-  Mac48Address src48 = Mac48Address::ConvertFrom (src);
-  Mac48Address dst48 = Mac48Address::ConvertFrom (dst);
-
-  NS_LOG_LOGIC ("Switch id " << this->GetNode ()->GetId () <<
-                " received packet type " << packetType <<
-                " with uid " << packet->GetUid () <<
-                " from " << src48 << " looking for " << dst48);
-
-  // For all kinds of packetType we receive, we hit the promiscuous sniffer
-  if (!m_promiscRxCallback.IsNull ())
+  // Preparing the packet for pipeline.
+  // Get the input port for this device and check configuration.
+  PortDevMap_t::iterator it;
+  it = m_portsByDev.find (netdev);
+  if (it == m_portsByDev.end ())
     {
-      m_promiscRxCallback (this, packet, protocol, src, dst, packetType);
+      NS_LOG_WARN ("This device is not registered as a switch port");
+      return;
     }
 
-  // This method is called after the Csma switch port received the packet. The
-  // CsmaNetDevice has already classified the packetType.
-  switch (packetType)
-    {
-    // For PACKET_BROADCAST or PACKET_MULTICAST, forward the packet up AND let
-    // the pipeline process it to get it forwarded.
-    case PACKET_BROADCAST:
-    case PACKET_MULTICAST:
-      m_rxCallback (this, packet, protocol, src);
-      break;
-
-    // For PACKET_OTHERHOST or PACKET_HOST check if it is addressed to this
-    // switch to forward it up OR let the pipeline process it.
-    case PACKET_HOST:
-    case PACKET_OTHERHOST:
-      if (dst48 == m_address)
-        {
-          // Packets addressed only to this switch will skip OpenFlow pipeline.
-          m_rxCallback (this, packet, protocol, src);
-          return;
-        }
-      break;
-    }
-
-  // Preparing the pipeline process...
-  // Get the input port and check configuration
-  Ptr<OFPort> inPort = PortGetOFPort (netdev);
-  NS_ASSERT_MSG (inPort != NULL, "This device is not registered as a switch port");
+  Ptr<OFPort> inPort = it->second;
   if (inPort->m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
     {
       NS_LOG_WARN ("This port is down or inoperating. Discarding packet");
       return;
     }
-
-  // Adding the ethernet header back to the packet. It was removed by
-  // CsmaNetDevice but we need L2 information for the pipeline. It will be
-  // removed when outputing the packet by SendToSwitchPort method.
-  Ptr<Packet> pktCopy = packet->Copy ();
-  AddEthernetHeader (pktCopy, src48, dst48, protocol);
 
   // Buffering the packet and creating the internal openflow packet structure
   // from buffer. Allocate buffer with some headroom to add headers in
@@ -845,7 +787,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Pac
   // to allow IP headers to be aligned on a 4-byte boundary.
   uint32_t headRoom = 128 + 2;
   uint32_t bodyRoom = netdev->GetMtu () + VLAN_ETH_HEADER_LEN;
-  ofpbuf *buffer = ofs::BufferFromPacket (pktCopy, bodyRoom, headRoom);
+  ofpbuf *buffer = ofs::BufferFromPacket (packet, bodyRoom, headRoom);
   struct packet *pkt = packet_create (m_datapath, inPort->m_portNo, buffer, false);
 
   // Update port stats
@@ -854,38 +796,6 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Pac
 
   // Runs the packet through the pipeline
   Simulator::Schedule (m_lookupDelay, pipeline_process_packet, m_datapath->pipeline, pkt);
-//  Simulator::Schedule (m_lookupDelay, &OFSwitch13NetDevice::PipelineProcessPacket,
-//      this, m_datapath->pipeline, pkt);
-}
-
-void
-OFSwitch13NetDevice::AddEthernetHeader (Ptr<Packet> packet, Mac48Address source,
-                                        Mac48Address dest, uint16_t protocolNumber)
-{
-  NS_LOG_FUNCTION (packet << source << dest << protocolNumber);
-
-  EthernetHeader header (false);
-  header.SetSource (source);
-  header.SetDestination (dest);
-
-  EthernetTrailer trailer;
-  if (packet->GetSize () < 46)
-    {
-      uint8_t buffer[46];
-      memset (buffer, 0, 46);
-      Ptr<Packet> padd = Create<Packet> (buffer, 46 - packet->GetSize ());
-      packet->AddAtEnd (padd);
-    }
-
-  header.SetLengthType (protocolNumber);
-  packet->AddHeader (header);
-
-  if (Node::ChecksumEnabled ())
-    {
-      trailer.EnableFcs (true);
-    }
-  trailer.CalcFcs (packet);
-  packet->AddTrailer (trailer);
 }
 
 bool
@@ -953,17 +863,16 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
                                    << InetSocketAddress::ConvertFrom (from).GetIpv4 ()
                                    << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
 
-          // Get the openflow buffer, unpack the message and send to handler
-          ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
-
-          // Gets the single remote in datapath (first in list).
+          // Gets the remote structure for this controller connection.
+          // As we currently support only one controller, it's the first in list.
           struct sender sender;
           sender.remote = CONTAINER_OF (list_front (&m_datapath->remotes), remote, node);
           sender.conn_id = 0; // No auxiliary connections
 
+          // Get the openflow buffer, unpack the message and send to handler
+          ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
           error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
                                   &sender.xid, m_datapath->exp);
-
           if (!error)
             {
               char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
@@ -991,7 +900,6 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
               err.code = ofl_error_code (error);
               err.data_length = buffer->size;
               err.data = (uint8_t*)buffer->data;
-
               SendToController ((ofl_msg_header*)&err, &sender);
             }
           ofpbuf_delete (buffer);

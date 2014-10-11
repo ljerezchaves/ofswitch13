@@ -47,7 +47,7 @@ class OFPort : public SimpleRefCount<OFPort>
 
 public:
   /**
-   * Create and populate port information.
+   * Create and populate a new datapath port.
    * \see ofsoftswitch new_port () at udatapath/dp_ports.c
    * \param dp The datapath.
    * \param dev The swith port ns3::NetDevice.
@@ -66,13 +66,22 @@ private:
    */
   uint32_t PortGetFeatures ();
 
+  /**
+   * Update the port state field based on netdevice status.
+   * \return true if the state of the port has changed, false otherwise. 
+   */
+  bool PortUpdateState ();
+
   uint32_t       m_portNo; //!< Port number
   Ptr<NetDevice> m_netdev; //!< Pointer to ns3::NetDevice
   sw_port*       m_swPort; //!< Pointer to datapath sw_port
 };
 
-/** Structure to store port information. */
-typedef std::vector<Ptr<OFPort> > Ports_t;
+/** Structure to map port number to port information. */
+typedef std::map<uint32_t, Ptr<OFPort> > PortNoMap_t;
+
+/** Structure to map NetDevice to port information. */
+typedef std::map<Ptr<NetDevice>, Ptr<OFPort> > PortDevMap_t;
 
 /**
  * \ingroup ofswitch13
@@ -111,18 +120,16 @@ public:
     * port to a OFSwitch13NetDevice, so that the new switch port NetDevice
     * becomes part of the switch and L2 frames start being forwarded to/from
     * this NetDevice.
-    * \attention The current implementation only supports CsmaNetDevices using
-    * DIX encapsulation. Also, the csmaNetDevice that is being added as switch
-    * port must _not_ have an IP address.
+    * \attention The current implementation only supports CsmaNetDevices (as
+    * OpenFlow deals with ethernet frames). Also, the port device that is being
+    * added as switch port must _not_ have an IP address.
     * \param portDevice The NetDevice port to add.
     * \return 0 if everything's ok, otherwise an error number.
     */
   int AddSwitchPort (Ptr<NetDevice> portDevice);
 
   /**
-   * Send a message to the controller. This method is the key to communicating
-   * with the controller, it does the actual sending. The other send methods
-   * call this one when they are ready to send the packet.
+   * Send a message to the controller node.
    * \internal This method is public as the 'C' dp_send_message overriding
    * function use this 'C++' member function to send their messages.
    * \see send_openflow_buffer () at udatapath/datapath.c.
@@ -138,6 +145,8 @@ public:
    * create the ns3 packet, remove the ethernet header and trailer from packet
    * (which will be included again by CsmaNetDevice), send the packet over the
    * proper netdevice, and update port statistics.
+   * \internal This method is public as the 'C' dp_ports_output overriding
+   * function use this 'C++' member function to send their messages.
    * \param buffer The internal packet buffer to send.
    * \param portNo The port number.
    * \param queueNo The queue number.
@@ -195,8 +204,6 @@ public:
 private:
   virtual void DoDispose (void);
 
-  ///\name Datapath methods
-  //\{
   /**
    * Creates a new datapath.
    * \return The created datapath.
@@ -211,16 +218,6 @@ private:
    * \param dp The datapath.
    */
   void DatapathTimeout (datapath* dp);
-  //\}
-
-  ///\name Port methods
-  //\{
-  /**
-   * Search the switch ports looking for a specific device.
-   * \param dev The Ptr<CsmaNetDevice> pointer to device.
-   * \return A pointer to the corresponding OFPort.
-   */
-  Ptr<OFPort> PortGetOFPort (Ptr<NetDevice> dev);
 
   /**
    * Search the switch ports looking for a specific port number.
@@ -235,69 +232,41 @@ private:
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
    * \param netdev The port the packet was received on.
    * \param packet The Packet itself.
-   * \param protocol The protocol defining the Packet.
-   * \param src The source address of the Packet.
-   * \param dst The destination address of the Packet.
-   * \param packetType Type of the packet.
    */
-  void ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Packet> packet,
-                              uint16_t protocol, const Address& src,
-                              const Address& dst, PacketType packetType);
+  void ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Packet> packet);
 
   /**
-   * Add an Ethernet header and trailer to the packet. This is an workaround
-   * to facilitate the creation of the openflow buffer. When the packet gets
-   * inside the switch, the Ethernet header has already been removed by
-   * CsmaNetDevice::Receive () method on the NetDevice port. So, we are going
-   * to include it again to properly buffer the packet. We will remove this
-   * header and trailer latter.
-   * \attention This method only works for DIX encapsulation mode.
-   * \see CsmaNetDevice::AddHeader ().
-   * \param packet The packet (will be modified).
-   * \param source The L2 source address.
-   * \param dest The L2 destination address.
-   * \param protocolNumber The L3 protocol defining the packet.
-   */
-  void AddEthernetHeader (Ptr<Packet> packet, Mac48Address source,
-                          Mac48Address dest, uint16_t protocolNumber);
-  //\}
-
-  /**
-   * \name Socket callbacks
-   * Handlers used as socket callbacks to TCP communication between this
-   * switch and the controller.
-   * \param socket The TCP socket.
-   */
-  //\{
-  /**
-   * Receive a openflow packet from controller.
+   * Socket callback to receive a openflow packet from controller.
    * \see remote_rconn_run () at udatapath/datapath.c.
    * \param socket The TCP socket.
    */
-  void SocketCtrlRead       (Ptr<Socket> socket);
-  void SocketCtrlSucceeded  (Ptr<Socket> socket);   //!< TCP request accepted
-  void SocketCtrlFailed     (Ptr<Socket> socket);   //!< TCP request refused
-  //\}
+  void SocketCtrlRead (Ptr<Socket> socket);
 
-  /// NetDevice callbacks
-  NetDevice::ReceiveCallback        m_rxCallback;        //!< Receive callback
-  NetDevice::PromiscReceiveCallback m_promiscRxCallback; //!< Promiscuous receive callback
+  /**
+   * Socket callback fired when a TCP connection to controller succeeds fail.
+   * \param socket The TCP socket.
+   */
+  void SocketCtrlSucceeded (Ptr<Socket> socket);
+  
+  /**
+   * Socket callback fired when a TCP connection fail.
+   * \param socket The TCP socket.
+   */  
+  void SocketCtrlFailed (Ptr<Socket> socket);
 
-  static uint64_t     m_globalDpId;       //!< Global counter of datapath IDs
-
-  uint64_t            m_dpId;             //!< This datapath id
-  uint32_t            m_xid;              //!< Transaction idx sequence
-  Mac48Address        m_address;          //!< Address of this device
-  Ptr<BridgeChannel>  m_channel;          //!< Port channels into the Switch Channel
-  Ptr<Node>           m_node;             //!< Node this device is installed on
-  Ptr<Socket>         m_ctrlSocket;       //!< Tcp Socket to controller
-  Address             m_ctrlAddr;         //!< Controller Address
-  uint32_t            m_ifIndex;          //!< Interface Index
-  uint16_t            m_mtu;              //!< Maximum Transmission Unit
-  Time                m_timeout;          //!< Datapath Timeout
-  Time                m_lookupDelay;      //!< Flow Table Lookup Delay [overhead].
-  datapath*           m_datapath;         //!< The OpenFlow datapath
-  Ports_t             m_ports;            //!< Metadata for switch ports
+  uint64_t        m_dpId;         //!< This datapath id
+  uint32_t        m_xid;          //!< Transaction idx sequence
+  Ptr<Node>       m_node;         //!< Node this device is installed on
+  Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller
+  Address         m_ctrlAddr;     //!< Controller Address
+  uint32_t        m_ifIndex;      //!< NetDevice Interface Index
+  Time            m_timeout;      //!< Datapath Timeout
+  Time            m_lookupDelay;  //!< Flow Table Lookup Delay overhead.
+  datapath*       m_datapath;     //!< The OpenFlow datapath
+  PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
+  PortDevMap_t    m_portsByDev;   //!< Switch ports indexed by NetDevice.
+  
+  static uint64_t m_globalDpId;   //!< Global counter of datapath IDs
 
 }; // Class OFSwitch13NetDevice
 } // namespace ns3
