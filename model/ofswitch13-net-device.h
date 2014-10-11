@@ -211,13 +211,6 @@ private:
    * \param dp The datapath.
    */
   void DatapathTimeout (datapath* dp);
-
-  /**
-   * Send an echo request message to controller. This method reschedules itself
-   * at every m_echo interval, to constantly check the connection between
-   * switch and controller.
-   */
-  void DatapathSendEchoRequest ();
   //\}
 
   ///\name Port methods
@@ -301,7 +294,6 @@ private:
   Address             m_ctrlAddr;         //!< Controller Address
   uint32_t            m_ifIndex;          //!< Interface Index
   uint16_t            m_mtu;              //!< Maximum Transmission Unit
-  Time                m_echo;             //!< Echo request interval
   Time                m_timeout;          //!< Datapath Timeout
   Time                m_lookupDelay;      //!< Flow Table Lookup Delay [overhead].
   datapath*           m_datapath;         //!< The OpenFlow datapath

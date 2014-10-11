@@ -233,11 +233,6 @@ OFSwitch13NetDevice::GetTypeId (void)
                    TimeValue (Seconds (0.5)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_timeout),
                    MakeTimeChecker ())
-    .AddAttribute ("EchoInterval",
-                   "The interval between successive echo requests from switch.",
-                   TimeValue (Seconds (60)),
-                   MakeTimeAccessor (&OFSwitch13NetDevice::m_echo),
-                   MakeTimeChecker ())
     .AddAttribute ("ControllerAddr",
                    "The controller InetSocketAddress, used to TCP communication.",
                    AddressValue (InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
@@ -746,21 +741,6 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
   dp->last_timeout = time_now ();
 }
 
-void
-OFSwitch13NetDevice::DatapathSendEchoRequest ()
-{
-  NS_LOG_FUNCTION (this);
-
-  // Send echo message
-  ofl_msg_echo msg;
-  msg.header.type = OFPT_ECHO_REQUEST;
-  msg.data_length = 0;
-  msg.data        = 0;
-
-  SendToController ((ofl_msg_header*)&msg);
-  Simulator::Schedule (m_echo, &OFSwitch13NetDevice::DatapathSendEchoRequest, this);
-}
-
 Ptr<OFPort>
 OFSwitch13NetDevice::PortGetOFPort (Ptr<NetDevice> dev)
 {
@@ -1036,9 +1016,6 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
   ofl_msg_header msg;
   msg.type = OFPT_HELLO;
   SendToController (&msg);
-
-  // Schedule first echo message
-  Simulator::Schedule (m_echo, &OFSwitch13NetDevice::DatapathSendEchoRequest, this);
 }
 
 void
