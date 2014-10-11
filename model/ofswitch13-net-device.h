@@ -41,7 +41,7 @@ namespace ns3 {
  * NetDevice and the pointer to ofsoftswitch internal sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
  */
-class OfPort : public SimpleRefCount<OfPort>
+class OFPort : public SimpleRefCount<OFPort>
 {
   friend class OFSwitch13NetDevice;
 
@@ -51,10 +51,10 @@ public:
    * \param dp The datapath.
    * \param dev The swith port ns3::NetDevice.
    */
-  OfPort (datapath *dp, Ptr<NetDevice> dev);
+  OFPort (datapath *dp, Ptr<NetDevice> dev);
 
   /** Default destructor */
-  ~OfPort ();
+  ~OFPort ();
 
 private:
   /**
@@ -70,7 +70,7 @@ private:
 };
 
 /** Structure to store port information. */
-typedef std::vector<Ptr<OfPort> > Ports_t;
+typedef std::vector<Ptr<OFPort> > Ports_t;
 
 /**
  * \ingroup ofswitch13
@@ -223,16 +223,16 @@ private:
   /**
    * Search the switch ports looking for a specific device.
    * \param dev The Ptr<CsmaNetDevice> pointer to device.
-   * \return A pointer to the corresponding OfPort.
+   * \return A pointer to the corresponding OFPort.
    */
-  Ptr<OfPort> PortGetOfPort (Ptr<NetDevice> dev);
+  Ptr<OFPort> PortGetOFPort (Ptr<NetDevice> dev);
 
   /**
    * Search the switch ports looking for a specific port number.
    * \param no The port number (starting at 1).
-   * \return A pointer to the corresponding OfPort.
+   * \return A pointer to the corresponding OFPort.
    */
-  Ptr<OfPort> PortGetOfPort (uint32_t no);
+  Ptr<OFPort> PortGetOFPort (uint32_t no);
 
   /**
    * Called when a packet is received on one of the switch's ports. This method

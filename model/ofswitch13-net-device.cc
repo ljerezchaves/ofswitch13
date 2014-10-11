@@ -101,7 +101,7 @@ GetDatapathDevice (uint64_t id)
 
 // ---- OpenFlow port code -------------------------------
 uint32_t
-OfPort::PortGetFeatures ()
+OFPort::PortGetFeatures ()
 {
   DataRateValue drv;
   DataRate dr;
@@ -148,7 +148,7 @@ OfPort::PortGetFeatures ()
   return feat;
 }
 
-OfPort::OfPort (datapath *dp, Ptr<NetDevice> dev)
+OFPort::OFPort (datapath *dp, Ptr<NetDevice> dev)
 {
   netdev = dev;
   portNo = ++(dp->ports_num);
@@ -193,7 +193,7 @@ OfPort::OfPort (datapath *dp, Ptr<NetDevice> dev)
   list_push_back (&dp->port_list, &swPort->node);
 }
 
-OfPort::~OfPort ()
+OFPort::~OFPort ()
 {
   netdev = 0;
   ofl_structs_free_port (swPort->conf);
@@ -298,7 +298,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
       SetMtu (portDevice->GetMtu ());
     }
 
-  Ptr<OfPort> ofPort = Create<OfPort> (m_datapath, csmaPortDevice);
+  Ptr<OFPort> ofPort = Create<OFPort> (m_datapath, csmaPortDevice);
   m_ports.push_back (ofPort);
 
   // Notify the controller that this port has been added
@@ -713,11 +713,11 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
   pipeline_timeout (dp->pipeline);
 
   // Check for changes in links (port) status
-  Ptr<OfPort> ns3Port;
+  Ptr<OFPort> ns3Port;
   uint32_t orig_state;
   for (size_t i = 1; i < GetNSwitchPorts (); i++)
     {
-      ns3Port = PortGetOfPort (i);
+      ns3Port = PortGetOFPort (i);
       orig_state = ns3Port->swPort->conf->state;
       if (ns3Port->netdev->IsLinkUp ())
         {
@@ -760,8 +760,8 @@ OFSwitch13NetDevice::DatapathSendEchoRequest ()
   Simulator::Schedule (m_echo, &OFSwitch13NetDevice::DatapathSendEchoRequest, this);
 }
 
-Ptr<OfPort>
-OFSwitch13NetDevice::PortGetOfPort (Ptr<NetDevice> dev)
+Ptr<OFPort>
+OFSwitch13NetDevice::PortGetOFPort (Ptr<NetDevice> dev)
 {
   NS_LOG_FUNCTION (this << dev);
   for (size_t i = 0; i < m_ports.size (); i++)
@@ -775,8 +775,8 @@ OFSwitch13NetDevice::PortGetOfPort (Ptr<NetDevice> dev)
   return NULL;
 }
 
-Ptr<OfPort>
-OFSwitch13NetDevice::PortGetOfPort (uint32_t no)
+Ptr<OFPort>
+OFSwitch13NetDevice::PortGetOFPort (uint32_t no)
 {
   NS_LOG_FUNCTION (this << no);
   NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Invalid port number");
@@ -844,7 +844,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Pac
 
   // Preparing the pipeline process...
   // Get the input port and check configuration
-  Ptr<OfPort> inPort = PortGetOfPort (netdev);
+  Ptr<OFPort> inPort = PortGetOFPort (netdev);
   NS_ASSERT_MSG (inPort != NULL, "This device is not registered as a switch port");
   if (inPort->swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
     {
@@ -913,7 +913,7 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t
   // No queue support by now
   NS_LOG_FUNCTION (this);
 
-  Ptr<OfPort> port = PortGetOfPort (portNo);
+  Ptr<OFPort> port = PortGetOFPort (portNo);
   if (port == 0 || port->netdev == 0)
     {
       NS_LOG_ERROR ("can't forward to invalid port.");
