@@ -102,7 +102,7 @@ OFSwitch13Controller::RegisterSwitchMetadata (SwitchInfo swInfo)
 
   std::pair <SwitchsMap_t::iterator, bool> ret;
   ret =  m_switchesMap.insert (
-    std::pair<Ipv4Address, SwitchInfo> (swInfo.ipv4, swInfo));
+      std::pair<Ipv4Address, SwitchInfo> (swInfo.ipv4, swInfo));
   if (ret.second == false)
     {
       NS_LOG_ERROR ("This switch is already registered with this controller");
@@ -250,7 +250,7 @@ OFSwitch13Controller::SendBarrierRequest (SwitchInfo swtch)
 
 // --- BEGIN: Handlers functions -------
 ofl_err
-OFSwitch13Controller::HandleEchoRequest (ofl_msg_echo *msg, 
+OFSwitch13Controller::HandleEchoRequest (ofl_msg_echo *msg,
                                          SwitchInfo swtch,
                                          uint32_t xid)
 {
@@ -261,13 +261,13 @@ OFSwitch13Controller::HandleEchoRequest (ofl_msg_echo *msg,
   reply.data_length = msg->data_length;
   reply.data        = msg->data;
   SendToSwitch (&swtch, (ofl_msg_header*)&reply, xid);
-  
+
   ofl_msg_free ((ofl_msg_header*)msg, NULL /*exp*/);
   return 0;
 }
 
 ofl_err
-OFSwitch13Controller::HandleEchoReply (ofl_msg_echo *msg, 
+OFSwitch13Controller::HandleEchoReply (ofl_msg_echo *msg,
                                        SwitchInfo swtch,
                                        uint32_t xid)
 {
@@ -285,14 +285,14 @@ OFSwitch13Controller::HandleEchoReply (ofl_msg_echo *msg,
       NS_LOG_DEBUG ("Received echo reply from " << it->second.destIp <<
                     " with RTT " << it->second.GetRtt ().As (Time::MS));
     }
-  
+
   ofl_msg_free ((ofl_msg_header*)msg, NULL /*exp*/);
   return 0;
 }
 
 
 ofl_err
-OFSwitch13Controller::HandleError (ofl_msg_error *msg, 
+OFSwitch13Controller::HandleError (ofl_msg_error *msg,
                                    SwitchInfo swtch,
                                    uint32_t xid)
 {
@@ -308,7 +308,7 @@ OFSwitch13Controller::HandleError (ofl_msg_error *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleFeaturesReply (ofl_msg_features_reply *msg, 
+OFSwitch13Controller::HandleFeaturesReply (ofl_msg_features_reply *msg,
                                            SwitchInfo swtch,
                                            uint32_t xid)
 {
@@ -318,7 +318,7 @@ OFSwitch13Controller::HandleFeaturesReply (ofl_msg_features_reply *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleGetConfigReply (ofl_msg_get_config_reply *msg, 
+OFSwitch13Controller::HandleGetConfigReply (ofl_msg_get_config_reply *msg,
                                             SwitchInfo swtch,
                                             uint32_t xid)
 {
@@ -328,7 +328,7 @@ OFSwitch13Controller::HandleGetConfigReply (ofl_msg_get_config_reply *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleFlowRemoved (ofl_msg_flow_removed *msg, 
+OFSwitch13Controller::HandleFlowRemoved (ofl_msg_flow_removed *msg,
                                          SwitchInfo swtch,
                                          uint32_t xid)
 {
@@ -338,7 +338,7 @@ OFSwitch13Controller::HandleFlowRemoved (ofl_msg_flow_removed *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandlePortStatus (ofl_msg_port_status *msg, 
+OFSwitch13Controller::HandlePortStatus (ofl_msg_port_status *msg,
                                         SwitchInfo swtch,
                                         uint32_t xid)
 {
@@ -349,7 +349,7 @@ OFSwitch13Controller::HandlePortStatus (ofl_msg_port_status *msg,
 
 ofl_err
 OFSwitch13Controller::HandleAsyncReply (ofl_msg_async_config *msg,
-                                        SwitchInfo swtch, 
+                                        SwitchInfo swtch,
                                         uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
@@ -359,7 +359,7 @@ OFSwitch13Controller::HandleAsyncReply (ofl_msg_async_config *msg,
 
 ofl_err
 OFSwitch13Controller::HandleMultipartReply (ofl_msg_multipart_reply_header *msg,
-                                            SwitchInfo swtch, 
+                                            SwitchInfo swtch,
                                             uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
@@ -369,7 +369,7 @@ OFSwitch13Controller::HandleMultipartReply (ofl_msg_multipart_reply_header *msg,
 
 ofl_err
 OFSwitch13Controller::HandleRoleReply (ofl_msg_role_request *msg,
-                                       SwitchInfo swtch, 
+                                       SwitchInfo swtch,
                                        uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
@@ -379,7 +379,7 @@ OFSwitch13Controller::HandleRoleReply (ofl_msg_role_request *msg,
 
 ofl_err
 OFSwitch13Controller::HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg,
-                                                 SwitchInfo swtch, 
+                                                 SwitchInfo swtch,
                                                  uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
@@ -463,7 +463,7 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
       if (InetSocketAddress::IsMatchingType (from))
         {
           Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
-          NS_LOG_LOGIC ("At time " 
+          NS_LOG_LOGIC ("At time "
                         << Simulator::Now ().GetSeconds ()
                         << "s the OpenFlow Controller received "
                         <<  packet->GetSize () << " bytes from switch " << ipv4
@@ -519,12 +519,12 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
   NS_LOG_LOGIC ("Switch request connection accepted from " << ipv4);
   SwitchInfo *swInfo = &it->second;
   socket->SetRecvCallback (MakeCallback (&OFSwitch13Controller::SocketRead, this));
-  
-  swInfo->ctrl = this;  
+
+  swInfo->ctrl = this;
   swInfo->socket = socket;
   swInfo->port = InetSocketAddress::ConvertFrom (from).GetPort ();
 
-  // Handshake messages 
+  // Handshake messages
   ofl_msg_header hello;
   hello.type = OFPT_HELLO;
   SendToSwitch (swInfo, &hello);
@@ -535,7 +535,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
 
   SendBarrierRequest (*swInfo);
 
-  // Callback to notify that a new TCP connection has been established. 
+  // Callback to notify that a new TCP connection has been established.
   if (!m_connectionCallback.IsNull ())
     {
       m_connectionCallback (*swInfo);

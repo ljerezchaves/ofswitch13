@@ -134,7 +134,7 @@ time_msec (void)
  * \return 0 if everything's ok, error number otherwise.
  */
 int
-send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote) 
+send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
 {
   int error = 0;
 
@@ -175,7 +175,7 @@ dp_ports_output (struct datapath *dp, struct ofpbuf *buffer,
  * controller object.
  * \param msg The OFLib message to send.
  */
-void 
+void
 dpctl_send_and_print (struct vconn *vconn, struct ofl_msg_header *msg)
 {
   SwitchInfo *sw = (SwitchInfo*)vconn;
@@ -193,9 +193,9 @@ dpctl_send_and_print (struct vconn *vconn, struct ofl_msg_header *msg)
  * dpctl_exec_ns3_command function and get back here to proper identify the
  * controller object.
  * \param msg The OFLib request to send.
- * \param repl The OFLib reply message (not used by ns3). 
+ * \param repl The OFLib reply message (not used by ns3).
  */
-void 
+void
 dpctl_transact_and_print (struct vconn *vconn, struct ofl_msg_header *req,
                           struct ofl_msg_header **repl)
 {
