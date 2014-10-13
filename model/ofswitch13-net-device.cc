@@ -312,6 +312,19 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 }
 
 int
+OFSwitch13NetDevice::SendToController (ofpbuf *buffer, remote *remote)
+{
+  // FIXME No support for more than one controller connection by now. So,
+  // ignoring remote information.
+  if (!m_ctrlSocket)
+    {
+      NS_LOG_WARN ("No controller connection. Discarding message... ");
+      return -1;
+    }
+  return !m_ctrlSocket->Send (ofs::PacketFromBuffer (buffer));
+}
+
+int
 OFSwitch13NetDevice::SendToController (ofl_msg_header *msg, const sender *sender)
 {
   NS_LOG_FUNCTION (this);

@@ -122,30 +122,29 @@ time_msec (void)
 }
 
 /**
- * Overriding ofsoftswitch13 dp_send_message weak function from
- * udatapath/datapath.c. Sends the given OFLib message to the controller
- * associated with the datapath.
+ * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function from
+ * udatapath/datapath.c. Sends the given OFLib buffer message to the controller
+ * associated with remote connection structure.
  * \internal This function relies on the global map that stores ofpenflow
  * devices to call the method on the correct object (\see
  * ofswitch13-net-device.cc).
- * \param dp The datapath.
- * \param msg The OFlib message to send.
- * \param sender The sender information.
+ * \param buffer The message buffer to send.
+ * \param remote The controller connection information.
  * \return 0 if everything's ok, error number otherwise.
  */
 int
-dp_send_message (struct datapath *dp, struct ofl_msg_header *msg,
-                 const struct sender *sender)
+send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote) 
 {
   int error = 0;
-
-  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
-  error = dev->SendToController (msg, sender);
+  
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (remote->dp->id);
+  error = dev->SendToController (buffer, remote);
   if (!error)
     {
       NS_LOG_WARN ("There was an error sending the message!");
+      return error;
     }
-  return !error;
+  return 0;
 }
 
 /**

@@ -141,6 +141,17 @@ public:
   int SendToController (ofl_msg_header *msg, const sender *sender = NULL);
 
   /**
+   * Send a message to the controller node.
+   * \internal This method is public as the 'C' send_openflow_buffer_to_remote
+   * overriding function use this 'C++' member function to send their msgs.
+   * \see send_openflow_buffer_to_remote () at udatapath/datapath.c.
+   * \param buffer The message buffer to send.
+   * \param remote The controller connection information.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  int SendToController (ofpbuf *buffer, remote *remote);
+
+  /**
    * Send a message over a specific switch port. Check port configuration,
    * create the ns3 packet, remove the ethernet header and trailer from packet
    * (which will be included again by CsmaNetDevice), send the packet over the
