@@ -256,15 +256,15 @@ OFSwitch13NetDevice::GetTypeId (void)
 }
 
 OFSwitch13NetDevice::OFSwitch13NetDevice ()
-  : m_dpId (++m_globalDpId),
-    m_node (0),
-    m_ctrlSocket (0),
-    m_ifIndex (0)
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
 
+  m_dpId = ++m_globalDpId;
+  m_node = 0;
+  m_ctrlSocket = 0;
   m_ctrlAddr = Address ();
+  m_ifIndex = 0;
   m_datapath = DatapathNew ();
   RegisterDatapath (m_dpId, Ptr<OFSwitch13NetDevice> (this));
   Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, this, m_datapath);
@@ -302,7 +302,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   msg.header.type = OFPT_PORT_STATUS;
   msg.reason = OFPPR_ADD;
   msg.desc = ofPort->m_swPort->conf;
-  SendToController ((ofl_msg_header*)&msg);
+  dp_send_message (m_datapath, (ofl_msg_header*)&msg, NULL);
 
   // Register a trace sink for this csmaPorDevice to get packets received from
   // device to send to pipeline. 
@@ -314,118 +314,14 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 int
 OFSwitch13NetDevice::SendToController (ofpbuf *buffer, remote *remote)
 {
-  // FIXME No support for more than one controller connection by now. So,
-  // ignoring remote information.
+  // FIXME No support for more than one controller connection by now. 
+  // So, just ignoring remote information and sending to our single socket.
   if (!m_ctrlSocket)
     {
       NS_LOG_WARN ("No controller connection. Discarding message... ");
       return -1;
     }
   return !m_ctrlSocket->Send (ofs::PacketFromBuffer (buffer));
-}
-
-int
-OFSwitch13NetDevice::SendToController (ofl_msg_header *msg, const sender *sender)
-{
-  NS_LOG_FUNCTION (this);
-  if (!m_ctrlSocket)
-    {
-      NS_LOG_WARN ("No controller connection. Discarding message... ");
-      // ofl_msg_free (msg, NULL);
-      return -1;
-    }
-
-  char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
-  NS_LOG_DEBUG ("TX to ctrl: " << msg_str);
-  free (msg_str);
-
-  uint32_t xid = sender ? sender->xid : ++m_xid;
-  ofpbuf *buffer = ofs::BufferFromMsg (msg, xid, m_datapath->exp);
-
-  if (sender)
-    {
-      // This is a reply... send back to the sender.
-      return !m_ctrlSocket->Send (ofs::PacketFromBufferAndFree (buffer));
-    }
-  else
-    {
-      // This is an asynchronous message. Check for asynchronous configuration
-      bool send = true;
-      uint8_t msg_type;
-      memcpy (&msg_type, ((char* ) buffer->data) + 1, sizeof (uint8_t));
-      remote *r = CONTAINER_OF (list_front (&m_datapath->remotes), remote, node);
-
-      // do not send to remotes with slave role apart from port status
-      if (r->role == OFPCR_ROLE_EQUAL || r->role == OFPCR_ROLE_MASTER)
-        {
-          // Check if the message is enabled in the asynchronous configuration
-          switch (msg_type)
-            {
-            case (OFPT_PACKET_IN):
-              {
-                ofp_packet_in *p = (ofp_packet_in*)buffer->data;
-                if (((p->reason == OFPR_NO_MATCH)       && !(r->config.packet_in_mask[0] & 0x1))
-                    || ((p->reason == OFPR_ACTION)      && !(r->config.packet_in_mask[0] & 0x2))
-                    || ((p->reason == OFPR_INVALID_TTL) && !(r->config.packet_in_mask[0] & 0x4)))
-                  {
-                    send = false;
-                  }
-                break;
-              }
-            case (OFPT_PORT_STATUS):
-              {
-                ofp_port_status *p = (ofp_port_status*)buffer->data;
-                if (((p->reason == OFPPR_ADD)       && !(r->config.port_status_mask[0] & 0x1))
-                    || ((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[0] & 0x2))
-                    || ((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[0] & 0x4)))
-                  {
-                    send = false;
-                  }
-              }
-            case (OFPT_FLOW_REMOVED):
-              {
-                ofp_flow_removed *p = (ofp_flow_removed *)buffer->data;
-                if (((p->reason == OFPRR_IDLE_TIMEOUT)    && !(r->config.port_status_mask[0] & 0x1))
-                    || ((p->reason == OFPRR_HARD_TIMEOUT) && !(r->config.port_status_mask[0] & 0x2))
-                    || ((p->reason == OFPRR_DELETE)       && !(r->config.packet_in_mask[0] & 0x4))
-                    || ((p->reason == OFPRR_GROUP_DELETE) && !(r->config.packet_in_mask[0] & 0x8))
-                    || ((p->reason == OFPRR_METER_DELETE) && !(r->config.packet_in_mask[0] & 0x10)))
-                  {
-                    send = false;
-                  }
-              }
-            }
-        }
-      else
-        {
-          // In this implementation we assume that a controller with role slave
-          // is able to receive only port stats messages.
-          if (r->role == OFPCR_ROLE_SLAVE && msg_type != OFPT_PORT_STATUS)
-            {
-              send = false;
-            }
-          else
-            {
-              struct ofp_port_status *p = (struct ofp_port_status*)buffer->data;
-              if (((p->reason == OFPPR_ADD)       && !(r->config.port_status_mask[1] & 0x1))
-                  || ((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[1] & 0x2))
-                  || ((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[1] & 0x4)))
-                {
-                  send = false;
-                }
-            }
-        }
-
-      if (send)
-        {
-          return !m_ctrlSocket->Send (ofs::PacketFromBufferAndFree (buffer));
-        }
-      else
-        {
-          ofpbuf_delete (buffer);
-          return 0;
-        }
-    }
 }
 
 uint32_t
@@ -658,6 +554,8 @@ void
 OFSwitch13NetDevice::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
+  
+  UnregisterDatapath (m_dpId);
 
   m_node = 0;
   m_ctrlSocket = 0;
@@ -667,8 +565,7 @@ OFSwitch13NetDevice::DoDispose ()
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
   meter_table_destroy (m_datapath->meters);
-  UnregisterDatapath (m_dpId);
-  
+ 
   NetDevice::DoDispose ();
 }
 
@@ -736,7 +633,7 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
           msg.header.type = OFPT_PORT_STATUS;
           msg.reason = OFPPR_MODIFY;
           msg.desc = ns3Port->m_swPort->conf;
-          SendToController ((ofl_msg_header*)&msg);
+          dp_send_message (dp, (ofl_msg_header*)&msg, NULL);
         }
     }
 
@@ -868,6 +765,7 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
                                    << InetSocketAddress::ConvertFrom (from).GetIpv4 ()
                                    << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
 
+          // FIXME No suuport for multiple controllers by now.
           // Gets the remote structure for this controller connection.
           // As we currently support only one controller, it's the first in list.
           struct sender sender;
@@ -905,7 +803,7 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
               err.code = ofl_error_code (error);
               err.data_length = buffer->size;
               err.data = (uint8_t*)buffer->data;
-              SendToController ((ofl_msg_header*)&err, &sender);
+              dp_send_message (m_datapath, (ofl_msg_header*)&err, &sender);
             }
           ofpbuf_delete (buffer);
         }
@@ -919,16 +817,13 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
   NS_LOG_LOGIC ("Controller accepted connection request!");
   socket->SetRecvCallback (MakeCallback (&OFSwitch13NetDevice::SocketCtrlRead, this));
 
-  // Randomize local xid
-  m_xid = rand () & UINT32_MAX;
-
-  // Save remote info in datapath
+  // Save connection information to remotes list in datapath
   remote_create (m_datapath, NULL, NULL);
 
   // Send Hello message
   ofl_msg_header msg;
   msg.type = OFPT_HELLO;
-  SendToController (&msg);
+  dp_send_message (m_datapath, &msg, NULL);
 }
 
 void

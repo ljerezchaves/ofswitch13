@@ -130,21 +130,12 @@ public:
 
   /**
    * Send a message to the controller node.
-   * \internal This method is public as the 'C' dp_send_message overriding
-   * function use this 'C++' member function to send their messages.
-   * \see send_openflow_buffer () at udatapath/datapath.c.
-   * \param msg The OFLib message to send.
-   * \param sender When replying to controller, the sender (controller)
-   * information, incluind xid.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  int SendToController (ofl_msg_header *msg, const sender *sender = NULL);
-
-  /**
-   * Send a message to the controller node.
    * \internal This method is public as the 'C' send_openflow_buffer_to_remote
    * overriding function use this 'C++' member function to send their msgs.
    * \see send_openflow_buffer_to_remote () at udatapath/datapath.c.
+   * \attention Don't use this method to send messages to controller. Use
+   * dp_send_message () instead, as it deals with multiple connections and
+   * check assync config.
    * \param buffer The message buffer to send.
    * \param remote The controller connection information.
    * \return 0 if everything's ok, otherwise an error number.
@@ -261,7 +252,6 @@ private:
   void SocketCtrlFailed (Ptr<Socket> socket);
 
   uint64_t        m_dpId;         //!< This datapath id
-  uint32_t        m_xid;          //!< Transaction idx sequence
   Ptr<Node>       m_node;         //!< Node this device is installed on
   Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller
   Address         m_ctrlAddr;     //!< Controller Address
