@@ -108,7 +108,7 @@ OFPort::OFPort (datapath *dp, Ptr<NetDevice> dev)
   m_netdev = dev;
   m_portNo = ++(dp->ports_num);
   m_swPort = &dp->ports[m_portNo];
-  
+
   memset (m_swPort, '\0', sizeof *m_swPort);
 
   m_swPort->dp = dp;
@@ -347,7 +347,7 @@ OFSwitch13NetDevice::StartControllerConnection ()
     {
       int error = 0;
       m_ctrlSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-      
+
       error = m_ctrlSocket->Bind ();
       if (error)
         {
@@ -365,7 +365,7 @@ OFSwitch13NetDevice::StartControllerConnection ()
       m_ctrlSocket->SetConnectCallback (
         MakeCallback (&OFSwitch13NetDevice::SocketCtrlSucceeded, this),
         MakeCallback (&OFSwitch13NetDevice::SocketCtrlFailed, this));
-      
+
       return;
     }
 
@@ -554,7 +554,7 @@ void
 OFSwitch13NetDevice::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
-  
+
   UnregisterDatapath (m_dpId);
 
   m_node = 0;

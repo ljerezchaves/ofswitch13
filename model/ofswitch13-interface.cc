@@ -136,7 +136,7 @@ int
 send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote) 
 {
   int error = 0;
-  
+
   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (remote->dp->id);
   error = dev->SendToController (buffer, remote);
   if (!error)

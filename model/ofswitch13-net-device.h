@@ -244,11 +244,11 @@ private:
    * \param socket The TCP socket.
    */
   void SocketCtrlSucceeded (Ptr<Socket> socket);
-  
+
   /**
    * Socket callback fired when a TCP connection fail.
    * \param socket The TCP socket.
-   */  
+   */
   void SocketCtrlFailed (Ptr<Socket> socket);
 
   uint64_t        m_dpId;         //!< This datapath id
@@ -261,7 +261,7 @@ private:
   datapath*       m_datapath;     //!< The OpenFlow datapath
   PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
   PortDevMap_t    m_portsByDev;   //!< Switch ports indexed by NetDevice.
-  
+
   static uint64_t m_globalDpId;   //!< Global counter of datapath IDs
 
 }; // Class OFSwitch13NetDevice
