@@ -622,17 +622,16 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
   pipeline_timeout (dp->pipeline);
 
   // Check for changes in links (port) status
-  Ptr<OFPort> ns3Port;
-  for (size_t i = 1; i < GetNSwitchPorts (); i++)
+  PortNoMap_t::iterator it;
+  for (it = m_portsByNo.begin (); it != m_portsByNo.end (); it++)
     {
-      ns3Port = PortGetOFPort (i);
-      if (ns3Port->PortUpdateState ())
+      if (it->second->PortUpdateState ())
         {
           NS_LOG_DEBUG ("Port status has changed. Notifying the controller...");
           ofl_msg_port_status msg;
           msg.header.type = OFPT_PORT_STATUS;
           msg.reason = OFPPR_MODIFY;
-          msg.desc = ns3Port->m_swPort->conf;
+          msg.desc = it->second->m_swPort->conf;
           dp_send_message (dp, (ofl_msg_header*)&msg, NULL);
         }
     }
