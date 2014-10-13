@@ -36,7 +36,7 @@ using namespace ns3;
 #ifdef NS3_OFSWITCH13
 #include "ns3/ofswitch13-module.h"
 
-int 
+int
 main (int argc, char *argv[])
 {
   bool verbose = true;
@@ -54,7 +54,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
     }
-    
+
   // Enabling Checksum computations and setting realtime simulator
   GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));
   GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
@@ -90,14 +90,14 @@ main (int argc, char *argv[])
   NetDeviceContainer of13Device;
   OFSwitch13Helper ofHelper;
   Ptr<NetDevice> ctrlDev = ofHelper.InstallExternalController (controllerNode);
- 
+
   // TapBridge to local machine
   // The default configuration expects a controller on you local machine at port 6653
   TapBridgeHelper tapBridge;
   tapBridge.SetAttribute ("Mode", StringValue ("ConfigureLocal"));
   tapBridge.SetAttribute ("DeviceName", StringValue ("ctrl"));
   tapBridge.Install (controllerNode, ctrlDev);
-  
+
   // Then install the switches (now they will start a connection to controller)
   of13Device = ofHelper.InstallSwitch (switchNode, switchDevices);
 
@@ -111,7 +111,7 @@ main (int argc, char *argv[])
   ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
   internetIpIfaces = ipv4switches.Assign (terminalDevices);
 
-  // Create a ping application from terminal 0 to 1 
+  // Create a ping application from terminal 0 to 1
   Ipv4Address destAddr = internetIpIfaces.GetAddress (1);
   V4PingHelper ping = V4PingHelper (destAddr);
   ApplicationContainer apps = ping.Install (terminals.Get (0));

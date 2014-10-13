@@ -20,6 +20,7 @@
 #define OFSWITCH13_HELPER_H
 
 #include "ns3/ofswitch13-interface.h"
+#include "ns3/ofswitch13-controller.h"
 #include "ns3/ofswitch13-net-device.h"
 #include "ns3/net-device-container.h"
 #include "ns3/ipv4-interface-container.h"
@@ -40,7 +41,7 @@ class OFSwitch13Controller;
 
 /**
  * \ingroup ofswitch13
- * 
+ *
  * \brief Create and configure an OpenFlow 1.3 network with a single controller
  * and multiple switches.
  */
@@ -50,15 +51,6 @@ class OFSwitch13Helper
 public:
   OFSwitch13Helper ();
   virtual ~OFSwitch13Helper ();
-
-  // /**
-  //  * Set an attribute for the ns3::LearningController created by
-  //  * OFSwitch13Helper::InstallControllerApp
-  //  *
-  //  * \param n1 the name of the attribute to set
-  //  * \param v1 the value of the attribute to set
-  //  */
-  // void SetControllerAttribute (std::string n1, const AttributeValue &v1);
 
   /**
    * Set an attribute on each ns3::OFSwitch13NetDevice created by
@@ -82,13 +74,13 @@ public:
    * \returns A container holding the OFSwitch13NetDevice net device.
    */
   NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
-  
+
   /**
-   * This method creates a new ns3::LearningController application and add
-   * it to cNode. It also installs the TCP/IP stack into cNode, and connect it
+   * This method creates a new ns3::LearningController application and install it
+   * into cNode. It also installs the TCP/IP stack into cNode, and connects it
    * to the csma gigabit network, using IPv4 network 10.100.150.0/24. Finally,
    * start the switch <--> controller connection for all already registered
-   * switches. 
+   * switches.
    *
    * \param cNode The node to configure as controller
    * \returns The LearningController application created (installed into cNode)
@@ -97,25 +89,27 @@ public:
 
   /**
    * This method installs the given ns3::OFSwitch13Controller application into
-   * cNode. It also installs the TCP/IP stack into cNode, and connect it
+   * cNode. It also installs the TCP/IP stack into cNode, and connects it
    * to the csma gigabit network, using IPv4 network 10.100.150.0/24. Finally,
    * start the switch <--> controller connection for all already registered
-   * switches. 
+   * switches.
    *
    * \param cNode The node to configure as controller
    * \param controller The controller application to install into cNode
    * \returns The controller application (same as input)
    */
   Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode,
-      Ptr<OFSwitch13Controller> controller);
+                                                  Ptr<OFSwitch13Controller> controller);
 
   /**
-   * This method configures the cNode with TCP/IP stack, and connect it to the
-   * csma gigabit network, using IPv4 network 10.100.150.0/24. Finally, start
-   * the switch <--> controller connection for all already registered switches.
-   * 
-   * \attention It is expected that this method is used with TabBridge to
-   * provide an external controller.
+   * This method prepares the cNode so it can connect to an external OpenFlow
+   * controller over TapBridge. It also installs the TCP/IP stack into cNode,
+   * and connects it to the csma gigabit network, using IPv4 network
+   * 10.100.150.0/24. Finally, start the switch <--> controller connection for
+   * all already registered switches.
+   *
+   * \attention It is expected that this method is used togheter with TabBridge
+   * to provide an external OpenFlow controller.
    *
    * \param cNode The node to install the controller
    * \returns The CsmaNetDevice to bind to TapBridge
@@ -125,12 +119,10 @@ public:
   /**
    * Enable pacp traces at the OpenFlow channel between controller and switches
    */
-  void EnableOpenFlowPcap ();
-   
+  void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
+
 private:
-  ObjectFactory             m_ctrlFactory;  //!< Controller App factory
-  ObjectFactory             m_ndevFactory;  //!< OpenFlow device factory
-  ObjectFactory             m_chanFactory;  //!< Csma channel factory
+  ObjectFactory             m_ndevFactory;  //!< OpenFlow NetDevice factory
 
   NetDeviceContainer        m_devices;      //!< OFSwitch13NetDevices
   InternetStackHelper       m_internet;     //!< Helper for installing TCP/IP
@@ -141,10 +133,10 @@ private:
   Ptr<Node>                 m_ctrlNode;     //!< Controller Node
   Ptr<OFSwitch13Controller> m_ctrlApp;      //!< Controller App
   Ptr<NetDevice>            m_ctrlDev;      //!< Controller CsmaNetDevice (switch connection)
-  Address                   m_ctrlAddr;     //!< Controller Addr 
+  Address                   m_ctrlAddr;     //!< Controller Addr
 
   typedef std::vector<SwitchInfo> SwitchInfoVector_t; //!< Structure to store switch information
-  SwitchInfoVector_t        m_unregSw;      //!< OpenFlow switches not registered yet
+  SwitchInfoVector_t        m_unregSw;      //!< OpenFlow switches not registered to controller yet
 };
 
 } // namespace ns3

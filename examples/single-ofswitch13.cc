@@ -35,7 +35,7 @@ using namespace ns3;
 #ifdef NS3_OFSWITCH13
 #include "ns3/ofswitch13-module.h"
 
-int 
+int
 main (int argc, char *argv[])
 {
   bool verbose = true;
@@ -53,7 +53,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("LearningController", LOG_LEVEL_ALL);
     }
-    
+
   // Enabling Checksum computations
   GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
 
@@ -100,14 +100,14 @@ main (int argc, char *argv[])
   ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
   internetIpIfaces = ipv4switches.Assign (terminalDevices);
 
-  // Create a ping application from terminal 0 to 1 
+  // Create a ping application from terminal 0 to 1
   Ipv4Address t0Addr = internetIpIfaces.GetAddress (0);
   Ipv4Address t1Addr = internetIpIfaces.GetAddress (1);
   V4PingHelper ping = V4PingHelper (t1Addr);
   ApplicationContainer pingApp = ping.Install (terminals.Get (0));
   pingApp.Start (Seconds (1.));
 
-  // Send TCP traffic from terminal 1 to 0 
+  // Send TCP traffic from terminal 1 to 0
   BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (t0Addr, 50000));
   senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
   ApplicationContainer senderApp  = senderHelper.Install (terminals.Get (1));

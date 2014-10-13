@@ -35,7 +35,7 @@ using namespace ns3;
 #ifdef NS3_OFSWITCH13
 #include "ns3/ofswitch13-module.h"
 
-int 
+int
 main (int argc, char *argv[])
 {
   bool verbose = true;
@@ -52,7 +52,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
     }
-    
+
   // Enabling Checksum computations
   GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
 
@@ -77,7 +77,7 @@ main (int argc, char *argv[])
   csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
   NetDeviceContainer terminalDevices;
   NetDeviceContainer switch0Devices, switch1Devices;
-      
+
   NetDeviceContainer link0 = csmaHelper.Install (NodeContainer (terminals.Get (0), switchNode0));
   NetDeviceContainer link1 = csmaHelper.Install (NodeContainer (terminals.Get (1), switchNode1));
   NetDeviceContainer link2 = csmaHelper.Install (NodeContainer (switchNode0, switchNode1));
@@ -87,7 +87,7 @@ main (int argc, char *argv[])
   switch0Devices.Add (link2.Get (0));       // Switch 0 Port 2 to switch 1
   switch1Devices.Add (link1.Get (1));       // Switch 1 Port 1 to terminal 1
   switch1Devices.Add (link2.Get (1));       // Switch 1 Port 2 to switch 0
- 
+
   // Configure OpenFlow network
   NetDeviceContainer of13Device0, of13Device1;
   OFSwitch13Helper ofHelper;
@@ -106,14 +106,14 @@ main (int argc, char *argv[])
   ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
   internetIpIfaces = ipv4switches.Assign (terminalDevices);
 
-  // Create a ping application from terminal 0 to 1 
+  // Create a ping application from terminal 0 to 1
   Ipv4Address t0Addr = internetIpIfaces.GetAddress (0);
   Ipv4Address t1Addr = internetIpIfaces.GetAddress (1);
   V4PingHelper ping = V4PingHelper (t1Addr);
   ApplicationContainer pingApp = ping.Install (terminals.Get (0));
   pingApp.Start (Seconds (1.));
 
-  // Send TCP traffic from terminal 1 to 0 
+  // Send TCP traffic from terminal 1 to 0
   BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (t0Addr, 50000));
   senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
   ApplicationContainer senderApp  = senderHelper.Install (terminals.Get (1));

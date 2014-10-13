@@ -16,29 +16,25 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
-/** 
+/**
  * \defgroup ofswitch13 OpenFlow 1.3 softswitch
  * This section documents the API of ns3 OpenFlow 1.3 compatible switch
- * datapath and base controller implementation. This module follows the
+ * and controller implementation. This module follows the
  * OpenFlow 1.3 switch specification
  * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
- * It depends on the CPqD ofsoftswitch13 <https://github.com/ljerezchaves/ofsoftswitch13> 
+ * It depends on the CPqD ofsoftswitch13 <https://github.com/ljerezchaves/ofsoftswitch13>
  * implementation compiled as a library (use ./configure --enable-ns3-lib).
  *
- * \attention Currently, only a subset of features are supported.
+ * \attention Currently, not all OpenFlow 1.3 features are supported.
  */
 #ifndef OFSWITCH13_INTERFACE_H
 #define OFSWITCH13_INTERFACE_H
 
 #include <assert.h>
-#include <errno.h>
-#include <set>
-#include <map>
-#include <limits>
 
 #include "ns3/simulator.h"
 #include "ns3/log.h"
-#include "ns3/net-device.h"
+#include "ns3/packet.h"
 #include "ns3/csma-module.h"
 
 #include <boost/static_assert.hpp>
@@ -51,31 +47,17 @@ extern "C"
 #define delete _delete
 #define list List
 
-#include "udatapath/datapath.h"
 #include "udatapath/packet.h"
 #include "udatapath/pipeline.h"
 #include "udatapath/flow_table.h"
-#include "udatapath/flow_entry.h"
 #include "udatapath/group_table.h"
-#include "udatapath/group_entry.h"
 #include "udatapath/meter_table.h"
-#include "udatapath/meter_entry.h"
 #include "udatapath/dp_ports.h"
-#include "udatapath/dp_actions.h"
 #include "udatapath/dp_control.h"
-#include "udatapath/action_set.h"
-#include "udatapath/dp_buffers.h"
-#include "udatapath/packet_handle_std.h"
 
 #include "lib/ofpbuf.h"
-#include "lib/dynamic-string.h"
-#include "lib/hash.h"
-#include "lib/list.h"
-#include "lib/util.h"
-#include "lib/random.h"
 
 #include "oflib/ofl-structs.h"
-#include "oflib/ofl-utils.h"
 #include "oflib/oxm-match.h"
 
 #include "utilities/dpctl.h"
@@ -100,28 +82,11 @@ int parse_group (char *str, uint32_t *group);
 int parse_meter (char *str, uint32_t *meter);
 int parse_table (char *str, uint8_t *table);
 
-// From udatapath/datapath.c 
-struct remote* remote_create (struct datapath *dp, 
-        struct rconn *rconn, struct rconn *rconn_aux);
-
-// From udatapath/dp_control.c
-ofl_err handle_control_stats_request (struct datapath *dp, 
-        struct ofl_msg_multipart_request_header *msg, const struct sender *sender);
-
-// From udatapath/pipeline.c
-int inst_compare (const void *inst1, const void *inst2);
+// From udatapath/datapath.c
+struct remote* remote_create (struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux);
 
 // From udatapath/dp_ports.c
 uint32_t port_speed (uint32_t conf);
-
-// From udatapath/group_table.c
-ofl_err group_table_add (struct group_table *table, struct ofl_msg_group_mod *mod);
-ofl_err group_table_modify (struct group_table *table, struct ofl_msg_group_mod *mod); 
-ofl_err group_table_delete (struct group_table *table, struct ofl_msg_group_mod *mod);
-
-// From udatapath/group_entry.c
-size_t select_from_select_group (struct group_entry *entry);
-size_t select_from_ff_group (struct group_entry *entry);
 
 #undef list
 #undef private
@@ -135,58 +100,6 @@ class OFSwitch13NetDevice;
 
 /**
  * \ingroup ofswitch13
- * \brief Switch SwPort and its metadata.
- * \see ofsoftswitch13 udatapath/dp_ports.h
- */
-struct Port
-{
-  /**
-   * \brief Port constructor.
-   * \see new_port () at udatapath/dp_ports.c.
-   * \attention Port numbers should start at 1.
-   * \param dev Pointer to NetDevice (port) at the switch.
-   * \param port_no Number for this port.
-   */
-  Port (Ptr<NetDevice> dev, uint32_t port_no);
-
-  /**
-   * Get netdev data rate and set Openflow port features config.
-   * \param netdev Switch port device.
-   * \return the configure port features.
-   */
-  uint32_t GetFeatures (Ptr<CsmaNetDevice> netdev);
-  
-  uint32_t flags;                 ///< SWP_* flags.
-  Ptr<NetDevice> netdev;          ///< Pointer to ns3::NetDevice
-  ofl_port *conf;                 ///< Config information
-  ofl_port_stats *stats;          ///< Statistics
-  uint32_t port_no;               ///< Port number
-  uint64_t created;               ///< Create time
-};
-
-/** Structure to store port information. */
-typedef std::vector<Port> Ports_t;     
-
-/**
- * \ingroup ofswitch13
- * \brief Echo request metadata.
- */
-struct EchoInfo
-{
-  bool waiting;       //!< True when waiting for reply
-  Time send;          //!< Send time
-  Time recv;          //!< Received time
-  Ipv4Address destIp; //!< Destination IPv4
-
-  EchoInfo (Ipv4Address ip);  //!< Constructor
-  Time GetRtt ();   //!< Compute the echo RTT
-};
-
-/** Structure to store echo information */
-typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
-
-/**
- * \ingroup ofswitch13
  * Create and OpenFlow ofpbuf from ns3::Packet.  Takes a Ptr<Packet> and
  * generates an OpenFlow buffer (ofpbuf*) from it, loading the packet data as
  * well as its headers into the buffer.
@@ -196,8 +109,8 @@ typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
  * \param headRoom The size to allocate for headers (left unitialized).
  * \return The OpenFlow Buffer created from the packet.
  */
-ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, 
-    size_t headRoom = 0);
+ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
+                          size_t headRoom = 0);
 
 /**
  * \ingroup ofswitch13

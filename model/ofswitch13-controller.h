@@ -33,6 +33,24 @@ class OFSwitch13Helper;
 
 /**
  * \ingroup ofswitch13
+ * \brief Echo request metadata used by controller.
+ */
+struct EchoInfo
+{
+  bool waiting;               //!< True when waiting for reply
+  Time send;                  //!< Send time
+  Time recv;                  //!< Received time
+  Ipv4Address destIp;         //!< Destination IPv4
+
+  EchoInfo (Ipv4Address ip);  //!< Constructor
+  Time GetRtt ();             //!< Compute the echo RTT
+};
+
+/** Structure to store echo information */
+typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
+
+/**
+ * \ingroup ofswitch13
  * \brief Switch metadata used by internal controller handlers
  */
 struct SwitchInfo
@@ -45,6 +63,9 @@ struct SwitchInfo
 
   InetSocketAddress GetInet ();     //!< Get Inet address conversion
 };
+
+/** Structure to map IPv4 to switch info */
+typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
 
 /**
  * \ingroup ofswitch13
@@ -63,15 +84,15 @@ public:
    * \param The switch metadata that initiated a connection with controller
    */
   typedef Callback<void, SwitchInfo> SwitchConnectionCallback_t;
-  
+
   /**
    * Register this type.
    * \return The object TypeId.
    */
   static TypeId GetTypeId (void);
 
-  /** 
-   * Destructor implementation 
+  /**
+   * Destructor implementation
    */
   virtual void DoDispose ();
 
@@ -108,7 +129,7 @@ protected:
   uint32_t GetNextXid ();
 
   /**
-   * Send a OFLib message to a registered switch. 
+   * Send a OFLib message to a registered switch.
    * \param swtch The switch to receive the message
    * \param msg The OFLib message to send.
    * \param xid The transaction id to use.
@@ -193,7 +214,6 @@ protected:
   virtual ofl_err HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint64_t xid);
   //\}
 
-  typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;   //!< Structure to map IPv4 to switch info
   SwitchsMap_t m_switchesMap;                               //!< Registered switch metadata
 
 private:
@@ -225,8 +245,8 @@ private:
   uint32_t              m_xid;                      //!< Global transaction idx
   uint16_t              m_port;                     //!< Local controller tcp port
   Ptr<Socket>           m_serverSocket;             //!< Listening server socket
-  
-  ofs::EchoMsgMap_t m_echoMap;                      //!< Metadata for echo requests
+
+  EchoMsgMap_t m_echoMap;                           //!< Metadata for echo requests
   SwitchConnectionCallback_t m_connectionCallback;  //!< TCP connection callback
 };
 

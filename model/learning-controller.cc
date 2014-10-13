@@ -38,14 +38,14 @@ LearningController::~LearningController ()
   NS_LOG_FUNCTION_NOARGS ();
 }
 
-TypeId 
-LearningController::GetTypeId (void) 
+TypeId
+LearningController::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::LearningController") 
+  static TypeId tid = TypeId ("ns3::LearningController")
     .SetParent<OFSwitch13Controller> ()
     .AddConstructor<LearningController> ()
-    ;
-  return tid; 
+  ;
+  return tid;
 }
 
 void
@@ -56,7 +56,7 @@ LearningController::DoDispose ()
   Application::DoDispose ();
 }
 
-ofl_err 
+ofl_err
 LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
@@ -69,18 +69,18 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
     {
       // Let's get necessary information (input port and mac address)
       uint32_t inPort;
-      size_t portLen = OXM_LENGTH(OXM_OF_IN_PORT); // (Always 4 bytes)
+      size_t portLen = OXM_LENGTH (OXM_OF_IN_PORT); // (Always 4 bytes)
       ofl_match_tlv *input = oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
       memcpy (&inPort, input->value, portLen);
-      
+
       Mac48Address src48;
       ofl_match_tlv *ethSrc = oxm_match_lookup (OXM_OF_ETH_SRC, (ofl_match*)msg->match);
       src48.CopyFrom (ethSrc->value);
-     
+
       Mac48Address dst48;
       ofl_match_tlv *ethDst = oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->match);
       dst48.CopyFrom (ethDst->value);
- 
+
       // Get L2Table for this datapath
       DatapathMap_t::iterator it = m_learnedInfo.find (dpId);
       if (it != m_learnedInfo.end ())
@@ -93,9 +93,9 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
               L2Table_t::iterator itDst = l2Table->find (dst48);
               if (itDst != l2Table->end ())
                 {
-                  outPort = itDst->second; 
+                  outPort = itDst->second;
                 }
-              else 
+              else
                 {
                   NS_LOG_DEBUG ("No L2 switch information for mac " << dst48 << " yet. Flooding...");
                 }
@@ -108,21 +108,21 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
             {
               std::pair <L2Table_t::iterator, bool> ret;
               ret = l2Table->insert (std::pair<Mac48Address, uint32_t> (src48, inPort));
-              if (ret.second == false) 
+              if (ret.second == false)
                 {
                   NS_LOG_ERROR ("Can't insert mac48address / port pair");
                 }
               else
                 {
                   NS_LOG_DEBUG ("Learning that mac " << src48 << " can be found at port " << inPort);
-                  
+
                   // Send a flow-mod to switch creating this flow. Let's
                   // configure the flow entry to 10s idle timeout and to
                   // notify the controller when flow expires. (flags=0x0001)
                   std::ostringstream cmd;
-                  cmd << "flow-mod cmd=add,table=0,idle=10,flags=0x0001" << 
-                         ",prio=" << ++prio << " eth_dst=" << src48 << " apply:output="<< inPort;
-                  DpctlCommand (swtch, cmd.str());
+                  cmd << "flow-mod cmd=add,table=0,idle=10,flags=0x0001" <<
+                  ",prio=" << ++prio << " eth_dst=" << src48 << " apply:output=" << inPort;
+                  DpctlCommand (swtch, cmd.str ());
                 }
             }
           else
@@ -130,11 +130,11 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
               NS_ASSERT_MSG (itSrc->second == inPort, "Inconsistent L2 switching table");
             }
         }
-      else 
+      else
         {
           NS_LOG_WARN ("No L2Table for this datapath id " << dpId);
         }
-      
+
       // Lets send the packet out to switch.
       ofl_msg_packet_out reply;
       reply.header.type = OFPT_PACKET_OUT;
@@ -149,16 +149,16 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
           reply.data_length = msg->data_length;
           reply.data = msg->data;
         }
-      
+
       // Create output action
       ofl_action_output *a = (ofl_action_output*)xmalloc (sizeof (struct ofl_action_output));
       a->header.type = OFPAT_OUTPUT;
       a->port = outPort;
       a->max_len = 0;
-      
+
       reply.actions_num = 1;
       reply.actions = (ofl_action_header**)&a;
-      
+
       char *str;
       str = ofl_msg_to_string ((ofl_msg_header*)&reply, NULL);
       NS_LOG_INFO ("TX to swtc: " << str);
@@ -171,13 +171,13 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
     {
       NS_LOG_WARN ("This packet was sent to controller for a reason that we can't handle.");
     }
- 
+
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL/*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL /*dp->exp*/);
   return 0;
 }
 
-ofl_err 
+ofl_err
 LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
@@ -190,7 +190,7 @@ LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swt
       Mac48Address mac48;
       ofl_match_tlv *ethSrc = oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->stats->match);
       mac48.CopyFrom (ethSrc->value);
-      
+
       L2Table_t *l2Table = &it->second;
       L2Table_t::iterator itSrc = l2Table->find (mac48);
       if (itSrc != l2Table->end ())
@@ -205,7 +205,7 @@ LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swt
 }
 
 /********** Private methods **********/
-void 
+void
 LearningController::ConnectionStarted (SwitchInfo swtch)
 {
   NS_LOG_FUNCTION (this << swtch.ipv4);
@@ -213,7 +213,7 @@ LearningController::ConnectionStarted (SwitchInfo swtch)
   // After a successfull handshake, let's install the table-miss entry
   DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl");
 
-  // Configure te switch to buffer packets and send only the first 128 bytes 
+  // Configure te switch to buffer packets and send only the first 128 bytes
   std::ostringstream cmd;
   cmd << "set-config miss=128";
   DpctlCommand (swtch, cmd.str ());
@@ -221,10 +221,10 @@ LearningController::ConnectionStarted (SwitchInfo swtch)
   // Create an empty L2SwitchingTable and insert it into m_learnedInfo
   L2Table_t l2Table;
   uint64_t dpId = swtch.netdev->GetDatapathId ();
-  
+
   std::pair <DatapathMap_t::iterator, bool> ret;
   ret =  m_learnedInfo.insert (std::pair<uint64_t, L2Table_t> (dpId, l2Table));
-  if (ret.second == false) 
+  if (ret.second == false)
     {
       NS_LOG_ERROR ("There is already a table for this datapath");
     }
