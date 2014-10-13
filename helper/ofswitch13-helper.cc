@@ -98,8 +98,6 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
   swInfo.ipv4   = swIface.GetAddress (0);
   swInfo.netdev = openFlowDev;
   swInfo.node   = swNode;
-  swInfo.socket = 0;
-  swInfo.port   = 0;
   if (m_ctrlApp)
     {
       m_ctrlApp->RegisterSwitchMetadata (swInfo);
