@@ -114,6 +114,24 @@ OFSwitch13Controller::SetConnectionCallback (SwitchConnectionCallback_t cb)
 }
 
 int
+OFSwitch13Controller::SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg,
+                                    uint32_t xid)
+{
+  char *msg_str = ofl_msg_to_string (msg, NULL);
+  NS_LOG_DEBUG ("TX to switch: " << msg_str);
+  free (msg_str);
+
+  if (!xid)
+    {
+      xid = GetNextXid ();
+    }
+
+  Ptr<Socket> switchSocket = swtch->socket;
+  return !switchSocket->Send (ofs::PacketFromMsg (msg, xid));
+}
+
+
+int
 OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
 {
   int error = 0;
@@ -124,6 +142,15 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
   wordexp (textCmd.c_str (), &cmd, 0);
   argv = cmd.we_wordv;
   argc = cmd.we_wordc;
+
+  if (!strcmp (argv[0], "set-table-match") || !strcmp (argv[0], "ping"))
+    {
+      NS_LOG_WARN ("Dpctl command currently not supported.");
+    }
+  else
+    {
+      return dpctl_exec_ns3_command ((void*)&swtch, argc, argv);
+    }
 
   if (strcmp (argv[0], "features") == 0)
     {
@@ -1097,6 +1124,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> s, const Address& from)
   NS_LOG_LOGIC ("Switch request connection accepted from " << ipv4);
   SwitchInfo *sw = &it->second;
   s->SetRecvCallback (MakeCallback (&OFSwitch13Controller::SocketRead, this));
+  sw->ctrl = this;  
   sw->socket = s;
   sw->port = InetSocketAddress::ConvertFrom (from).GetPort ();
 

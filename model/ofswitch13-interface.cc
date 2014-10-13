@@ -19,6 +19,7 @@
 
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
+#include "ofswitch13-controller.h"
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 
@@ -164,6 +165,41 @@ dp_ports_output (struct datapath *dp, struct ofpbuf *buffer,
 {
   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
   dev->SendToSwitchPort (buffer, out_port, queue_id);
+}
+
+/**
+ * Overriding ofsoftswitch13 dpctl_send_and_print weak function from
+ * utilities/dpctl.c. Send a message from controller to switch.
+ * \param vconn The SwitchInfo pointer, sent from controller to
+ * dpctl_exec_ns3_command function and get back here to proper identify the
+ * controller object.
+ * \param msg The OFLib message to send.
+ */
+void 
+dpctl_send_and_print (struct vconn *vconn, struct ofl_msg_header *msg)
+{
+  SwitchInfo *sw = (SwitchInfo*)vconn;
+  sw->ctrl->SendToSwitch (sw, msg, 0);
+}
+
+/**
+ * Overriding ofsoftswitch13 dpctl_transact_and_print weak function from
+ * utilities/dpctl.c. Send a message from controller to switch.
+ * \internal Different from ofsoftswitch13 dpctl, this transaction doesn't
+ * wait for a reply, as ns3 socket library doesn't provide blocking sockets. So,
+ * we send the request and return. The reply will came later, using the ns3
+ * callback mechanism.
+ * \param vconn The SwitchInfo pointer, sent from controller to
+ * dpctl_exec_ns3_command function and get back here to proper identify the
+ * controller object.
+ * \param msg The OFLib request to send.
+ * \param repl The OFLib reply message (not used by ns3). 
+ */
+void 
+dpctl_transact_and_print (struct vconn *vconn, struct ofl_msg_header *req,
+                          struct ofl_msg_header **repl)
+{
+  dpctl_send_and_print (vconn, req);
 }
 
 #endif // NS3_OFSWITCH13

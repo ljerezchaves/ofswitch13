@@ -29,6 +29,7 @@
 namespace ns3 {
 
 class OFSwitch13NetDevice;
+class OFSwitch13Controller;
 class OFSwitch13Helper;
 
 /**
@@ -58,6 +59,7 @@ struct SwitchInfo
   Ipv4Address ipv4;                 //!< Switch IPv4 address
   Ptr<OFSwitch13NetDevice> netdev;  //!< OpenFlow NetDevice
   Ptr<Node> node;                   //!< Switch node
+  Ptr<OFSwitch13Controller> ctrl;   //!< Controller application  
   Ptr<Socket> socket;               //!< TCP socket connected to controller
   uint16_t port;                    //!< Socket port
 
@@ -118,6 +120,15 @@ public:
    */
   int DpctlCommand (SwitchInfo swtch, const std::string textCmd);
 
+  /**
+   * Send a OFLib message to a registered switch.
+   * \param swtch The switch to receive the message
+   * \param msg The OFLib message to send.
+   * \param xid The transaction id to use.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  int SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg, uint32_t xid = 0);
+  
 protected:
   // inherited from Application
   virtual void StartApplication (void);

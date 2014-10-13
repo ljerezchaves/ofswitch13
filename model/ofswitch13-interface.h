@@ -97,6 +97,7 @@ namespace ns3 {
 namespace ofs {
 
 class OFSwitch13NetDevice;
+class OFSwitch13Controller;
 
 /**
  * \ingroup ofswitch13
