@@ -68,7 +68,7 @@ private:
 
   /**
    * Update the port state field based on netdevice status.
-   * \return true if the state of the port has changed, false otherwise. 
+   * \return true if the state of the port has changed, false otherwise.
    */
   bool PortUpdateState ();
 

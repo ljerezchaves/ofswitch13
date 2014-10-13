@@ -57,7 +57,7 @@ LearningController::DoDispose ()
 }
 
 ofl_err
-LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint64_t xid)
+LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
 
@@ -164,7 +164,7 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
       NS_LOG_INFO ("TX to swtc: " << str);
       free (str);
 
-      SendToSwitch (swtch, (ofl_msg_header*)&reply, xid);
+      SendToSwitch (&swtch, (ofl_msg_header*)&reply, xid);
       free (a);
     }
   else
@@ -178,7 +178,7 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
 }
 
 ofl_err
-LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint64_t xid)
+LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");

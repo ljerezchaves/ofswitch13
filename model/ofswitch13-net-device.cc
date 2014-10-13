@@ -295,7 +295,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   // Create the port for this device
   Ptr<OFPort> ofPort = Create<OFPort> (m_datapath, csmaPortDevice);
   m_portsByNo.insert (std::pair<uint32_t, Ptr<OFPort> > (ofPort->m_portNo, ofPort));
-  m_portsByDev.insert (std::pair<Ptr<NetDevice>, Ptr<OFPort> > (ofPort->m_netdev, ofPort)); 
+  m_portsByDev.insert (std::pair<Ptr<NetDevice>, Ptr<OFPort> > (ofPort->m_netdev, ofPort));
 
   // Notify the controller that this port has been added
   ofl_msg_port_status msg;
@@ -305,7 +305,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   dp_send_message (m_datapath, (ofl_msg_header*)&msg, NULL);
 
   // Register a trace sink for this csmaPorDevice to get packets received from
-  // device to send to pipeline. 
+  // device to send to pipeline.
   csmaPortDevice->TraceConnectWithoutContext (
     "OpenFlowRx", MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this));
   return 0;
@@ -314,7 +314,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 int
 OFSwitch13NetDevice::SendToController (ofpbuf *buffer, remote *remote)
 {
-  // FIXME No support for more than one controller connection by now. 
+  // FIXME No support for more than one controller connection by now.
   // So, just ignoring remote information and sending to our single socket.
   if (!m_ctrlSocket)
     {
@@ -409,7 +409,7 @@ OFSwitch13NetDevice::GetAddress (void) const
   return Address ();
 }
 
-// No need to keep mtu, as we can query the port device for it. 
+// No need to keep mtu, as we can query the port device for it.
 bool
 OFSwitch13NetDevice::SetMtu (const uint16_t mtu)
 {
@@ -487,9 +487,9 @@ OFSwitch13NetDevice::IsBridge (void) const
 }
 
 // This is a openflow device, so we don't send packets from here. Instead, we
-// use port netdevices to do this. 
+// use port netdevices to do this.
 bool
-OFSwitch13NetDevice::Send (Ptr<Packet> packet, const Address& dest, 
+OFSwitch13NetDevice::Send (Ptr<Packet> packet, const Address& dest,
                            uint16_t protocolNumber)
 {
   NS_LOG_FUNCTION (this);
@@ -497,7 +497,7 @@ OFSwitch13NetDevice::Send (Ptr<Packet> packet, const Address& dest,
 }
 
 bool
-OFSwitch13NetDevice::SendFrom (Ptr<Packet> packet, const Address& src, 
+OFSwitch13NetDevice::SendFrom (Ptr<Packet> packet, const Address& src,
                                const Address& dest, uint16_t protocolNumber)
 {
   NS_LOG_FUNCTION (this);
@@ -565,7 +565,7 @@ OFSwitch13NetDevice::DoDispose ()
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
   meter_table_destroy (m_datapath->meters);
- 
+
   NetDevice::DoDispose ();
 }
 
@@ -659,7 +659,7 @@ OFSwitch13NetDevice::PortGetOFPort (uint32_t no)
 }
 
 void
-OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev, 
+OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
                                             Ptr<const Packet> packet)
 {
   NS_LOG_FUNCTION (this);
