@@ -62,7 +62,7 @@ OFSwitch13Controller::OFSwitch13Controller ()
 {
   NS_LOG_FUNCTION (this);
   m_serverSocket = 0;
-  m_xid = rand () & UINT32_MAX;
+  m_xid = rand () & 0xffffffff;
 }
 
 OFSwitch13Controller::~OFSwitch13Controller ()
