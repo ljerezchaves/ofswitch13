@@ -62,7 +62,7 @@ public:
   void SetDeviceAttribute (std::string n1, const AttributeValue &v1);
 
   /**
-   * This method creates an ns3::OFSwitch13NetDevice with the attributes
+   * This method creates a ns3::OFSwitch13NetDevice with the attributes
    * configured by OFSwitch13Helper::SetDeviceAttribute, adds the device to the
    * swNode, and attaches the given NetDevices as ports of the switch. It also
    * installs the TCP/IP stack into swNode, and connect it to the csma gigabit
@@ -74,6 +74,23 @@ public:
    * \returns A container holding the OFSwitch13NetDevice net device.
    */
   NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
+
+  /**
+   * This method creates and install a ns3::OFSwitch13NetDevice with the
+   * attributes configured by OFSwitch13Helper::SetDeviceAttribute for each
+   * node in swNodes container.  It also installs the TCP/IP stack into each
+   * node, and connect them to the csma gigabit network using IPv4 network
+   * 10.100.150.0/24. Finally, if the controller has been already set, start
+   * the switch <--> controller connection.
+   *
+   * \attention Switches configured by this methods have no switch ports. Don't
+   * forget to add ports do them later, or they will do nothing.
+   *
+   * \param swNode The node to install the device in
+   * \param ports Container of NetDevices to add as switch ports
+   * \returns A container holding the OFSwitch13NetDevice net device.
+   */
+  NetDeviceContainer InstallSwitchesWithoutPorts (NodeContainer swNodes);
 
   /**
    * This method creates a new ns3::LearningController application and install it

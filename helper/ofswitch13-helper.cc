@@ -109,6 +109,51 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
   return NetDeviceContainer (openFlowDev);
 }
 
+NetDeviceContainer
+OFSwitch13Helper::InstallSwitchesWithoutPorts (NodeContainer swNodes)
+{
+  NS_LOG_FUNCTION (this);
+  NetDeviceContainer openFlowDevices;
+  for (NodeContainer::Iterator it = swNodes.Begin (); it != swNodes.End (); it++)
+    {
+      Ptr<Node> node = *it;
+      NS_LOG_DEBUG ("Installing OpenFlow switch device on node " << node->GetId ());
+
+      Ptr<OFSwitch13NetDevice> openFlowDev = m_ndevFactory.Create<OFSwitch13NetDevice> ();
+      node->AddDevice (openFlowDev);
+      m_devices.Add (openFlowDev);
+      openFlowDevices.Add (openFlowDev);
+
+      // Connecting the switch to csma network
+      m_internet.Install (node);
+      NetDeviceContainer swDev = m_csmaHelper.Install (node, m_csmaChannel);
+      Ipv4InterfaceContainer swIface = m_ipv4helper.Assign (swDev);
+
+      // If controller address already set, start switch <--> controller connection
+      if (!m_ctrlAddr.IsInvalid ())
+        {
+          openFlowDev->SetAttribute ("ControllerAddr", AddressValue (m_ctrlAddr));
+          openFlowDev->StartControllerConnection ();
+        }
+
+      // Register switch metadata into controller or save for further registration
+      SwitchInfo swInfo;
+      swInfo.ipv4   = swIface.GetAddress (0);
+      swInfo.netdev = openFlowDev;
+      swInfo.node   = node;
+      if (m_ctrlApp)
+        {
+          m_ctrlApp->RegisterSwitchMetadata (swInfo);
+        }
+      else
+        {
+          m_unregSw.push_back (swInfo);
+        }
+    }
+  return openFlowDevices;
+}
+
+
 Ptr<OFSwitch13Controller>
 OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller)
 {
