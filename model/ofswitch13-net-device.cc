@@ -24,6 +24,7 @@
 #include "ns3/integer.h"
 #include "ns3/uinteger.h"
 #include "ns3/log.h"
+#include "ns3/string.h"
 #include "ns3/ethernet-header.h"
 #include "ns3/ethernet-trailer.h"
 #include "ns3/tcp-header.h"
@@ -251,6 +252,13 @@ OFSwitch13NetDevice::GetTypeId (void)
                    AddressValue (InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
                    MakeAddressAccessor (&OFSwitch13NetDevice::m_ctrlAddr),
                    MakeAddressChecker ())
+    .AddAttribute ("LibLogLevel",
+                   "Set the ofsoftswitch13 library logging level."
+                   "Use 'none' to turn logging off, or use 'all' to maximum verbosity."
+                   "You can also use a custom ofsoftswitch13 verbosity argument.",
+                   StringValue ("none"),
+                   MakeStringAccessor (&OFSwitch13NetDevice::SetLibLogLevel),
+                   MakeStringChecker ())
   ;
   return tid;
 }
@@ -334,6 +342,24 @@ uint64_t
 OFSwitch13NetDevice::GetDatapathId (void) const
 {
   return m_dpId;
+}
+
+void
+OFSwitch13NetDevice::SetLibLogLevel (std::string log)
+{
+  if (log != "none")
+    {
+      set_program_name ("ns3-ofswitch13");
+      vlog_init ();
+      if (log == "all")
+        {
+          vlog_set_verbosity (NULL);
+        }
+      else
+        {
+          vlog_set_verbosity (log.c_str ());
+        }
+    }
 }
 
 void

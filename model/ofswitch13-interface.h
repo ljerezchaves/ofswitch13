@@ -55,7 +55,8 @@ extern "C"
 #include "udatapath/dp_ports.h"
 #include "udatapath/dp_control.h"
 
- #include "lib/ofpbuf.h"
+#include "lib/ofpbuf.h"
+#include "lib/vlog.h"
 
 #include "oflib/ofl-structs.h"
 #include "oflib/oxm-match.h"

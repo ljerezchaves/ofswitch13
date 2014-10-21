@@ -167,6 +167,12 @@ public:
   uint64_t GetDatapathId (void) const;
 
   /**
+   * Set the logging level of ofsoftswitch13 library.
+   * \param log String representing library logging level.
+   */
+  void SetLibLogLevel (std::string log);
+
+  /**
    * Starts the TCP connection between switch and controller.
    */
   void StartControllerConnection ();
@@ -258,6 +264,7 @@ private:
   uint32_t        m_ifIndex;      //!< NetDevice Interface Index
   Time            m_timeout;      //!< Datapath Timeout
   Time            m_lookupDelay;  //!< Flow Table Lookup Delay overhead.
+  std::string     m_libLog;       //!< The ofsoftswitch13 library logging levels.
   datapath*       m_datapath;     //!< The OpenFlow datapath
   PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
   PortDevMap_t    m_portsByDev;   //!< Switch ports indexed by NetDevice.
