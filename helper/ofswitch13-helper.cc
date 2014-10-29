@@ -47,6 +47,7 @@ OFSwitch13Helper::OFSwitch13Helper ()
   m_chanFactory.Set ("DataRate", DataRateValue (DataRate ("1Gbps")));
   m_chanFactory.Set ("Delay", TimeValue (MilliSeconds (2)));
   m_csmaChannel = m_chanFactory.Create ()->GetObject<CsmaChannel> ();
+  m_csmaHelper.SetDeviceAttribute ("Mtu", UintegerValue (3000));
 }
 
 OFSwitch13Helper::~OFSwitch13Helper ()
