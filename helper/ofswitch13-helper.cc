@@ -47,6 +47,10 @@ OFSwitch13Helper::OFSwitch13Helper ()
   m_chanFactory.Set ("DataRate", DataRateValue (DataRate ("1Gbps")));
   m_chanFactory.Set ("Delay", TimeValue (MilliSeconds (2)));
   m_csmaChannel = m_chanFactory.Create ()->GetObject<CsmaChannel> ();
+  
+  // Using large MTU to allow OpenFlow packet in messages with data. This value
+  // is tied to the 2960 TCPSocket SegmentSize attribute in switch and
+  // controller.
   m_csmaHelper.SetDeviceAttribute ("Mtu", UintegerValue (3000));
 }
 

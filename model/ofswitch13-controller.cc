@@ -177,6 +177,7 @@ OFSwitch13Controller::StartApplication ()
     {
       m_serverSocket = Socket::CreateSocket (GetNode (),
                                              TcpSocketFactory::GetTypeId ());
+      m_serverSocket->SetAttribute ("SegmentSize", UintegerValue (2960));
       m_serverSocket->Bind (InetSocketAddress (Ipv4Address::GetAny (), m_port));
       m_serverSocket->Listen ();
     }
@@ -456,18 +457,30 @@ void
 OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-
-  Ptr<Packet> packet;
-  Address from;
-  ofl_msg_header *msg;
-  ofl_err error;
-  uint32_t xid;
-  while ((packet = socket->RecvFrom (from)))
+  
+  do
     {
-      if (packet->GetSize () == 0)
-        { //EOF
-          break;
+      // At least 8 bytes (OpenFlow header) must be available for read
+      uint32_t rxBytesAvailable = socket->GetRxAvailable ();
+      NS_ASSERT_MSG (rxBytesAvailable >= 8, "At least 8 bytes must be available for read");
+
+      // Receive the OpenFlow header
+      Address from;
+      Ptr<Packet> packet = socket->RecvFrom (sizeof (ofp_header), 0, from);
+      
+      // Get the OpenFlow message size
+      ofp_header header;
+      packet->CopyData ((uint8_t*)&header, sizeof (ofp_header));
+      uint32_t remainingBytes = ntohs (header.length) - sizeof (ofp_header); 
+     
+      // Receive the remaining OpenFlow message
+      if (remainingBytes)
+        {
+          NS_ASSERT_MSG (socket->GetRxAvailable () >= remainingBytes, 
+                         "No support for OpenFlow packets fragmented by TCP.");
+          packet->AddAtEnd (socket->Recv (remainingBytes, 0));
         }
+
       if (InetSocketAddress::IsMatchingType (from))
         {
           Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
@@ -476,6 +489,10 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
                         << "s the OpenFlow Controller received "
                         <<  packet->GetSize () << " bytes from switch " << ipv4
                         << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
+
+          uint32_t xid;
+          ofl_msg_header *msg;
+          ofl_err error;
 
           SwitchsMap_t::iterator it = m_switchesMap.find (ipv4);
           NS_ASSERT_MSG (it != m_switchesMap.end (), "Unknown switch " << from);
@@ -502,7 +519,9 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
             }
           ofpbuf_delete (buffer);
         }
-    }
+    
+    // Repeat until socket buffer gets emtpy
+    } while (socket->GetRxAvailable ());
 }
 
 bool
