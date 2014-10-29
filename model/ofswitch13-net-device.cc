@@ -329,7 +329,16 @@ OFSwitch13NetDevice::SendToController (ofpbuf *buffer, remote *remote)
       NS_LOG_WARN ("No controller connection. Discarding message... ");
       return -1;
     }
-  return !m_ctrlSocket->Send (ofs::PacketFromBuffer (buffer));
+
+  Ptr<Packet> pkt = ofs::PacketFromBuffer (buffer);
+
+  // Check for available space in TCP buffer before sending the packet
+  if (m_ctrlSocket->GetTxAvailable () < pkt->GetSize ())
+    {
+      NS_FATAL_ERROR ("Unavailable space to send OpenFlow message");
+    }
+  
+  return !m_ctrlSocket->Send (pkt);
 }
 
 uint32_t

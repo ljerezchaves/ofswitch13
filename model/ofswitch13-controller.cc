@@ -128,8 +128,16 @@ OFSwitch13Controller::SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg,
       xid = GetNextXid ();
     }
 
+  Ptr<Packet> pkt = ofs::PacketFromMsg (msg, xid);
+
+  // Check for available space in TCP buffer before sending the packet
   Ptr<Socket> switchSocket = swtch->socket;
-  return !switchSocket->Send (ofs::PacketFromMsg (msg, xid));
+  if (switchSocket->GetTxAvailable () < pkt->GetSize ())
+    {
+      NS_FATAL_ERROR ("Unavailable space to send OpenFlow message");
+    }
+  
+  return !switchSocket->Send (pkt);
 }
 
 int
