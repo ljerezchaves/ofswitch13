@@ -191,7 +191,7 @@ OFPort::PortGetFeatures ()
     {
       feat |= OFPPF_100GB_FD;
     }
-  else if (dr == DataRate ("1Tbps"))
+  else if (dr == DataRate ("1000Gbps"))
     {
       feat |= OFPPF_1TB_FD;
     }
