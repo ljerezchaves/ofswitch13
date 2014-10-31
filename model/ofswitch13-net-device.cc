@@ -24,6 +24,7 @@
 #include "ns3/integer.h"
 #include "ns3/uinteger.h"
 #include "ns3/log.h"
+#include "ns3/string.h"
 #include "ns3/ethernet-header.h"
 #include "ns3/ethernet-trailer.h"
 #include "ns3/tcp-header.h"
@@ -190,7 +191,7 @@ OFPort::PortGetFeatures ()
     {
       feat |= OFPPF_100GB_FD;
     }
-  else if (dr == DataRate ("1Tbps"))
+  else if (dr == DataRate ("1000Gbps"))
     {
       feat |= OFPPF_1TB_FD;
     }
@@ -251,6 +252,13 @@ OFSwitch13NetDevice::GetTypeId (void)
                    AddressValue (InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
                    MakeAddressAccessor (&OFSwitch13NetDevice::m_ctrlAddr),
                    MakeAddressChecker ())
+    .AddAttribute ("LibLogLevel",
+                   "Set the ofsoftswitch13 library logging level."
+                   "Use 'none' to turn logging off, or use 'all' to maximum verbosity."
+                   "You can also use a custom ofsoftswitch13 verbosity argument.",
+                   StringValue ("none"),
+                   MakeStringAccessor (&OFSwitch13NetDevice::SetLibLogLevel),
+                   MakeStringChecker ())
   ;
   return tid;
 }
@@ -321,7 +329,16 @@ OFSwitch13NetDevice::SendToController (ofpbuf *buffer, remote *remote)
       NS_LOG_WARN ("No controller connection. Discarding message... ");
       return -1;
     }
-  return !m_ctrlSocket->Send (ofs::PacketFromBuffer (buffer));
+
+  Ptr<Packet> pkt = ofs::PacketFromBuffer (buffer);
+
+  // Check for available space in TCP buffer before sending the packet
+  if (m_ctrlSocket->GetTxAvailable () < pkt->GetSize ())
+    {
+      NS_FATAL_ERROR ("Unavailable space to send OpenFlow message");
+    }
+  
+  return !m_ctrlSocket->Send (pkt);
 }
 
 uint32_t
@@ -337,6 +354,24 @@ OFSwitch13NetDevice::GetDatapathId (void) const
 }
 
 void
+OFSwitch13NetDevice::SetLibLogLevel (std::string log)
+{
+  if (log != "none")
+    {
+      set_program_name ("ns3-ofswitch13");
+      vlog_init ();
+      if (log == "all")
+        {
+          vlog_set_verbosity (NULL);
+        }
+      else
+        {
+          vlog_set_verbosity (log.c_str ());
+        }
+    }
+}
+
+void
 OFSwitch13NetDevice::StartControllerConnection ()
 {
   NS_LOG_FUNCTION (this);
@@ -347,7 +382,8 @@ OFSwitch13NetDevice::StartControllerConnection ()
     {
       int error = 0;
       m_ctrlSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-
+      m_ctrlSocket->SetAttribute ("SegmentSize", UintegerValue (2960));
+      
       error = m_ctrlSocket->Bind ();
       if (error)
         {
@@ -745,24 +781,41 @@ void
 OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-  Ptr<Packet> packet;
-  Address from;
-  ofl_msg_header *msg;
-  ofl_err error;
-
-  while ((packet = socket->RecvFrom (from)))
+  
+  do
     {
-      if (packet->GetSize () == 0)
-        { //EOF
-          break;
+      // At least 8 bytes (OpenFlow header) must be available for read
+      uint32_t rxBytesAvailable = socket->GetRxAvailable ();
+      NS_ASSERT_MSG (rxBytesAvailable >= 8, "At least 8 bytes must be available for read");
+
+      // Receive the OpenFlow header
+      Address from;
+      Ptr<Packet> packet = socket->RecvFrom (sizeof (ofp_header), 0, from);
+      
+      // Get the OpenFlow message size
+      ofp_header header;
+      packet->CopyData ((uint8_t*)&header, sizeof (ofp_header));
+      uint32_t remainingBytes = ntohs (header.length) - sizeof (ofp_header); 
+
+      // Receive the remaining OpenFlow message
+      if (remainingBytes)
+        {
+          NS_ASSERT_MSG (socket->GetRxAvailable () >= remainingBytes, 
+                         "No support for OpenFlow packets fragmented by TCP.");
+          packet->AddAtEnd (socket->Recv (remainingBytes, 0));
         }
+     
       if (InetSocketAddress::IsMatchingType (from))
         {
-          NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds ()
-                                   << "s the OpenFlow switch received "
-                                   <<  packet->GetSize () << " bytes from controller "
-                                   << InetSocketAddress::ConvertFrom (from).GetIpv4 ()
-                                   << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
+          Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
+          NS_LOG_LOGIC ("At time "
+                        << Simulator::Now ().GetSeconds ()
+                        << "s the OpenFlow switch received "
+                        <<  packet->GetSize () << " bytes from controller " << ipv4
+                        << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
+
+          ofl_msg_header *msg;
+          ofl_err error;
 
           // FIXME No suuport for multiple controllers by now.
           // Gets the remote structure for this controller connection.
@@ -806,7 +859,9 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
             }
           ofpbuf_delete (buffer);
         }
-    }
+      
+    // Repeat until socket buffer gets emtpy
+    } while (socket->GetRxAvailable ());
 }
 
 void

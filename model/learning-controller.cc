@@ -65,6 +65,11 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
   uint32_t outPort = OFPP_FLOOD;
   uint64_t dpId = swtch.netdev->GetDatapathId ();
   enum ofp_packet_in_reason reason = msg->reason;
+
+  char *m = ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, NULL);
+  NS_LOG_DEBUG ("Packet in match: " << m);
+  free (m);
+
   if (reason == OFPR_NO_MATCH)
     {
       // Let's get necessary information (input port and mac address)
@@ -158,11 +163,6 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
 
       reply.actions_num = 1;
       reply.actions = (ofl_action_header**)&a;
-
-      char *str;
-      str = ofl_msg_to_string ((ofl_msg_header*)&reply, NULL);
-      NS_LOG_INFO ("TX to swtc: " << str);
-      free (str);
 
       SendToSwitch (&swtch, (ofl_msg_header*)&reply, xid);
       free (a);
