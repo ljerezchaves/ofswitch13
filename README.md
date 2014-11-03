@@ -43,7 +43,10 @@ Now, you can configure the ns-3 including the --with-ofswitch13 option to show t
 ./waf configure --with-ofswitch13=path/to/ofsoftswitch13
 ```
 
-That's it! Compile the simulator using ./waf and have fun! You can find some examples on how using this module inside examples folder.
+That's it! Compile the simulator using ./waf and have fun! 
+
+### Documentation and examples ###
+You can find some examples on how using this module inside examples folder. The code is commented following the ns3 doxygen style, and you can compile the documentation using ./waf doxygen. The manual will be update soon!
 
 ### Important considerations ###
 
