@@ -140,7 +140,7 @@ send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
 
   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (remote->dp->id);
   error = dev->SendToController (buffer, remote);
-  if (!error)
+  if (error)
     {
       NS_LOG_WARN ("There was an error sending the message!");
       return error;
