@@ -124,7 +124,7 @@ public:
     * OpenFlow deals with ethernet frames). Also, the port device that is being
     * added as switch port must _not_ have an IP address.
     * \param portDevice The NetDevice port to add.
-    * \return 0 if everything's ok, otherwise an error number.
+    * \return A negative number in case of errors, otherwise the port number (>= 1).
     */
   int AddSwitchPort (Ptr<NetDevice> portDevice);
 

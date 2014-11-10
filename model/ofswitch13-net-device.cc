@@ -291,7 +291,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 
   if (GetNSwitchPorts () >= DP_MAX_PORTS)
     {
-      return EXFULL;
+      return -1;
     }
 
   Ptr<CsmaNetDevice> csmaPortDevice = portDevice->GetObject<CsmaNetDevice> ();
@@ -316,7 +316,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   // device to send to pipeline.
   csmaPortDevice->TraceConnectWithoutContext (
     "OpenFlowRx", MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this));
-  return 0;
+  return ofPort->m_portNo;
 }
 
 int
