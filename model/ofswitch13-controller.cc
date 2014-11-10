@@ -149,6 +149,7 @@ OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> dev, const std::str
 int
 OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
 {
+  NS_ASSERT_MSG (swtch.socket, "Wait for switch/controller TCP connection.");
   int error = 0;
   char **argv;
   size_t argc;
@@ -568,6 +569,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
   SwitchInfo *swInfo = &it->second;
   socket->SetRecvCallback (MakeCallback (&OFSwitch13Controller::SocketRead, this));
 
+  // Update other switch information
   swInfo->ctrl = this;
   swInfo->socket = socket;
   swInfo->port = InetSocketAddress::ConvertFrom (from).GetPort ();
