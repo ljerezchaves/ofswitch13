@@ -141,12 +141,6 @@ OFSwitch13Controller::SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg,
 }
 
 int
-OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> dev, const std::string textCmd)
-{
-  return DpctlCommand (GetSwitchMetadata (dev), textCmd);
-}
-
-int
 OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
 {
   NS_ASSERT_MSG (swtch.socket, "Wait for switch/controller TCP connection.");
@@ -220,21 +214,6 @@ uint32_t
 OFSwitch13Controller::GetNextXid ()
 {
   return ++m_xid;
-}
-
-SwitchInfo 
-OFSwitch13Controller::GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev)
-{
-  NS_LOG_FUNCTION (dev);
-
-  for (SwitchsMap_t::iterator it = m_switchesMap.begin (); it != m_switchesMap.end (); ++it)
-    {
-      if (it->second.netdev == dev)
-        {
-          return it->second;
-        }
-    }
-  NS_FATAL_ERROR ("This switch device is not registered to this controller.");
 }
 
 int
