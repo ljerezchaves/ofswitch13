@@ -118,14 +118,6 @@ public:
   int DpctlCommand (SwitchInfo swtch, const std::string textCmd);
 
   /**
-   * \brief Execute a dpctl command to interact with the switch.
-   * \param dev The OFSwitch13NetDevice pointer.
-   * \param textCmd The dpctl command to create the message.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  int DpctlCommand (Ptr<OFSwitch13NetDevice> dev, const std::string textCmd);
-
-  /**
    * Send a OFLib message to a registered switch.
    * \param swtch The switch to receive the message.
    * \param msg The OFLib message to send.
@@ -143,13 +135,6 @@ protected:
    * \return The next (in sequence) transaction ID for this controller.
    */
   uint32_t GetNextXid ();
-  
-  /**
-   * \brief Retrieve switch metadata information from switch OpenFlow device.
-   * \param dev The OFSwitch13NetDevice pointer.
-   * \return The SwitchInfo metadata.
-   */
-  SwitchInfo GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev);
 
   /**
    * Send an echo request message to switch, and wait for a reply.
