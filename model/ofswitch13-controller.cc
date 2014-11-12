@@ -504,7 +504,7 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
           if (!error)
             {
               char *msg_str = ofl_msg_to_string (msg, NULL);
-              NS_LOG_DEBUG ("RX to switch " << ipv4 << ": " << msg_str);
+              NS_LOG_DEBUG ("RX from switch " << ipv4 << ": " << msg_str);
               free (msg_str);
 
               error = ReceiveFromSwitch (it->second, msg, xid);
