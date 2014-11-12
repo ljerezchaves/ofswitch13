@@ -70,6 +70,12 @@ OFSwitch13Helper::SetDeviceAttribute (std::string n1, const AttributeValue &v1)
   m_ndevFactory.Set (n1, v1);
 }
 
+void
+OFSwitch13Helper::SetAddressBase (Ipv4Address network, Ipv4Mask mask)
+{
+  m_ipv4helper.SetBase (network, mask);
+}
+
 NetDeviceContainer
 OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {

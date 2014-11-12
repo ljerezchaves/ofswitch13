@@ -62,6 +62,14 @@ public:
   void SetDeviceAttribute (std::string n1, const AttributeValue &v1);
 
   /**
+   * Set the base network number, network mask address.
+   *
+   * \param network The Ipv4Address containing the initial network number to use during allocation.
+   * \param mask The Ipv4Mask containing one bits in each bit position of the network number.
+   */
+  void SetAddressBase (Ipv4Address network, Ipv4Mask mask);
+
+  /**
    * This method creates a ns3::OFSwitch13NetDevice with the attributes
    * configured by OFSwitch13Helper::SetDeviceAttribute, adds the device to the
    * swNode, and attaches the given NetDevices as ports of the switch. It also
