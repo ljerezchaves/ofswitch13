@@ -847,7 +847,7 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
             }
           if (error)
             {
-              NS_LOG_WARN ("Error processing OpenFlow message received from controller.");
+              NS_LOG_ERROR ("Error processing OpenFlow message received from controller.");
               // Notify the controller
               ofl_msg_error err;
               err.header.type = OFPT_ERROR;

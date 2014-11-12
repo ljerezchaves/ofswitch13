@@ -120,7 +120,7 @@ OFSwitch13Controller::SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg,
                                     uint32_t xid)
 {
   char *msg_str = ofl_msg_to_string (msg, NULL);
-  NS_LOG_DEBUG ("TX to switch: " << msg_str);
+  NS_LOG_DEBUG ("TX to switch " << swtch->ipv4 << ": " << msg_str);
   free (msg_str);
 
   if (!xid)
@@ -504,7 +504,7 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
           if (!error)
             {
               char *msg_str = ofl_msg_to_string (msg, NULL);
-              NS_LOG_DEBUG ("Rx from switch: " << msg_str);
+              NS_LOG_DEBUG ("RX to switch " << ipv4 << ": " << msg_str);
               free (msg_str);
 
               error = ReceiveFromSwitch (it->second, msg, xid);
