@@ -29,13 +29,13 @@ NS_OBJECT_ENSURE_REGISTERED (LearningController);
 /********** Public methods ***********/
 LearningController::LearningController ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION ();
   SetConnectionCallback (MakeCallback (&LearningController::ConnectionStarted, this));
 }
 
 LearningController::~LearningController ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION ();
 }
 
 TypeId
