@@ -101,14 +101,15 @@ public:
   NetDeviceContainer InstallSwitchesWithoutPorts (NodeContainer swNodes);
 
   /**
-   * This method creates a new ns3::LearningController application and install it
-   * into cNode. It also installs the TCP/IP stack into cNode, and connects it
-   * to the csma gigabit network, using IPv4 network 10.100.150.0/24. Finally,
-   * start the switch <--> controller connection for all already registered
-   * switches.
+   * This method creates a new ns3::OFSwitch13LearningController application
+   * and install it into cNode. It also installs the TCP/IP stack into cNode,
+   * and connects it to the csma gigabit network, using IPv4 network
+   * 10.100.150.0/24. Finally, start the switch <--> controller connection for
+   * all already registered switches.
    *
    * \param cNode The node to configure as controller
-   * \returns The LearningController application created (installed into cNode)
+   * \returns The OFSwitch13LearningController application created (installed
+   * into cNode)
    */
   Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode);
 

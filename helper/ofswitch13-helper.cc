@@ -19,7 +19,7 @@
 #ifdef NS3_OFSWITCH13
 
 #include "ofswitch13-helper.h"
-#include "ns3/learning-controller.h"
+#include "ns3/ofswitch13-learning-controller.h"
 #include "ns3/uinteger.h"
 #include "ns3/node.h"
 #include "ns3/log.h"
@@ -196,7 +196,7 @@ Ptr<OFSwitch13Controller>
 OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
 {
   NS_LOG_FUNCTION (this);
-  Ptr<LearningController> ctrl = CreateObject<LearningController> ();
+  Ptr<OFSwitch13LearningController> ctrl = CreateObject<OFSwitch13LearningController> ();
   return InstallControllerApp (cNode, ctrl);
 }
 

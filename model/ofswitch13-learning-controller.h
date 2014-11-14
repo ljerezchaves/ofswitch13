@@ -16,8 +16,8 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
-#ifndef LEARNING_CONTROLLER_H
-#define LEARNING_CONTROLLER_H
+#ifndef OFSWITCH13_LEARNING_CONTROLLER_H
+#define OFSWITCH13_LEARNING_CONTROLLER_H
 
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
@@ -29,11 +29,11 @@ namespace ns3 {
  * \ingroup ofswitch13
  * \brief An Learning OpenFlow 1.3 controller (works as L2 switch)
  */
-class LearningController : public OFSwitch13Controller
+class OFSwitch13LearningController : public OFSwitch13Controller
 {
 public:
-  LearningController ();          //!< Default constructor
-  virtual ~LearningController (); //!< Dummy destructor, see DoDispose.
+  OFSwitch13LearningController ();          //!< Default constructor
+  virtual ~OFSwitch13LearningController (); //!< Dummy destructor, see DoDispose.
 
   /**
    * Register this type.
@@ -81,4 +81,4 @@ private:
 };
 
 } // namespace ns3
-#endif /* LEARNING_CONTROLLER_H */
+#endif /* OFSWITCH13_LEARNING_CONTROLLER_H */

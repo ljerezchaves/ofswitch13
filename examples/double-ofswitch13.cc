@@ -49,8 +49,9 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13DoubleExample", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13NetDevice", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_WARN);
     }
 
   // Enabling Checksum computations
@@ -91,7 +92,7 @@ main (int argc, char *argv[])
   // Configure OpenFlow network
   NetDeviceContainer of13Device0, of13Device1;
   OFSwitch13Helper ofHelper;
-  Ptr<LearningController> learningApp = CreateObject<LearningController> ();
+  Ptr<OFSwitch13LearningController> learningApp = CreateObject<OFSwitch13LearningController> ();
   Ptr<OFSwitch13Controller> controlApp = ofHelper.InstallControllerApp (controllerNode, learningApp);
   of13Device0 = ofHelper.InstallSwitch (switchNode0, switch0Devices);
   of13Device1 = ofHelper.InstallSwitch (switchNode1, switch1Devices);
