@@ -283,7 +283,7 @@ OFSwitch13NetDevice::~OFSwitch13NetDevice ()
   NS_LOG_FUNCTION (this);
 }
 
-int
+uint32_t
 OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 {
   NS_LOG_FUNCTION (this << portDevice);
@@ -291,7 +291,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 
   if (GetNSwitchPorts () >= DP_MAX_PORTS)
     {
-      return -1;
+      return 0;
     }
 
   Ptr<CsmaNetDevice> csmaPortDevice = portDevice->GetObject<CsmaNetDevice> ();
