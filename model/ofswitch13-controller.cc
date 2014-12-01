@@ -186,9 +186,7 @@ int
 OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> swtch, 
                                     const std::string textCmd)
 {
-  SwitchInfo swInfo;
-  swInfo = GetSwitchMetadata (swtch);
-  return DpctlCommand (swInfo, textCmd);
+  return DpctlCommand (GetSwitchMetadata (swtch), textCmd);
 }
 
 
