@@ -109,6 +109,22 @@ OFSwitch13Controller::RegisterSwitchMetadata (SwitchInfo swInfo)
     }
 }
 
+SwitchInfo
+OFSwitch13Controller::GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev)
+{
+  NS_LOG_FUNCTION (dev);
+
+  SwitchsMap_t::iterator it;
+  for (it = m_switchesMap.begin (); it != m_switchesMap.end (); it++)
+    {
+      if (it->second.netdev == dev)
+        {
+          return it->second;
+        }
+    }
+  return SwitchInfo ();
+}
+
 void
 OFSwitch13Controller::SetConnectionCallback (SwitchConnectionCallback_t cb)
 {
@@ -164,6 +180,15 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
 
   wordfree (&cmd);
   return error;
+}
+
+int 
+OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> swtch, 
+                                    const std::string textCmd)
+{
+  SwitchInfo swInfo;
+  swInfo = GetSwitchMetadata (swtch);
+  return DpctlCommand (swInfo, textCmd);
 }
 
 

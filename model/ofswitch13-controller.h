@@ -103,6 +103,13 @@ public:
   void RegisterSwitchMetadata (SwitchInfo swInfo);
 
   /**
+   * Look for registered switch metadata from OpenFlow device.
+   * \param dev The OpenFlow NetDevice.
+   * \return The switch metadata information.
+   */
+  SwitchInfo GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev);
+
+  /**
    * \brief Register a TCP connection callback
    * \param cb Callback to invoke whenever a switch starts a TCP connection to
    * this controller
@@ -116,6 +123,14 @@ public:
    * \return 0 if everything's ok, otherwise an error number.
    */
   int DpctlCommand (SwitchInfo swtch, const std::string textCmd);
+
+  /**
+   * \brief Execute a dpctl command to interact with the switch.
+   * \param swtch The target switch device
+   * \param textCmd The dpctl command to create the message.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  int DpctlCommand (Ptr<OFSwitch13NetDevice> swtch, const std::string textCmd);
 
   /**
    * Send a OFLib message to a registered switch.
@@ -172,18 +187,41 @@ protected:
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  ofl_err HandleEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
-  ofl_err HandleEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid) = 0;
-  virtual ofl_err HandleError (ofl_msg_error *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandlePortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
+  ofl_err 
+  HandleEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
+  
+  ofl_err 
+  HandleEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
+  
+  virtual ofl_err 
+  HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid) = 0;
+  
+  virtual ofl_err 
+  HandleError (ofl_msg_error *msg, SwitchInfo swtch, uint32_t xid);
+  
+  virtual ofl_err 
+  HandleFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint32_t xid);
+  
+  virtual ofl_err 
+  HandleGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
+  
+  virtual ofl_err 
+  HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid);
+  
+  virtual ofl_err 
+  HandlePortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint32_t xid);
+  
+  virtual ofl_err 
+  HandleAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint32_t xid);
+  
+  virtual ofl_err 
+  HandleMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint32_t xid);
+  
+  virtual ofl_err 
+  HandleRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint32_t xid);
+  
+  virtual ofl_err 
+  HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
   //\}
 
   SwitchsMap_t m_switchesMap; //!< Registered switches metadata's
