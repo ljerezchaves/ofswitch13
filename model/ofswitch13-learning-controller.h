@@ -67,7 +67,8 @@ public:
   ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid);
 
 protected:
-  void ConnectionStarted (SwitchInfo swtch);    //!< TCP connection callback
+  // Inherited from OFSwitch13Controller
+  void ConnectionStarted (SwitchInfo swtch);
 
 private:
   /**
