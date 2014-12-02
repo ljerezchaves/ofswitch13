@@ -80,12 +80,6 @@ public:
   virtual ~OFSwitch13Controller (); //!< Dummy destructor, see DoDispose.
 
   /**
-   * Switch TCP connection started callback
-   * \param The switch metadata that initiated a connection with controller
-   */
-  typedef Callback<void, SwitchInfo> SwitchConnectionCallback_t;
-
-  /**
    * Register this type.
    * \return The object TypeId.
    */
@@ -108,13 +102,6 @@ public:
    * \return The switch metadata information.
    */
   SwitchInfo GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev);
-
-  /**
-   * \brief Register a TCP connection callback
-   * \param cb Callback to invoke whenever a switch starts a TCP connection to
-   * this controller
-   */
-  void SetConnectionCallback (SwitchConnectionCallback_t cb);
 
   /**
    * \brief Execute a dpctl command to interact with the switch.
@@ -150,6 +137,14 @@ protected:
    * \return The next (in sequence) transaction ID for this controller.
    */
   uint32_t GetNextXid ();
+
+  /**
+   * \brief Function invoked whenever a switch starts a TCP connection to this
+   * controller. Derived classes can override this function to implement any
+   * relevant logic.
+   * \param swtch The connected switch.
+   */
+  virtual void ConnectionStarted (SwitchInfo swtch);
 
   /**
    * Send an echo request message to switch, and wait for a reply.
@@ -257,7 +252,6 @@ private:
   Ptr<Socket>           m_serverSocket;             //!< Listening server socket
 
   EchoMsgMap_t m_echoMap;                           //!< Metadata for echo requests
-  SwitchConnectionCallback_t m_connectionCallback;  //!< TCP connection callback
 };
 
 } // namespace ns3

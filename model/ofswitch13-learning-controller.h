@@ -66,10 +66,10 @@ public:
    */
   ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid);
 
-
-private:
+protected:
   void ConnectionStarted (SwitchInfo swtch);    //!< TCP connection callback
 
+private:
   /**
    * \name L2 switching structures
    */

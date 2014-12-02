@@ -125,12 +125,6 @@ OFSwitch13Controller::GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev)
   return SwitchInfo ();
 }
 
-void
-OFSwitch13Controller::SetConnectionCallback (SwitchConnectionCallback_t cb)
-{
-  m_connectionCallback = cb;
-}
-
 int
 OFSwitch13Controller::SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg,
                                     uint32_t xid)
@@ -237,6 +231,12 @@ uint32_t
 OFSwitch13Controller::GetNextXid ()
 {
   return ++m_xid;
+}
+
+void
+OFSwitch13Controller::ConnectionStarted (SwitchInfo swtch)
+{
+  NS_LOG_FUNCTION (this << swtch.ipv4);
 }
 
 int
@@ -587,11 +587,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
 
   SendBarrierRequest (*swInfo);
 
-  // Callback to notify that a new TCP connection has been established.
-  if (!m_connectionCallback.IsNull ())
-    {
-      m_connectionCallback (*swInfo);
-    }
+  ConnectionStarted (*swInfo);
 }
 
 void

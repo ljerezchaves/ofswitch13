@@ -30,7 +30,6 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13LearningController);
 OFSwitch13LearningController::OFSwitch13LearningController ()
 {
   NS_LOG_FUNCTION (this);
-  SetConnectionCallback (MakeCallback (&OFSwitch13LearningController::ConnectionStarted, this));
 }
 
 OFSwitch13LearningController::~OFSwitch13LearningController ()
