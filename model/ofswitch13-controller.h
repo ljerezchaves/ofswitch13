@@ -247,11 +247,23 @@ private:
   void SocketPeerError  (Ptr<Socket> socket);                       //!< TCP connection error
   //\}
 
-  uint32_t              m_xid;                      //!< Global transaction idx
-  uint16_t              m_port;                     //!< Local controller tcp port
-  Ptr<Socket>           m_serverSocket;             //!< Listening server socket
+  /**
+   * Save a Dpctl command to be executed just after the connection
+   * establishment between switch and controller. 
+   * \param textCmd The Dpctl command.
+   * \param swtch The switch metadata.
+   */
+  void ScheduleCommand (SwitchInfo swtch, const std::string textCmd);
 
-  EchoMsgMap_t m_echoMap;                           //!< Metadata for echo requests
+  /** Multimap saving pair <pointer to device / dpctl command str> */
+  typedef std::multimap<Ptr<OFSwitch13NetDevice>, std::string> DevCmdMap_t; 
+
+  uint32_t      m_xid;              //!< Global transaction idx
+  uint16_t      m_port;             //!< Local controller tcp port
+  Ptr<Socket>   m_serverSocket;     //!< Listening server socket
+
+  EchoMsgMap_t  m_echoMap;          //!< Metadata for echo requests
+  DevCmdMap_t   m_schedCommands;    //!< Scheduled commands for execution
 };
 
 } // namespace ns3

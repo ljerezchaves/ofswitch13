@@ -91,7 +91,8 @@ OFSwitch13Controller::DoDispose ()
   m_serverSocket = 0;
   m_switchesMap.clear ();
   m_echoMap.clear ();
-
+  m_schedCommands.clear ();
+  
   Application::DoDispose ();
 }
 
@@ -153,7 +154,13 @@ OFSwitch13Controller::SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg,
 int
 OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
 {
-  NS_ASSERT_MSG (swtch.socket, "Wait for switch/controller TCP connection.");
+  // If no TCP connection, schedule the command for further execution
+  if (swtch.socket == NULL)
+    {
+      ScheduleCommand (swtch, textCmd);
+      return -1;
+    }
+
   int error = 0;
   char **argv;
   size_t argc;
@@ -183,6 +190,13 @@ OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> swtch,
   return DpctlCommand (GetSwitchMetadata (swtch), textCmd);
 }
 
+void
+OFSwitch13Controller::ScheduleCommand (SwitchInfo swtch, const std::string textCmd)
+{
+  NS_ASSERT (swtch.netdev);
+  std::pair<Ptr<OFSwitch13NetDevice>,std::string> entry (swtch.netdev, textCmd);
+  m_schedCommands.insert (entry);
+}
 
 /********* Protected methods *********/
 void
@@ -587,6 +601,16 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
 
   SendBarrierRequest (*swInfo);
 
+  // Executing any scheduled commands for this switch
+  std::pair <DevCmdMap_t::iterator, DevCmdMap_t::iterator> ret;
+  ret = m_schedCommands.equal_range (swInfo->netdev);
+  for (DevCmdMap_t::iterator it = ret.first; it != ret.second; it++)
+    {
+      DpctlCommand (*swInfo, it->second);
+    }
+  m_schedCommands.erase (ret.first, ret.second);
+
+  // Notify the connection started
   ConnectionStarted (*swInfo);
 }
 
