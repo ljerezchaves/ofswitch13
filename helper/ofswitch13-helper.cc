@@ -238,5 +238,15 @@ OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix)
   m_csmaHelper.EnablePcap (prefix, m_ctrlDev, true);
 }
 
+void 
+OFSwitch13Helper::EnableDatapathLogs (std::string level)
+{
+  for (size_t i = 0; i < m_devices.GetN (); i++)
+    {
+      Ptr<OFSwitch13NetDevice> openFlowDev = DynamicCast<OFSwitch13NetDevice> (m_devices.Get (i));
+      openFlowDev->SetLibLogLevel (level);
+    }
+}
+
 } // namespace ns3
 #endif // NS3_OFSWITCH13
