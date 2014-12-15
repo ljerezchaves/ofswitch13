@@ -495,38 +495,46 @@ void
 OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-  
+  static Ptr<Packet> pendingPacket = 0;
+  static uint32_t pendingBytes = 0;
+  static Address from;
+
   do
     {
-      // At least 8 bytes (OpenFlow header) must be available for read
-      uint32_t rxBytesAvailable = socket->GetRxAvailable ();
-      NS_ASSERT_MSG (rxBytesAvailable >= 8, "At least 8 bytes must be available for read");
-
-      // Receive the OpenFlow header
-      Address from;
-      Ptr<Packet> packet = socket->RecvFrom (sizeof (ofp_header), 0, from);
-      
-      // Get the OpenFlow message size
-      ofp_header header;
-      packet->CopyData ((uint8_t*)&header, sizeof (ofp_header));
-      uint32_t remainingBytes = ntohs (header.length) - sizeof (ofp_header); 
-     
-      // Receive the remaining OpenFlow message
-      if (remainingBytes)
+      if (!pendingBytes)
         {
-          NS_ASSERT_MSG (socket->GetRxAvailable () >= remainingBytes, 
-                         "No support for OpenFlow packets fragmented by TCP.");
-          packet->AddAtEnd (socket->Recv (remainingBytes, 0));
+          // Starting with a new OpenFlow message.
+          // At least 8 bytes (OpenFlow header) must be available for read
+          uint32_t rxBytesAvailable = socket->GetRxAvailable ();
+          NS_ASSERT_MSG (rxBytesAvailable >= 8, "At least 8 bytes must be available for read");
+
+          // Receive the OpenFlow header
+          pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
+          
+          // Get the OpenFlow message size
+          ofp_header header;
+          pendingPacket->CopyData ((uint8_t*)&header, sizeof (ofp_header));
+          pendingBytes = ntohs (header.length) - sizeof (ofp_header); 
+        }
+
+      // Receive the remaining OpenFlow message
+      if (pendingBytes)
+        {
+          if (socket->GetRxAvailable () < pendingBytes)
+            {
+              // We need to wait for more bytes
+              return;
+            }
+          pendingPacket->AddAtEnd (socket->Recv (pendingBytes, 0));
         }
 
       if (InetSocketAddress::IsMatchingType (from))
         {
           Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
-          NS_LOG_LOGIC ("At time "
-                        << Simulator::Now ().GetSeconds ()
-                        << "s the OpenFlow Controller received "
-                        <<  packet->GetSize () << " bytes from switch " << ipv4
-                        << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
+          NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
+                        "s the OpenFlow Controller received " <<  pendingPacket->GetSize () << 
+                        " bytes from switch " << ipv4 <<
+                        " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
 
           uint32_t xid;
           ofl_msg_header *msg;
@@ -536,7 +544,7 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
           NS_ASSERT_MSG (it != m_switchesMap.end (), "Unknown switch " << from);
 
           // Get the openflow buffer, unpack the message and send to handler
-          ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
+          ofpbuf *buffer = ofs::BufferFromPacket (pendingPacket, pendingPacket->GetSize ());
           error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, &xid, NULL);
           if (!error)
             {
@@ -557,8 +565,10 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
             }
           ofpbuf_delete (buffer);
         }
+      pendingPacket = 0;
+      pendingBytes = 0;
     
-    // Repeat until socket buffer gets emtpy
+      // Repeat until socket buffer gets emtpy
     } while (socket->GetRxAvailable ());
 }
 
