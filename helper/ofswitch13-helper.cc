@@ -42,10 +42,10 @@ OFSwitch13Helper::OFSwitch13Helper ()
 
   m_ipv4helper.SetBase ("10.100.150.0", "255.255.255.0");
 
+  // Connecting all switches to controller over a single CSMA high-speed link
   ObjectFactory m_chanFactory;
   m_chanFactory.SetTypeId ("ns3::CsmaChannel");
-  m_chanFactory.Set ("DataRate", DataRateValue (DataRate ("1Gbps")));
-  m_chanFactory.Set ("Delay", TimeValue (MilliSeconds (2)));
+  m_chanFactory.Set ("DataRate", DataRateValue (DataRate ("10Gbps")));
   m_csmaChannel = m_chanFactory.Create ()->GetObject<CsmaChannel> ();
   
   // Using large MTU to allow OpenFlow packet in messages with data. This value
