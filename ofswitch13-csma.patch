@@ -1,24 +1,32 @@
 # HG changeset patch
-# User Luciano J Chaves <ljerezchaves@gmail.com>
+# User Luciano J Chaves <luciano@lrc.ic.unicamp.br>
+# Date 1423591465 7200
+#      Tue Feb 10 16:04:25 2015 -0200
 Including a new TraceSource in CsmaNetDevice to integrate with OpenFlow 1.3
 
-This trace source is similar to MacPromiscRx, but it is fired even when there is no promiscuous protocol handler registered to the CsmaNetDevice. A simple solution could be register a promiscuous protocol handler to the CsmaNetDevice, but in this case the packets would have its Ethernet header and trailer removed, which is not desired by the OpenFlow device.
+This trace source is similar to MacPromiscRx, but it is fired even when there
+is no promiscuous protocol handler registered to the CsmaNetDevice. A simple
+solution could be register a promiscuous protocol handler to the CsmaNetDevice,
+but in this case the packets would have its Ethernet header and trailer
+removed, which is not desired by the OpenFlow device.
 
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
 --- a/src/csma/model/csma-net-device.cc
 +++ b/src/csma/model/csma-net-device.cc
-@@ -101,6 +101,10 @@
-                      "A packet has been received by this device, has been passed up from the physical layer "
-                      "and is being forwarded up the local protocol stack.  This is a promiscuous trace,",
-                      MakeTraceSourceAccessor (&CsmaNetDevice::m_macPromiscRxTrace))
+@@ -108,6 +108,12 @@
+                      "This is a promiscuous trace,",
+                      MakeTraceSourceAccessor (&CsmaNetDevice::m_macPromiscRxTrace),
+                      "ns3::Packet::TracedCallback")
 +    .AddTraceSource ("OpenFlowRx", 
-+                     "Similar to MacPromiscRx, but it is also fired even when there is no promiscuous protocol "
-+                     "handler register to device. It was desiged to integration with openflow module.",
-+                     MakeTraceSourceAccessor (&CsmaNetDevice::m_openflowRxTrace))
++                     "Similar to MacPromiscRx, but it is also fired even when "
++                     "there is no promiscuous protocol handler register to device. "
++                     "It was desiged to integration with openflow module.",
++                     MakeTraceSourceAccessor (&CsmaNetDevice::m_openflowRxTrace),
++                     "ns3::OFSwitch13NetDevice::TracedCallback")
      .AddTraceSource ("MacRx", 
-                      "A packet has been received by this device, has been passed up from the physical layer "
-                      "and is being forwarded up the local protocol stack.  This is a non-promiscuous trace,",
-@@ -767,6 +771,7 @@
+                      "A packet has been received by this device, "
+                      "has been passed up from the physical layer "
+@@ -797,6 +803,7 @@
    // make sure that nobody messes with our packet.
    //
    m_promiscSnifferTrace (originalPacket);
