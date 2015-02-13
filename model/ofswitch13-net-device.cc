@@ -244,7 +244,7 @@ OFSwitch13NetDevice::GetTypeId (void)
                    MakeTimeChecker ())
     .AddAttribute ("DatapathTimeout",
                    "The interval between timeout operations on pipeline.",
-                   TimeValue (Seconds (0.5)),
+                   TimeValue (MilliSeconds (100)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_timeout),
                    MakeTimeChecker ())
     .AddAttribute ("ControllerAddr",
