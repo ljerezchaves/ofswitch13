@@ -76,8 +76,34 @@ public:
    * \param base An optional Ipv4Address containing the initial address used
    * for IP address allocation.
    */
-  virtual void 
-  SetAddressBase (Ipv4Address network, Ipv4Mask mask, Ipv4Address base = "0.0.0.1");
+  virtual void SetAddressBase (Ipv4Address network, Ipv4Mask mask, 
+      Ipv4Address base = "0.0.0.1");
+
+  /**
+   * This method creates and install a ns3::OFSwitch13NetDevice at each node in
+   * swNodes container. It also installs the TCP/IP stack into each node, and
+   * connects them to the controller. Finally, if the controller has been
+   * already set, it starts the switch <--> controller connection.
+   *
+   * \attention Switches configured by this methods have no switch ports. Don't
+   * forget to add ports do them later, or they will do nothing.
+   *
+   * \param swNodes The nodes to install the device in
+   * \returns A container holding the OFSwitch13NetDevice net devices.
+   */
+  virtual NetDeviceContainer InstallSwitchesWithoutPorts (NodeContainer swNodes);
+
+  /**
+   * This method creates a new ns3::OFSwitch13LearningController application
+   * and install it into cNode. It also installs the TCP/IP stack into cNode.
+   * Finally, it starts the switch <--> controller connection for all previous
+   * registered switches.
+   *
+   * \param cNode The node to configure as controller
+   * \returns The OFSwitch13LearningController application created (installed
+   * into cNode)
+   */
+  virtual Ptr<OFSwitch13Controller> InstallDefaultController (Ptr<Node> cNode);
 
   /**
    * This method creates a ns3::OFSwitch13NetDevice, adds the device to the
@@ -90,37 +116,8 @@ public:
    * \param ports Container of NetDevices to add as switch ports
    * \returns A container holding the OFSwitch13NetDevice net device.
    */
-  virtual NetDeviceContainer 
-  InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports) = 0;
-
-  /**
-   * This method creates and install a ns3::OFSwitch13NetDevice at each node in
-   * swNodes container. It also installs the TCP/IP stack into each node, and
-   * connects them to the controller. Finally, if the controller has been
-   * already set, it starts the switch <--> controller connection.
-   *
-   * \attention Switches configured by this methods have no switch ports. Don't
-   * forget to add ports do them later, or they will do nothing.
-   *
-   * \param swNode The node to install the device in
-   * \param ports Container of NetDevices to add as switch ports
-   * \returns A container holding the OFSwitch13NetDevice net device.
-   */
-  virtual NetDeviceContainer 
-  InstallSwitchesWithoutPorts (NodeContainer swNodes) = 0;
-
-  /**
-   * This method creates a new ns3::OFSwitch13LearningController application
-   * and install it into cNode. It also installs the TCP/IP stack into cNode.
-   * Finally, it starts the switch <--> controller connection for all previous
-   * registered switches.
-   *
-   * \param cNode The node to configure as controller
-   * \returns The OFSwitch13LearningController application created (installed
-   * into cNode)
-   */
-  virtual Ptr<OFSwitch13Controller> 
-  InstallControllerApp (Ptr<Node> cNode) = 0;
+  virtual NetDeviceContainer InstallSwitch (Ptr<Node> swNode, 
+      NetDeviceContainer ports) = 0;
 
   /**
    * This method installs the given ns3::OFSwitch13Controller application into
@@ -132,20 +129,47 @@ public:
    * \param controller The controller application to install into cNode
    * \returns The controller application (same as input)
    */
-  virtual Ptr<OFSwitch13Controller> 
-  InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller) = 0;
+  virtual Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, 
+      Ptr<OFSwitch13Controller> controller) = 0;
 
   /**
    * Enable pacp traces at OpenFlow channel between controller and switches.
    */
-  virtual void 
-  EnableOpenFlowPcap (std::string prefix = "openflow-channel") = 0;
+  virtual void EnableOpenFlowPcap (std::string prefix) = 0;
 
 protected:
   ObjectFactory             m_ndevFactory;  //!< OpenFlow NetDevice factory
   NetDeviceContainer        m_devices;      //!< OFSwitch13NetDevices
   InternetStackHelper       m_internet;     //!< Helper for installing TCP/IP
   Ipv4AddressHelper         m_ipv4helper;   //!< Helper for assigning IP
+  NetDeviceContainer        m_ctrlDevs;     //!< Controller to switch devices
+  Ptr<Node>                 m_ctrlNode;     //!< Controller Node
+  uint16_t                  m_ctrlPort;     //!< Controller port
+};
+
+
+/**
+ * \ingroup ofswitch13
+ *
+ * \brief Create and configure an OpenFlow 1.3 network with a single controller
+ * and multiple switches, using dedicated point-to-point links for connecting
+ * the controller to switches.
+ */
+class OFSwitch13P2pHelper : public OFSwitch13Helper
+{
+public:
+  OFSwitch13P2pHelper ();
+  virtual ~OFSwitch13P2pHelper ();
+
+  // Inherited from OFSwitch13Helper
+  void SetAddressBase (Ipv4Address network, Ipv4Mask mask, Ipv4Address base = "0.0.0.1");
+  NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
+  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
+  void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
+  
+private:
+  PointToPointHelper        m_p2pHelper;    //!< Helper for switches connection
+  Ptr<OFSwitch13Controller> m_ctrlApp;      //!< Controller App
 };
 
 
@@ -164,8 +188,32 @@ public:
 
   // Inherited from OFSwitch13Helper
   NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
-  NetDeviceContainer InstallSwitchesWithoutPorts (NodeContainer swNodes);
-  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode);
+  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
+  void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
+  
+private:
+  CsmaHelper                m_csmaHelper;   //!< Helper for switches connection
+  Ptr<CsmaChannel>          m_csmaChannel;  //!< Common controller channel
+  Ptr<OFSwitch13Controller> m_ctrlApp;      //!< Controller App
+  Address                   m_ctrlAddr;     //!< Controller Addr
+};
+
+
+/**
+ * \ingroup ofswitch13
+ *
+ * \brief Create and configure an OpenFlow 1.3 network with a single controller
+ * and multiple switches, using a shared csma channel for connecting the
+ * controller to switches.
+ */
+class OFSwitch13ExtHelper : public OFSwitch13Helper
+{
+public:
+  OFSwitch13ExtHelper ();
+  virtual ~OFSwitch13ExtHelper ();
+
+  // Inherited from OFSwitch13Helper
+  NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
   Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
   void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
 
@@ -186,45 +234,11 @@ public:
 private:
   CsmaHelper                m_csmaHelper;   //!< Helper for switches connection
   Ptr<CsmaChannel>          m_csmaChannel;  //!< Common controller channel
-  Ptr<Node>                 m_ctrlNode;     //!< Controller Node
-  Ptr<OFSwitch13Controller> m_ctrlApp;      //!< Controller App
-  Ptr<NetDevice>            m_ctrlDev;      //!< Controller to switch device
   Address                   m_ctrlAddr;     //!< Controller Addr
-
-  /** Structure to store switch information */
-  typedef std::vector<SwitchInfo> SwitchInfoVector_t;  
-  SwitchInfoVector_t        m_unregSw;      //!< OpenFlow switches not registered to controller yet
 };
 
 
-/**
- * \ingroup ofswitch13
- *
- * \brief Create and configure an OpenFlow 1.3 network with a single controller
- * and multiple switches, using dedicated point-to-point links for connecting
- * the controller to switches.
- */
-class OFSwitch13P2pHelper : public OFSwitch13Helper
-{
-public:
-  OFSwitch13P2pHelper ();
-  virtual ~OFSwitch13P2pHelper ();
 
-  // Inherited from OFSwitch13Helper
-  void SetAddressBase (Ipv4Address network, Ipv4Mask mask, Ipv4Address base = "0.0.0.1");
-  NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
-  NetDeviceContainer InstallSwitchesWithoutPorts (NodeContainer swNodes);
-  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode);
-  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
-  void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
-  
-private:
-  PointToPointHelper        m_p2pHelper;    //!< Helper for switches connection
-  NetDeviceContainer        m_ctrlDevs;     //!< Controller to switch devices
-  Ptr<Node>                 m_ctrlNode;     //!< Controller Node
-  Ptr<OFSwitch13Controller> m_ctrlApp;      //!< Controller App
-  uint16_t                  m_ctrlPort;     //!< Controller port
-};
 
 
 } // namespace ns3

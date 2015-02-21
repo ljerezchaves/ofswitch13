@@ -114,11 +114,11 @@ main (int argc, char *argv[])
 		of13SwitchesNode3 = of13Switches.Get(3);
 
 	OFSwitch13CsmaHelper of13Helper0, of13Helper1;
-	of13Helper0.InstallControllerApp (of13ControllersNode0);
+	of13Helper0.InstallDefaultController (of13ControllersNode0);
 	of13Helper0.InstallSwitch (of13SwitchesNode0, of13SwitchesDevs[0]);
 	of13Helper0.InstallSwitch (of13SwitchesNode1, of13SwitchesDevs[1]);
 	of13Helper1.SetAddressBase ("10.100.151.0", "255.255.255.0");
-	of13Helper1.InstallControllerApp (of13ControllersNode1);
+	of13Helper1.InstallDefaultController (of13ControllersNode1);
 	of13Helper1.InstallSwitch (of13SwitchesNode2, of13SwitchesDevs[2]);
 	of13Helper1.InstallSwitch (of13SwitchesNode3, of13SwitchesDevs[3]);
 

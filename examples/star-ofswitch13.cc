@@ -106,7 +106,7 @@ main (int argc, char *argv[])
 	// Configure OpenFlow 1.3 network
 	NetDeviceContainer of13Dev;
 	OFSwitch13CsmaHelper of13Helper;
-	Ptr<OFSwitch13Controller> controlApp = of13Helper.InstallControllerApp (of13ControllerNode);
+	Ptr<OFSwitch13Controller> controlApp = of13Helper.InstallDefaultController (of13ControllerNode);
 	of13Dev = of13Helper.InstallSwitch (of13SwitchNode, of13SwitchDev);
 
 	// Installing the tcp/ip stack into hosts

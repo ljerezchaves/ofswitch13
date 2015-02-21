@@ -131,7 +131,7 @@ main (int argc, char *argv[])
 	//NetDeviceContainer of13Dev;
 	OFSwitch13CsmaHelper of13Helper;
 	Ptr<Node> of13ControllerNode = of13Controller.Get(0);
-	Ptr<OFSwitch13Controller> controlApp = of13Helper.InstallControllerApp (of13ControllerNode);
+	Ptr<OFSwitch13Controller> controlApp = of13Helper.InstallDefaultController (of13ControllerNode);
 
 	// Install OpenFlow 1.3 in every switch
 	for(size_t i = 0; i < n; i++)
