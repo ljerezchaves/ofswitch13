@@ -62,14 +62,18 @@ public:
   void SetDeviceAttribute (std::string n1, const AttributeValue &v1);
 
   /**
-   * Set the base network number, network mask address.
+   * Set the base network number, network mask and base address.
    *
    * \param network The Ipv4Address containing the initial network number to
-   *        use during allocation.
+   * use during allocation. The bits outside the network mask are not used.
    * \param mask The Ipv4Mask containing one bits in each bit position of the
-   *        network number.
+   * network number.
+   * \param base An optional Ipv4Address containing the initial address used
+   * for IP address allocation. Will be combined (ORed) with the network number
+   * to generate the first IP address. Defaults to 0.0.0.1.
    */
-  void SetAddressBase (Ipv4Address network, Ipv4Mask mask);
+  void SetAddressBase (Ipv4Address network, Ipv4Mask mask, 
+      Ipv4Address base = "0.0.0.1");
 
   /**
    * This method creates a ns3::OFSwitch13NetDevice with the attributes

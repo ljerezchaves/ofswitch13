@@ -71,9 +71,10 @@ OFSwitch13Helper::SetDeviceAttribute (std::string n1, const AttributeValue &v1)
 }
 
 void
-OFSwitch13Helper::SetAddressBase (Ipv4Address network, Ipv4Mask mask)
+OFSwitch13Helper::SetAddressBase (Ipv4Address network, Ipv4Mask mask, 
+    Ipv4Address base)
 {
-  m_ipv4helper.SetBase (network, mask);
+  m_ipv4helper.SetBase (network, mask, base);
 }
 
 NetDeviceContainer
