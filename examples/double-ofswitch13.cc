@@ -91,7 +91,7 @@ main (int argc, char *argv[])
 
   // Configure OpenFlow network
   NetDeviceContainer of13Device0, of13Device1;
-  OFSwitch13Helper ofHelper;
+  OFSwitch13CsmaHelper ofHelper;
   Ptr<OFSwitch13LearningController> learningApp = CreateObject<OFSwitch13LearningController> ();
   Ptr<OFSwitch13Controller> controlApp = ofHelper.InstallControllerApp (controllerNode, learningApp);
   of13Device0 = ofHelper.InstallSwitch (switchNode0, switch0Devices);

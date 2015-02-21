@@ -25,13 +25,13 @@
 #include "ns3/log.h"
 #include "ns3/string.h"
 
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13Helper");
-
 namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13Helper");
 
 class OFSwitch13Controller;
 
-OFSwitch13Helper::OFSwitch13Helper ()
+OFSwitch13CsmaHelper::OFSwitch13CsmaHelper ()
   : m_ctrlNode (0),
     m_ctrlApp (0),
     m_ctrlDev (0)
@@ -54,7 +54,7 @@ OFSwitch13Helper::OFSwitch13Helper ()
   m_csmaHelper.SetDeviceAttribute ("Mtu", UintegerValue (3000));
 }
 
-OFSwitch13Helper::~OFSwitch13Helper ()
+OFSwitch13CsmaHelper::~OFSwitch13CsmaHelper ()
 {
   m_ctrlNode = 0;
   m_ctrlApp = 0;
@@ -64,21 +64,21 @@ OFSwitch13Helper::~OFSwitch13Helper ()
 }
 
 void
-OFSwitch13Helper::SetDeviceAttribute (std::string n1, const AttributeValue &v1)
+OFSwitch13CsmaHelper::SetDeviceAttribute (std::string n1, const AttributeValue &v1)
 {
   NS_LOG_FUNCTION (this);
   m_ndevFactory.Set (n1, v1);
 }
 
 void
-OFSwitch13Helper::SetAddressBase (Ipv4Address network, Ipv4Mask mask, 
+OFSwitch13CsmaHelper::SetAddressBase (Ipv4Address network, Ipv4Mask mask, 
     Ipv4Address base)
 {
   m_ipv4helper.SetBase (network, mask, base);
 }
 
 NetDeviceContainer
-OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
+OFSwitch13CsmaHelper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_DEBUG ("Installing OpenFlow switch device on node " << swNode->GetId ());
@@ -122,7 +122,7 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 }
 
 NetDeviceContainer
-OFSwitch13Helper::InstallSwitchesWithoutPorts (NodeContainer swNodes)
+OFSwitch13CsmaHelper::InstallSwitchesWithoutPorts (NodeContainer swNodes)
 {
   NS_LOG_FUNCTION (this);
   NetDeviceContainer openFlowDevices;
@@ -167,7 +167,7 @@ OFSwitch13Helper::InstallSwitchesWithoutPorts (NodeContainer swNodes)
 
 
 Ptr<OFSwitch13Controller>
-OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller)
+OFSwitch13CsmaHelper::InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller)
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_DEBUG ("Installing OpenFlow controller on node " << cNode->GetId ());
@@ -194,7 +194,7 @@ OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controlle
 }
 
 Ptr<OFSwitch13Controller>
-OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
+OFSwitch13CsmaHelper::InstallControllerApp (Ptr<Node> cNode)
 {
   NS_LOG_FUNCTION (this);
   Ptr<OFSwitch13LearningController> ctrl = CreateObject<OFSwitch13LearningController> ();
@@ -202,7 +202,7 @@ OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode)
 }
 
 Ptr<NetDevice>
-OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
+OFSwitch13CsmaHelper::InstallExternalController (Ptr<Node> cNode)
 {
   if (m_ctrlNode == 0)
     {
@@ -233,14 +233,14 @@ OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
 }
 
 void
-OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix)
+OFSwitch13CsmaHelper::EnableOpenFlowPcap (std::string prefix)
 {
   NS_LOG_FUNCTION (this);
   m_csmaHelper.EnablePcap (prefix, m_ctrlDev, true);
 }
 
 void 
-OFSwitch13Helper::EnableDatapathLogs (std::string level)
+OFSwitch13CsmaHelper::EnableDatapathLogs (std::string level)
 {
   for (size_t i = 0; i < m_devices.GetN (); i++)
     {

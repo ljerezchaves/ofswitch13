@@ -15,7 +15,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- *
  * Author: Vítor M. Eichemberger <vitor.marge@gmail.com>
  *
  * TOPOLOGY: n of1.3 switches (n >= 2)
@@ -29,9 +28,8 @@
  *   h1                 h3
  * 
  * h# = host #, Sx = of1.3 switch #;
- * OBS: Both switches use the same controller.
- * 
- * Simulation: Transmmit data from h0 to h3.
+ * All switches use the same controller.
+ * Traffic flowing from h0 to h3.
  */
 
 #include "ns3/core-module.h"
@@ -131,7 +129,7 @@ main (int argc, char *argv[])
 
 	// Configure OpenFlow 1.3 network
 	//NetDeviceContainer of13Dev;
-	OFSwitch13Helper of13Helper;
+	OFSwitch13CsmaHelper of13Helper;
 	Ptr<Node> of13ControllerNode = of13Controller.Get(0);
 	Ptr<OFSwitch13Controller> controlApp = of13Helper.InstallControllerApp (of13ControllerNode);
 

@@ -15,10 +15,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- *
  * Author: Vítor M. Eichemberger <vitor.marge@gmail.com>
  *
  * TOPOLOGY: n hosts connected to a of1.3 switch (n >= 2)
+ *
  *         h0
  *         |
  *       ------
@@ -28,8 +28,7 @@
  *        ...
  * 
  * h# = host #, Sx = of1.3 switch #;
- * 
- * Simulation: Transmmit data between 2 random hosts.
+ * Traffic flowing between 2 random hosts.
  */
 
 
@@ -106,7 +105,7 @@ main (int argc, char *argv[])
 
 	// Configure OpenFlow 1.3 network
 	NetDeviceContainer of13Dev;
-	OFSwitch13Helper of13Helper;
+	OFSwitch13CsmaHelper of13Helper;
 	Ptr<OFSwitch13Controller> controlApp = of13Helper.InstallControllerApp (of13ControllerNode);
 	of13Dev = of13Helper.InstallSwitch (of13SwitchNode, of13SwitchDev);
 

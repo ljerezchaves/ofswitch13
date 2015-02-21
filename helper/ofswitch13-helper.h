@@ -43,18 +43,18 @@ class OFSwitch13Controller;
  * \ingroup ofswitch13
  *
  * \brief Create and configure an OpenFlow 1.3 network with a single controller
- * and multiple switches.
+ * and multiple switches, using a shared csma channel for connecting the
+ * controller to switches.
  */
-//class OFSwitch13Helper : public SimpleRefCount<OFSwitch13Helper>
-class OFSwitch13Helper
+class OFSwitch13CsmaHelper
 {
 public:
-  OFSwitch13Helper ();
-  virtual ~OFSwitch13Helper ();
+  OFSwitch13CsmaHelper ();
+  virtual ~OFSwitch13CsmaHelper ();
 
   /**
    * Set an attribute on each ns3::OFSwitch13NetDevice created by
-   * OFSwitch13Helper::InstallSwitch
+   * OFSwitch13CsmaHelper::InstallSwitch
    *
    * \param n1 the name of the attribute to set
    * \param v1 the value of the attribute to set
@@ -77,9 +77,9 @@ public:
 
   /**
    * This method creates a ns3::OFSwitch13NetDevice with the attributes
-   * configured by OFSwitch13Helper::SetDeviceAttribute, adds the device to the
-   * swNode, and attaches the given NetDevices as ports of the switch. It also
-   * installs the TCP/IP stack into swNode, and connect it to the csma
+   * configured by OFSwitch13CsmaHelper::SetDeviceAttribute, adds the device to
+   * the swNode, and attaches the given NetDevices as ports of the switch. It
+   * also installs the TCP/IP stack into swNode, and connect it to the csma
    * gigabit network using IPv4 network 10.100.150.0/24. Finally, if the
    * controller has been already set, start the switch <--> controller
    * connection.
@@ -93,7 +93,7 @@ public:
 
   /**
    * This method creates and install a ns3::OFSwitch13NetDevice with the
-   * attributes configured by OFSwitch13Helper::SetDeviceAttribute for each
+   * attributes configured by OFSwitch13CsmaHelper::SetDeviceAttribute for each
    * node in swNodes container.  It also installs the TCP/IP stack into each
    * node, and connect them to the csma gigabit network using IPv4 network
    * 10.100.150.0/24. Finally, if the controller has been already set, start
