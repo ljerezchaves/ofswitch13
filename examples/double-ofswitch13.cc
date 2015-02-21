@@ -89,9 +89,9 @@ main (int argc, char *argv[])
   switch1Devices.Add (link1.Get (1));       // Switch 1 Port 1 to terminal 1
   switch1Devices.Add (link2.Get (1));       // Switch 1 Port 2 to switch 0
 
-  // Configure OpenFlow network
+  // Configure OpenFlow network using the P2P helper 
   NetDeviceContainer of13Device0, of13Device1;
-  OFSwitch13CsmaHelper ofHelper;
+  OFSwitch13P2pHelper ofHelper;
   Ptr<OFSwitch13LearningController> learningApp = CreateObject<OFSwitch13LearningController> ();
   Ptr<OFSwitch13Controller> controlApp = ofHelper.InstallControllerApp (controllerNode, learningApp);
   of13Device0 = ofHelper.InstallSwitch (switchNode0, switch0Devices);
