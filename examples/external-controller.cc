@@ -88,7 +88,7 @@ main (int argc, char *argv[])
 
   // First configure OpenFlow network with external controller
   NetDeviceContainer of13Device;
-  OFSwitch13Helper ofHelper;
+  OFSwitch13ExtHelper ofHelper;
   Ptr<NetDevice> ctrlDev = ofHelper.InstallExternalController (controllerNode);
 
   // TapBridge to local machine

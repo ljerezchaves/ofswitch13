@@ -30,7 +30,6 @@ namespace ns3 {
 
 class OFSwitch13NetDevice;
 class OFSwitch13Controller;
-class OFSwitch13Helper;
 
 /**
  * \ingroup ofswitch13

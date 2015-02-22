@@ -84,10 +84,10 @@ main (int argc, char *argv[])
       switchDevices.Add (link.Get (1));
     }
 
-  // Configure OpenFlow network
+  // Configure OpenFlow network using the CSMA helper
   NetDeviceContainer of13Device;
-  OFSwitch13Helper ofHelper;
-  Ptr<OFSwitch13Controller> controlApp = ofHelper.InstallControllerApp (controllerNode);
+  OFSwitch13CsmaHelper ofHelper;
+  Ptr<OFSwitch13Controller> controlApp = ofHelper.InstallDefaultController (controllerNode);
   of13Device = ofHelper.InstallSwitch (switchNode, switchDevices);
 
   // Installing the tcp/ip stack onto terminals

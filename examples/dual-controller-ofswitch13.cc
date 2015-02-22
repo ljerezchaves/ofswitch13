@@ -15,10 +15,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- *
  * Author: Vítor M. Eichemberger <vitor.marge@gmail.com>
  *
- * TOPOLOGY: 4 of1.3 switches with 1 host each.
+ * TOPOLOGY: 4 of1.3 switches connected to a single host each.
  *
  *   h0       h1        h2       h3
  *   |        |         |        |
@@ -31,8 +30,7 @@
  *      CTRL0              CTRL1
  * 
  * h# = host #, Sx = of1.3 switch #, CTRL# = controller #;
- * 
- * Simulation: Transmmit data from h0 to h3.
+ * Traffic flowing from h0 to h3.
  */
 
 #include "ns3/core-module.h"
@@ -115,12 +113,12 @@ main (int argc, char *argv[])
 		of13SwitchesNode2 = of13Switches.Get(2),
 		of13SwitchesNode3 = of13Switches.Get(3);
 
-	OFSwitch13Helper of13Helper0, of13Helper1;
-	of13Helper0.InstallControllerApp (of13ControllersNode0);
+	OFSwitch13CsmaHelper of13Helper0, of13Helper1;
+	of13Helper0.InstallDefaultController (of13ControllersNode0);
 	of13Helper0.InstallSwitch (of13SwitchesNode0, of13SwitchesDevs[0]);
 	of13Helper0.InstallSwitch (of13SwitchesNode1, of13SwitchesDevs[1]);
 	of13Helper1.SetAddressBase ("10.100.151.0", "255.255.255.0");
-	of13Helper1.InstallControllerApp (of13ControllersNode1);
+	of13Helper1.InstallDefaultController (of13ControllersNode1);
 	of13Helper1.InstallSwitch (of13SwitchesNode2, of13SwitchesDevs[2]);
 	of13Helper1.InstallSwitch (of13SwitchesNode3, of13SwitchesDevs[3]);
 
