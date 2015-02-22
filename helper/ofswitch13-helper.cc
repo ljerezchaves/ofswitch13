@@ -146,6 +146,11 @@ OFSwitch13P2pHelper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
   Ipv4InterfaceContainer swIface = m_ipv4helper.Assign (swDev);
   m_ipv4helper.NewNetwork ();
   m_ctrlDevs.Add (swDev.Get (1));
+  if (!Names::FindName (swNode).empty ())
+    {
+      std::string swNodeName = ">" + Names::FindName (swNode);
+      Names::Add (swNodeName, swDev.Get (1));
+    }
 
   // Register switch metadata and start switch <--> controller connection
   SwitchInfo swInfo;

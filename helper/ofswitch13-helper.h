@@ -32,6 +32,7 @@
 #include "ns3/point-to-point-helper.h"
 #include "ns3/inet-socket-address.h"
 #include "ns3/simple-ref-count.h"
+#include "ns3/names.h"
 #include <string>
 
 namespace ns3 {
