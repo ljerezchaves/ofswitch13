@@ -138,6 +138,11 @@ public:
    */
   virtual void EnableOpenFlowPcap (std::string prefix) = 0;
 
+  /**
+   * Enable ascii traces at OpenFlow channel between controller and switches.
+   */
+  virtual void EnableOpenFlowAscii (std::string prefix) = 0;
+
 protected:
   ObjectFactory             m_ndevFactory;  //!< OpenFlow NetDevice factory
   NetDeviceContainer        m_devices;      //!< OFSwitch13NetDevices
@@ -167,6 +172,7 @@ public:
   NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
   Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
   void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
+  void EnableOpenFlowAscii (std::string prefix = "openflow-channel");
   
 private:
   PointToPointHelper        m_p2pHelper;    //!< Helper for switches connection
@@ -191,6 +197,7 @@ public:
   NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
   Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
   void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
+  void EnableOpenFlowAscii (std::string prefix = "openflow-channel");
   
 private:
   CsmaHelper                m_csmaHelper;   //!< Helper for switches connection
@@ -217,6 +224,7 @@ public:
   NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
   Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
   void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
+  void EnableOpenFlowAscii (std::string prefix = "openflow-channel");
 
   /**
    * This method prepares the cNode so it can connect to an external OpenFlow

@@ -106,6 +106,10 @@ OFSwitch13P2pHelper::OFSwitch13P2pHelper ()
   // tied to the 2960 TCPSocket SegmentSize attribute in switch and controller.
   m_p2pHelper.SetDeviceAttribute ("Mtu", UintegerValue (3100));
   m_p2pHelper.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
+  
+  // To avoid loosing (and retransmitting) OpenFlow packets, let's increase the
+  // TX queue size.
+  m_p2pHelper.SetQueue ("ns3::DropTailQueue", "MaxPackets", UintegerValue (65536));
 
   // We use a /30 subnet which can hold exactly two addresses.
   SetAddressBase ("10.100.150.0", "255.255.255.252");
@@ -196,6 +200,14 @@ OFSwitch13P2pHelper::EnableOpenFlowPcap (std::string prefix)
 {
   NS_LOG_FUNCTION (this);
   m_p2pHelper.EnablePcap (prefix, m_ctrlDevs, true);
+}
+
+void
+OFSwitch13P2pHelper::EnableOpenFlowAscii (std::string prefix)
+{
+  NS_LOG_FUNCTION (this);
+  AsciiTraceHelper ascii;
+  m_p2pHelper.EnableAsciiAll (ascii.CreateFileStream (prefix + ".tr"));
 }
 
 
@@ -290,6 +302,14 @@ OFSwitch13CsmaHelper::EnableOpenFlowPcap (std::string prefix)
   m_csmaHelper.EnablePcap (prefix, m_ctrlDevs, true);
 }
 
+void
+OFSwitch13CsmaHelper::EnableOpenFlowAscii (std::string prefix)
+{
+  NS_LOG_FUNCTION (this);
+  AsciiTraceHelper ascii;
+  m_csmaHelper.EnableAsciiAll (ascii.CreateFileStream (prefix + ".tr"));
+}
+
 
 // ------------------------------------------------------------------------- //
 OFSwitch13ExtHelper::OFSwitch13ExtHelper ()
@@ -355,6 +375,14 @@ OFSwitch13ExtHelper::EnableOpenFlowPcap (std::string prefix)
 {
   NS_LOG_FUNCTION (this);
   m_csmaHelper.EnablePcap (prefix, m_ctrlDevs, true);
+}
+
+void
+OFSwitch13ExtHelper::EnableOpenFlowAscii (std::string prefix)
+{
+  NS_LOG_FUNCTION (this);
+  AsciiTraceHelper ascii;
+  m_csmaHelper.EnableAsciiAll (ascii.CreateFileStream (prefix + ".tr"));
 }
 
 Ptr<NetDevice>

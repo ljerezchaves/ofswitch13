@@ -818,8 +818,10 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
         {
           Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
           NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
-                        "s the OpenFlow switch received " << pendingPacket->GetSize () << 
-                        " bytes from controller " << ipv4 <<
+                        "s the OpenFlow switch " << GetDatapathId () << 
+                        " received " << pendingPacket->GetSize () << 
+                        " bytes from controller " << ipv4 << 
+                        " socket " << socket << 
                         " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
 
           ofl_msg_header *msg;
