@@ -23,8 +23,6 @@
 #include "ofswitch13-controller.h"
 #include "ofswitch13-net-device.h"
 
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13Controller");
-
 namespace ns3 {
 
 EchoInfo::EchoInfo (Ipv4Address ip)
@@ -55,6 +53,7 @@ SwitchInfo::GetInet ()
 }
 
 /********** Public methods ***********/
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13Controller");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller);
 
 OFSwitch13Controller::OFSwitch13Controller ()

@@ -129,16 +129,16 @@ main (int argc, char *argv[])
 
 	// Configure OpenFlow 1.3 network
 	//NetDeviceContainer of13Dev;
-	OFSwitch13CsmaHelper of13Helper;
+  Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
 	Ptr<Node> of13ControllerNode = of13Controller.Get(0);
-	Ptr<OFSwitch13Controller> controlApp = of13Helper.InstallDefaultController (of13ControllerNode);
+	Ptr<OFSwitch13Controller> controlApp = of13Helper->InstallDefaultController (of13ControllerNode);
 
 	// Install OpenFlow 1.3 in every switch
 	for(size_t i = 0; i < n; i++)
 	{
 		Ptr<Node> of13SwitchNode = of13Switches.Get(i);
-		of13Helper.InstallSwitch (of13SwitchNode, of13SwitchDevs[i]);
-		//of13Dev = of13Helper.InstallSwitch (of13SwitchNode, of13SwitchDevs[i]);
+		of13Helper->InstallSwitch (of13SwitchNode, of13SwitchDevs[i]);
+		//of13Dev = of13Helper->InstallSwitch (of13SwitchNode, of13SwitchDevs[i]);
 	}
 
 	// Installing the tcp/ip stack into hosts
@@ -169,7 +169,7 @@ main (int argc, char *argv[])
 
 	// Enable pcap traces
 	#if FlowInfo > 0
-		of13Helper.EnableOpenFlowPcap ("ofController");
+		of13Helper->EnableOpenFlowPcap ("ofController");
 		for(size_t i = 0; i < n; i++)
 			csmaHelper.EnablePcap ("ofSwitch", of13SwitchDevs[i], true);
 		csmaHelper.EnablePcap ("host", hostsDevs);

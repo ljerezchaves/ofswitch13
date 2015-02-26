@@ -38,6 +38,8 @@ using namespace ns3;
 int
 main (int argc, char *argv[])
 {
+  PacketMetadata::Enable ();
+
   bool verbose = true;
 
   CommandLine cmd;
@@ -91,11 +93,12 @@ main (int argc, char *argv[])
 
   // Configure OpenFlow network using the P2P helper and existing controller app
   NetDeviceContainer of13Device0, of13Device1;
-  OFSwitch13P2pHelper ofHelper;
+  Ptr<OFSwitch13Helper> ofHelper = CreateObject<OFSwitch13Helper> ();
+  ofHelper->SetAttribute ("ChannelType", EnumValue (OFSwitch13Helper::DEDICATEDCSMA));
   Ptr<OFSwitch13LearningController> learningApp = CreateObject<OFSwitch13LearningController> ();
-  Ptr<OFSwitch13Controller> controlApp = ofHelper.InstallControllerApp (controllerNode, learningApp);
-  of13Device0 = ofHelper.InstallSwitch (switchNode0, switch0Devices);
-  of13Device1 = ofHelper.InstallSwitch (switchNode1, switch1Devices);
+  Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallControllerApp (controllerNode, learningApp);
+  of13Device0 = ofHelper->InstallSwitch (switchNode0, switch0Devices);
+  of13Device1 = ofHelper->InstallSwitch (switchNode1, switch1Devices);
 
   // Installing the tcp/ip stack onto terminals
   InternetStackHelper internet;
@@ -124,7 +127,7 @@ main (int argc, char *argv[])
   sinkApp.Start (Seconds (1.));
 
   // Enable pcap traces
-  ofHelper.EnableOpenFlowPcap ();
+  ofHelper->EnableOpenFlowPcap ();
   csmaHelper.EnablePcap ("ofswitch-l0", switch0Devices.Get (0));
   csmaHelper.EnablePcap ("ofswitch-l1", switch1Devices.Get (0));
   csmaHelper.EnablePcap ("ofswitch-l2", switch0Devices.Get (1));

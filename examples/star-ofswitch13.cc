@@ -105,9 +105,9 @@ main (int argc, char *argv[])
 
 	// Configure OpenFlow 1.3 network
 	NetDeviceContainer of13Dev;
-	OFSwitch13CsmaHelper of13Helper;
-	Ptr<OFSwitch13Controller> controlApp = of13Helper.InstallDefaultController (of13ControllerNode);
-	of13Dev = of13Helper.InstallSwitch (of13SwitchNode, of13SwitchDev);
+	Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
+	Ptr<OFSwitch13Controller> controlApp = of13Helper->InstallDefaultController (of13ControllerNode);
+	of13Dev = of13Helper->InstallSwitch (of13SwitchNode, of13SwitchDev);
 
 	// Installing the tcp/ip stack into hosts
 	InternetStackHelper internet;
@@ -150,7 +150,7 @@ main (int argc, char *argv[])
 
 	// Enable pcap traces
 	#if XmlInfo > 0
-		of13Helper.EnableOpenFlowPcap ("ofController");
+		of13Helper->EnableOpenFlowPcap ("ofController");
 		csmaHelper.EnablePcap ("ofSwitch", of13SwitchDev, true);
 		csmaHelper.EnablePcap ("host", hostsDevs);
 	#endif

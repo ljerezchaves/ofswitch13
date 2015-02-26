@@ -44,14 +44,39 @@ class OFSwitch13Controller;
 /**
  * \ingroup ofswitch13
  *
- * \brief Base class to create and configure an OpenFlow 1.3 network with a
- * single controller and multiple switches. 
+ * \brief Helper to create and configure an OpenFlow 1.3 network with a single
+ * controller and multiple switches. This helper can be configure to create a
+ * single shared csma with the controller and all switches, or using dedicated
+ * links (csma or point-to-point) between each switch and the controller.
+ *
+ * \attention This helper extends the Object class, and should be created with
+ * the CreateObject method.
  */
-class OFSwitch13Helper
+class OFSwitch13Helper : public Object
 {
 public:
-  OFSwitch13Helper ();
-  virtual ~OFSwitch13Helper ();
+  /** 
+   * OpenFlow channel type, used to create the connections between the
+   * controller and switches.
+   */
+  enum ChannelType 
+    {
+      SINGLECSMA = 0,     //!< Uses a single shared csma channel
+      DEDICATEDCSMA = 1,  //!< Uses individual csma channels
+      DEDICATEDP2P = 2    //!< Uses individual p2p channels
+    };
+
+  OFSwitch13Helper ();          //!< Default constructor
+  virtual ~OFSwitch13Helper (); //!< Dummy destructor, see DoDipose
+ 
+  /**
+   * Register this type.
+   * \return The object TypeId.
+   */
+  static TypeId GetTypeId (void);
+
+  /** Destructor implementation */
+  virtual void DoDispose ();
 
   /**
    * Set an attribute on each ns3::OFSwitch13NetDevice created by
@@ -63,7 +88,25 @@ public:
   void SetDeviceAttribute (std::string n1, const AttributeValue &v1);
 
   /**
+   * Set the ChannelType strategy used to create the controller
+   * channel between the switches and the controller.
+   *
+   * \param type The SetOpenflowChannelType to use.
+   */
+  void SetChannelType (ChannelType type);
+
+  /**
+   * Set the OpenFlow controller channel data rate, used to connect the
+   * controller to the switches.
+   *
+   * \param datarate The DataRate to use. 
+   */
+  void SetChannelDataRate (DataRate datarate);
+
+  /**
    * Enable log traces at the OpenFlow switches
+   *
+   * \param level The log level
    */
   void EnableDatapathLogs (std::string level = "all");
 
@@ -77,7 +120,7 @@ public:
    * \param base An optional Ipv4Address containing the initial address used
    * for IP address allocation.
    */
-  virtual void SetAddressBase (Ipv4Address network, Ipv4Mask mask, 
+  void SetAddressBase (Ipv4Address network, Ipv4Mask mask, 
       Ipv4Address base = "0.0.0.1");
 
   /**
@@ -92,7 +135,7 @@ public:
    * \param swNodes The nodes to install the device in
    * \returns A container holding the OFSwitch13NetDevice net devices.
    */
-  virtual NetDeviceContainer InstallSwitchesWithoutPorts (NodeContainer swNodes);
+  NetDeviceContainer InstallSwitchesWithoutPorts (NodeContainer swNodes);
 
   /**
    * This method creates a new ns3::OFSwitch13LearningController application
@@ -104,7 +147,7 @@ public:
    * \returns The OFSwitch13LearningController application created (installed
    * into cNode)
    */
-  virtual Ptr<OFSwitch13Controller> InstallDefaultController (Ptr<Node> cNode);
+  Ptr<OFSwitch13Controller> InstallDefaultController (Ptr<Node> cNode);
 
   /**
    * This method creates a ns3::OFSwitch13NetDevice, adds the device to the
@@ -117,8 +160,7 @@ public:
    * \param ports Container of NetDevices to add as switch ports
    * \returns A container holding the OFSwitch13NetDevice net device.
    */
-  virtual NetDeviceContainer InstallSwitch (Ptr<Node> swNode, 
-      NetDeviceContainer ports) = 0;
+  NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
 
   /**
    * This method installs the given ns3::OFSwitch13Controller application into
@@ -130,101 +172,8 @@ public:
    * \param controller The controller application to install into cNode
    * \returns The controller application (same as input)
    */
-  virtual Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, 
-      Ptr<OFSwitch13Controller> controller) = 0;
-
-  /**
-   * Enable pacp traces at OpenFlow channel between controller and switches.
-   */
-  virtual void EnableOpenFlowPcap (std::string prefix) = 0;
-
-  /**
-   * Enable ascii traces at OpenFlow channel between controller and switches.
-   */
-  virtual void EnableOpenFlowAscii (std::string prefix) = 0;
-
-protected:
-  ObjectFactory             m_ndevFactory;  //!< OpenFlow NetDevice factory
-  NetDeviceContainer        m_devices;      //!< OFSwitch13NetDevices
-  InternetStackHelper       m_internet;     //!< Helper for installing TCP/IP
-  Ipv4AddressHelper         m_ipv4helper;   //!< Helper for assigning IP
-  NetDeviceContainer        m_ctrlDevs;     //!< Controller to switch devices
-  Ptr<Node>                 m_ctrlNode;     //!< Controller Node
-  uint16_t                  m_ctrlPort;     //!< Controller port
-};
-
-
-/**
- * \ingroup ofswitch13
- *
- * \brief Create and configure an OpenFlow 1.3 network with a single controller
- * and multiple switches, using dedicated point-to-point links for connecting
- * the controller to switches.
- */
-class OFSwitch13P2pHelper : public OFSwitch13Helper
-{
-public:
-  OFSwitch13P2pHelper ();
-  virtual ~OFSwitch13P2pHelper ();
-
-  // Inherited from OFSwitch13Helper
-  void SetAddressBase (Ipv4Address network, Ipv4Mask mask, Ipv4Address base = "0.0.0.1");
-  NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
-  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
-  void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
-  void EnableOpenFlowAscii (std::string prefix = "openflow-channel");
-  
-private:
-  PointToPointHelper        m_p2pHelper;    //!< Helper for switches connection
-  Ptr<OFSwitch13Controller> m_ctrlApp;      //!< Controller App
-};
-
-
-/**
- * \ingroup ofswitch13
- *
- * \brief Create and configure an OpenFlow 1.3 network with a single controller
- * and multiple switches, using a shared csma channel for connecting the
- * controller to switches.
- */
-class OFSwitch13CsmaHelper : public OFSwitch13Helper
-{
-public:
-  OFSwitch13CsmaHelper ();
-  virtual ~OFSwitch13CsmaHelper ();
-
-  // Inherited from OFSwitch13Helper
-  NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
-  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
-  void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
-  void EnableOpenFlowAscii (std::string prefix = "openflow-channel");
-  
-private:
-  CsmaHelper                m_csmaHelper;   //!< Helper for switches connection
-  Ptr<CsmaChannel>          m_csmaChannel;  //!< Common controller channel
-  Ptr<OFSwitch13Controller> m_ctrlApp;      //!< Controller App
-  Address                   m_ctrlAddr;     //!< Controller Addr
-};
-
-
-/**
- * \ingroup ofswitch13
- *
- * \brief Create and configure an OpenFlow 1.3 network with a single controller
- * and multiple switches, using a shared csma channel for connecting the
- * controller to switches.
- */
-class OFSwitch13ExtHelper : public OFSwitch13Helper
-{
-public:
-  OFSwitch13ExtHelper ();
-  virtual ~OFSwitch13ExtHelper ();
-
-  // Inherited from OFSwitch13Helper
-  NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
-  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
-  void EnableOpenFlowPcap (std::string prefix = "openflow-channel");
-  void EnableOpenFlowAscii (std::string prefix = "openflow-channel");
+  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, 
+      Ptr<OFSwitch13Controller> controller);
 
   /**
    * This method prepares the cNode so it can connect to an external OpenFlow
@@ -240,15 +189,36 @@ public:
    */
   Ptr<NetDevice> InstallExternalController (Ptr<Node> cNode);
 
-private:
-  CsmaHelper                m_csmaHelper;   //!< Helper for switches connection
-  Ptr<CsmaChannel>          m_csmaChannel;  //!< Common controller channel
-  Address                   m_ctrlAddr;     //!< Controller Addr
+  /**
+   * Enable pacp traces at OpenFlow channel between controller and switches.
+   *
+   * \param prefix Filename prefix to use for pcap files.
+   */
+  void EnableOpenFlowPcap (std::string prefix = "ofchannel");
+
+  /**
+   * Enable ascii traces at OpenFlow channel between controller and switches.
+   *
+   * \param prefix Filename prefix to use for ascii files.
+   */
+  void EnableOpenFlowAscii (std::string prefix = "ofchannel");
+
+protected:
+  ObjectFactory             m_ndevFactory;      //!< OpenFlow NetDevice factory
+  NetDeviceContainer        m_devices;          //!< OFSwitch13NetDevices
+  NetDeviceContainer        m_ctrlDevs;         //!< Controller to switch devices
+  InternetStackHelper       m_internet;         //!< Helper for installing TCP/IP
+  Ipv4AddressHelper         m_ipv4helper;       //!< Helper for assigning IP
+  CsmaHelper                m_csmaHelper;       //!< Helper for switches csma connection
+  PointToPointHelper        m_p2pHelper;        //!< Helper for switches p2p connection
+  Ptr<CsmaChannel>          m_csmaChannel;      //!< Common controller channel
+  Ptr<Node>                 m_ctrlNode;         //!< Controller node
+  Ptr<OFSwitch13Controller> m_ctrlApp;          //!< Controller application
+  Address                   m_ctrlAddr;         //!< Controller address
+  uint16_t                  m_ctrlPort;         //!< Controller port
+  ChannelType               m_channelType;      //!< Channel type
+  DataRate                  m_channelDataRate;  //!< Channel link data rate
 };
-
-
-
-
 
 } // namespace ns3
 #endif /* OFSWITCH1_CONTROLLER_HELPER_H */

@@ -86,9 +86,9 @@ main (int argc, char *argv[])
 
   // Configure OpenFlow network using the CSMA helper
   NetDeviceContainer of13Device;
-  OFSwitch13CsmaHelper ofHelper;
-  Ptr<OFSwitch13Controller> controlApp = ofHelper.InstallDefaultController (controllerNode);
-  of13Device = ofHelper.InstallSwitch (switchNode, switchDevices);
+  Ptr<OFSwitch13Helper> ofHelper = CreateObject<OFSwitch13Helper> ();
+  Ptr<OFSwitch13Controller> controlApp = ofHelper->InstallDefaultController (controllerNode);
+  of13Device = ofHelper->InstallSwitch (switchNode, switchDevices);
 
   // Installing the tcp/ip stack onto terminals
   InternetStackHelper internet;
@@ -117,7 +117,7 @@ main (int argc, char *argv[])
   sinkApp.Start (Seconds (1.));
 
   // Enable pcap traces
-  ofHelper.EnableOpenFlowPcap ();
+  ofHelper->EnableOpenFlowPcap ();
   csmaHelper.EnablePcap ("ofswitch", switchDevices, true);  // promisc
   csmaHelper.EnablePcap ("terminals", terminalDevices);
 

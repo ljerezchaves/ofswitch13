@@ -88,8 +88,9 @@ main (int argc, char *argv[])
 
   // First configure OpenFlow network with external controller
   NetDeviceContainer of13Device;
-  OFSwitch13ExtHelper ofHelper;
-  Ptr<NetDevice> ctrlDev = ofHelper.InstallExternalController (controllerNode);
+  Ptr<OFSwitch13Helper> ofHelper = CreateObject<OFSwitch13Helper> ();
+  ofHelper->SetAttribute ("ChannelType", EnumValue (OFSwitch13Helper::SINGLECSMA));
+  Ptr<NetDevice> ctrlDev = ofHelper->InstallExternalController (controllerNode);
 
   // TapBridge to local machine
   // The default configuration expects a controller on you local machine at port 6653
@@ -99,7 +100,7 @@ main (int argc, char *argv[])
   tapBridge.Install (controllerNode, ctrlDev);
 
   // Then install the switches (now they will start a connection to controller)
-  of13Device = ofHelper.InstallSwitch (switchNode, switchDevices);
+  of13Device = ofHelper->InstallSwitch (switchNode, switchDevices);
 
   // Installing the tcp/ip stack onto terminals
   InternetStackHelper internet;
@@ -118,7 +119,7 @@ main (int argc, char *argv[])
   apps.Start (Seconds (5.));
 
   // Enable pcap traces
-  ofHelper.EnableOpenFlowPcap ();
+  ofHelper->EnableOpenFlowPcap ();
   csmaHelper.EnablePcap ("ofswitch", switchDevices, true);  // promisc
   csmaHelper.EnablePcap ("terminals", terminalDevices);
 

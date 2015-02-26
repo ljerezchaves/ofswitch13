@@ -113,14 +113,15 @@ main (int argc, char *argv[])
 		of13SwitchesNode2 = of13Switches.Get(2),
 		of13SwitchesNode3 = of13Switches.Get(3);
 
-	OFSwitch13CsmaHelper of13Helper0, of13Helper1;
-	of13Helper0.InstallDefaultController (of13ControllersNode0);
-	of13Helper0.InstallSwitch (of13SwitchesNode0, of13SwitchesDevs[0]);
-	of13Helper0.InstallSwitch (of13SwitchesNode1, of13SwitchesDevs[1]);
-	of13Helper1.SetAddressBase ("10.100.151.0", "255.255.255.0");
-	of13Helper1.InstallDefaultController (of13ControllersNode1);
-	of13Helper1.InstallSwitch (of13SwitchesNode2, of13SwitchesDevs[2]);
-	of13Helper1.InstallSwitch (of13SwitchesNode3, of13SwitchesDevs[3]);
+  Ptr<OFSwitch13Helper> of13Helper0 = CreateObject<OFSwitch13Helper> ();
+  Ptr<OFSwitch13Helper> of13Helper1 = CreateObject<OFSwitch13Helper> ();
+	of13Helper0->InstallDefaultController (of13ControllersNode0);
+	of13Helper0->InstallSwitch (of13SwitchesNode0, of13SwitchesDevs[0]);
+	of13Helper0->InstallSwitch (of13SwitchesNode1, of13SwitchesDevs[1]);
+	of13Helper1->SetAddressBase ("10.100.151.0", "255.255.255.0");
+	of13Helper1->InstallDefaultController (of13ControllersNode1);
+	of13Helper1->InstallSwitch (of13SwitchesNode2, of13SwitchesDevs[2]);
+	of13Helper1->InstallSwitch (of13SwitchesNode3, of13SwitchesDevs[3]);
 
 	// Installing the tcp/ip stack into hosts
 	InternetStackHelper internet;
@@ -153,8 +154,8 @@ main (int argc, char *argv[])
 
 	// Enable pcap traces
 	#if XmlInfo > 0
-		of13Helper0.EnableOpenFlowPcap ("ofController0");
-		of13Helper1.EnableOpenFlowPcap ("ofController1");
+		of13Helper0->EnableOpenFlowPcap ("ofController0");
+		of13Helper1->EnableOpenFlowPcap ("ofController1");
 		for(size_t i = 0; i < 4; i++)
 			csmaHelper.EnablePcap ("ofSwitch", of13SwitchesDevs[i], true);
 		csmaHelper.EnablePcap ("host", hostsDevs);
