@@ -337,7 +337,7 @@ OFSwitch13NetDevice::SendToController (ofpbuf *buffer, remote *remote)
     {
       NS_FATAL_ERROR ("Unavailable space to send OpenFlow message");
     }
-  
+
   return !m_ctrlSocket->Send (pkt);
 }
 
@@ -383,7 +383,7 @@ OFSwitch13NetDevice::StartControllerConnection ()
       int error = 0;
       m_ctrlSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
       m_ctrlSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
-      
+
       error = m_ctrlSocket->Bind ();
       if (error)
         {
@@ -784,7 +784,7 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
   static Ptr<Packet> pendingPacket = 0;
   static uint32_t pendingBytes = 0;
   static Address from;
-  
+
   do
     {
       if (!pendingBytes)
@@ -796,11 +796,11 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
 
           // Receive the OpenFlow header
           pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
-          
+
           // Get the OpenFlow message size
           ofp_header header;
           pendingPacket->CopyData ((uint8_t*)&header, sizeof (ofp_header));
-          pendingBytes = ntohs (header.length) - sizeof (ofp_header); 
+          pendingBytes = ntohs (header.length) - sizeof (ofp_header);
         }
 
       // Receive the remaining OpenFlow message
@@ -813,15 +813,15 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
             }
           pendingPacket->AddAtEnd (socket->Recv (pendingBytes, 0));
         }
-     
+
       if (InetSocketAddress::IsMatchingType (from))
         {
           Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
           NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
-                        "s the OpenFlow switch " << GetDatapathId () << 
-                        " received " << pendingPacket->GetSize () << 
-                        " bytes from controller " << ipv4 << 
-                        " socket " << socket << 
+                        "s the OpenFlow switch " << GetDatapathId () <<
+                        " received " << pendingPacket->GetSize () <<
+                        " bytes from controller " << ipv4 <<
+                        " socket " << socket <<
                         " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
 
           ofl_msg_header *msg;
@@ -871,9 +871,10 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
         }
       pendingPacket = 0;
       pendingBytes = 0;
- 
+
       // Repeat until socket buffer gets emtpy
-    } while (socket->GetRxAvailable ());
+    }
+  while (socket->GetRxAvailable ());
 }
 
 void

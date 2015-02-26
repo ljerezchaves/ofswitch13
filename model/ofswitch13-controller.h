@@ -181,40 +181,40 @@ protected:
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  ofl_err 
+  ofl_err
   HandleEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
-  
-  ofl_err 
+
+  ofl_err
   HandleEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
-  
-  virtual ofl_err 
+
+  virtual ofl_err
   HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid) = 0;
-  
-  virtual ofl_err 
+
+  virtual ofl_err
   HandleError (ofl_msg_error *msg, SwitchInfo swtch, uint32_t xid);
-  
-  virtual ofl_err 
+
+  virtual ofl_err
   HandleFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint32_t xid);
-  
-  virtual ofl_err 
+
+  virtual ofl_err
   HandleGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
-  
-  virtual ofl_err 
+
+  virtual ofl_err
   HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid);
-  
-  virtual ofl_err 
+
+  virtual ofl_err
   HandlePortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint32_t xid);
-  
-  virtual ofl_err 
+
+  virtual ofl_err
   HandleAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint32_t xid);
-  
-  virtual ofl_err 
+
+  virtual ofl_err
   HandleMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint32_t xid);
-  
-  virtual ofl_err 
+
+  virtual ofl_err
   HandleRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint32_t xid);
-  
-  virtual ofl_err 
+
+  virtual ofl_err
   HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
   //\}
 
@@ -248,14 +248,14 @@ private:
 
   /**
    * Save a Dpctl command to be executed just after the connection
-   * establishment between switch and controller. 
+   * establishment between switch and controller.
    * \param textCmd The Dpctl command.
    * \param swtch The switch metadata.
    */
   void ScheduleCommand (SwitchInfo swtch, const std::string textCmd);
 
   /** Multimap saving pair <pointer to device / dpctl command str> */
-  typedef std::multimap<Ptr<OFSwitch13NetDevice>, std::string> DevCmdMap_t; 
+  typedef std::multimap<Ptr<OFSwitch13NetDevice>, std::string> DevCmdMap_t;
 
   uint32_t      m_xid;              //!< Global transaction idx
   uint16_t      m_port;             //!< Local controller tcp port

@@ -55,20 +55,20 @@ class OFSwitch13Controller;
 class OFSwitch13Helper : public Object
 {
 public:
-  /** 
+  /**
    * OpenFlow channel type, used to create the connections between the
    * controller and switches.
    */
-  enum ChannelType 
-    {
-      SINGLECSMA = 0,     //!< Uses a single shared csma channel
-      DEDICATEDCSMA = 1,  //!< Uses individual csma channels
-      DEDICATEDP2P = 2    //!< Uses individual p2p channels
-    };
+  enum ChannelType
+  {
+    SINGLECSMA = 0,       //!< Uses a single shared csma channel
+    DEDICATEDCSMA = 1,    //!< Uses individual csma channels
+    DEDICATEDP2P = 2      //!< Uses individual p2p channels
+  };
 
   OFSwitch13Helper ();          //!< Default constructor
   virtual ~OFSwitch13Helper (); //!< Dummy destructor, see DoDipose
- 
+
   /**
    * Register this type.
    * \return The object TypeId.
@@ -99,7 +99,7 @@ public:
    * Set the OpenFlow controller channel data rate, used to connect the
    * controller to the switches.
    *
-   * \param datarate The DataRate to use. 
+   * \param datarate The DataRate to use.
    */
   void SetChannelDataRate (DataRate datarate);
 
@@ -120,8 +120,8 @@ public:
    * \param base An optional Ipv4Address containing the initial address used
    * for IP address allocation.
    */
-  void SetAddressBase (Ipv4Address network, Ipv4Mask mask, 
-      Ipv4Address base = "0.0.0.1");
+  void SetAddressBase (Ipv4Address network, Ipv4Mask mask,
+                       Ipv4Address base = "0.0.0.1");
 
   /**
    * This method creates and install a ns3::OFSwitch13NetDevice at each node in
@@ -172,8 +172,8 @@ public:
    * \param controller The controller application to install into cNode
    * \returns The controller application (same as input)
    */
-  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode, 
-      Ptr<OFSwitch13Controller> controller);
+  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode,
+                                                  Ptr<OFSwitch13Controller> controller);
 
   /**
    * This method prepares the cNode so it can connect to an external OpenFlow

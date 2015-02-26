@@ -98,12 +98,11 @@ typedef std::map<Ptr<NetDevice>, Ptr<OFPort> > PortDevMap_t;
 class OFSwitch13NetDevice : public NetDevice
 {
 public:
-
-  /** 
+  /**
    * TracedCallback signature for Ptr<NetDevice> and Ptr<Packet>, used to link
-   * CsmaNetDevice with OpenFlow datapath. 
+   * CsmaNetDevice with OpenFlow datapath.
    */
-  typedef void (* TracedCallback) 
+  typedef void (*TracedCallback)
     (Ptr<NetDevice>, const Ptr<const Packet> packet);
 
   /**

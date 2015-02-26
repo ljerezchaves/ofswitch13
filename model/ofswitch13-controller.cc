@@ -91,7 +91,7 @@ OFSwitch13Controller::DoDispose ()
   m_switchesMap.clear ();
   m_echoMap.clear ();
   m_schedCommands.clear ();
-  
+
   Application::DoDispose ();
 }
 
@@ -146,7 +146,7 @@ OFSwitch13Controller::SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg,
     {
       NS_FATAL_ERROR ("Unavailable space to send OpenFlow message");
     }
-  
+
   return !switchSocket->Send (pkt);
 }
 
@@ -182,8 +182,8 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
   return error;
 }
 
-int 
-OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> swtch, 
+int
+OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> swtch,
                                     const std::string textCmd)
 {
   return DpctlCommand (GetSwitchMetadata (swtch), textCmd);
@@ -509,11 +509,11 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
 
           // Receive the OpenFlow header
           pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
-          
+
           // Get the OpenFlow message size
           ofp_header header;
           pendingPacket->CopyData ((uint8_t*)&header, sizeof (ofp_header));
-          pendingBytes = ntohs (header.length) - sizeof (ofp_header); 
+          pendingBytes = ntohs (header.length) - sizeof (ofp_header);
         }
 
       // Receive the remaining OpenFlow message
@@ -531,7 +531,7 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
         {
           Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
           NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
-                        "s the OpenFlow Controller received " <<  pendingPacket->GetSize () << 
+                        "s the OpenFlow Controller received " <<  pendingPacket->GetSize () <<
                         " bytes from switch " << ipv4 <<
                         " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
 
@@ -566,9 +566,10 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
         }
       pendingPacket = 0;
       pendingBytes = 0;
-    
+
       // Repeat until socket buffer gets emtpy
-    } while (socket->GetRxAvailable ());
+    }
+  while (socket->GetRxAvailable ());
 }
 
 bool
