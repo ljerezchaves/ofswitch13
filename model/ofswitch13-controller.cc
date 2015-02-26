@@ -209,7 +209,7 @@ OFSwitch13Controller::StartApplication ()
     {
       m_serverSocket = Socket::CreateSocket (GetNode (),
                                              TcpSocketFactory::GetTypeId ());
-      m_serverSocket->SetAttribute ("SegmentSize", UintegerValue (2960));
+      m_serverSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
       m_serverSocket->Bind (InetSocketAddress (Ipv4Address::GetAny (), m_port));
       m_serverSocket->Listen ();
     }

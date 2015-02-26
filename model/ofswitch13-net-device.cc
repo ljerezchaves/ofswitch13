@@ -382,7 +382,7 @@ OFSwitch13NetDevice::StartControllerConnection ()
     {
       int error = 0;
       m_ctrlSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-      m_ctrlSocket->SetAttribute ("SegmentSize", UintegerValue (2960));
+      m_ctrlSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
       
       error = m_ctrlSocket->Bind ();
       if (error)
