@@ -356,6 +356,8 @@ OFSwitch13NetDevice::GetDatapathId (void) const
 void
 OFSwitch13NetDevice::SetLibLogLevel (std::string log)
 {
+  NS_LOG_FUNCTION (this << log);
+
   if (log != "none")
     {
       set_program_name ("ns3-ofswitch13");
@@ -608,6 +610,8 @@ OFSwitch13NetDevice::DoDispose ()
 datapath*
 OFSwitch13NetDevice::DatapathNew ()
 {
+  NS_LOG_FUNCTION (this);
+
   datapath* dp = (datapath*)xmalloc (sizeof (datapath));
 
   dp->mfr_desc = (char*)xmalloc (DESC_STR_LEN);
@@ -654,6 +658,8 @@ OFSwitch13NetDevice::DatapathNew ()
 void
 OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 {
+  NS_LOG_FUNCTION (this << dp->id);
+
   meter_table_add_tokens (dp->meters);
   pipeline_timeout (dp->pipeline);
 
@@ -696,7 +702,7 @@ OFSwitch13NetDevice::PortGetOFPort (uint32_t no)
 
 void
 OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
-                                            Ptr<const Packet> packet)
+                                            Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this);
 
@@ -717,21 +723,20 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
       return;
     }
 
-  // Buffering the packet and creating the internal openflow packet structure
-  // from buffer. Allocate buffer with some headroom to add headers in
-  // forwarding to the controller or adding a vlan tag, plus an extra 2 bytes
-  // to allow IP headers to be aligned on a 4-byte boundary.
+  // Creating the internal openflow packet structure from ns-3 packet
+  // Allocate buffer with some extra space for openflow packet modifications. 
   uint32_t headRoom = 128 + 2;
   uint32_t bodyRoom = netdev->GetMtu () + VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofs::BufferFromPacket (packet, bodyRoom, headRoom);
   struct packet *pkt = packet_create (m_datapath, inPort->m_portNo, buffer, false);
   pkt->ns3_uid = packet->GetUid ();
-
+  
   // Update port stats
   inPort->m_swPort->stats->rx_packets++;
   inPort->m_swPort->stats->rx_bytes += buffer->size;
 
-  // Runs the packet through the pipeline
+  // Save the ns-3 packet pointer and run the packet through the pipeline
+  SavePipelinePacket (packet);
   Simulator::Schedule (m_lookupDelay, pipeline_process_packet, m_datapath->pipeline, pkt);
 }
 
@@ -773,7 +778,7 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t
         }
       return status;
     }
-  /* NOTE: no need to delete buffer, it is deleted along with the packet in caller. */
+  // No need to delete buffer, it is deleted along with the packet in caller.
   NS_LOG_ERROR ("can't forward to bad port " << port->m_portNo);
   return false;
 }
@@ -793,13 +798,12 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
           // Starting with a new OpenFlow message.
           // At least 8 bytes (OpenFlow header) must be available for read
           uint32_t rxBytesAvailable = socket->GetRxAvailable ();
-          NS_ASSERT_MSG (rxBytesAvailable >= 8, "At least 8 bytes must be available for read");
+          NS_ASSERT_MSG (rxBytesAvailable >= 8, 
+                         "At least 8 bytes must be available for read");
 
-          // Receive the OpenFlow header
-          pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
-
-          // Get the OpenFlow message size
+          // Receive the OpenFlow header and get the OpenFlow message size
           ofp_header header;
+          pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
           pendingPacket->CopyData ((uint8_t*)&header, sizeof (ofp_header));
           pendingBytes = ntohs (header.length) - sizeof (ofp_header);
         }

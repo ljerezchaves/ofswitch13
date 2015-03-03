@@ -102,8 +102,7 @@ public:
    * TracedCallback signature for Ptr<NetDevice> and Ptr<Packet>, used to link
    * CsmaNetDevice with OpenFlow datapath.
    */
-  typedef void (*TracedCallback)
-    (Ptr<NetDevice>, const Ptr<const Packet> packet);
+  typedef void (*TracedCallback) (Ptr<NetDevice>, Ptr<Packet> packet);
 
   /**
    * Register this type.
@@ -243,7 +242,7 @@ private:
    * \param netdev The port the packet was received on.
    * \param packet The Packet itself.
    */
-  void ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Packet> packet);
+  void ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<Packet> packet);
 
   /**
    * Socket callback to receive a openflow packet from controller.
