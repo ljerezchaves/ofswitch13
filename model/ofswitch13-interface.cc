@@ -272,12 +272,10 @@ packet_destroy (struct packet *pkt)
         }
     }
 
+  // Notify the Openflow device of a packet destroyed
   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (pkt->dp->id);
-  Ptr<Packet> packet = dev->RemovePipelinePacket (pkt->ns3_uid);
-  if (packet)
-    {
-      NS_LOG_WARN ("Openflow destroyed the packet " << packet->GetUid ());
-    }
+  dev->NotifyPacketDestroyed (pkt->ns3_uid);
+
   action_set_destroy (pkt->action_set);
   ofpbuf_delete (pkt->buffer);
   packet_handle_std_destroy (pkt->handle_std);

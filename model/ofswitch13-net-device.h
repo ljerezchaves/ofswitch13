@@ -184,12 +184,10 @@ public:
   void StartControllerConnection ();
  
   /**
-   * Retrive and remove the original ns-3 packet from packet in pileline, using
-   * its uid, before forwarding it to switch port.
-   * \param packetUid The packet uid.
-   * \return The packet pointer.
+   * Notify this device of a packet destroyed by the OpenFlow pipeline.
+   * \param packetUid The ns-3 packet uid.
    */
-  Ptr<Packet> RemovePipelinePacket (uint64_t packetUid);
+  void NotifyPacketDestroyed (uint64_t packetUid);
 
   // Inherited from NetDevice base class
   virtual void SetIfIndex (const uint32_t index);
@@ -277,6 +275,14 @@ private:
    * \param packet The packet pointer.
    */
   void SavePipelinePacket (Ptr<Packet> packet);
+  
+  /**
+   * Retrive and remove the original ns-3 packet from packet in pileline, using
+   * its uid, before forwarding it to switch port.
+   * \param packetUid The packet uid.
+   * \return The packet pointer.
+   */
+  Ptr<Packet> RemovePipelinePacket (uint64_t packetUid);
 
   /** Structure to save packets, indexed by its uid. */
   typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;

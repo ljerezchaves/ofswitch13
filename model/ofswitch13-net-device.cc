@@ -418,19 +418,22 @@ OFSwitch13NetDevice::StartControllerConnection ()
   NS_LOG_ERROR ("Controller already set.");
 }
  
-Ptr<Packet> 
-OFSwitch13NetDevice::RemovePipelinePacket (uint64_t packetUid)
+void 
+OFSwitch13NetDevice::NotifyPacketDestroyed (uint64_t packetUid)
 {
   NS_LOG_FUNCTION (this << packetUid);
   
-  Ptr<Packet> packet = 0;
   UidPacketMap_t::iterator it = m_pktsPipeline.find (packetUid);
   if (it != m_pktsPipeline.end ())
     {
-      packet = it->second;
       m_pktsPipeline.erase (it);
+      NS_LOG_WARN ("Packet destroyed by openflow " << packetUid);
     }
-  return packet;
+
+  if (m_pktsPipeline.size ())
+    {  
+      NS_LOG_DEBUG (m_pktsPipeline.size () << " packets still on pipeline.");
+    }
 }
 
 // Inherited from NetDevice base class
@@ -787,8 +790,8 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
         }
       else
         {
-          NS_LOG_WARN ("Openflow is creating a new ns-3 packet.");
           packet = ofs::PacketFromBuffer (pkt->buffer);
+          NS_LOG_WARN ("Openflow created a new ns-3 packet.");
         }
 
       // Removing the ethernet header and trailer from packet, which will be
@@ -956,6 +959,21 @@ OFSwitch13NetDevice::SavePipelinePacket (Ptr<Packet> packet)
       NS_FATAL_ERROR ("Packet " << packet->GetUid () << " already in switch " 
                       << GetDatapathId () << " pipeline.");
     }
+}
+
+Ptr<Packet> 
+OFSwitch13NetDevice::RemovePipelinePacket (uint64_t packetUid)
+{
+  NS_LOG_FUNCTION (this << packetUid);
+  
+  Ptr<Packet> packet = 0;
+  UidPacketMap_t::iterator it = m_pktsPipeline.find (packetUid);
+  if (it != m_pktsPipeline.end ())
+    {
+      packet = it->second;
+      m_pktsPipeline.erase (it);
+    }
+  return packet;
 }
 
 } // namespace ns3
