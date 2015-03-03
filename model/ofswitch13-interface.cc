@@ -136,8 +136,9 @@ time_msec (void)
 int
 send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
 {
+  NS_LOG_FUNCTION_NOARGS ();
   int error = 0;
-
+ 
   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (remote->dp->id);
   error = dev->SendToController (buffer, remote);
   if (error)
@@ -147,6 +148,13 @@ send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
     }
   return 0;
 }
+
+void
+dp_actions_output_port (struct packet *pkt, uint32_t out_port, 
+    uint32_t out_queue, uint16_t max_len, uint64_t cookie)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+} 
 
 /**
  * Overriding ofsoftswitch13 dp_ports_output weak function from
@@ -159,13 +167,13 @@ send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
  * \param out_port The port number.
  * \param queue_id The queue to use.
  */
-void
-dp_ports_output (struct datapath *dp, struct ofpbuf *buffer,
-                 uint32_t out_port, uint32_t queue_id)
-{
-  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
-  dev->SendToSwitchPort (buffer, out_port, queue_id);
-}
+// void
+// dp_ports_output (struct datapath *dp, struct ofpbuf *buffer,
+//                  uint32_t out_port, uint32_t queue_id)
+// {
+//   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
+//   dev->SendToSwitchPort (buffer, out_port, queue_id);
+// }
 
 /**
  * Overriding ofsoftswitch13 dpctl_send_and_print weak function from
@@ -178,6 +186,8 @@ dp_ports_output (struct datapath *dp, struct ofpbuf *buffer,
 void
 dpctl_send_and_print (struct vconn *vconn, struct ofl_msg_header *msg)
 {
+  NS_LOG_FUNCTION_NOARGS ();
+
   SwitchInfo *sw = (SwitchInfo*)vconn;
   sw->ctrl->SendToSwitch (sw, msg, 0);
 }
@@ -199,6 +209,8 @@ void
 dpctl_transact_and_print (struct vconn *vconn, struct ofl_msg_header *req,
                           struct ofl_msg_header **repl)
 {
+  NS_LOG_FUNCTION_NOARGS ();
+  
   dpctl_send_and_print (vconn, req);
 }
 

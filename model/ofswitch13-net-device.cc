@@ -725,6 +725,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   uint32_t bodyRoom = netdev->GetMtu () + VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofs::BufferFromPacket (packet, bodyRoom, headRoom);
   struct packet *pkt = packet_create (m_datapath, inPort->m_portNo, buffer, false);
+  pkt->ns3_uid = packet->GetUid ();
 
   // Update port stats
   inPort->m_swPort->stats->rx_packets++;
