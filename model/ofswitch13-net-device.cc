@@ -52,8 +52,9 @@ static std::map<uint64_t, Ptr<OFSwitch13NetDevice> > g_switchMap;
 static void
 RegisterDatapath (uint64_t id, Ptr<OFSwitch13NetDevice> dev)
 {
-  std::pair <std::map<uint64_t, Ptr<OFSwitch13NetDevice> >::iterator, bool> ret;
-  ret = g_switchMap.insert (std::pair<uint64_t, Ptr<OFSwitch13NetDevice> > (id, dev));
+  std::pair<uint64_t, Ptr<OFSwitch13NetDevice> > entry (id, dev);
+  std::pair<std::map<uint64_t, Ptr<OFSwitch13NetDevice> >::iterator, bool> ret;
+  ret = g_switchMap.insert (entry);
   if (ret.second == false)
     {
       NS_LOG_ERROR ("Error inserting datapath device into global map.");
@@ -135,8 +136,9 @@ OFPort::OFPort (datapath *dp, Ptr<NetDevice> dev)
   m_swPort->stats->port_no = m_portNo;
   m_swPort->flags |= SWP_USED;
 
-  // To avoid a null check failure in dp_m_swPorts_handle_stats_request_m_swPort (),
-  // we are pointing m_swPort->netdev to ns3::NetDevice, but it will not be used.
+  // To avoid a null check failure in
+  // dp_m_swPorts_handle_stats_request_m_swPort (), we are pointing
+  // m_swPort->netdev to ns3::NetDevice, but it will not be used.
   m_swPort->netdev = (struct netdev*)PeekPointer (dev);
   m_swPort->max_queues = NETDEV_MAX_QUEUES;
   m_swPort->num_queues = 0; // No queue support by now
@@ -238,7 +240,8 @@ OFSwitch13NetDevice::GetTypeId (void)
                    MakeUintegerAccessor (&OFSwitch13NetDevice::m_dpId),
                    MakeUintegerChecker<uint64_t> ())
     .AddAttribute ("FlowTableDelay",
-                   "Overhead for looking up in the flow table (Default: standard TCAM on an FPGA).",
+                   "Overhead for looking up in the flow table "
+                   "(Default: standard TCAM on an FPGA).",
                    TimeValue (NanoSeconds (30)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_lookupDelay),
                    MakeTimeChecker ())
@@ -248,14 +251,15 @@ OFSwitch13NetDevice::GetTypeId (void)
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_timeout),
                    MakeTimeChecker ())
     .AddAttribute ("ControllerAddr",
-                   "The controller InetSocketAddress, used to TCP communication.",
+                   "The controller InetSocketAddress.",
                    AddressValue (InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
                    MakeAddressAccessor (&OFSwitch13NetDevice::m_ctrlAddr),
                    MakeAddressChecker ())
     .AddAttribute ("LibLogLevel",
                    "Set the ofsoftswitch13 library logging level."
-                   "Use 'none' to turn logging off, or use 'all' to maximum verbosity."
-                   "You can also use a custom ofsoftswitch13 verbosity argument.",
+                   "Use 'none' to turn logging off. "
+                   "Use 'all' to maximum verbosity. "
+                   "You can also use a custom ofsoftswitch13 verbosity level.",
                    StringValue ("none"),
                    MakeStringAccessor (&OFSwitch13NetDevice::SetLibLogLevel),
                    MakeStringChecker ())
@@ -275,7 +279,8 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   m_ifIndex = 0;
   m_datapath = DatapathNew ();
   RegisterDatapath (m_dpId, Ptr<OFSwitch13NetDevice> (this));
-  Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, this, m_datapath);
+  Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, 
+                       this, m_datapath);
 }
 
 OFSwitch13NetDevice::~OFSwitch13NetDevice ()
@@ -302,8 +307,10 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 
   // Create the port for this device
   Ptr<OFPort> ofPort = Create<OFPort> (m_datapath, csmaPortDevice);
-  m_portsByNo.insert (std::pair<uint32_t, Ptr<OFPort> > (ofPort->m_portNo, ofPort));
-  m_portsByDev.insert (std::pair<Ptr<NetDevice>, Ptr<OFPort> > (ofPort->m_netdev, ofPort));
+  std::pair<uint32_t, Ptr<OFPort> > noEntry (ofPort->m_portNo, ofPort);
+  std::pair<Ptr<NetDevice>, Ptr<OFPort> > devEntry (ofPort->m_netdev, ofPort);
+  m_portsByNo.insert (noEntry);
+  m_portsByDev.insert (devEntry);
 
   // Notify the controller that this port has been added
   ofl_msg_port_status msg;
@@ -314,8 +321,8 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 
   // Register a trace sink for this csmaPorDevice to get packets received from
   // device to send to pipeline.
-  csmaPortDevice->TraceConnectWithoutContext (
-    "OpenFlowRx", MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this));
+  csmaPortDevice->TraceConnectWithoutContext ("OpenFlowRx", 
+      MakeCallback (&OFSwitch13NetDevice::ReceiveFromSwitchPort, this));
   return ofPort->m_portNo;
 }
 
@@ -383,7 +390,8 @@ OFSwitch13NetDevice::StartControllerConnection ()
   if (!m_ctrlSocket)
     {
       int error = 0;
-      m_ctrlSocket = Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
+      m_ctrlSocket = Socket::CreateSocket (GetNode (), 
+                                           TcpSocketFactory::GetTypeId ());
       m_ctrlSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
 
       error = m_ctrlSocket->Bind ();
@@ -669,7 +677,7 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
     {
       if (it->second->PortUpdateState ())
         {
-          NS_LOG_DEBUG ("Port status has changed. Notifying the controller...");
+          NS_LOG_DEBUG ("Port status has changed. Notifying the controller.");
           ofl_msg_port_status msg;
           msg.header.type = OFPT_PORT_STATUS;
           msg.reason = OFPPR_MODIFY;
@@ -728,7 +736,8 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   uint32_t headRoom = 128 + 2;
   uint32_t bodyRoom = netdev->GetMtu () + VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofs::BufferFromPacket (packet, bodyRoom, headRoom);
-  struct packet *pkt = packet_create (m_datapath, inPort->m_portNo, buffer, false);
+  struct packet *pkt = packet_create (m_datapath, inPort->m_portNo, 
+                                      buffer, false);
   pkt->ns3_uid = packet->GetUid ();
   
   // Update port stats
@@ -737,11 +746,13 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
 
   // Save the ns-3 packet pointer and run the packet through the pipeline
   SavePipelinePacket (packet);
-  Simulator::Schedule (m_lookupDelay, pipeline_process_packet, m_datapath->pipeline, pkt);
+  Simulator::Schedule (m_lookupDelay, pipeline_process_packet, 
+                       m_datapath->pipeline, pkt);
 }
 
 bool
-OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t queueNo)
+OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, 
+                                       uint32_t queueNo)
 {
   // No queue support by now
   NS_LOG_FUNCTION (this);
@@ -836,11 +847,13 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
           // Gets the remote structure for this controller connection.
           // As we currently support only one controller, it's the first in list.
           struct sender sender;
-          sender.remote = CONTAINER_OF (list_front (&m_datapath->remotes), remote, node);
+          sender.remote = CONTAINER_OF (list_front (&m_datapath->remotes), 
+                                        remote, node);
           sender.conn_id = 0; // No auxiliary connections
 
           // Get the openflow buffer, unpack the message and send to handler
-          ofpbuf *buffer = ofs::BufferFromPacket (pendingPacket, pendingPacket->GetSize ());
+          ofpbuf *buffer = ofs::BufferFromPacket (pendingPacket, 
+                                                  pendingPacket->GetSize ());
           error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
                                   &sender.xid, m_datapath->exp);
           if (!error)
@@ -862,7 +875,7 @@ OFSwitch13NetDevice::SocketCtrlRead (Ptr<Socket> socket)
             }
           if (error)
             {
-              NS_LOG_ERROR ("Error processing OpenFlow message received from controller.");
+              NS_LOG_ERROR ("Error processing OpenFlow message from controller.");
               // Notify the controller
               ofl_msg_error err;
               err.header.type = OFPT_ERROR;
