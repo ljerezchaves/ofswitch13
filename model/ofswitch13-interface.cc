@@ -126,7 +126,7 @@ time_msec (void)
  * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function from
  * udatapath/datapath.c. Sends the given OFLib buffer message to the controller
  * associated with remote connection structure.
- * \internal This function relies on the global map that stores ofpenflow
+ * \internal This function relies on the global map that stores openflow
  * devices to call the method on the correct object (\see
  * ofswitch13-net-device.cc).
  * \param buffer The message buffer to send.
@@ -137,8 +137,8 @@ int
 send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
 {
   NS_LOG_FUNCTION_NOARGS ();
+
   int error = 0;
- 
   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (remote->dp->id);
   error = dev->SendToController (buffer, remote);
   if (error)
@@ -149,31 +149,140 @@ send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
   return 0;
 }
 
+/**
+ * Overriding ofsoftswitch13 dp_actions_output_port weak function from
+ * udatapath/dp_actions.c. Outputs a datapath packet on switch port. This code
+ * is nearly the same on ofsoftswitch, but it gets the openflow device from
+ * datapath id and uses member functions to send the packet over ns3
+ * structures.
+ * \internal This function relies on the global map that stores openflow
+ * devices to call the method on the correct object (\see
+ * ofswitch13-net-device.cc).
+ * \param pkt The internal packet to send.
+ * \param out_port The switch port number.
+ * \param out_queue The queue to use.
+ * \param max_len Max lenght of packet to send to controller.
+ * \param cookie Packet cookie to send to controller.
+ */
 void
 dp_actions_output_port (struct packet *pkt, uint32_t out_port, 
     uint32_t out_queue, uint16_t max_len, uint64_t cookie)
 {
   NS_LOG_FUNCTION_NOARGS ();
-} 
+  
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (pkt->dp->id);
+  switch (out_port) {
+    case (OFPP_TABLE):
+      {
+        if (pkt->packet_out) 
+          {
+            // Makes sure packet cannot be resubmit to pipeline again.
+            pkt->packet_out = false;
+            pipeline_process_packet (pkt->dp->pipeline, pkt);
+          } 
+        else 
+          {
+            NS_LOG_WARN ("Trying to resubmit packet to pipeline.");
+          }
+        break;
+      }
+    case (OFPP_IN_PORT): 
+      {
+        dev->SendToSwitchPort (pkt, pkt->in_port, 0);
+        break;
+      }
+    case (OFPP_CONTROLLER): 
+      {
+        struct ofl_msg_packet_in msg;
+        msg.header.type = OFPT_PACKET_IN;
+        msg.total_len = pkt->buffer->size;
+        msg.reason = pkt->handle_std->table_miss ? OFPR_NO_MATCH : OFPR_ACTION;
+        msg.table_id = pkt->table_id;
+        msg.data = (uint8_t*)pkt->buffer->data;
+        msg.cookie = cookie;
+
+        // Even with miss_send_len == OFPCML_NO_BUFFEROFPCML_NO_BUFFER, save
+        // the packet into buffer to avoid loosing ns-3 packet uid.
+        dp_buffers_save (pkt->dp->buffers, pkt);
+        msg.buffer_id = pkt->buffer_id;
+        msg.data_length = MIN (max_len, pkt->buffer->size);
+
+        if (!pkt->handle_std->valid)
+          {
+            packet_handle_std_validate (pkt->handle_std);
+          }
+        msg.match = (struct ofl_match_header*) &pkt->handle_std->match;
+        dp_send_message (pkt->dp, (struct ofl_msg_header *)&msg, 0);
+        break;
+      }
+    case (OFPP_FLOOD):
+    case (OFPP_ALL): 
+      {
+        struct sw_port *p;
+        LIST_FOR_EACH (p, struct sw_port, node, &pkt->dp->port_list) 
+          {
+            if ((p->stats->port_no == pkt->in_port) ||
+                (out_port == OFPP_FLOOD && p->conf->config & OFPPC_NO_FWD)) 
+              {
+                continue;
+              }
+            dev->SendToSwitchPort (pkt, p->stats->port_no, 0);
+          }
+        break;
+      }
+    case (OFPP_NORMAL):
+    case (OFPP_LOCAL):
+    default: 
+      {
+        if (pkt->in_port == out_port)
+          {
+            NS_LOG_WARN ("Can't directly forward to input port.");
+          }
+        else 
+          {
+            NS_LOG_DEBUG ("Outputting packet on port " << out_port);
+            dev->SendToSwitchPort (pkt, out_port, out_queue);
+          }
+      }
+  }
+}
 
 /**
- * Overriding ofsoftswitch13 dp_ports_output weak function from
- * udatapath/dp_ports.c. Outputs a datapath packet on the port.
- * \internal This function relies on the global map that stores ofpenflow
- * devices to call the method on the correct object (\see
- * ofswitch13-net-device.cc).
- * \param dp The datapath.
- * \param buffer The packet buffer.
- * \param out_port The port number.
- * \param queue_id The queue to use.
+ * Overriding ofsoftswitch13 packet_destroy weak function from
+ * udatapath/packet.c. This is necesary to remove packets saved in OpenFlow
+ * device while under pipeline process and which were destroyed by the device
+ * before beeing forwarded to any switch port.
+ * \param pkt The internal packet to destroy.
  */
-// void
-// dp_ports_output (struct datapath *dp, struct ofpbuf *buffer,
-//                  uint32_t out_port, uint32_t queue_id)
-// {
-//   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (dp->id);
-//   dev->SendToSwitchPort (buffer, out_port, queue_id);
-// }
+void
+packet_destroy (struct packet *pkt) 
+{
+  NS_LOG_FUNCTION_NOARGS ();
+  
+  // If packet is saved in a buffer, do not destroy it if buffer is valid
+  if (pkt->buffer_id != NO_BUFFER) 
+    {
+      if (dp_buffers_is_alive (pkt->dp->buffers, pkt->buffer_id)) 
+        {
+          return;
+        }
+      else 
+        {
+          dp_buffers_discard (pkt->dp->buffers, pkt->buffer_id, false);
+        }
+    }
+
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (pkt->dp->id);
+  Ptr<Packet> packet = dev->RemovePipelinePacket (pkt->ns3_uid);
+  if (packet)
+    {
+      NS_LOG_WARN ("Openflow destroyed the packet " << packet->GetUid ());
+    }
+  action_set_destroy (pkt->action_set);
+  ofpbuf_delete (pkt->buffer);
+  packet_handle_std_destroy (pkt->handle_std);
+  free (pkt);
+}
 
 /**
  * Overriding ofsoftswitch13 dpctl_send_and_print weak function from
@@ -187,7 +296,6 @@ void
 dpctl_send_and_print (struct vconn *vconn, struct ofl_msg_header *msg)
 {
   NS_LOG_FUNCTION_NOARGS ();
-
   SwitchInfo *sw = (SwitchInfo*)vconn;
   sw->ctrl->SendToSwitch (sw, msg, 0);
 }
@@ -210,7 +318,6 @@ dpctl_transact_and_print (struct vconn *vconn, struct ofl_msg_header *req,
                           struct ofl_msg_header **repl)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  
   dpctl_send_and_print (vconn, req);
 }
 
