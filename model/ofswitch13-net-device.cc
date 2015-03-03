@@ -901,5 +901,35 @@ OFSwitch13NetDevice::SocketCtrlFailed (Ptr<Socket> socket)
   NS_LOG_ERROR ("Controller did not accepted connection request!");
 }
 
+void 
+OFSwitch13NetDevice::SavePipelinePacket (Ptr<Packet> packet)
+{
+  NS_LOG_FUNCTION (this << packet->GetUid ());
+  
+  std::pair <uint64_t, Ptr<Packet> > entry (packet->GetUid (), packet);
+  std::pair <UidPacketMap_t::iterator, bool> ret;
+  ret = m_pktsPipeline.insert (entry);
+  if (ret.second == false)
+    {
+      NS_FATAL_ERROR ("Packet " << packet->GetUid () << " already in switch " 
+                      << GetDatapathId () << " pipeline.");
+    }
+}
+ 
+Ptr<Packet> 
+OFSwitch13NetDevice::RemovePipelinePacket (uint64_t packetUid)
+{
+  NS_LOG_FUNCTION (this << packetUid);
+  
+  Ptr<Packet> packet = 0;
+  UidPacketMap_t::iterator it = m_pktsPipeline.find (packetUid);
+  if (it != m_pktsPipeline.end ())
+    {
+      packet = it->second;
+      m_pktsPipeline.erase (it);
+    }
+  return packet;
+}
+
 } // namespace ns3
 #endif // NS3_OFSWITCH13

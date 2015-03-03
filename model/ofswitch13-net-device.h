@@ -264,6 +264,24 @@ private:
    */
   void SocketCtrlFailed (Ptr<Socket> socket);
 
+  /**
+   * When a packet is sent to pipeline, save its pointer for furter forwading
+   * to switch port or controller.
+   * \param packet The packet pointer.
+   */
+  void SavePipelinePacket (Ptr<Packet> packet);
+ 
+  /**
+   * When the pipeline stops, retrive the original ns-3 packet from its uid
+   * before forwarding it to switch port.
+   * \param packetUid The packet uid.
+   * \return The packet pointer.
+   */
+  Ptr<Packet> RemovePipelinePacket (uint64_t packetUid);
+
+  /** Structure to save packets, indexed by its uid. */
+  typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;
+
   uint64_t        m_dpId;         //!< This datapath id
   Ptr<Node>       m_node;         //!< Node this device is installed on
   Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller
@@ -275,6 +293,7 @@ private:
   datapath*       m_datapath;     //!< The OpenFlow datapath
   PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
   PortDevMap_t    m_portsByDev;   //!< Switch ports indexed by NetDevice.
+  UidPacketMap_t  m_pktsPipeline; //!< Packets under switch pipeline.
 
   static uint64_t m_globalDpId;   //!< Global counter of datapath IDs
 
