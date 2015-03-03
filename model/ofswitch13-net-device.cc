@@ -417,6 +417,21 @@ OFSwitch13NetDevice::StartControllerConnection ()
 
   NS_LOG_ERROR ("Controller already set.");
 }
+ 
+Ptr<Packet> 
+OFSwitch13NetDevice::RemovePipelinePacket (uint64_t packetUid)
+{
+  NS_LOG_FUNCTION (this << packetUid);
+  
+  Ptr<Packet> packet = 0;
+  UidPacketMap_t::iterator it = m_pktsPipeline.find (packetUid);
+  if (it != m_pktsPipeline.end ())
+    {
+      packet = it->second;
+      m_pktsPipeline.erase (it);
+    }
+  return packet;
+}
 
 // Inherited from NetDevice base class
 void
@@ -666,8 +681,6 @@ OFSwitch13NetDevice::DatapathNew ()
 void
 OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 {
-  NS_LOG_FUNCTION (this << dp->id);
-
   meter_table_add_tokens (dp->meters);
   pipeline_timeout (dp->pipeline);
 
@@ -751,7 +764,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
 }
 
 bool
-OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, 
+OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo, 
                                        uint32_t queueNo)
 {
   // No queue support by now
@@ -766,9 +779,20 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo,
 
   if (!(port->m_swPort->conf->config & (OFPPC_PORT_DOWN)))
     {
+      Ptr<Packet> packet = RemovePipelinePacket (pkt->ns3_uid);
+      if (packet)
+        {
+          // FIXME: Check if the packet has been internally modified by
+          // openflow.
+        }
+      else
+        {
+          NS_LOG_WARN ("Openflow is creating a new ns-3 packet.");
+          packet = ofs::PacketFromBuffer (pkt->buffer);
+        }
+
       // Removing the ethernet header and trailer from packet, which will be
       // included again by CsmaNetDevice
-      Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
       EthernetTrailer trailer;
       packet->RemoveTrailer (trailer);
       EthernetHeader header;
@@ -789,6 +813,7 @@ OFSwitch13NetDevice::SendToSwitchPort (ofpbuf *buffer, uint32_t portNo,
         }
       return status;
     }
+
   // No need to delete buffer, it is deleted along with the packet in caller.
   NS_LOG_ERROR ("can't forward to bad port " << port->m_portNo);
   return false;
@@ -931,21 +956,6 @@ OFSwitch13NetDevice::SavePipelinePacket (Ptr<Packet> packet)
       NS_FATAL_ERROR ("Packet " << packet->GetUid () << " already in switch " 
                       << GetDatapathId () << " pipeline.");
     }
-}
- 
-Ptr<Packet> 
-OFSwitch13NetDevice::RemovePipelinePacket (uint64_t packetUid)
-{
-  NS_LOG_FUNCTION (this << packetUid);
-  
-  Ptr<Packet> packet = 0;
-  UidPacketMap_t::iterator it = m_pktsPipeline.find (packetUid);
-  if (it != m_pktsPipeline.end ())
-    {
-      packet = it->second;
-      m_pktsPipeline.erase (it);
-    }
-  return packet;
 }
 
 } // namespace ns3

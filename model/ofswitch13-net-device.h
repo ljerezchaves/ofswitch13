@@ -155,12 +155,12 @@ public:
    * proper netdevice, and update port statistics.
    * \internal This method is public as the 'C' dp_ports_output overriding
    * function use this 'C++' member function to send their messages.
-   * \param buffer The internal packet buffer to send.
+   * \param pkt The internal packet to send.
    * \param portNo The port number.
    * \param queueNo The queue number.
    * \return True if success, false otherwise.
    */
-  bool SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t queueNo);
+  bool SendToSwitchPort (struct packet *pkt, uint32_t portNo, uint32_t queueNo);
 
   /**
    * \return Number of switch ports attached to this switch.
@@ -182,6 +182,14 @@ public:
    * Starts the TCP connection between switch and controller.
    */
   void StartControllerConnection ();
+ 
+  /**
+   * Retrive and remove the original ns-3 packet from packet in pileline, using
+   * its uid, before forwarding it to switch port.
+   * \param packetUid The packet uid.
+   * \return The packet pointer.
+   */
+  Ptr<Packet> RemovePipelinePacket (uint64_t packetUid);
 
   // Inherited from NetDevice base class
   virtual void SetIfIndex (const uint32_t index);
@@ -269,14 +277,6 @@ private:
    * \param packet The packet pointer.
    */
   void SavePipelinePacket (Ptr<Packet> packet);
- 
-  /**
-   * When the pipeline stops, retrive the original ns-3 packet from its uid
-   * before forwarding it to switch port.
-   * \param packetUid The packet uid.
-   * \return The packet pointer.
-   */
-  Ptr<Packet> RemovePipelinePacket (uint64_t packetUid);
 
   /** Structure to save packets, indexed by its uid. */
   typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;
