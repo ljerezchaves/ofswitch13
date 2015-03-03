@@ -120,6 +120,10 @@ main (int argc, char *argv[])
   ofHelper->EnableOpenFlowPcap ();
   csmaHelper.EnablePcap ("ofswitch", switchDevices, true);  // promisc
   csmaHelper.EnablePcap ("terminals", terminalDevices);
+  if (verbose)
+    {
+      ofHelper->EnableDatapathLogs ("all");
+    }
 
   // Run the simulation
   Simulator::Stop (Seconds (30));
