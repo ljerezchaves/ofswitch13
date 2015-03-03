@@ -96,7 +96,7 @@ GetDatapathDevice (uint64_t id)
   else
     {
       NS_LOG_ERROR ("Error retrieving datapath device from global map.");
-      return NULL;
+      return 0;
     }
 }
 
@@ -310,7 +310,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   msg.header.type = OFPT_PORT_STATUS;
   msg.reason = OFPPR_ADD;
   msg.desc = ofPort->m_swPort->conf;
-  dp_send_message (m_datapath, (ofl_msg_header*)&msg, NULL);
+  dp_send_message (m_datapath, (ofl_msg_header*)&msg, 0);
 
   // Register a trace sink for this csmaPorDevice to get packets received from
   // device to send to pipeline.
@@ -362,7 +362,7 @@ OFSwitch13NetDevice::SetLibLogLevel (std::string log)
       vlog_init ();
       if (log == "all")
         {
-          vlog_set_verbosity (NULL);
+          vlog_set_verbosity (0);
         }
       else
         {
@@ -427,7 +427,7 @@ Ptr<Channel>
 OFSwitch13NetDevice::GetChannel (void) const
 {
   NS_LOG_FUNCTION (this);
-  return NULL;
+  return 0;
 }
 
 // This is a openflow device, so we really don't need any kind of address
@@ -627,14 +627,14 @@ OFSwitch13NetDevice::DatapathNew ()
 
   // unused
   dp->generation_id = -1;
-  dp->listeners = NULL;
+  dp->listeners = 0;
   dp->n_listeners = 0;
-  dp->listeners_aux = NULL;
+  dp->listeners_aux = 0;
   dp->n_listeners_aux = 0;
   // unused
 
   memset (dp->ports, 0x00, sizeof (dp->ports));
-  dp->local_port = NULL;
+  dp->local_port = 0;
 
   dp->buffers = dp_buffers_create (dp);
   dp->pipeline = pipeline_create (dp);
@@ -644,7 +644,7 @@ OFSwitch13NetDevice::DatapathNew ()
   list_init (&dp->port_list);
   dp->ports_num = 0;
   dp->max_queues = 0; // No queue support by now
-  dp->exp = NULL;
+  dp->exp = 0;
 
   dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling
   dp->config.miss_send_len = OFP_DEFAULT_MISS_SEND_LEN; // 128 bytes
@@ -668,7 +668,7 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
           msg.header.type = OFPT_PORT_STATUS;
           msg.reason = OFPPR_MODIFY;
           msg.desc = it->second->m_swPort->conf;
-          dp_send_message (dp, (ofl_msg_header*)&msg, NULL);
+          dp_send_message (dp, (ofl_msg_header*)&msg, 0);
         }
     }
 
@@ -690,7 +690,7 @@ OFSwitch13NetDevice::PortGetOFPort (uint32_t no)
   else
     {
       NS_LOG_ERROR ("No port found!");
-      return NULL;
+      return 0;
     }
 }
 
@@ -886,12 +886,12 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
   socket->SetRecvCallback (MakeCallback (&OFSwitch13NetDevice::SocketCtrlRead, this));
 
   // Save connection information to remotes list in datapath
-  remote_create (m_datapath, NULL, NULL);
+  remote_create (m_datapath, 0, 0);
 
   // Send Hello message
   ofl_msg_header msg;
   msg.type = OFPT_HELLO;
-  dp_send_message (m_datapath, &msg, NULL);
+  dp_send_message (m_datapath, &msg, 0);
 }
 
 void
