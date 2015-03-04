@@ -783,16 +783,19 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
   if (!(port->m_swPort->conf->config & (OFPPC_PORT_DOWN)))
     {
       Ptr<Packet> packet = RemovePipelinePacket (pkt->ns3_uid);
-      if (packet)
+      if (!packet)
         {
-          // FIXME: Check if the packet has been internally modified by
-          // openflow.
-        }
-      else
-        {
+          NS_LOG_WARN ("Creating a new ns-3 packet for openflow buffer"
+                       " with no packet match.");
           packet = ofs::PacketFromBuffer (pkt->buffer);
-          NS_LOG_WARN ("Openflow created a new ns-3 packet.");
         }
+      
+      // FIXME: Check if the packet has been internally modified.
+      // uint32_t pktSize = packet->GetSize ();
+      // ofpbuf *buffer = ofpbuf_new (pktSize);
+      // packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
+      // int diff = memcmp (buffer->data, pkt->buffer->data, pktSize);
+      // ofpbuf_delete (buffer);
 
       // Removing the ethernet header and trailer from packet, which will be
       // included again by CsmaNetDevice
