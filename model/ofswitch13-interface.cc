@@ -201,8 +201,9 @@ dp_actions_output_port (struct packet *pkt, uint32_t out_port,
         msg.data = (uint8_t*)pkt->buffer->data;
         msg.cookie = cookie;
 
-        // Even with miss_send_len == OFPCML_NO_BUFFEROFPCML_NO_BUFFER, save
-        // the packet into buffer to avoid loosing ns-3 packet uid.
+        // Even with miss_send_len == OFPCML_NO_BUFFER, save the packet into
+        // buffer to avoid loosing ns-3 packet uid. This is not full compliant
+        // with OpenFlow specification, but works very well here ;)
         dp_buffers_save (pkt->dp->buffers, pkt);
         msg.buffer_id = pkt->buffer_id;
         msg.data_length = MIN (max_len, pkt->buffer->size);
@@ -245,41 +246,6 @@ dp_actions_output_port (struct packet *pkt, uint32_t out_port,
           }
       }
   }
-}
-
-/**
- * Overriding ofsoftswitch13 packet_destroy weak function from
- * udatapath/packet.c. This is necesary to remove packets saved in OpenFlow
- * device while under pipeline process and which were destroyed by the device
- * before beeing forwarded to any switch port.
- * \param pkt The internal packet to destroy.
- */
-void
-packet_destroy (struct packet *pkt) 
-{
-  NS_LOG_FUNCTION_NOARGS ();
-  
-  // If packet is saved in a buffer, do not destroy it if buffer is valid
-  if (pkt->buffer_id != NO_BUFFER) 
-    {
-      if (dp_buffers_is_alive (pkt->dp->buffers, pkt->buffer_id)) 
-        {
-          return;
-        }
-      else 
-        {
-          dp_buffers_discard (pkt->dp->buffers, pkt->buffer_id, false);
-        }
-    }
-
-  // Notify the Openflow device of a packet destroyed
-  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (pkt->dp->id);
-  dev->NotifyPacketDestroyed (pkt->ns3_uid);
-
-  action_set_destroy (pkt->action_set);
-  ofpbuf_delete (pkt->buffer);
-  packet_handle_std_destroy (pkt->handle_std);
-  free (pkt);
 }
 
 /**
