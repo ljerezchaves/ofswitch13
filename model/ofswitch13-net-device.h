@@ -229,6 +229,19 @@ public:
    */
   static void PacketDestroyCallback (struct packet *pkt);
 
+  /**
+   * ofsoftswitch13 callback fired when a packet is saved into buffer.
+   * \param pkt The internal packet saved into buffer.
+   * \param timeout The timeout for this packet into buffer.
+   */
+  static void BufferSaveCallback (struct packet *pkt, time_t timeout);
+
+  /**
+   * ofsoftswitch13 callback fired when a packet is retrieved from buffer.
+   * \param pkt The internal packet retrieved from buffer.
+   */
+  static void BufferRetrieveCallback (struct packet *pkt);
+
 private:
   virtual void DoDispose (void);
 

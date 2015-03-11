@@ -626,6 +626,18 @@ OFSwitch13NetDevice::PacketDestroyCallback (struct packet *pkt)
   dev->NotifyPacketDestroyed (pkt->ns3_uid);
 }
 
+void 
+OFSwitch13NetDevice::BufferSaveCallback (struct packet *pkt, time_t timeout)
+{
+  // TODO
+}
+
+void 
+OFSwitch13NetDevice::BufferRetrieveCallback (struct packet *pkt)
+{
+  // TODO
+}
+
 /********** Private methods **********/
 void
 OFSwitch13NetDevice::DoDispose ()
@@ -692,6 +704,12 @@ OFSwitch13NetDevice::DatapathNew ()
 
   dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling
   dp->config.miss_send_len = OFP_DEFAULT_MISS_SEND_LEN; // 128 bytes
+
+  dp->pkt_clone_cb = &OFSwitch13NetDevice::PacketCloneCallback;
+  dp->pkt_destroy_cb = &OFSwitch13NetDevice::PacketDestroyCallback;
+  dp->buff_save_cb = &OFSwitch13NetDevice::BufferSaveCallback;
+  dp->buff_retrieve_cb = &OFSwitch13NetDevice::BufferRetrieveCallback;
+
   return dp;
 }
 
@@ -769,8 +787,6 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   struct packet *pkt = packet_create (m_datapath, inPort->m_portNo, 
                                       buffer, false);
   pkt->ns3_uid = packet->GetUid ();
-  pkt->clone_cb = &OFSwitch13NetDevice::PacketCloneCallback;
-  pkt->destroy_cb = &OFSwitch13NetDevice::PacketDestroyCallback;
   
   // Update port stats
   inPort->m_swPort->stats->rx_packets++;
