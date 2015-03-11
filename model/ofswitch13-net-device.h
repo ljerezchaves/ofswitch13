@@ -216,6 +216,19 @@ public:
   virtual void SetPromiscReceiveCallback (NetDevice::PromiscReceiveCallback cb);
   virtual bool SupportsSendFrom () const;
 
+  /**
+   * ofsoftswitch13 callback fired when a packet is cloned.
+   * \param pkt The original internal packet.
+   * \param clone The new cloned packet.
+   */
+  static void PacketCloneCallback (struct packet *pkt, struct packet *clone);
+
+  /**
+   * ofsoftswitch13 callback fired when a packet is destroyed.
+   * \param pkt The internal packet destroyed.
+   */
+  static void PacketDestroyCallback (struct packet *pkt);
+
 private:
   virtual void DoDispose (void);
 
@@ -270,19 +283,36 @@ private:
   void SocketCtrlFailed (Ptr<Socket> socket);
 
   /**
-   * When a packet is sent to pipeline, save its pointer for furter forwading
-   * to switch port or controller.
+   * When a packet is sent to OpenFlow pipeline, save its pointer for furter
+   * forwading it to switch port or controller.
    * \param packet The packet pointer.
    */
   void SavePipelinePacket (Ptr<Packet> packet);
   
   /**
-   * Retrive and remove the original ns-3 packet from packet in pileline, using
-   * its uid, before forwarding it to switch port.
+   * Get the ns-3 packet using its uid, before forwarding it to switch port.
    * \param packetUid The packet uid.
    * \return The packet pointer.
    */
-  Ptr<Packet> RemovePipelinePacket (uint64_t packetUid);
+  Ptr<Packet> GetPipelinePacket (uint64_t packetUid);
+
+  /**
+   * Delete a ns-3 packet saved by this device.
+   * \param packetUid The packet uid.
+   * \return True when the packet was found and deleted, 
+   *         False when the packet was not found.
+   */
+  bool DeletePipelinePacket (uint64_t packetUid);
+
+  /**
+   * Copy all packet and byte tags from srcPkt to dstPkt. 
+   * \attention In the case of byte tags, the tags in dstPkt will cover the
+   * entire packet, regardless of the byte range in srcPkt.
+   * \param srcPkt The source packet.
+   * \param dstPkt The destionation packet.
+   * \return true if everything's ok, false otherwise. 
+   */
+  bool CopyTags (Ptr<const Packet> srcPkt, Ptr<const Packet> dstPkt);
 
   /** Structure to save packets, indexed by its uid. */
   typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;

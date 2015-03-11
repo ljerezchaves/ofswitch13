@@ -422,15 +422,13 @@ void
 OFSwitch13NetDevice::NotifyPacketDestroyed (uint64_t packetUid)
 {
   NS_LOG_FUNCTION (this << packetUid);
-  
-  UidPacketMap_t::iterator it = m_pktsPipeline.find (packetUid);
-  if (it != m_pktsPipeline.end ())
+ 
+  if (DeletePipelinePacket (packetUid))
     {
-      m_pktsPipeline.erase (it);
       NS_LOG_WARN ("Packet destroyed by openflow " << packetUid);
     }
 
-  if (m_pktsPipeline.size ())
+  if (!m_pktsPipeline.empty ())
     {  
       NS_LOG_DEBUG (m_pktsPipeline.size () << " packets still on pipeline.");
     }
@@ -613,6 +611,21 @@ OFSwitch13NetDevice::SupportsSendFrom () const
   return false;
 }
 
+void 
+OFSwitch13NetDevice::PacketCloneCallback (struct packet *pkt, 
+                                          struct packet *clone)
+{
+  // TODO
+}
+
+void 
+OFSwitch13NetDevice::PacketDestroyCallback (struct packet *pkt)
+{
+  // Notify the Openflow device of a packet destroyed
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (pkt->dp->id);
+  dev->NotifyPacketDestroyed (pkt->ns3_uid);
+}
+
 /********** Private methods **********/
 void
 OFSwitch13NetDevice::DoDispose ()
@@ -625,6 +638,7 @@ OFSwitch13NetDevice::DoDispose ()
   m_ctrlSocket = 0;
   m_portsByNo.clear ();
   m_portsByDev.clear ();
+  m_pktsPipeline.clear ();
 
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
@@ -755,6 +769,8 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
   struct packet *pkt = packet_create (m_datapath, inPort->m_portNo, 
                                       buffer, false);
   pkt->ns3_uid = packet->GetUid ();
+  pkt->clone_cb = &OFSwitch13NetDevice::PacketCloneCallback;
+  pkt->destroy_cb = &OFSwitch13NetDevice::PacketDestroyCallback;
   
   // Update port stats
   inPort->m_swPort->stats->rx_packets++;
@@ -782,20 +798,15 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
 
   if (!(port->m_swPort->conf->config & (OFPPC_PORT_DOWN)))
     {
-      Ptr<Packet> packet = RemovePipelinePacket (pkt->ns3_uid);
+      Ptr<Packet> packet = GetPipelinePacket (pkt->ns3_uid);;
       if (!packet)
         {
           NS_LOG_WARN ("Creating a new ns-3 packet for openflow buffer"
                        " with no packet match.");
           packet = ofs::PacketFromBuffer (pkt->buffer);
         }
-      
-      // FIXME: Check if the packet has been internally modified.
-      // uint32_t pktSize = packet->GetSize ();
-      // ofpbuf *buffer = ofpbuf_new (pktSize);
-      // packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
-      // int diff = memcmp (buffer->data, pkt->buffer->data, pktSize);
-      // ofpbuf_delete (buffer);
+        
+      // TODO: Check for modified packet
 
       // Removing the ethernet header and trailer from packet, which will be
       // included again by CsmaNetDevice
@@ -965,7 +976,7 @@ OFSwitch13NetDevice::SavePipelinePacket (Ptr<Packet> packet)
 }
 
 Ptr<Packet> 
-OFSwitch13NetDevice::RemovePipelinePacket (uint64_t packetUid)
+OFSwitch13NetDevice::GetPipelinePacket (uint64_t packetUid)
 {
   NS_LOG_FUNCTION (this << packetUid);
   
@@ -977,6 +988,53 @@ OFSwitch13NetDevice::RemovePipelinePacket (uint64_t packetUid)
       m_pktsPipeline.erase (it);
     }
   return packet;
+}
+
+bool
+OFSwitch13NetDevice::DeletePipelinePacket (uint64_t packetUid)
+{
+  NS_LOG_FUNCTION (this << packetUid);
+  
+  UidPacketMap_t::iterator it = m_pktsPipeline.find (packetUid);
+  if (it != m_pktsPipeline.end ())
+    {
+      m_pktsPipeline.erase (it);
+      return true;
+    }
+  return false;
+}
+
+bool
+OFSwitch13NetDevice::CopyTags (Ptr<const Packet> srcPkt, 
+                               Ptr<const Packet> dstPkt)
+{
+  NS_LOG_FUNCTION (this << srcPkt << dstPkt);
+
+  // Copy packet tags
+  PacketTagIterator pktIt = srcPkt->GetPacketTagIterator ();
+  while (pktIt.HasNext ())
+    {
+      PacketTagIterator::Item item = pktIt.Next ();
+      Callback<ObjectBase *> constructor = item.GetTypeId ().GetConstructor ();
+      Tag *tag = dynamic_cast <Tag *> (constructor ());
+      item.GetTag (*tag);
+      dstPkt->AddPacketTag (*tag);
+      delete tag;
+    }
+
+  // Copy byte tags
+  ByteTagIterator bytIt = srcPkt->GetByteTagIterator ();
+  while (bytIt.HasNext ())
+    {
+      ByteTagIterator::Item item = bytIt.Next ();
+      Callback<ObjectBase *> constructor = item.GetTypeId ().GetConstructor ();
+      Tag *tag = dynamic_cast<Tag *> (constructor ());
+      item.GetTag (*tag);
+      dstPkt->AddByteTag (*tag);
+      delete tag;
+    }
+
+  return true;
 }
 
 } // namespace ns3
