@@ -135,18 +135,17 @@ public:
   uint32_t AddSwitchPort (Ptr<NetDevice> portDevice);
 
   /**
-   * Send a message to the controller node.
+   * Send a packet to the controller node.
    * \internal This method is public as the 'C' send_openflow_buffer_to_remote
    * overriding function use this 'C++' member function to send their msgs.
    * \see send_openflow_buffer_to_remote () at udatapath/datapath.c.
-   * \attention Don't use this method to send messages to controller. Use
-   * dp_send_message () instead, as it deals with multiple connections and
+   * \attention Don't use this method to directly send messages to controller.
+   * Use dp_send_message () instead, as it deals with multiple connections and
    * check assync config.
-   * \param buffer The message buffer to send.
-   * \param remote The controller connection information.
+   * \param packet The ns-3 packet to send.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendToController (ofpbuf *buffer, remote *remote);
+  int SendToController (Ptr<Packet> packet);
 
   /**
    * Send a message over a specific switch port. Check port configuration,
@@ -185,9 +184,23 @@ public:
  
   /**
    * Notify this device of a packet destroyed by the OpenFlow pipeline.
+   * \param pkt The ofsoftswitch13 packet.
+   */
+  void NotifyPacketDestroyed (struct packet *pkt);
+  
+  /**
+   * Notify this device of a packet saved into buffer. This method will get the
+   * ns-3 packet in pipeline and save into buffer map.
    * \param packetUid The ns-3 packet uid.
    */
-  void NotifyPacketDestroyed (uint64_t packetUid);
+  void SaveBufferPacket (uint64_t packetUid);
+  
+  /**
+   * Notify this device of a packet retrieved from buffer. This method will get
+   * the ns-3 packet from buffer map and put it back into pipeline.
+   * \param packetUid The ns-3 packet uid.
+   */
+  void RetrieveBufferPacket (uint64_t packetUid);
 
   // Inherited from NetDevice base class
   virtual void SetIfIndex (const uint32_t index);
@@ -217,30 +230,44 @@ public:
   virtual bool SupportsSendFrom () const;
 
   /**
-   * ofsoftswitch13 callback fired when a packet is cloned.
-   * \param pkt The original internal packet.
-   * \param clone The new cloned packet.
+   * Copy all packet and byte tags from srcPkt packet to dstPkt packet. 
+   * \attention In the case of byte tags, the tags in dstPkt will cover the
+   * entire packet, regardless of the byte range in srcPkt.
+   * \param srcPkt The source packet.
+   * \param dstPkt The destination packet.
+   * \return true if everything's ok, false otherwise. 
    */
-  static void PacketCloneCallback (struct packet *pkt, struct packet *clone);
+  static bool CopyTags (Ptr<const Packet> srcPkt, Ptr<const Packet> dstPkt);
 
   /**
-   * ofsoftswitch13 callback fired when a packet is destroyed.
+   * \brief ofsoftswitch13 callbacks.
+   */
+  //\{
+  /**
+   * Callback fired when a packet is dropped by meter band
+   * \param pkt The original internal packet.
+   */
+  static void MeterDropCallback (struct packet *pkt);
+
+  /**
+   * Callback fired when a packet is destroyed.
    * \param pkt The internal packet destroyed.
    */
   static void PacketDestroyCallback (struct packet *pkt);
 
   /**
-   * ofsoftswitch13 callback fired when a packet is saved into buffer.
+   * Callback fired when a packet is saved into buffer.
    * \param pkt The internal packet saved into buffer.
    * \param timeout The timeout for this packet into buffer.
    */
   static void BufferSaveCallback (struct packet *pkt, time_t timeout);
 
   /**
-   * ofsoftswitch13 callback fired when a packet is retrieved from buffer.
+   * Callback fired when a packet is retrieved from buffer.
    * \param pkt The internal packet retrieved from buffer.
    */
   static void BufferRetrieveCallback (struct packet *pkt);
+  //\}
 
 private:
   virtual void DoDispose (void);
@@ -269,7 +296,7 @@ private:
 
   /**
    * Called when a packet is received on one of the switch's ports. This method
-   * will send the packet to the openflow pipeline.
+   * will schedule the pipeline for this packet.
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
    * \param netdev The port the packet was received on.
    * \param packet The Packet itself.
@@ -277,11 +304,18 @@ private:
   void ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<Packet> packet);
 
   /**
+   * Send the packet to the OpenFlow ofsoftswitch13 pipeline.
+   * \param packet The packet.
+   * \param inPort The OpenFlow switch input port.
+   */
+  void SendToPipeline (Ptr<Packet> packet, Ptr<OFPort> inPort);
+
+  /**
    * Socket callback to receive a openflow packet from controller.
    * \see remote_rconn_run () at udatapath/datapath.c.
    * \param socket The TCP socket.
    */
-  void SocketCtrlRead (Ptr<Socket> socket);
+  void ReceiveFromController (Ptr<Socket> socket);
 
   /**
    * Socket callback fired when a TCP connection to controller succeeds fail.
@@ -295,37 +329,6 @@ private:
    */
   void SocketCtrlFailed (Ptr<Socket> socket);
 
-  /**
-   * When a packet is sent to OpenFlow pipeline, save its pointer for furter
-   * forwading it to switch port or controller.
-   * \param packet The packet pointer.
-   */
-  void SavePipelinePacket (Ptr<Packet> packet);
-  
-  /**
-   * Get the ns-3 packet using its uid, before forwarding it to switch port.
-   * \param packetUid The packet uid.
-   * \return The packet pointer.
-   */
-  Ptr<Packet> GetPipelinePacket (uint64_t packetUid);
-
-  /**
-   * Delete a ns-3 packet saved by this device.
-   * \param packetUid The packet uid.
-   * \return True when the packet was found and deleted, 
-   *         False when the packet was not found.
-   */
-  bool DeletePipelinePacket (uint64_t packetUid);
-
-  /**
-   * Copy all packet and byte tags from srcPkt to dstPkt. 
-   * \attention In the case of byte tags, the tags in dstPkt will cover the
-   * entire packet, regardless of the byte range in srcPkt.
-   * \param srcPkt The source packet.
-   * \param dstPkt The destionation packet.
-   * \return true if everything's ok, false otherwise. 
-   */
-  bool CopyTags (Ptr<const Packet> srcPkt, Ptr<const Packet> dstPkt);
 
   /** Structure to save packets, indexed by its uid. */
   typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;
@@ -341,7 +344,8 @@ private:
   datapath*       m_datapath;     //!< The OpenFlow datapath
   PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
   PortDevMap_t    m_portsByDev;   //!< Switch ports indexed by NetDevice.
-  UidPacketMap_t  m_pktsPipeline; //!< Packets under switch pipeline.
+  Ptr<Packet>     m_pktPipeline;  //!< Packet under switch pipeline.
+  UidPacketMap_t  m_pktsBuffer;   //!< Packets saved in switch buffer.
 
   static uint64_t m_globalDpId;   //!< Global counter of datapath IDs
 
