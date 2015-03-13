@@ -1,14 +1,12 @@
 # HG changeset patch
 # User Luciano J Chaves <luciano@lrc.ic.unicamp.br>
-# Date 1423591465 7200
-#      Tue Feb 10 16:04:25 2015 -0200
 Including a new TraceSource in CsmaNetDevice to integrate with OpenFlow 1.3
 
-This trace source is similar to MacPromiscRx, but it is fired even when there
-is no promiscuous protocol handler registered to the CsmaNetDevice. A simple
-solution could be register a promiscuous protocol handler to the CsmaNetDevice,
-but in this case the packets would have its Ethernet header and trailer
-removed, which is not desired by the OpenFlow device.
+This trace source fired for packets successfully received by the device
+immediately before being forwarded up to higher layers (at the L2/L3
+transition). This is a promiscuous trace, but in constrast a promiscuous
+protocol handler, the packet sent to this trace source also includes the
+Ethernet header, which is necessary by OpenFlow pipeline processing. 
 
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
 --- a/src/csma/model/csma-net-device.cc
@@ -18,42 +16,47 @@ diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.
                       MakeTraceSourceAccessor (&CsmaNetDevice::m_macPromiscRxTrace),
                       "ns3::Packet::TracedCallback")
 +    .AddTraceSource ("OpenFlowRx", 
-+                     "Similar to MacPromiscRx, but it is also fired even when "
-+                     "there is no promiscuous protocol handler register to device. "
-+                     "It was desiged to integration with openflow module.",
++                     "Similar to a promiscuous protocol handler, but using the "
++                     "original packet (with all headers). "
++                     "It was designed to integration with ofswitch13 module.",
 +                     MakeTraceSourceAccessor (&CsmaNetDevice::m_openflowRxTrace),
-+                     "ns3::OFSwitch13NetDevice::TracedCallback")
++                     "ns3::OFSwitch13NetDevice::OpenFlowCallback")
      .AddTraceSource ("MacRx", 
                       "A packet has been received by this device, "
                       "has been passed up from the physical layer "
-@@ -797,6 +803,7 @@
-   // make sure that nobody messes with our packet.
+@@ -804,6 +810,13 @@
+     }
+ 
    //
-   m_promiscSnifferTrace (originalPacket);
-+  m_openflowRxTrace (this, originalPacket);
-   if (!m_promiscRxCallback.IsNull ())
-     {
-       m_macPromiscRxTrace (originalPacket);
++  // When this device is set as an OpenFlow switch port, let's hit the OpenFlow
++  // RX trace source with a copy of the original packet, so it can be freely
++  // modified.
++  //
++  m_openflowRxTrace (this, originalPacket->Copy ());
++
++  //
+   // If this packet is not destined for some other host, it must be for us
+   // as either a broadcast, multicast or unicast.  We need to hit the mac
+   // packet received trace hook and forward the packet up the stack.
 diff --git a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
 --- a/src/csma/model/csma-net-device.h
 +++ b/src/csma/model/csma-net-device.h
-@@ -559,6 +559,19 @@
+@@ -558,6 +558,18 @@
+   TracedCallback<Ptr<const Packet> > m_macPromiscRxTrace;
  
    /**
-    * The trace source fired for packets successfully received by the device
++   * This trace source is intended to be used by ofswitch13 OpenFlow module.
++   * The trace source fired for packets successfully received by the device
 +   * immediately before being forwarded up to higher layers (at the L2/L3
-+   * transition). In constrast to m_macPromiscRxTrace, this trace source is
-+   * also fired even when no promiscuous protocol handler is registered to
-+   * this device. It also includes a pointer to NetDevice to provide more
-+   * context information. This was mainly created to be used by ofswitch13
-+   * OpenFlow module.  
++   * transition). This is a promiscuous trace, but in contrast to a promiscuous
++   * protocol handler, the packet sent to this trace source also includes the
++   * Ethernet header, which is necessary by OpenFlow pipeline processing. 
 +   *
 +   * \see class CallBackTraceSource
 +   */
-+  TracedCallback<Ptr<NetDevice>, Ptr<const Packet> > m_openflowRxTrace;
++  TracedCallback<Ptr<const NetDevice>, Ptr<Packet> > m_openflowRxTrace;
 +
 +  /**
-+   * The trace source fired for packets successfully received by the device
+    * The trace source fired for packets successfully received by the device
     * immediately before being forwarded up to higher layers (at the L2/L3 
     * transition).  This is a non-promiscuous trace.
-    *

@@ -30,6 +30,7 @@
 #include "ns3/packet.h"
 #include "ns3/socket.h"
 #include "ns3/simple-ref-count.h"
+#include "ns3/traced-callback.h"
 
 #include "ofswitch13-interface.h"
 
@@ -81,7 +82,7 @@ private:
 typedef std::map<uint32_t, Ptr<OFPort> > PortNoMap_t;
 
 /** Structure to map NetDevice to port information. */
-typedef std::map<Ptr<NetDevice>, Ptr<OFPort> > PortDevMap_t;
+typedef std::map<Ptr<const NetDevice>, Ptr<OFPort> > PortDevMap_t;
 
 /**
  * \ingroup ofswitch13
@@ -99,11 +100,22 @@ class OFSwitch13NetDevice : public NetDevice
 {
 public:
   /**
-   * TracedCallback signature for Ptr<NetDevice> and Ptr<Packet>, used to link
+   * TracedCallback signature for sending packets from CsmaNetDevice to OpenFlow pipeline.
    * CsmaNetDevice with OpenFlow datapath.
+   * \attention The packet can be modified by the OpenFlow pipeline.
+   * \param netdev The underlying CsmaNetDevice switch port.
+   * \param packet The packet.
    */
-  typedef void (*TracedCallback)
-    (Ptr<NetDevice>, const Ptr<const Packet> packet);
+  typedef void (*OpenFlowCallback) 
+    (Ptr<NetDevice> netdev, Ptr<Packet> packet);
+
+  /**
+   * TracedCallback signature for OpenFlow packets input/output at switch ports.
+   * \param packet The Packet.
+   * \param port The OpenFlow port.
+   */
+  typedef void (*PacketPortCallback) 
+    (Ptr<const OFPort> port, Ptr<const Packet> packet);
 
   /**
    * Register this type.
@@ -136,18 +148,17 @@ public:
   uint32_t AddSwitchPort (Ptr<NetDevice> portDevice);
 
   /**
-   * Send a message to the controller node.
+   * Send a packet to the controller node.
    * \internal This method is public as the 'C' send_openflow_buffer_to_remote
    * overriding function use this 'C++' member function to send their msgs.
    * \see send_openflow_buffer_to_remote () at udatapath/datapath.c.
-   * \attention Don't use this method to send messages to controller. Use
-   * dp_send_message () instead, as it deals with multiple connections and
+   * \attention Don't use this method to directly send messages to controller.
+   * Use dp_send_message () instead, as it deals with multiple connections and
    * check assync config.
-   * \param buffer The message buffer to send.
-   * \param remote The controller connection information.
+   * \param packet The ns-3 packet to send.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendToController (ofpbuf *buffer, remote *remote);
+  int SendToController (Ptr<Packet> packet);
 
   /**
    * Send a message over a specific switch port. Check port configuration,
@@ -156,12 +167,12 @@ public:
    * proper netdevice, and update port statistics.
    * \internal This method is public as the 'C' dp_ports_output overriding
    * function use this 'C++' member function to send their messages.
-   * \param buffer The internal packet buffer to send.
+   * \param pkt The internal packet to send.
    * \param portNo The port number.
    * \param queueNo The queue number.
    * \return True if success, false otherwise.
    */
-  bool SendToSwitchPort (ofpbuf *buffer, uint32_t portNo, uint32_t queueNo);
+  bool SendToSwitchPort (struct packet *pkt, uint32_t portNo, uint32_t queueNo);
 
   /**
    * \return Number of switch ports attached to this switch.
@@ -183,6 +194,32 @@ public:
    * Starts the TCP connection between switch and controller.
    */
   void StartControllerConnection ();
+ 
+  /**
+   * Notify this device of a packet destroyed by the OpenFlow pipeline.
+   * \param pkt The ofsoftswitch13 packet.
+   */
+  void NotifyPacketDestroyed (struct packet *pkt);
+  
+  /**
+   * Notify this device of a packet dropped by OpenFlow meter band.
+   * \param pkt The ofsoftswitch13 packet.
+   */
+  void NotifyDroppedPacket (struct packet *pkt);
+
+  /**
+   * Notify this device of a packet saved into buffer. This method will get the
+   * ns-3 packet in pipeline and save into buffer map.
+   * \param packetUid The ns-3 packet uid.
+   */
+  void SaveBufferPacket (uint64_t packetUid);
+  
+  /**
+   * Notify this device of a packet retrieved from buffer. This method will get
+   * the ns-3 packet from buffer map and put it back into pipeline.
+   * \param packetUid The ns-3 packet uid.
+   */
+  void RetrieveBufferPacket (uint64_t packetUid);
 
   // Inherited from NetDevice base class
   virtual void SetIfIndex (const uint32_t index);
@@ -211,6 +248,46 @@ public:
   virtual void SetPromiscReceiveCallback (NetDevice::PromiscReceiveCallback cb);
   virtual bool SupportsSendFrom () const;
 
+  /**
+   * Copy all packet and byte tags from srcPkt packet to dstPkt packet. 
+   * \attention In the case of byte tags, the tags in dstPkt will cover the
+   * entire packet, regardless of the byte range in srcPkt.
+   * \param srcPkt The source packet.
+   * \param dstPkt The destination packet.
+   * \return true if everything's ok, false otherwise. 
+   */
+  static bool CopyTags (Ptr<const Packet> srcPkt, Ptr<const Packet> dstPkt);
+
+  /**
+   * \brief ofsoftswitch13 callbacks.
+   */
+  //\{
+  /**
+   * Callback fired when a packet is dropped by meter band
+   * \param pkt The original internal packet.
+   */
+  static void MeterDropCallback (struct packet *pkt);
+
+  /**
+   * Callback fired when a packet is destroyed.
+   * \param pkt The internal packet destroyed.
+   */
+  static void PacketDestroyCallback (struct packet *pkt);
+
+  /**
+   * Callback fired when a packet is saved into buffer.
+   * \param pkt The internal packet saved into buffer.
+   * \param timeout The timeout for this packet into buffer.
+   */
+  static void BufferSaveCallback (struct packet *pkt, time_t timeout);
+
+  /**
+   * Callback fired when a packet is retrieved from buffer.
+   * \param pkt The internal packet retrieved from buffer.
+   */
+  static void BufferRetrieveCallback (struct packet *pkt);
+  //\}
+
 private:
   virtual void DoDispose (void);
 
@@ -238,19 +315,26 @@ private:
 
   /**
    * Called when a packet is received on one of the switch's ports. This method
-   * will send the packet to the openflow pipeline.
+   * will schedule the pipeline for this packet.
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
    * \param netdev The port the packet was received on.
    * \param packet The Packet itself.
    */
-  void ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<const Packet> packet);
+  void ReceiveFromSwitchPort (Ptr<const NetDevice> netdev, Ptr<Packet> packet);
+
+  /**
+   * Send the packet to the OpenFlow ofsoftswitch13 pipeline.
+   * \param packet The packet.
+   * \param inPort The OpenFlow switch input port.
+   */
+  void SendToPipeline (Ptr<Packet> packet, Ptr<OFPort> inPort);
 
   /**
    * Socket callback to receive a openflow packet from controller.
    * \see remote_rconn_run () at udatapath/datapath.c.
    * \param socket The TCP socket.
    */
-  void SocketCtrlRead (Ptr<Socket> socket);
+  void ReceiveFromController (Ptr<Socket> socket);
 
   /**
    * Socket callback fired when a TCP connection to controller succeeds fail.
@@ -264,6 +348,29 @@ private:
    */
   void SocketCtrlFailed (Ptr<Socket> socket);
 
+
+  /**
+   * The trace source fired when a packet arrives at a switch port, before
+   * being sent to OpenFlow pipeline.
+   */
+  TracedCallback<Ptr<const Packet>, Ptr<const OFPort> > m_swPortRxTrace; 
+
+  /**
+   * The trace source fired when the OpenFlow pipeline sent a packets over a
+   * switch port.
+   */
+  TracedCallback<Ptr<const Packet>, Ptr<const OFPort> > m_swPortTxTrace; 
+  
+  /**
+   * The trace source fired when the OpenFlow pipeline drops a packet due to
+   * meter band.
+   */
+  TracedCallback<Ptr<const Packet> > m_meterDropTrace; 
+  
+
+  /** Structure to save packets, indexed by its uid. */
+  typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;
+
   uint64_t        m_dpId;         //!< This datapath id
   Ptr<Node>       m_node;         //!< Node this device is installed on
   Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller
@@ -275,6 +382,8 @@ private:
   datapath*       m_datapath;     //!< The OpenFlow datapath
   PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
   PortDevMap_t    m_portsByDev;   //!< Switch ports indexed by NetDevice.
+  Ptr<Packet>     m_pktPipeline;  //!< Packet under switch pipeline.
+  UidPacketMap_t  m_pktsBuffer;   //!< Packets saved in switch buffer.
 
   static uint64_t m_globalDpId;   //!< Global counter of datapath IDs
 

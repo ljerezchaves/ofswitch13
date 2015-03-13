@@ -54,6 +54,9 @@ extern "C"
 #include "udatapath/meter_table.h"
 #include "udatapath/dp_ports.h"
 #include "udatapath/dp_control.h"
+#include "udatapath/dp_actions.h"
+#include "udatapath/dp_buffers.h"
+
 
 #include "lib/ofpbuf.h"
 #include "lib/vlog.h"

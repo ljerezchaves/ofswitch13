@@ -65,7 +65,7 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
   uint64_t dpId = swtch.netdev->GetDatapathId ();
   enum ofp_packet_in_reason reason = msg->reason;
 
-  char *m = ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, NULL);
+  char *m = ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, 0);
   NS_LOG_DEBUG ("Packet in match: " << m);
   free (m);
 
@@ -172,7 +172,7 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL /*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, 0);
   return 0;
 }
 
@@ -199,7 +199,7 @@ OFSwitch13LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg, Swit
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free_flow_removed (msg, true, NULL);
+  ofl_msg_free_flow_removed (msg, true, 0);
   return 0;
 }
 
