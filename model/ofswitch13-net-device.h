@@ -33,50 +33,11 @@
 #include "ns3/traced-callback.h"
 
 #include "ofswitch13-interface.h"
+#include "ofswitch13-port.h"
 
 namespace ns3 {
 
-/**
- * \ingroup ofswitch13
- * A OpenFlow switch port metadata, saving the port number, the pointer to ns3
- * NetDevice and the pointer to ofsoftswitch internal sw_port structure.
- * \see ofsoftswitch13 udatapath/dp_ports.h
- */
-class OFPort : public SimpleRefCount<OFPort>
-{
-  friend class OFSwitch13NetDevice;
-
-public:
-  /**
-   * Create and populate a new datapath port.
-   * \see ofsoftswitch new_port () at udatapath/dp_ports.c
-   * \param dp The datapath.
-   * \param dev The swith port ns3::NetDevice.
-   */
-  OFPort (datapath *dp, Ptr<NetDevice> dev);
-
-  /** Default destructor */
-  ~OFPort ();
-
-private:
-  /**
-   * Create the bitmaps of OFPPF_* describing port features, based on
-   * ns3::NetDevice.
-   * \see ofsoftswitch netdev_get_features () at lib/netdev.c
-   * \return Port features bitmap.
-   */
-  uint32_t PortGetFeatures ();
-
-  /**
-   * Update the port state field based on netdevice status.
-   * \return true if the state of the port has changed, false otherwise.
-   */
-  bool PortUpdateState ();
-
-  uint32_t       m_portNo; //!< Port number
-  Ptr<NetDevice> m_netdev; //!< Pointer to ns3::NetDevice
-  sw_port*       m_swPort; //!< Pointer to datapath sw_port
-};
+class OFPort;
 
 /** Structure to map port number to port information. */
 typedef std::map<uint32_t, Ptr<OFPort> > PortNoMap_t;
@@ -173,6 +134,14 @@ public:
    * \return True if success, false otherwise.
    */
   bool SendToSwitchPort (struct packet *pkt, uint32_t portNo, uint32_t queueNo);
+
+  /**
+   * Called when a packet is received on one of the switch's ports. This method
+   * will send the packet to the OpenFlow pipeline.
+   * \param packet The packet.
+   * \param portNo The switch input port number.
+   */
+  void ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo);
 
   /**
    * \return Number of switch ports attached to this switch.
@@ -312,22 +281,13 @@ private:
    * \return A pointer to the corresponding OFPort.
    */
   Ptr<OFPort> PortGetOFPort (uint32_t no);
-
-  /**
-   * Called when a packet is received on one of the switch's ports. This method
-   * will schedule the pipeline for this packet.
-   * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
-   * \param netdev The port the packet was received on.
-   * \param packet The Packet itself.
-   */
-  void ReceiveFromSwitchPort (Ptr<const NetDevice> netdev, Ptr<Packet> packet);
-
+ 
   /**
    * Send the packet to the OpenFlow ofsoftswitch13 pipeline.
    * \param packet The packet.
-   * \param inPort The OpenFlow switch input port.
+   * \param portNo The switch input port number.
    */
-  void SendToPipeline (Ptr<Packet> packet, Ptr<OFPort> inPort);
+  void SendToPipeline (Ptr<Packet> packet, uint32_t portNo);
 
   /**
    * Socket callback to receive a openflow packet from controller.
@@ -381,7 +341,7 @@ private:
   std::string     m_libLog;       //!< The ofsoftswitch13 library logging levels.
   datapath*       m_datapath;     //!< The OpenFlow datapath
   PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
-  PortDevMap_t    m_portsByDev;   //!< Switch ports indexed by NetDevice.
+//  PortDevMap_t    m_portsByDev;   //!< Switch ports indexed by NetDevice.
   Ptr<Packet>     m_pktPipeline;  //!< Packet under switch pipeline.
   UidPacketMap_t  m_pktsBuffer;   //!< Packets saved in switch buffer.
 
