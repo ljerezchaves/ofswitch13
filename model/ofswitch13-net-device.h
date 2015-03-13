@@ -202,6 +202,12 @@ public:
   void NotifyPacketDestroyed (struct packet *pkt);
   
   /**
+   * Notify this device of a packet dropped by OpenFlow meter band.
+   * \param pkt The ofsoftswitch13 packet.
+   */
+  void NotifyDroppedPacket (struct packet *pkt);
+
+  /**
    * Notify this device of a packet saved into buffer. This method will get the
    * ns-3 packet in pipeline and save into buffer map.
    * \param packetUid The ns-3 packet uid.
@@ -342,6 +348,7 @@ private:
    */
   void SocketCtrlFailed (Ptr<Socket> socket);
 
+
   /**
    * The trace source fired when a packet arrives at a switch port, before
    * being sent to OpenFlow pipeline.
@@ -354,6 +361,13 @@ private:
    */
   TracedCallback<Ptr<const Packet>, Ptr<const OFPort> > m_swPortTxTrace; 
   
+  /**
+   * The trace source fired when the OpenFlow pipeline drops a packet due to
+   * meter band.
+   */
+  TracedCallback<Ptr<const Packet> > m_meterDropTrace; 
+  
+
   /** Structure to save packets, indexed by its uid. */
   typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;
 

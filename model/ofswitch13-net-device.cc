@@ -274,6 +274,10 @@ OFSwitch13NetDevice::GetTypeId (void)
                      "transmitted at any physical switch port",
                      MakeTraceSourceAccessor (&OFSwitch13NetDevice::m_swPortTxTrace),
                      "ns3::OFSwitch13NetDevice::PacketPortCallback")
+    .AddTraceSource ("MeterDrop", 
+                     "Trace source indicating a packet dropped by meter band",
+                     MakeTraceSourceAccessor (&OFSwitch13NetDevice::m_meterDropTrace),
+                     "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
@@ -442,6 +446,23 @@ OFSwitch13NetDevice::NotifyPacketDestroyed (struct packet *pkt)
           NS_LOG_DEBUG ("Packet " << pkt->ns3_uid << 
                         " done at switch " << GetDatapathId ());
         }
+    }
+}
+
+void 
+OFSwitch13NetDevice::NotifyDroppedPacket (struct packet *pkt)
+{
+  NS_LOG_FUNCTION (this << pkt->ns3_uid);
+  
+  if (m_pktPipeline)
+    {
+      NS_ASSERT_MSG (m_pktPipeline->GetUid () == pkt->ns3_uid,
+                     "Mismatch between pipeline packets.");
+  
+      NS_LOG_DEBUG ("OpenFlow meter band dropped packet " << pkt->ns3_uid);
+      
+      // Fire drop trace source
+      m_meterDropTrace (m_pktPipeline);
     }
 }
 
@@ -694,7 +715,8 @@ OFSwitch13NetDevice::CopyTags (Ptr<const Packet> srcPkt,
 void
 OFSwitch13NetDevice::MeterDropCallback (struct packet *pkt)
 {
-  // TODO
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (pkt->dp->id);
+  dev->NotifyDroppedPacket (pkt);
 }
 
 void 
