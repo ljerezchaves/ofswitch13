@@ -337,7 +337,7 @@ OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
 {
   NS_LOG_FUNCTION (this << cNode);
   NS_ASSERT_MSG (m_channelType == OFSwitch13Helper::SINGLECSMA,
-                 "External controller must be using SINGLECSMA openflow channel");
+                 "External controller must use SINGLECSMA openflow channel");
 
   // Connecting the controller node (TapBridge) to common csma network
   m_ctrlNode = cNode;
