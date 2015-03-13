@@ -216,7 +216,7 @@ NetDeviceContainer
 OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {
   NS_LOG_FUNCTION (this);
-  NS_ASSERT_MSG (m_ctrlApp, "Install the controller before switch.");
+  NS_ASSERT_MSG (m_ctrlNode, "Install the controller before switch.");
   NS_LOG_DEBUG ("Installing OpenFlow switch device on node " << swNode->GetId ());
 
   Ptr<OFSwitch13NetDevice> openFlowDev = m_ndevFactory.Create<OFSwitch13NetDevice> ();
@@ -277,7 +277,10 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
   swInfo.ipv4   = swIface.GetAddress (0);
   swInfo.netdev = openFlowDev;
   swInfo.node   = swNode;
-  m_ctrlApp->RegisterSwitchMetadata (swInfo);
+  if (m_ctrlApp)
+    { 
+      m_ctrlApp->RegisterSwitchMetadata (swInfo);
+    }
   openFlowDev->SetAttribute ("ControllerAddr", AddressValue (ctrlAddr));
   openFlowDev->StartControllerConnection ();
 
