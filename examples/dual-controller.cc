@@ -15,21 +15,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
- * 				 Vítor M. Eichemberger <vitor.marge@gmail.com>
+ * Author: Vítor M. Eichemberger <vitor.marge@gmail.com>
+ *         Luciano Chaves <luciano@lrc.ic.unicamp.br>
  *
- * Creating a chain of N  OpenFlow 1.3 switches and a single controller CTRL.
- * Traffic flows from host H0 to host H1.
+ * Four OpenFlow 1.3 switches connected in sequence, with a single host each.
+ * The first pair of switches are controlled by CTRL0, and the second pair by
+ * CTRL1. Traffic flows from host H0 to host H2.
  *
- *     H0                               H1
- *     |                                 |
- * ----------   ----------           ----------
- * |  Sw 0  |---|  Sw 1  |--- ... ---| Sw N-1 |
- * ----------   ----------           ----------
- *     :            :           :         :
- *     ...................... . . . .......
- *                       :
- *                      CTRL
+ *    H0        H1        H2        H3
+ *    |         |         |         |
+ * -------   -------   -------   -------
+ * | Sw0 |---| Sw1 |---| Sw2 |---| Sw3 |
+ * -------   -------   -------   -------
+ *    :         :         :         :
+ *    ...........         ...........
+ *         :                   :
+ *       CTRL0               CTRL1
  */
 
 #include "ns3/core-module.h"
@@ -42,24 +43,22 @@
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE ("ChainOFSwitch13");
+NS_LOG_COMPONENT_DEFINE ("DualCtrlOFSwitch13");
 
 int
 main (int argc, char *argv[])
 {
-	size_t nSwitches = 1;
 	bool verbose = false;
 	bool trace = false;
 
 	CommandLine cmd;
-	cmd.AddValue ("switches", "Number of OpenFlow switches", nSwitches);
 	cmd.AddValue ("verbose", "Tell application to log if true", verbose);
   cmd.AddValue ("trace", "Tracing traffic to files", trace);
 	cmd.Parse (argc, argv);
 
 	if (verbose)
 		{
-			LogComponentEnable ("ChainOFSwitch13", LOG_LEVEL_ALL);
+			LogComponentEnable ("DualCtrlOFSwitch13", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13NetDevice", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
@@ -71,12 +70,12 @@ main (int argc, char *argv[])
 	GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
 
  	// Create the host nodes
-  NodeContainer hosts;
-  hosts.Create (2);
+	NodeContainer hosts;
+	hosts.Create(4);
 
-  // Create the switches nodes
-  NodeContainer of13SwitchNodes;
-  of13SwitchNodes.Create (nSwitches);
+	// Create the switches nodes
+	NodeContainer of13SwitchNodes;
+	of13SwitchNodes.Create(4);
 
 	// Configure the CsmaHelper
 	CsmaHelper csmaHelper;
@@ -84,26 +83,23 @@ main (int argc, char *argv[])
 	csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 	
 	NetDeviceContainer hostDevices;
-  NetDeviceContainer of13SwitchPorts [nSwitches];
- 	for (size_t i = 1; i < nSwitches; i++)
+	NetDeviceContainer of13SwitchPorts [4];
+	for (size_t i = 1; i < 4; i++)
+	{
+		of13SwitchPorts [i] = NetDeviceContainer ();
+	}
+
+	// Connect host to switches
+	for (size_t i = 0; i < 4; i++)
 		{
-			of13SwitchPorts [i] = NetDeviceContainer ();
-		}
-
-	// Connect H0 to first switch
-	NodeContainer ncH0 (hosts.Get (0), of13SwitchNodes.Get (0));
-	NetDeviceContainer linkH0 = csmaHelper.Install (ncH0);
-  hostDevices.Add (linkH0.Get (0));
-  of13SwitchPorts [0].Add (linkH0.Get (1));
-
-	// Connect H1 to last switch
-	NodeContainer ncH1 (hosts.Get (1), of13SwitchNodes.Get (nSwitches - 1));
-	NetDeviceContainer linkH1 = csmaHelper.Install (ncH1);
-  hostDevices.Add (linkH1.Get (0));
-  of13SwitchPorts [nSwitches - 1].Add (linkH1.Get (1));
-
+			NodeContainer nc (hosts.Get (i), of13SwitchNodes.Get (i));
+			NetDeviceContainer link = csmaHelper.Install (nc);
+  		hostDevices.Add (link.Get (0));
+  		of13SwitchPorts [i].Add (link.Get (1));
+		}	
+	
 	// Connect the switches in chain
-	for (size_t i = 1; i < nSwitches; i++)
+	for (size_t i = 1; i < 4; i++)
 		{
 			NodeContainer nc (of13SwitchNodes.Get (i - 1), of13SwitchNodes.Get (i));
 			NetDeviceContainer link = csmaHelper.Install(nc);
@@ -112,51 +108,58 @@ main (int argc, char *argv[])
 		}	
 
 	// Configure the OpenFlow network
-	Ptr<Node> of13ControllerNode = CreateObject<Node> ();
-  Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
-	Ptr<OFSwitch13Controller> of13ControllerApp;
-	of13ControllerApp = of13Helper->InstallDefaultController (of13ControllerNode);
+	NodeContainer of13Controllers;
+	of13Controllers.Create(2);
 
-	// Install OpenFlow device in every switch
-	NetDeviceContainer of13SwitchDevices;
-	for (size_t i = 0; i < nSwitches; i++)
-		{
-			of13SwitchDevices = of13Helper->InstallSwitch (of13SwitchNodes.Get (i),
-																										 of13SwitchPorts [i]);
-		}
+	Ptr<Node> of13ControllerNode0 = of13Controllers.Get (0);
+	Ptr<Node> of13ControllerNode1 = of13Controllers.Get (1);
+
+  Ptr<OFSwitch13Helper> of13Helper0 = CreateObject<OFSwitch13Helper> ();
+  Ptr<OFSwitch13Helper> of13Helper1 = CreateObject<OFSwitch13Helper> ();
+
+	of13Helper0->InstallDefaultController (of13ControllerNode0);
+	of13Helper0->InstallSwitch (of13SwitchNodes.Get (0), of13SwitchPorts [0]);
+	of13Helper0->InstallSwitch (of13SwitchNodes.Get (1), of13SwitchPorts [1]);
+	
+	of13Helper1->SetAddressBase ("10.100.151.0", "255.255.255.0");
+	of13Helper1->InstallDefaultController (of13ControllerNode1);
+	of13Helper1->InstallSwitch (of13SwitchNodes.Get (2), of13SwitchPorts [2]);
+	of13Helper1->InstallSwitch (of13SwitchNodes.Get (3), of13SwitchPorts [3]);
 
 	// Installing the tcp/ip stack into hosts
 	InternetStackHelper internet;
 	internet.Install (hosts);
 
-	// Set IPv4 host address
+	// Set IPv4 terminal address
 	Ipv4AddressHelper ipv4switches;
 	Ipv4InterfaceContainer internetIpIfaces;
 	ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
 	internetIpIfaces = ipv4switches.Assign (hostDevices);
 
-	// Send TCP traffic from host 0 to 1
-	Ipv4Address h1Addr = internetIpIfaces.GetAddress (1);
+	// Send TCP traffic from host 0 to 3
+	Ipv4Address h3Addr = internetIpIfaces.GetAddress (3);
 	BulkSendHelper senderHelper ("ns3::TcpSocketFactory", 
-															 InetSocketAddress (h1Addr, 8080));
+															 InetSocketAddress (h3Addr, 8080));
 	senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
 	ApplicationContainer senderApp  = senderHelper.Install (hosts.Get (0));
 	senderApp.Start (Seconds (1));
 	PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", 
 			                         InetSocketAddress (Ipv4Address::GetAny (), 8080));
-	ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (1));
+	ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (3));
 	sinkApp.Start (Seconds (0));
 
 	// Enable datapath logs
   if (verbose)
     {
-      of13Helper->EnableDatapathLogs ("all");
+      of13Helper0->EnableDatapathLogs ("all");
+      of13Helper1->EnableDatapathLogs ("all");
     }
 
 	// Enable pcap traces
 	if (trace)
 		{
-			of13Helper->EnableOpenFlowPcap ();
+			of13Helper0->EnableOpenFlowPcap ("ofCtrl0");
+			of13Helper1->EnableOpenFlowPcap ("ofCtrl1");
   		csmaHelper.EnablePcap ("ofswitch", of13SwitchNodes, true);
   		csmaHelper.EnablePcap ("host", hostDevices);
 		}
@@ -178,4 +181,3 @@ main (int argc, char *argv[])
 	// Dump FlowMonitor results
 	monitor.SerializeToXmlFile ("FlowMonitor.xml", false, false);
 }
-

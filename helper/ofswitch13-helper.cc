@@ -216,7 +216,7 @@ NetDeviceContainer
 OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {
   NS_LOG_FUNCTION (this);
-  NS_ASSERT_MSG (m_ctrlApp, "Install the controller before switch.");
+  NS_ASSERT_MSG (m_ctrlNode, "Install the controller before switch.");
   NS_LOG_DEBUG ("Installing OpenFlow switch device on node " << swNode->GetId ());
 
   Ptr<OFSwitch13NetDevice> openFlowDev = m_ndevFactory.Create<OFSwitch13NetDevice> ();
@@ -254,16 +254,6 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
         m_ipv4helper.NewNetwork ();
         m_ctrlDevs.Add (swDev.Get (1));
         ctrlAddr = InetSocketAddress (swIface.GetAddress (1), m_ctrlPort);
-
-        // This name thing is not necessary
-        if (!Names::FindName (swNode).empty ()
-            && !Names::FindName (m_ctrlNode).empty ())
-          {
-            Names::Add (Names::FindName (swNode) + "+" +
-                        Names::FindName (m_ctrlNode), swDev.Get (0));
-            Names::Add (Names::FindName (m_ctrlNode) + "+" +
-                        Names::FindName (swNode), swDev.Get (1));
-          }
         break;
       }
     case OFSwitch13Helper::DEDICATEDP2P:
@@ -274,16 +264,6 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
         m_ipv4helper.NewNetwork ();
         m_ctrlDevs.Add (swDev.Get (1));
         ctrlAddr = InetSocketAddress (swIface.GetAddress (1), m_ctrlPort);
-
-        // This name thing is not necessary
-        if (!Names::FindName (swNode).empty ()
-            && !Names::FindName (m_ctrlNode).empty ())
-          {
-            Names::Add (Names::FindName (swNode) + "+" +
-                        Names::FindName (m_ctrlNode), swDev.Get (0));
-            Names::Add (Names::FindName (m_ctrlNode) + "+" +
-                        Names::FindName (swNode), swDev.Get (1));
-          }
         break;
       }
     default:
@@ -297,7 +277,10 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
   swInfo.ipv4   = swIface.GetAddress (0);
   swInfo.netdev = openFlowDev;
   swInfo.node   = swNode;
-  m_ctrlApp->RegisterSwitchMetadata (swInfo);
+  if (m_ctrlApp)
+    { 
+      m_ctrlApp->RegisterSwitchMetadata (swInfo);
+    }
   openFlowDev->SetAttribute ("ControllerAddr", AddressValue (ctrlAddr));
   openFlowDev->StartControllerConnection ();
 
@@ -333,9 +316,6 @@ OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode,
         m_ctrlDevs.Add (m_csmaHelper.Install (m_ctrlNode, m_csmaChannel));
         ctrlIface = m_ipv4helper.Assign (m_ctrlDevs);
         m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), m_ctrlPort);
-
-        // This name thing is not necessary
-        Names::Add ("allsw", m_ctrlDevs.Get (0));
         break;
       }
     case OFSwitch13Helper::DEDICATEDCSMA:
@@ -357,7 +337,7 @@ OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
 {
   NS_LOG_FUNCTION (this << cNode);
   NS_ASSERT_MSG (m_channelType == OFSwitch13Helper::SINGLECSMA,
-                 "External controller must be using SINGLECSMA openflow channel");
+                 "External controller must use SINGLECSMA openflow channel");
 
   // Connecting the controller node (TapBridge) to common csma network
   m_ctrlNode = cNode;
