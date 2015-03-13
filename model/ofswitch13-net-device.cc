@@ -263,6 +263,17 @@ OFSwitch13NetDevice::GetTypeId (void)
                    StringValue ("none"),
                    MakeStringAccessor (&OFSwitch13NetDevice::SetLibLogLevel),
                    MakeStringChecker ())
+
+    .AddTraceSource ("SwitchPortRx", 
+                     "Trace source indicating a packet "
+                     "received at any physical switch port",
+                     MakeTraceSourceAccessor (&OFSwitch13NetDevice::m_swPortRxTrace),
+                     "ns3::OFSwitch13NetDevice::PacketPortCallback")
+    .AddTraceSource ("SwitchPortTx", 
+                     "Trace source indicating a packet "
+                     "transmitted at any physical switch port",
+                     MakeTraceSourceAccessor (&OFSwitch13NetDevice::m_swPortTxTrace),
+                     "ns3::OFSwitch13NetDevice::PacketPortCallback")
   ;
   return tid;
 }
@@ -308,7 +319,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   // Create the port for this device
   Ptr<OFPort> ofPort = Create<OFPort> (m_datapath, csmaPortDevice);
   std::pair<uint32_t, Ptr<OFPort> > noEntry (ofPort->m_portNo, ofPort);
-  std::pair<Ptr<NetDevice>, Ptr<OFPort> > devEntry (ofPort->m_netdev, ofPort);
+  std::pair<Ptr<const NetDevice>, Ptr<OFPort> > devEntry (ofPort->m_netdev, ofPort);
   m_portsByNo.insert (noEntry);
   m_portsByDev.insert (devEntry);
 
@@ -826,7 +837,7 @@ OFSwitch13NetDevice::PortGetOFPort (uint32_t no)
 }
 
 void
-OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
+OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<const NetDevice> netdev,
                                             Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this);
@@ -848,6 +859,9 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<NetDevice> netdev,
       return;
     }
 
+  // Fire RX trace source
+  m_swPortRxTrace (packet, inPort);
+  
   // Send the packet to the pipeline
   Simulator::Schedule (m_lookupDelay, &OFSwitch13NetDevice::SendToPipeline, 
                        this, packet, inPort);
@@ -921,6 +935,9 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
           packet = ofs::PacketFromBuffer (pkt->buffer);
         }
 
+      // Fire TX trace source (with complete packet)
+      m_swPortTxTrace (packet, port);
+      
       // Removing the Ethernet header and trailer from packet, which will be
       // included again by CsmaNetDevice
       EthernetTrailer trailer;
@@ -945,7 +962,7 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
       return status;
     }
 
-  // No need to delete buffer, it is deleted along with the packet in ofsoftswitch13.
+  // No need to delete buffer, it is deleted along with the packet.
   NS_LOG_ERROR ("can't forward to bad port " << port->m_portNo);
   return false;
 }
@@ -989,19 +1006,20 @@ OFSwitch13NetDevice::ReceiveFromController (Ptr<Socket> socket)
       if (InetSocketAddress::IsMatchingType (from))
         {
           Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
+          uint16_t port = InetSocketAddress::ConvertFrom (from).GetPort ();
           NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
                         "s the OpenFlow switch " << GetDatapathId () <<
                         " received " << pendingPacket->GetSize () <<
                         " bytes from controller " << ipv4 <<
                         " socket " << socket <<
-                        " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
+                        " port " << port);
 
           ofl_msg_header *msg;
           ofl_err error;
 
           // FIXME No support for multiple controllers by now.
           // Gets the remote structure for this controller connection.
-          // As we currently support only one controller, it's the first in list.
+          // As we currently support a single controller, it must be the first.
           struct sender sender;
           sender.remote = CONTAINER_OF (list_front (&m_datapath->remotes), 
                                         remote, node);

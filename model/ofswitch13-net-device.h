@@ -30,6 +30,7 @@
 #include "ns3/packet.h"
 #include "ns3/socket.h"
 #include "ns3/simple-ref-count.h"
+#include "ns3/traced-callback.h"
 
 #include "ofswitch13-interface.h"
 
@@ -81,7 +82,7 @@ private:
 typedef std::map<uint32_t, Ptr<OFPort> > PortNoMap_t;
 
 /** Structure to map NetDevice to port information. */
-typedef std::map<Ptr<NetDevice>, Ptr<OFPort> > PortDevMap_t;
+typedef std::map<Ptr<const NetDevice>, Ptr<OFPort> > PortDevMap_t;
 
 /**
  * \ingroup ofswitch13
@@ -99,10 +100,22 @@ class OFSwitch13NetDevice : public NetDevice
 {
 public:
   /**
-   * TracedCallback signature for Ptr<NetDevice> and Ptr<Packet>, used to link
+   * TracedCallback signature for sending packets from CsmaNetDevice to OpenFlow pipeline.
    * CsmaNetDevice with OpenFlow datapath.
+   * \attention The packet can be modified by the OpenFlow pipeline.
+   * \param netdev The underlying CsmaNetDevice switch port.
+   * \param packet The packet.
    */
-  typedef void (*TracedCallback) (Ptr<NetDevice>, Ptr<Packet> packet);
+  typedef void (*OpenFlowCallback) 
+    (Ptr<NetDevice> netdev, Ptr<Packet> packet);
+
+  /**
+   * TracedCallback signature for OpenFlow packets input/output at switch ports.
+   * \param packet The Packet.
+   * \param port The OpenFlow port.
+   */
+  typedef void (*PacketPortCallback) 
+    (Ptr<const OFPort> port, Ptr<const Packet> packet);
 
   /**
    * Register this type.
@@ -301,7 +314,7 @@ private:
    * \param netdev The port the packet was received on.
    * \param packet The Packet itself.
    */
-  void ReceiveFromSwitchPort (Ptr<NetDevice> netdev, Ptr<Packet> packet);
+  void ReceiveFromSwitchPort (Ptr<const NetDevice> netdev, Ptr<Packet> packet);
 
   /**
    * Send the packet to the OpenFlow ofsoftswitch13 pipeline.
@@ -329,7 +342,18 @@ private:
    */
   void SocketCtrlFailed (Ptr<Socket> socket);
 
+  /**
+   * The trace source fired when a packet arrives at a switch port, before
+   * being sent to OpenFlow pipeline.
+   */
+  TracedCallback<Ptr<const Packet>, Ptr<const OFPort> > m_swPortRxTrace; 
 
+  /**
+   * The trace source fired when the OpenFlow pipeline sent a packets over a
+   * switch port.
+   */
+  TracedCallback<Ptr<const Packet>, Ptr<const OFPort> > m_swPortTxTrace; 
+  
   /** Structure to save packets, indexed by its uid. */
   typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;
 
