@@ -18,16 +18,18 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  * 				 Vítor M. Eichemberger <vitor.marge@gmail.com>
  *
- * Creating a chain of N openflow switches connected to a single controller.
- * Traffic flows from hots H0 to host H1.
+ * Creating a chain of N  OpenFlow 1.3 switches and a single controller CTRL.
+ * Traffic flows from host H0 to host H1.
  *
  *     H0                               H1
  *     |                                 |
  * ----------   ----------           ----------
  * |  Sw 0  |---|  Sw 1  |--- ... ---| Sw N-1 |
  * ----------   ----------           ----------
- * 
- * 
+ *     :            :           :         :
+ *     ...................... . . . .......
+ *                       :
+ *                      CTRL
  */
 
 #include "ns3/core-module.h"
@@ -68,11 +70,11 @@ main (int argc, char *argv[])
 	// Enabling Checksum computations
 	GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
 
- 	// Create the terminal nodes
-  NodeContainer terminals;
-  terminals.Create (2);
+ 	// Create the host nodes
+  NodeContainer hosts;
+  hosts.Create (2);
 
-  // Create the switches node
+  // Create the switches nodes
   NodeContainer of13SwitchNodes;
   of13SwitchNodes.Create (nSwitches);
 
@@ -81,7 +83,7 @@ main (int argc, char *argv[])
 	csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
 	csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 	
-	NetDeviceContainer terminalDevices;
+	NetDeviceContainer hostDevices;
   NetDeviceContainer of13SwitchPorts [nSwitches];
  	for (size_t i = 1; i < nSwitches; i++)
 		{
@@ -89,15 +91,15 @@ main (int argc, char *argv[])
 		}
 
 	// Connect H0 to first switch
-	NodeContainer ncH0 (terminals.Get (0), of13SwitchNodes.Get (0));
+	NodeContainer ncH0 (hosts.Get (0), of13SwitchNodes.Get (0));
 	NetDeviceContainer linkH0 = csmaHelper.Install (ncH0);
-  terminalDevices.Add (linkH0.Get (0));
+  hostDevices.Add (linkH0.Get (0));
   of13SwitchPorts [0].Add (linkH0.Get (1));
 
 	// Connect H1 to last switch
-	NodeContainer ncH1 (terminals.Get (1), of13SwitchNodes.Get (nSwitches - 1));
+	NodeContainer ncH1 (hosts.Get (1), of13SwitchNodes.Get (nSwitches - 1));
 	NetDeviceContainer linkH1 = csmaHelper.Install (ncH1);
-  terminalDevices.Add (linkH1.Get (0));
+  hostDevices.Add (linkH1.Get (0));
   of13SwitchPorts [nSwitches - 1].Add (linkH1.Get (1));
 
 	// Connect the switches in chain
@@ -125,24 +127,24 @@ main (int argc, char *argv[])
 
 	// Installing the tcp/ip stack into hosts
 	InternetStackHelper internet;
-	internet.Install (terminals);
+	internet.Install (hosts);
 
-	// Set IPv4 terminal address
+	// Set IPv4 host address
 	Ipv4AddressHelper ipv4switches;
 	Ipv4InterfaceContainer internetIpIfaces;
 	ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
-	internetIpIfaces = ipv4switches.Assign (terminalDevices);
+	internetIpIfaces = ipv4switches.Assign (hostDevices);
 
-	// Send TCP traffic from terminal 0 to 1
+	// Send TCP traffic from host 0 to 1
 	Ipv4Address h1Addr = internetIpIfaces.GetAddress (1);
 	BulkSendHelper senderHelper ("ns3::TcpSocketFactory", 
 															 InetSocketAddress (h1Addr, 8080));
 	senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
-	ApplicationContainer senderApp  = senderHelper.Install (terminals.Get (0));
+	ApplicationContainer senderApp  = senderHelper.Install (hosts.Get (0));
 	senderApp.Start (Seconds (1));
 	PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", 
 			                         InetSocketAddress (Ipv4Address::GetAny (), 8080));
-	ApplicationContainer sinkApp = sinkHelper.Install (terminals.Get (1));
+	ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (1));
 	sinkApp.Start (Seconds (0));
 
 	// Enable datapath logs
@@ -156,12 +158,12 @@ main (int argc, char *argv[])
 		{
 			of13Helper->EnableOpenFlowPcap ();
   		csmaHelper.EnablePcap ("ofswitch", of13SwitchNodes, true);
-  		csmaHelper.EnablePcap ("terminal", terminalDevices);
+  		csmaHelper.EnablePcap ("host", hostDevices);
 		}
 
 	// Install FlowMonitor
 	FlowMonitorHelper monitor;
-	monitor.Install (terminals);
+	monitor.Install (hosts);
 
 	// Run the simulation for 30 seconds
 	Simulator::Stop (Seconds (30));

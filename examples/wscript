@@ -1,12 +1,6 @@
 # -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 
 def build(bld):
-    obj = bld.create_ns3_program('single-ofswitch13', ['ofswitch13', 'csma', 'network', 'applications', 'internet'])
-    obj.source = 'single-ofswitch13.cc'
-
-    obj = bld.create_ns3_program('double-ofswitch13', ['ofswitch13', 'csma', 'network', 'applications', 'internet'])
-    obj.source = 'double-ofswitch13.cc'
-
     obj = bld.create_ns3_program('star-ofswitch13', ['ofswitch13', 'csma', 'network', 'applications', 'internet', 'flow-monitor'])
     obj.source = 'star-ofswitch13.cc'
 
