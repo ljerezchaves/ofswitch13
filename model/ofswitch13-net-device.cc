@@ -712,6 +712,7 @@ OFSwitch13NetDevice::CopyTags (Ptr<const Packet> srcPkt,
   return true;
 }
 
+// Static callbacks linked with ofsoftswit13 library
 void
 OFSwitch13NetDevice::MeterDropCallback (struct packet *pkt)
 {
@@ -739,6 +740,7 @@ OFSwitch13NetDevice::BufferRetrieveCallback (struct packet *pkt)
   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (pkt->dp->id);
   dev->RetrieveBufferPacket (pkt->ns3_uid);
 }
+
 
 /********** Private methods **********/
 void
@@ -1045,7 +1047,7 @@ OFSwitch13NetDevice::ReceiveFromController (Ptr<Socket> socket)
           struct sender sender;
           sender.remote = CONTAINER_OF (list_front (&m_datapath->remotes), 
                                         remote, node);
-          sender.conn_id = 0; // No auxiliary connections
+          sender.conn_id = 0; // FIXME No support for auxiliary connections.
 
           // Get the OpenFlow buffer, unpack the message and send to handler
           ofpbuf *buffer = ofs::BufferFromPacket (pendingPacket, 

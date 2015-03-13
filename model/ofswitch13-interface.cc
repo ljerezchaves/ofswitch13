@@ -141,7 +141,7 @@ send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
   int error = 0;
   Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (remote->dp->id);
 
-  // FIXME No support for more than one controller connection by now.
+  // FIXME No support for multiple controllers nor auxiliary connections by now.
   // So, just ignoring remote information and sending to our single socket.
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
   error = dev->SendToController (packet);
