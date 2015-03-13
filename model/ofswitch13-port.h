@@ -44,7 +44,7 @@ class OFSwitch13NetDevice;
  * NetDevice and the pointer to ofsoftswitch internal sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
  */
-class OFPort : public SimpleRefCount<OFPort>
+class OFSwitch13Port : public SimpleRefCount<OFSwitch13Port>
 {
   friend class OFSwitch13NetDevice;
 
@@ -56,11 +56,11 @@ public:
    * \param csmaDev The underlying CsmaNetDevice.
    * \param openflowDev The OpenFlow NetDevice.
    */
-  OFPort (datapath *dp, Ptr<CsmaNetDevice> csmaDev, 
-          Ptr<OFSwitch13NetDevice> openflowDev);
+  OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev, 
+                  Ptr<OFSwitch13NetDevice> openflowDev);
 
   /** Default destructor */
-  ~OFPort ();
+  ~OFSwitch13Port ();
 
 private:
   /**
@@ -94,12 +94,6 @@ private:
   Ptr<CsmaNetDevice>        m_csmaDev;      //!< Underlying CsmaNetDevice
   Ptr<OFSwitch13NetDevice>  m_openflowDev;  //!< OpenFlow NetDevice
 };
-
-/** Structure to map port number to port information. */
-typedef std::map<uint32_t, Ptr<OFPort> > PortNoMap_t;
-
-/** Structure to map NetDevice to port information. */
-typedef std::map<Ptr<const NetDevice>, Ptr<OFPort> > PortDevMap_t;
 
 } // namespace ns3
 #endif /* OFSWITCH13_PORT_H */

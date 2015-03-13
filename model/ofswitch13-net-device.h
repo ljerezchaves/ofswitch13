@@ -37,13 +37,10 @@
 
 namespace ns3 {
 
-class OFPort;
+class OFSwitch13Port;
 
 /** Structure to map port number to port information. */
-typedef std::map<uint32_t, Ptr<OFPort> > PortNoMap_t;
-
-/** Structure to map NetDevice to port information. */
-typedef std::map<Ptr<const NetDevice>, Ptr<OFPort> > PortDevMap_t;
+typedef std::map<uint32_t, Ptr<OFSwitch13Port> > PortNoMap_t;
 
 /**
  * \ingroup ofswitch13
@@ -76,7 +73,7 @@ public:
    * \param port The OpenFlow port.
    */
   typedef void (*PacketPortCallback) 
-    (Ptr<const OFPort> port, Ptr<const Packet> packet);
+    (Ptr<const OFSwitch13Port> port, Ptr<const Packet> packet);
 
   /**
    * Register this type.
@@ -278,9 +275,9 @@ private:
   /**
    * Search the switch ports looking for a specific port number.
    * \param no The port number (starting at 1).
-   * \return A pointer to the corresponding OFPort.
+   * \return A pointer to the corresponding OFSwitch13Port.
    */
-  Ptr<OFPort> PortGetOFPort (uint32_t no);
+  Ptr<OFSwitch13Port> PortGetOFSwitch13Port (uint32_t no);
  
   /**
    * Send the packet to the OpenFlow ofsoftswitch13 pipeline.
@@ -313,13 +310,13 @@ private:
    * The trace source fired when a packet arrives at a switch port, before
    * being sent to OpenFlow pipeline.
    */
-  TracedCallback<Ptr<const Packet>, Ptr<const OFPort> > m_swPortRxTrace; 
+  TracedCallback<Ptr<const Packet>, Ptr<const OFSwitch13Port> > m_swPortRxTrace; 
 
   /**
    * The trace source fired when the OpenFlow pipeline sent a packets over a
    * switch port.
    */
-  TracedCallback<Ptr<const Packet>, Ptr<const OFPort> > m_swPortTxTrace; 
+  TracedCallback<Ptr<const Packet>, Ptr<const OFSwitch13Port> > m_swPortTxTrace; 
   
   /**
    * The trace source fired when the OpenFlow pipeline drops a packet due to
@@ -341,7 +338,6 @@ private:
   std::string     m_libLog;       //!< The ofsoftswitch13 library logging levels.
   datapath*       m_datapath;     //!< The OpenFlow datapath
   PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
-//  PortDevMap_t    m_portsByDev;   //!< Switch ports indexed by NetDevice.
   Ptr<Packet>     m_pktPipeline;  //!< Packet under switch pipeline.
   UidPacketMap_t  m_pktsBuffer;   //!< Packets saved in switch buffer.
 

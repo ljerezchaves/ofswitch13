@@ -31,10 +31,10 @@
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13NetDevice");
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13Port");
 
-OFPort::OFPort (datapath *dp, Ptr<CsmaNetDevice> csmaDev, 
-                Ptr<OFSwitch13NetDevice> openflowDev)
+OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev, 
+                                Ptr<OFSwitch13NetDevice> openflowDev)
   : m_csmaDev (csmaDev),
     m_openflowDev (openflowDev)
 {
@@ -79,7 +79,7 @@ OFPort::OFPort (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   list_push_back (&dp->port_list, &m_swPort->node);
 }
 
-OFPort::~OFPort ()
+OFSwitch13Port::~OFSwitch13Port ()
 {
   m_csmaDev = 0;
   m_openflowDev = 0;
@@ -88,7 +88,7 @@ OFPort::~OFPort ()
 }
 
 uint32_t
-OFPort::PortGetFeatures ()
+OFSwitch13Port::PortGetFeatures ()
 {
   DataRateValue drv;
   DataRate dr;
@@ -136,7 +136,7 @@ OFPort::PortGetFeatures ()
 }
 
 bool
-OFPort::PortUpdateState ()
+OFSwitch13Port::PortUpdateState ()
 {
   uint32_t orig_state = m_swPort->conf->state;
   if (m_csmaDev->IsLinkUp ())
@@ -152,7 +152,7 @@ OFPort::PortUpdateState ()
 }
 
 void
-OFPort::Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet)
+OFSwitch13Port::Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this);
 

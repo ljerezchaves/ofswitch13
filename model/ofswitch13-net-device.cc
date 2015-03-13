@@ -203,8 +203,8 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
     }
 
   // Create the port for this device
-  Ptr<OFPort> ofPort = Create<OFPort> (m_datapath, csmaPortDevice, this);
-  std::pair<uint32_t, Ptr<OFPort> > noEntry (ofPort->m_portNo, ofPort);
+  Ptr<OFSwitch13Port> ofPort = Create<OFSwitch13Port> (m_datapath, csmaPortDevice, this);
+  std::pair<uint32_t, Ptr<OFSwitch13Port> > noEntry (ofPort->m_portNo, ofPort);
   m_portsByNo.insert (noEntry);
 
   // Notify the controller that this port has been added
@@ -214,9 +214,9 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   msg.desc = ofPort->m_swPort->conf;
   dp_send_message (m_datapath, (ofl_msg_header*)&msg, 0);
 
-  // Register a trace sink at OFPort to get packets from CsmaNetDevice.
+  // Register a trace sink at OFSwitch13Port to get packets from CsmaNetDevice.
   csmaPortDevice->TraceConnectWithoutContext ("OpenFlowRx", 
-      MakeCallback (&OFPort::Receive, ofPort));
+      MakeCallback (&OFSwitch13Port::Receive, ofPort));
   return ofPort->m_portNo;
 }
 
@@ -720,8 +720,8 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
   Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, this, dp);
 }
 
-Ptr<OFPort>
-OFSwitch13NetDevice::PortGetOFPort (uint32_t no)
+Ptr<OFSwitch13Port>
+OFSwitch13NetDevice::PortGetOFSwitch13Port (uint32_t no)
 {
   NS_LOG_FUNCTION (this << no);
 
@@ -754,7 +754,7 @@ OFSwitch13NetDevice::PortGetOFPort (uint32_t no)
 //       return;
 //     }
 // 
-//   Ptr<OFPort> inPort = it->second;
+//   Ptr<OFSwitch13Port> inPort = it->second;
 //   if (inPort->m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
 //     {
 //       NS_LOG_WARN ("This port is down. Discarding packet");
@@ -806,7 +806,7 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid << portNo);
 
-  Ptr<OFPort> port = PortGetOFPort (portNo);
+  Ptr<OFSwitch13Port> port = PortGetOFSwitch13Port (portNo);
   if (port == 0 || port->m_csmaDev == 0)
     {
       NS_LOG_ERROR ("can't forward to invalid port.");
