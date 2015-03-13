@@ -254,16 +254,6 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
         m_ipv4helper.NewNetwork ();
         m_ctrlDevs.Add (swDev.Get (1));
         ctrlAddr = InetSocketAddress (swIface.GetAddress (1), m_ctrlPort);
-
-        // This name thing is not necessary
-        if (!Names::FindName (swNode).empty ()
-            && !Names::FindName (m_ctrlNode).empty ())
-          {
-            Names::Add (Names::FindName (swNode) + "+" +
-                        Names::FindName (m_ctrlNode), swDev.Get (0));
-            Names::Add (Names::FindName (m_ctrlNode) + "+" +
-                        Names::FindName (swNode), swDev.Get (1));
-          }
         break;
       }
     case OFSwitch13Helper::DEDICATEDP2P:
@@ -274,16 +264,6 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
         m_ipv4helper.NewNetwork ();
         m_ctrlDevs.Add (swDev.Get (1));
         ctrlAddr = InetSocketAddress (swIface.GetAddress (1), m_ctrlPort);
-
-        // This name thing is not necessary
-        if (!Names::FindName (swNode).empty ()
-            && !Names::FindName (m_ctrlNode).empty ())
-          {
-            Names::Add (Names::FindName (swNode) + "+" +
-                        Names::FindName (m_ctrlNode), swDev.Get (0));
-            Names::Add (Names::FindName (m_ctrlNode) + "+" +
-                        Names::FindName (swNode), swDev.Get (1));
-          }
         break;
       }
     default:
@@ -333,9 +313,6 @@ OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode,
         m_ctrlDevs.Add (m_csmaHelper.Install (m_ctrlNode, m_csmaChannel));
         ctrlIface = m_ipv4helper.Assign (m_ctrlDevs);
         m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), m_ctrlPort);
-
-        // This name thing is not necessary
-        Names::Add ("allsw", m_ctrlDevs.Get (0));
         break;
       }
     case OFSwitch13Helper::DEDICATEDCSMA:
