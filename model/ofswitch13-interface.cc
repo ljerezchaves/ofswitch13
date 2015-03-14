@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -15,7 +17,6 @@
  *
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
-#ifdef NS3_OFSWITCH13
 
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
@@ -27,53 +28,40 @@ namespace ns3 {
 namespace ofs {
 
 ofpbuf*
-BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
-                  size_t headRoom)
+BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
 {
   NS_LOG_FUNCTION_NOARGS ();
+  NS_ASSERT (packet->GetSize () <= bodyRoom);
 
-  uint32_t pktSize = packet->GetSize ();
-  NS_ASSERT (pktSize <= bodyRoom);
-
-  ofpbuf *buffer = ofpbuf_new_with_headroom (bodyRoom, headRoom);
+  ofpbuf *buffer;
+  uint32_t pktSize;
+  
+  pktSize = packet->GetSize ();
+  buffer = ofpbuf_new_with_headroom (bodyRoom, headRoom);
   packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
   return buffer;
 }
 
-ofpbuf*
-BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp)
+Ptr<Packet>
+PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
   int error;
   uint8_t *buf;
   size_t buf_size;
-  ofpbuf *ofpbuf = ofpbuf_new (0);
+  Ptr<Packet> packet; 
+  ofpbuf *buffer;
 
-  // Pack message into ofpbuf using wire format
-  error = ofl_msg_pack (msg, xid, &buf, &buf_size, exp);
-  if (error)
+  buffer = ofpbuf_new (0);
+  error = ofl_msg_pack (msg, xid, &buf, &buf_size, 0);
+  if (!error)
     {
-      NS_LOG_ERROR ("Error packing message.");
+      ofpbuf_use (buffer, buf, buf_size);
+      ofpbuf_put_uninit (buffer, buf_size);
+      packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
+      ofpbuf_delete (buffer);
     }
-  ofpbuf_use (ofpbuf, buf, buf_size);
-  ofpbuf_put_uninit (ofpbuf, buf_size);
-
-  return ofpbuf;
-}
-
-Ptr<Packet>
-PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
-{
-  return PacketFromBufferAndFree (BufferFromMsg (msg, xid));
-}
-
-Ptr<Packet>
-PacketFromBufferAndFree (ofpbuf* buffer)
-{
-  NS_LOG_FUNCTION_NOARGS ();
-  Ptr<Packet> packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
-  ofpbuf_delete (buffer);
   return packet;
 }
 
@@ -81,17 +69,10 @@ Ptr<Packet>
 PacketFromBuffer (ofpbuf* buffer)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  Ptr<Packet> packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
-  return packet;
-}
 
-
-Ptr<Packet>
-PacketFromInternalPacket (packet *pkt)
-{
-  NS_LOG_FUNCTION_NOARGS ();
-  ofpbuf *buffer = pkt->buffer;
-  Ptr<Packet> packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
+  Ptr<Packet> packet; 
+  
+  packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
   return packet;
 }
 
@@ -119,7 +100,7 @@ time_now (void)
 long long int
 time_msec (void)
 {
-  return (long long int)Simulator::Now ().GetMilliSeconds ();
+  return (long long int) Simulator::Now ().GetMilliSeconds ();
 }
 
 /**
@@ -288,5 +269,3 @@ dpctl_transact_and_print (struct vconn *vconn, struct ofl_msg_header *req,
   NS_LOG_FUNCTION_NOARGS ();
   dpctl_send_and_print (vconn, req);
 }
-
-#endif // NS3_OFSWITCH13
