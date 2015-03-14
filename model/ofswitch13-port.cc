@@ -101,6 +101,23 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
 
   list_push_back (&dp->port_list, &m_swPort->node);
+
+  // Notify the controller that this port has been added/created
+  ofl_msg_port_status msg;
+  msg.header.type = OFPT_PORT_STATUS;
+  msg.reason = OFPPR_ADD;
+  msg.desc = m_swPort->conf;
+  dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
+
+  // Register a trace sink at OFSwitch13Port to get packets from CsmaNetDevice.
+  csmaDev->TraceConnectWithoutContext ("OpenFlowRx",
+      MakeCallback (&OFSwitch13Port::Receive, this));
+}
+
+uint32_t
+OFSwitch13Port::GetPortNo (void) const
+{
+  return m_portNo;
 }
 
 TypeId 
@@ -174,7 +191,18 @@ OFSwitch13Port::PortUpdateState ()
       m_swPort->conf->state |= OFPPS_LINK_DOWN;
     }
   dp_port_live_update (m_swPort);
-  return (orig_state != m_swPort->conf->state);
+
+  if (orig_state != m_swPort->conf->state)
+    {
+       NS_LOG_DEBUG ("Port status has changed. Notifying the controller.");
+       ofl_msg_port_status msg;
+       msg.header.type = OFPT_PORT_STATUS;
+       msg.reason = OFPPR_MODIFY;
+       msg.desc = m_swPort->conf;
+       dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
+       return true;
+    }
+  return false;
 }
 
 void

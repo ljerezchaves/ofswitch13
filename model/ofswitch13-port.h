@@ -42,13 +42,19 @@ class OFSwitch13NetDevice;
 
 /**
  * \ingroup ofswitch13
- * A OpenFlow switch port metadata, saving the port number, the pointer to ns3
- * NetDevice and the pointer to ofsoftswitch internal sw_port structure.
+ *
+ * A OpenFlow switch port, saving metadata as the port number, the pointer to
+ * the ns-3 underlying NetDevice, the pointer to OpenFlow NetDevice and to the
+ * ofsoftswitch13 internal sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
+ *
+ * \attention Each underlying NetDevice used as port must only be assigned a
+ * Mac Address.  adding an Ipv4 or Ipv6 layer to it will cause an error. It
+ * also must support a SendFrom call.
  */
 class OFSwitch13Port : public Object
 {
-  friend class OFSwitch13NetDevice;
+//  friend class OFSwitch13NetDevice;
 
 public:
   OFSwitch13Port ();            //!< Default constructor
@@ -71,6 +77,15 @@ public:
    */
   static TypeId GetTypeId (void);
 
+  /** \return The port number. */
+  uint32_t GetPortNo (void) const;
+
+  /**
+   * Update the port state field based on netdevice status.
+   * \return true if the state of the port has changed, false otherwise.
+   */
+  bool PortUpdateState ();
+
 private:
   /**
    * Create the bitmaps of OFPPF_* describing port features, based on
@@ -79,12 +94,6 @@ private:
    * \return Port features bitmap.
    */
   uint32_t PortGetFeatures ();
-
-  /**
-   * Update the port state field based on netdevice status.
-   * \return true if the state of the port has changed, false otherwise.
-   */
-  bool PortUpdateState ();
 
   /**
    * Called when a packet is received on the underlying CsmaNetDevice. 

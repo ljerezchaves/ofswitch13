@@ -41,8 +41,6 @@ namespace ns3 {
 
 class OFSwitch13Port;
 
-
-
 /**
  * \ingroup ofswitch13
  *
@@ -50,10 +48,6 @@ class OFSwitch13Port;
  * The OFSwitch13NetDevice object aggregates multiple netdevices as ports
  * and acts like a switch. It implements OpenFlow datapath compatibility,
  * according to the OpenFlow Switch Specification v1.3.
- *
- * \attention Each NetDevice used as port must only be assigned a Mac Address.
- * adding an Ipv4 or Ipv6 layer to it will cause an error. It also must support
- * a SendFrom call.
  */
 class OFSwitch13NetDevice : public NetDevice
 {
@@ -215,15 +209,6 @@ public:
   virtual void SetPromiscReceiveCallback (NetDevice::PromiscReceiveCallback cb);
   virtual bool SupportsSendFrom () const;
 
-  /**
-   * Copy all packet and byte tags from srcPkt packet to dstPkt packet. 
-   * \attention In the case of byte tags, the tags in dstPkt will cover the
-   * entire packet, regardless of the byte range in srcPkt.
-   * \param srcPkt The source packet.
-   * \param dstPkt The destination packet.
-   * \return true if everything's ok, false otherwise. 
-   */
-  static bool CopyTags (Ptr<const Packet> srcPkt, Ptr<const Packet> dstPkt);
 
   /**
    * \brief ofsoftswitch13 callbacks.
@@ -274,11 +259,11 @@ private:
   void DatapathTimeout (datapath* dp);
 
   /**
-   * Search the switch ports looking for a specific port number.
+   * Get the OFSwitch13Port pointer from its number.
    * \param no The port number (starting at 1).
    * \return A pointer to the corresponding OFSwitch13Port.
    */
-  Ptr<OFSwitch13Port> PortGetOFSwitch13Port (uint32_t no);
+  Ptr<OFSwitch13Port> GetOFSwitch13Port (uint32_t no);
  
   /**
    * Send the packet to the OpenFlow ofsoftswitch13 pipeline.
@@ -295,16 +280,26 @@ private:
   void ReceiveFromController (Ptr<Socket> socket);
 
   /**
-   * Socket callback fired when a TCP connection to controller succeeds fail.
+   * Socket callback fired when a TCP connection to controller succeed.
    * \param socket The TCP socket.
    */
   void SocketCtrlSucceeded (Ptr<Socket> socket);
 
   /**
-   * Socket callback fired when a TCP connection fail.
+   * Socket callback fired when a TCP connection to controller fail.
    * \param socket The TCP socket.
    */
   void SocketCtrlFailed (Ptr<Socket> socket);
+
+  /**
+   * Copy all tags (packet and byte) from srcPkt packet to dstPkt packet. 
+   * \attention In the case of byte tags, the tags in dstPkt will cover the
+   * entire packet, regardless of the byte range in srcPkt.
+   * \param srcPkt The source packet.
+   * \param dstPkt The destination packet.
+   * \return true if everything's ok, false otherwise. 
+   */
+  static bool CopyTags (Ptr<const Packet> srcPkt, Ptr<const Packet> dstPkt);
 
 
   /**
@@ -332,6 +327,7 @@ private:
   /** Structure to save packets, indexed by its uid. */
   typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;
 
+
   uint64_t        m_dpId;         //!< This datapath id
   Ptr<Node>       m_node;         //!< Node this device is installed on
   Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller
@@ -341,8 +337,8 @@ private:
   Time            m_lookupDelay;  //!< Flow Table Lookup Delay overhead.
   std::string     m_libLog;       //!< The ofsoftswitch13 library logging levels.
   datapath*       m_datapath;     //!< The OpenFlow datapath
-  PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
   Ptr<Packet>     m_pktPipeline;  //!< Packet under switch pipeline.
+  PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
   UidPacketMap_t  m_pktsBuffer;   //!< Packets saved in switch buffer.
 
   static uint64_t m_globalDpId;   //!< Global counter of datapath IDs

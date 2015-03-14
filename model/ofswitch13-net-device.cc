@@ -204,25 +204,15 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
       NS_FATAL_ERROR ("NetDevice must be of CsmaNetDevice type.");
     }
 
-  // Create the port for this device
+  // Create the Openflow port for this device
   Ptr<OFSwitch13Port> ofPort;
   ofPort = CreateObject<OFSwitch13Port> (m_datapath, csmaPortDevice, this);
  
   // Save pointer for further use
-  std::pair<uint32_t, Ptr<OFSwitch13Port> > entry (ofPort->m_portNo, ofPort);
+  std::pair<uint32_t, Ptr<OFSwitch13Port> > entry (ofPort->GetPortNo (), ofPort);
   m_portsByNo.insert (entry);
 
-  // Notify the controller that this port has been added
-  ofl_msg_port_status msg;
-  msg.header.type = OFPT_PORT_STATUS;
-  msg.reason = OFPPR_ADD;
-  msg.desc = ofPort->m_swPort->conf;
-  dp_send_message (m_datapath, (ofl_msg_header*)&msg, 0);
-
-  // Register a trace sink at OFSwitch13Port to get packets from CsmaNetDevice.
-  csmaPortDevice->TraceConnectWithoutContext ("OpenFlowRx",
-      MakeCallback (&OFSwitch13Port::Receive, ofPort));
-  return ofPort->m_portNo;
+  return ofPort->GetPortNo ();
 }
 
 int
@@ -563,38 +553,6 @@ OFSwitch13NetDevice::SupportsSendFrom () const
   return false;
 }
 
-bool
-OFSwitch13NetDevice::CopyTags (Ptr<const Packet> srcPkt, 
-                               Ptr<const Packet> dstPkt)
-{
-  NS_LOG_FUNCTION (srcPkt << dstPkt);
-
-  // Copy packet tags
-  PacketTagIterator pktIt = srcPkt->GetPacketTagIterator ();
-  while (pktIt.HasNext ())
-    {
-      PacketTagIterator::Item item = pktIt.Next ();
-      Callback<ObjectBase *> constructor = item.GetTypeId ().GetConstructor ();
-      Tag *tag = dynamic_cast <Tag *> (constructor ());
-      item.GetTag (*tag);
-      dstPkt->AddPacketTag (*tag);
-      delete tag;
-    }
-
-  // Copy byte tags
-  ByteTagIterator bytIt = srcPkt->GetByteTagIterator ();
-  while (bytIt.HasNext ())
-    {
-      ByteTagIterator::Item item = bytIt.Next ();
-      Callback<ObjectBase *> constructor = item.GetTypeId ().GetConstructor ();
-      Tag *tag = dynamic_cast<Tag *> (constructor ());
-      item.GetTag (*tag);
-      dstPkt->AddByteTag (*tag);
-      delete tag;
-    }
-
-  return true;
-}
 
 // Static callbacks linked with ofsoftswit13 library
 void
@@ -710,15 +668,7 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
   PortNoMap_t::iterator it;
   for (it = m_portsByNo.begin (); it != m_portsByNo.end (); it++)
     {
-      if (it->second->PortUpdateState ())
-        {
-          NS_LOG_DEBUG ("Port status has changed. Notifying the controller.");
-          ofl_msg_port_status msg;
-          msg.header.type = OFPT_PORT_STATUS;
-          msg.reason = OFPPR_MODIFY;
-          msg.desc = it->second->m_swPort->conf;
-          dp_send_message (dp, (ofl_msg_header*)&msg, 0);
-        }
+      it->second->PortUpdateState ();
     }
 
   dp->last_timeout = time_now ();
@@ -726,7 +676,7 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 }
 
 Ptr<OFSwitch13Port>
-OFSwitch13NetDevice::PortGetOFSwitch13Port (uint32_t no)
+OFSwitch13NetDevice::GetOFSwitch13Port (uint32_t no)
 {
   NS_LOG_FUNCTION (this << no);
 
@@ -811,7 +761,7 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid << portNo);
 
-  Ptr<OFSwitch13Port> port = PortGetOFSwitch13Port (portNo);
+  Ptr<OFSwitch13Port> port = GetOFSwitch13Port (portNo);
   if (port == 0 || port->m_csmaDev == 0)
     {
       NS_LOG_ERROR ("can't forward to invalid port.");
@@ -1002,6 +952,39 @@ OFSwitch13NetDevice::SocketCtrlFailed (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
   NS_LOG_ERROR ("Controller did not accepted connection request!");
+}
+
+bool
+OFSwitch13NetDevice::CopyTags (Ptr<const Packet> srcPkt, 
+                               Ptr<const Packet> dstPkt)
+{
+  NS_LOG_FUNCTION (srcPkt << dstPkt);
+
+  // Copy packet tags
+  PacketTagIterator pktIt = srcPkt->GetPacketTagIterator ();
+  while (pktIt.HasNext ())
+    {
+      PacketTagIterator::Item item = pktIt.Next ();
+      Callback<ObjectBase *> constructor = item.GetTypeId ().GetConstructor ();
+      Tag *tag = dynamic_cast <Tag *> (constructor ());
+      item.GetTag (*tag);
+      dstPkt->AddPacketTag (*tag);
+      delete tag;
+    }
+
+  // Copy byte tags
+  ByteTagIterator bytIt = srcPkt->GetByteTagIterator ();
+  while (bytIt.HasNext ())
+    {
+      ByteTagIterator::Item item = bytIt.Next ();
+      Callback<ObjectBase *> constructor = item.GetTypeId ().GetConstructor ();
+      Tag *tag = dynamic_cast<Tag *> (constructor ());
+      item.GetTag (*tag);
+      dstPkt->AddByteTag (*tag);
+      delete tag;
+    }
+
+  return true;
 }
 
 } // namespace ns3
