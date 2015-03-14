@@ -101,6 +101,7 @@ time_msec (void)
   return (long long int) Simulator::Now ().GetMilliSeconds ();
 }
 
+/** Overriding ofsoftswitch weak functions using static member functions. */
 int
 send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
 {
@@ -115,39 +116,19 @@ dp_actions_output_port (struct packet *pkt, uint32_t out_port,
                                             max_len, cookie);
 }
 
-/**
- * Overriding ofsoftswitch13 dpctl_send_and_print weak function from
- * utilities/dpctl.c. Send a message from controller to switch.
- * \param vconn The SwitchInfo pointer, sent from controller to
- * dpctl_exec_ns3_command function and get back here to proper identify the
- * controller object.
- * \param msg The OFLib message to send.
- */
 void
 dpctl_send_and_print (struct vconn *vconn, struct ofl_msg_header *msg)
 {
-  NS_LOG_FUNCTION_NOARGS ();
-  SwitchInfo *sw = (SwitchInfo*)vconn;
-  sw->ctrl->SendToSwitch (sw, msg, 0);
+  OFSwitch13Controller::DpctlSendAndPrint (vconn, msg);
 }
 
-/**
- * Overriding ofsoftswitch13 dpctl_transact_and_print weak function from
- * utilities/dpctl.c. Send a message from controller to switch.
- * \internal Different from ofsoftswitch13 dpctl, this transaction doesn't
- * wait for a reply, as ns3 socket library doesn't provide blocking sockets. So,
- * we send the request and return. The reply will came later, using the ns3
- * callback mechanism.
- * \param vconn The SwitchInfo pointer, sent from controller to
- * dpctl_exec_ns3_command function and get back here to proper identify the
- * controller object.
- * \param msg The OFLib request to send.
- * \param repl The OFLib reply message (not used by ns3).
- */
 void
 dpctl_transact_and_print (struct vconn *vconn, struct ofl_msg_header *req,
                           struct ofl_msg_header **repl)
 {
-  NS_LOG_FUNCTION_NOARGS ();
-  dpctl_send_and_print (vconn, req);
+  // Different from ofsoftswitch13 dpctl, this transaction doesn't wait for a
+  // reply, as ns-3 socket library doesn't provide blocking sockets. So, we
+  // send the request and return. The reply will came later, using the ns-3
+  // callback mechanism.
+  OFSwitch13Controller::DpctlSendAndPrint (vconn, req);
 }

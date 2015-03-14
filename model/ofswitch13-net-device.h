@@ -140,11 +140,11 @@ public:
    * \internal This function relies on the global map that stores openflow
    * devices to call the method on the correct object.
    * \param buffer The message buffer to send.
-   * \param remote The controller connection information.
+   * \param ctrl The controller connection information.
    * \return 0 if everything's ok, error number otherwise.
    */
   static int 
-  SendOpenflowBufferToRemote (struct ofpbuf *buffer, struct remote *remote);
+  SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl);
 
   /**
    * Overriding ofsoftswitch13 dp_actions_output_port weak function from
@@ -362,5 +362,6 @@ private:
   static DpIdDevMap_t m_globalSwitchMap;
 
 }; // Class OFSwitch13NetDevice
+
 } // namespace ns3
 #endif /* OFSWITCH13_NET_DEVICE_H */

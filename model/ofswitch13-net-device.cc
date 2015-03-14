@@ -28,7 +28,7 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
 
 // Initializing OFSwitch13NetDevice static members
 uint64_t OFSwitch13NetDevice::m_globalDpId = 0;
-std::map<uint64_t, Ptr<OFSwitch13NetDevice> > OFSwitch13NetDevice::m_globalSwitchMap;
+OFSwitch13NetDevice::DpIdDevMap_t OFSwitch13NetDevice::m_globalSwitchMap;
 
 /********** Public methods **********/
 TypeId
@@ -385,13 +385,12 @@ OFSwitch13NetDevice::SupportsSendFrom () const
 
 // ofsoftswitch13 overriding and callback functions.
 int 
-OFSwitch13NetDevice::SendOpenflowBufferToRemote (struct ofpbuf *buffer, 
-                                                 struct remote *remote)
+OFSwitch13NetDevice::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl)
 {
   NS_LOG_FUNCTION_NOARGS ();
   
   Ptr<OFSwitch13NetDevice> dev = 
-      OFSwitch13NetDevice::GetDatapathDevice (remote->dp->id);
+      OFSwitch13NetDevice::GetDatapathDevice (ctrl->dp->id);
 
   // FIXME No support for multiple controllers nor auxiliary connections by now.
   // So, just ignoring remote information and sending to our single socket.
@@ -436,7 +435,7 @@ OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
       }
     case (OFPP_CONTROLLER): 
       {
-        struct ofl_msg_packet_in msg;
+        ofl_msg_packet_in msg;
         msg.header.type = OFPT_PACKET_IN;
         msg.total_len = pkt->buffer->size;
         msg.reason = pkt->handle_std->table_miss ? OFPR_NO_MATCH : OFPR_ACTION;
@@ -455,14 +454,14 @@ OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
           {
             packet_handle_std_validate (pkt->handle_std);
           }
-        msg.match = (struct ofl_match_header*) &pkt->handle_std->match;
-        dp_send_message (pkt->dp, (struct ofl_msg_header *)&msg, 0);
+        msg.match = (ofl_match_header*) &pkt->handle_std->match;
+        dp_send_message (pkt->dp, (ofl_msg_header *)&msg, 0);
         break;
       }
     case (OFPP_FLOOD):
     case (OFPP_ALL): 
       {
-        struct sw_port *p;
+        sw_port *p;
         LIST_FOR_EACH (p, struct sw_port, node, &pkt->dp->port_list) 
           {
             if ((p->stats->port_no == pkt->in_port) ||
@@ -771,23 +770,23 @@ OFSwitch13NetDevice::ReceiveFromController (Ptr<Socket> socket)
           // FIXME No support for multiple controllers by now.
           // Gets the remote structure for this controller connection.
           // As we currently support a single controller, it must be the first.
-          struct sender sender;
-          sender.remote = CONTAINER_OF (list_front (&m_datapath->remotes), 
+          struct sender ctrl;
+          ctrl.remote = CONTAINER_OF (list_front (&m_datapath->remotes), 
                                         remote, node);
-          sender.conn_id = 0; // FIXME No support for auxiliary connections.
+          ctrl.conn_id = 0; // FIXME No support for auxiliary connections.
 
           // Get the OpenFlow buffer, unpack the message and send to handler
           ofpbuf *buffer = ofs::BufferFromPacket (pendingPacket, 
                                                   pendingPacket->GetSize ());
           error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
-                                  &sender.xid, m_datapath->exp);
+                                  &ctrl.xid, m_datapath->exp);
           if (!error)
             {
               char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
               NS_LOG_DEBUG ("Rx from ctrl: " << msg_str);
               free (msg_str);
 
-              error = handle_control_msg (m_datapath, msg, &sender);
+              error = handle_control_msg (m_datapath, msg, &ctrl);
               if (error)
                 {
                   // NOTE: It is assumed that if a handler returns with error,
@@ -808,7 +807,7 @@ OFSwitch13NetDevice::ReceiveFromController (Ptr<Socket> socket)
               err.code = ofl_error_code (error);
               err.data_length = buffer->size;
               err.data = (uint8_t*)buffer->data;
-              dp_send_message (m_datapath, (ofl_msg_header*)&err, &sender);
+              dp_send_message (m_datapath, (ofl_msg_header*)&err, &ctrl);
             }
           ofpbuf_delete (buffer);
         }
