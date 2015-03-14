@@ -55,6 +55,16 @@ OFSwitch13Port::DoDispose ()
   free (m_swPort->stats);
 }
 
+TypeId 
+OFSwitch13Port::GetTypeId (void) 
+{
+  static TypeId tid = TypeId ("ns3::OFSwitch13Port") 
+    .SetParent<Object> ()
+    .AddConstructor<OFSwitch13Port> ()
+  ;
+  return tid; 
+}
+
 OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev, 
                                 Ptr<OFSwitch13NetDevice> openflowDev)
   : m_csmaDev (csmaDev),
@@ -120,14 +130,31 @@ OFSwitch13Port::GetPortNo (void) const
   return m_portNo;
 }
 
-TypeId 
-OFSwitch13Port::GetTypeId (void) 
+bool
+OFSwitch13Port::PortUpdateState ()
 {
-  static TypeId tid = TypeId ("ns3::OFSwitch13Port") 
-    .SetParent<Object> ()
-    .AddConstructor<OFSwitch13Port> ()
-  ;
-  return tid; 
+  uint32_t orig_state = m_swPort->conf->state;
+  if (m_csmaDev->IsLinkUp ())
+    {
+      m_swPort->conf->state &= ~OFPPS_LINK_DOWN;
+    }
+  else
+    {
+      m_swPort->conf->state |= OFPPS_LINK_DOWN;
+    }
+  dp_port_live_update (m_swPort);
+
+  if (orig_state != m_swPort->conf->state)
+    {
+       NS_LOG_DEBUG ("Port status has changed. Notifying the controller.");
+       ofl_msg_port_status msg;
+       msg.header.type = OFPT_PORT_STATUS;
+       msg.reason = OFPPR_MODIFY;
+       msg.desc = m_swPort->conf;
+       dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
+       return true;
+    }
+  return false;
 }
 
 uint32_t
@@ -178,33 +205,6 @@ OFSwitch13Port::PortGetFeatures ()
   return feat;
 }
 
-bool
-OFSwitch13Port::PortUpdateState ()
-{
-  uint32_t orig_state = m_swPort->conf->state;
-  if (m_csmaDev->IsLinkUp ())
-    {
-      m_swPort->conf->state &= ~OFPPS_LINK_DOWN;
-    }
-  else
-    {
-      m_swPort->conf->state |= OFPPS_LINK_DOWN;
-    }
-  dp_port_live_update (m_swPort);
-
-  if (orig_state != m_swPort->conf->state)
-    {
-       NS_LOG_DEBUG ("Port status has changed. Notifying the controller.");
-       ofl_msg_port_status msg;
-       msg.header.type = OFPT_PORT_STATUS;
-       msg.reason = OFPPR_MODIFY;
-       msg.desc = m_swPort->conf;
-       dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
-       return true;
-    }
-  return false;
-}
-
 void
 OFSwitch13Port::Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet)
 {
@@ -213,7 +213,7 @@ OFSwitch13Port::Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet)
   // Check port configuration.
   if (m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
     {
-      NS_LOG_WARN ("This port is down. Discarding packet");
+      NS_LOG_WARN ("This port is down or inoperating. Discarding packet");
       return;
     }
 
@@ -231,7 +231,39 @@ bool
 OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
 {
   NS_LOG_FUNCTION (this << packet);
-  return true;
+
+  if (m_swPort->conf->config & (OFPPC_PORT_DOWN))
+    {
+      NS_LOG_WARN ("This port is down. Discarding packet");
+      return false;
+    }
+
+  // Fire TX trace source (with complete packet)
+  // m_swPortTxTrace (packet, port);
+  
+  // Removing the Ethernet header and trailer from packet, which will be
+  // included again by CsmaNetDevice
+  EthernetTrailer trailer;
+  packet->RemoveTrailer (trailer);
+  EthernetHeader header;
+  packet->RemoveHeader (header);
+
+  // FIXME No queue support by now
+  bool status = m_csmaDev->SendFrom (packet, header.GetSource (),
+                                     header.GetDestination (),
+                                     header.GetLengthType ());
+  // Updating port statistics
+  if (status)
+    {
+      m_swPort->stats->tx_packets++;
+      m_swPort->stats->tx_bytes += packet->GetSize ();
+    }
+  else
+    {
+      m_swPort->stats->tx_dropped++;
+    }
+
+  return status;
 }
 
 } // namespace ns3

@@ -54,22 +54,10 @@ class OFSwitch13NetDevice;
  */
 class OFSwitch13Port : public Object
 {
-//  friend class OFSwitch13NetDevice;
-
 public:
   OFSwitch13Port ();            //!< Default constructor
   virtual ~OFSwitch13Port ();   //!< Dummy destructor, see DoDipose
   void DoDispose ();            //!< Destructor implementation
-
-  /**
-   * Complete Constructor. Create and populate a new datapath port.
-   * \see ofsoftswitch new_port () at udatapath/dp_ports.c
-   * \param dp The datapath.
-   * \param csmaDev The underlying CsmaNetDevice.
-   * \param openflowDev The OpenFlow NetDevice.
-   */
-  OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev, 
-                  Ptr<OFSwitch13NetDevice> openflowDev);
 
   /**
    * Register this type.
@@ -81,10 +69,32 @@ public:
   uint32_t GetPortNo (void) const;
 
   /**
-   * Update the port state field based on netdevice status.
+   * Complete Constructor. Create and populate a new datapath port, notifying
+   * the controller of this new port.
+   * \see ofsoftswitch new_port () at udatapath/dp_ports.c
+   * \param dp The datapath.
+   * \param csmaDev The underlying CsmaNetDevice.
+   * \param openflowDev The OpenFlow NetDevice.
+   */
+  OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
+                  Ptr<OFSwitch13NetDevice> openflowDev);
+
+  /**
+   * Update the port state field based on netdevice status, and notify the
+   * controller when changes occurs.
    * \return true if the state of the port has changed, false otherwise.
    */
   bool PortUpdateState ();
+
+  /**
+   * Send a packet over this OpenFlow switch port. It will check port
+   * configuration, update counters and send the packet over the underlying
+   * CsmaNetDevice. 
+   * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
+   * \param packet The Packet to send.
+   * \param queueNo The queue to use.
+   */
+  bool Send (Ptr<Packet> packet, uint32_t queueNo);
 
 private:
   /**
@@ -96,8 +106,8 @@ private:
   uint32_t PortGetFeatures ();
 
   /**
-   * Called when a packet is received on the underlying CsmaNetDevice. 
-   * This method is a trace sink for the OpenFlowRx trace source at
+   * Called when a packet is received on this OpenFlow switch port. This
+   * method is a trace sink for the OpenFlowRx trace source at the underlying
    * CsmaNetDevice. It will check port configuration, update counter and send
    * the packet to the OpenFlow pipeline.
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
@@ -106,20 +116,9 @@ private:
    */
   void Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet);
 
-  /**
-   * Called when a packet is received on the underlying CsmaNetDevice. 
-   * This method is a trace sink for the OpenFlowRx trace source at
-   * CsmaNetDevice. It will check port configuration, update counter and send
-   * the packet to the OpenFlow pipeline.
-   * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
-   * \param packet The Packet to send.
-   * \param queueNo The queue to use.
-   */
-  bool Send (Ptr<Packet> packet, uint32_t queueNo);
 
-  uint32_t       m_portNo; //!< Port number
-  sw_port*       m_swPort; //!< Pointer to datapath sw_port
-  
+  uint32_t                  m_portNo;       //!< Port number
+  sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port
   Ptr<CsmaNetDevice>        m_csmaDev;      //!< Underlying CsmaNetDevice
   Ptr<OFSwitch13NetDevice>  m_openflowDev;  //!< OpenFlow NetDevice
 };

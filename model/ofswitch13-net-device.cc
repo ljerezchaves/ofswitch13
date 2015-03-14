@@ -762,71 +762,41 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
   NS_LOG_FUNCTION (this << pkt->ns3_uid << portNo);
 
   Ptr<OFSwitch13Port> port = GetOFSwitch13Port (portNo);
-  if (port == 0 || port->m_csmaDev == 0)
+  if (!port)
     {
       NS_LOG_ERROR ("can't forward to invalid port.");
       return false;
     }
 
-  if (!(port->m_swPort->conf->config & (OFPPC_PORT_DOWN)))
+  Ptr<Packet> packet;
+  if (m_pktPipeline)
     {
-      Ptr<Packet> packet;
-      if (m_pktPipeline)
+      NS_ASSERT_MSG (m_pktPipeline->GetUid () == pkt->ns3_uid,
+                     "Mismatch between pipeline packets.");
+      if (pkt->changes)
         {
-          NS_ASSERT_MSG (m_pktPipeline->GetUid () == pkt->ns3_uid,
-                         "Mismatch between pipeline packets.");
-          if (pkt->changes)
-            {
-              // The original ns-3 packet was modified by OpenFlow switch.
-              // Create a new packet with modified data and copy tags from the
-              // original packet.
-              NS_LOG_DEBUG ("Packet modified by OpenFlow switch.");
-              packet = ofs::PacketFromBuffer (pkt->buffer);
-              OFSwitch13NetDevice::CopyTags (m_pktPipeline, packet);
-            }
-          else
-            {
-              // Using the original ns-3 packet.
-              packet = m_pktPipeline;
-            }
-        }
-      else
-        {
-          // This is a new packet (probably created by the controller).
-          NS_LOG_DEBUG ("Creating new ns-3 packet from openflow buffer.");
+          // The original ns-3 packet was modified by OpenFlow switch.
+          // Create a new packet with modified data and copy tags from the
+          // original packet.
+          NS_LOG_DEBUG ("Packet modified by OpenFlow switch.");
           packet = ofs::PacketFromBuffer (pkt->buffer);
-        }
-
-      // Fire TX trace source (with complete packet)
-      m_swPortTxTrace (packet, port);
-      
-      // Removing the Ethernet header and trailer from packet, which will be
-      // included again by CsmaNetDevice
-      EthernetTrailer trailer;
-      packet->RemoveTrailer (trailer);
-      EthernetHeader header;
-      packet->RemoveHeader (header);
-
-      // FIXME No queue support by now
-      bool status = port->m_csmaDev->SendFrom (packet, header.GetSource (),
-                                              header.GetDestination (),
-                                              header.GetLengthType ());
-      // Updating port statistics
-      if (status)
-        {
-          port->m_swPort->stats->tx_packets++;
-          port->m_swPort->stats->tx_bytes += packet->GetSize ();
+          OFSwitch13NetDevice::CopyTags (m_pktPipeline, packet);
         }
       else
         {
-          port->m_swPort->stats->tx_dropped++;
+          // Using the original ns-3 packet.
+          packet = m_pktPipeline;
         }
-      return status;
+    }
+  else
+    {
+      // This is a new packet (probably created by the controller).
+      NS_LOG_DEBUG ("Creating new ns-3 packet from openflow buffer.");
+      packet = ofs::PacketFromBuffer (pkt->buffer);
     }
 
-  // No need to delete buffer, it is deleted along with the packet.
-  NS_LOG_ERROR ("can't forward to bad port " << port->m_portNo);
-  return false;
+  // Send the packet to switch port.
+  return port->Send (packet, queueNo);
 }
 
 void
