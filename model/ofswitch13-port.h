@@ -101,10 +101,9 @@ private:
    * CsmaNetDevice. It will check port configuration, update counter and send
    * the packet to the OpenFlow pipeline.
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
-   * \param sender The underlying NetDevice where the packet was received on.
    * \param packet The received packet.
    */
-  void Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet);
+  void Receive (Ptr<Packet> packet);
 
   /** Trace source fired when a packet arrives at this switch port. */
   TracedCallback<Ptr<const Packet> > m_rxTrace; 

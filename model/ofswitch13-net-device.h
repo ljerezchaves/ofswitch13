@@ -62,16 +62,16 @@ public:
   virtual ~OFSwitch13NetDevice ();
 
   /**
-    * Add a 'port' to the switch device. This method adds a new switch
-    * port to a OFSwitch13NetDevice, so that the new switch port NetDevice
-    * becomes part of the switch and L2 frames start being forwarded to/from
-    * this NetDevice.
-    * \attention The current implementation only supports CsmaNetDevices (as
-    * OpenFlow deals with ethernet frames). Also, the port device that is being
-    * added as switch port must _not_ have an IP address.
-    * \param portDevice The NetDevice port to add.
-    * \return 0 in case of errors, otherwise the port number (>= 1).
-    */
+   * Add a 'port' to the switch device. This method adds a new switch
+   * port to a OFSwitch13NetDevice, so that the new switch port NetDevice
+   * becomes part of the switch and L2 frames start being forwarded to/from
+   * this NetDevice.
+   * \attention The current implementation only supports CsmaNetDevices (as
+   * OpenFlow deals with ethernet frames). Also, the port device that is being
+   * added as switch port must _not_ have an IP address.
+   * \param portDevice The NetDevice port to add.
+   * \return 0 in case of errors, otherwise the port number (>= 1).
+   */
   uint32_t AddSwitchPort (Ptr<NetDevice> portDevice);
 
   /**
@@ -185,8 +185,37 @@ public:
 
 
   /**
-   * \brief ofsoftswitch13 callbacks.
+   * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
+   * from udatapath/datapath.c. Sends the given OFLib buffer message to the
+   * controller associated with remote connection structure.
+   * \internal This function relies on the global map that stores openflow
+   * devices to call the method on the correct object.
+   * \param buffer The message buffer to send.
+   * \param remote The controller connection information.
+   * \return 0 if everything's ok, error number otherwise.
    */
+  static int 
+  SendOpenflowBufferToRemote (struct ofpbuf *buffer, struct remote *remote);
+
+  /**
+   * Overriding ofsoftswitch13 dp_actions_output_port weak function from
+   * udatapath/dp_actions.c. Outputs a datapath packet on switch port. This
+   * code is nearly the same on ofsoftswitch, but it gets the openflow device
+   * from datapath id and uses member functions to send the packet over ns3
+   * structures.
+   * \internal This function relies on the global map that stores openflow
+   * devices to call the method on the correct object.
+   * \param pkt The internal packet to send.
+   * \param outPort The output switch port number.
+   * \param outQueue The output queue number.
+   * \param maxLen Max lenght of packet to send to controller.
+   * \param cookie Packet cookie to send to controller.
+   */
+  static void 
+  DpActionsOutputPort (struct packet *pkt, uint32_t outPort, 
+                       uint32_t outQueue, uint16_t maxLen, uint64_t cookie);
+
+  /** \name ofsoftswitch13 callbacks. */
   //\{
   /**
    * Callback fired when a packet is dropped by meter band

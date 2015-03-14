@@ -206,7 +206,7 @@ OFSwitch13Port::PortGetFeatures ()
 }
 
 void
-OFSwitch13Port::Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet)
+OFSwitch13Port::Receive (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 

@@ -136,6 +136,8 @@ OFSwitch13NetDevice::GetTypeId (void)
                    StringValue ("none"),
                    MakeStringAccessor (&OFSwitch13NetDevice::SetLibLogLevel),
                    MakeStringChecker ())
+
+    // Meter band packet drop trace source
     .AddTraceSource ("MeterDrop", 
                      "Trace source indicating a packet dropped by meter band",
                      MakeTraceSourceAccessor (&OFSwitch13NetDevice::m_meterDropTrace),
@@ -532,6 +534,111 @@ OFSwitch13NetDevice::SupportsSendFrom () const
   return false;
 }
 
+// Static functions for C overriding
+int 
+OFSwitch13NetDevice::SendOpenflowBufferToRemote (struct ofpbuf *buffer, 
+                                                 struct remote *remote)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+  
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (remote->dp->id);
+
+  // FIXME No support for multiple controllers nor auxiliary connections by now.
+  // So, just ignoring remote information and sending to our single socket.
+  Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
+  int error = dev->SendToController (packet);
+  if (error)
+    {
+      NS_LOG_WARN ("There was an error sending the message!");
+    }
+  return error;
+}
+
+void 
+OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort, 
+                                          uint32_t outQueue, uint16_t maxLen, 
+                                          uint64_t cookie)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  Ptr<OFSwitch13NetDevice> dev = GetDatapathDevice (pkt->dp->id);
+  
+  switch (outPort) {
+    case (OFPP_TABLE):
+      {
+        if (pkt->packet_out) 
+          {
+            // Makes sure packet cannot be resubmit to pipeline again.
+            pkt->packet_out = false;
+            pipeline_process_packet (pkt->dp->pipeline, pkt);
+          } 
+        else 
+          {
+            NS_LOG_WARN ("Trying to resubmit packet to pipeline.");
+          }
+        break;
+      }
+    case (OFPP_IN_PORT): 
+      {
+        dev->SendToSwitchPort (pkt, pkt->in_port, 0);
+        break;
+      }
+    case (OFPP_CONTROLLER): 
+      {
+        struct ofl_msg_packet_in msg;
+        msg.header.type = OFPT_PACKET_IN;
+        msg.total_len = pkt->buffer->size;
+        msg.reason = pkt->handle_std->table_miss ? OFPR_NO_MATCH : OFPR_ACTION;
+        msg.table_id = pkt->table_id;
+        msg.data = (uint8_t*)pkt->buffer->data;
+        msg.cookie = cookie;
+
+        // Even with miss_send_len == OFPCML_NO_BUFFER, save the packet into
+        // buffer to avoid loosing ns-3 packet uid. This is not full compliant
+        // with OpenFlow specification, but works very well here ;)
+        dp_buffers_save (pkt->dp->buffers, pkt);
+        msg.buffer_id = pkt->buffer_id;
+        msg.data_length = MIN (maxLen, pkt->buffer->size);
+
+        if (!pkt->handle_std->valid)
+          {
+            packet_handle_std_validate (pkt->handle_std);
+          }
+        msg.match = (struct ofl_match_header*) &pkt->handle_std->match;
+        dp_send_message (pkt->dp, (struct ofl_msg_header *)&msg, 0);
+        break;
+      }
+    case (OFPP_FLOOD):
+    case (OFPP_ALL): 
+      {
+        struct sw_port *p;
+        LIST_FOR_EACH (p, struct sw_port, node, &pkt->dp->port_list) 
+          {
+            if ((p->stats->port_no == pkt->in_port) ||
+                (outPort == OFPP_FLOOD && p->conf->config & OFPPC_NO_FWD)) 
+              {
+                continue;
+              }
+            dev->SendToSwitchPort (pkt, p->stats->port_no, 0);
+          }
+        break;
+      }
+    case (OFPP_NORMAL):
+    case (OFPP_LOCAL):
+    default: 
+      {
+        if (pkt->in_port == outPort)
+          {
+            NS_LOG_WARN ("Can't directly forward to input port.");
+          }
+        else 
+          {
+            NS_LOG_DEBUG ("Outputting packet on port " << outPort);
+            dev->SendToSwitchPort (pkt, outPort, outQueue);
+          }
+      }
+  }
+}
 
 // Static callbacks linked with ofsoftswit13 library
 void
