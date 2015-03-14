@@ -98,7 +98,7 @@ OFSwitch13NetDevice::~OFSwitch13NetDevice ()
   NS_LOG_FUNCTION (this);
 }
 
-uint32_t
+Ptr<OFSwitch13Port> 
 OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 {
   NS_LOG_FUNCTION (this << portDevice);
@@ -124,7 +124,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   std::pair<uint32_t, Ptr<OFSwitch13Port> > entry (ofPort->GetPortNo (), ofPort);
   m_portsByNo.insert (entry);
 
-  return ofPort->GetPortNo ();
+  return ofPort;
 }
 
 void

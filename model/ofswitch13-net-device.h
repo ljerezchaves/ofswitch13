@@ -70,9 +70,9 @@ public:
    * OpenFlow deals with ethernet frames). Also, the port device that is being
    * added as switch port must _not_ have an IP address.
    * \param portDevice The NetDevice port to add.
-   * \return 0 in case of errors, otherwise the port number (>= 1).
+   * \return The OFSwitch13Port created.
    */
-  uint32_t AddSwitchPort (Ptr<NetDevice> portDevice);
+  Ptr<OFSwitch13Port> AddSwitchPort (Ptr<NetDevice> portDevice);
 
   /**
    * Called when a packet is received on one of the switch's ports. This method
