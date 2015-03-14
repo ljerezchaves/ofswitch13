@@ -86,6 +86,15 @@ class OFSwitch13NetDevice;
 class OFSwitch13Controller;
 
 /**
+ * TracedCallback signature for sending packets from CsmaNetDevice to OpenFlow
+ * pipeline.
+ * \attention The packet can be modified by the OpenFlow pipeline.
+ * \param netdev The underlying CsmaNetDevice switch port.
+ * \param packet The packet.
+ */
+typedef void (*OpenFlowCallback) (Ptr<Packet> packet);
+
+/**
  * \ingroup ofswitch13
  * Create an internal ofsoftswitch13 buffer from ns3::Packet. Takes a
  * Ptr<Packet> and generates a buffer (ofpbuf*) from it, loading the packet

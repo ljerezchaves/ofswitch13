@@ -45,16 +45,6 @@ class OFSwitch13NetDevice : public NetDevice
 {
 public:
   /**
-   * TracedCallback signature for sending packets from CsmaNetDevice to OpenFlow pipeline.
-   * CsmaNetDevice with OpenFlow datapath.
-   * \attention The packet can be modified by the OpenFlow pipeline.
-   * \param netdev The underlying CsmaNetDevice switch port.
-   * \param packet The packet.
-   */
-  typedef void (*OpenFlowCallback) 
-    (Ptr<NetDevice> netdev, Ptr<Packet> packet);
-
-  /**
    * Register this type.
    * \return The object TypeId.
    */
