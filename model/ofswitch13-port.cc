@@ -30,10 +30,12 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Port);
 
 OFSwitch13Port::OFSwitch13Port ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 OFSwitch13Port::~OFSwitch13Port ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 void
