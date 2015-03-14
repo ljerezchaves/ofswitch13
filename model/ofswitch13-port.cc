@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -32,12 +34,34 @@
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Port");
+NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Port);
+
+OFSwitch13Port::OFSwitch13Port ()
+{
+}
+
+OFSwitch13Port::~OFSwitch13Port ()
+{
+}
+
+void
+OFSwitch13Port::DoDispose ()
+{
+  NS_LOG_FUNCTION (this);
+   
+  m_csmaDev = 0;
+  m_openflowDev = 0;
+  ofl_structs_free_port (m_swPort->conf);
+  free (m_swPort->stats);
+}
 
 OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev, 
                                 Ptr<OFSwitch13NetDevice> openflowDev)
   : m_csmaDev (csmaDev),
     m_openflowDev (openflowDev)
 {
+  NS_LOG_FUNCTION (this << csmaDev << openflowDev);
+
   m_portNo = ++(dp->ports_num);
   m_swPort = &dp->ports[m_portNo];
 
@@ -68,10 +92,10 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
 
   // To avoid a null check failure in
   // dp_ports_handle_stats_request_port (), we are pointing
-  // m_swPort->netdev to ns3::NetDevice, but it will not be used.
+  // m_swPort->netdev to ns3::CsmaNetDevice, but it will not be used.
   m_swPort->netdev = (struct netdev*)PeekPointer (csmaDev);
   m_swPort->max_queues = NETDEV_MAX_QUEUES;
-  m_swPort->num_queues = 0; // No queue support by now
+  m_swPort->num_queues = 0; // FIXME No queue support by now
   m_swPort->created = time_msec ();
 
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
@@ -79,12 +103,14 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   list_push_back (&dp->port_list, &m_swPort->node);
 }
 
-OFSwitch13Port::~OFSwitch13Port ()
+TypeId 
+OFSwitch13Port::GetTypeId (void) 
 {
-  m_csmaDev = 0;
-  m_openflowDev = 0;
-  ofl_structs_free_port (m_swPort->conf);
-  free (m_swPort->stats);
+  static TypeId tid = TypeId ("ns3::OFSwitch13Port") 
+    .SetParent<Object> ()
+    .AddConstructor<OFSwitch13Port> ()
+  ;
+  return tid; 
 }
 
 uint32_t
@@ -154,7 +180,7 @@ OFSwitch13Port::PortUpdateState ()
 void
 OFSwitch13Port::Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << packet);
 
   // Check port configuration.
   if (m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
@@ -171,6 +197,13 @@ OFSwitch13Port::Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet)
   // m_swPortRxTrace (packet, this);
   
   m_openflowDev->ReceiveFromSwitchPort (packet, m_portNo);
+}
+
+bool
+OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
+{
+  NS_LOG_FUNCTION (this << packet);
+  return true;
 }
 
 } // namespace ns3

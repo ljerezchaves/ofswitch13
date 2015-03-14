@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -203,9 +205,12 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
     }
 
   // Create the port for this device
-  Ptr<OFSwitch13Port> ofPort = Create<OFSwitch13Port> (m_datapath, csmaPortDevice, this);
-  std::pair<uint32_t, Ptr<OFSwitch13Port> > noEntry (ofPort->m_portNo, ofPort);
-  m_portsByNo.insert (noEntry);
+  Ptr<OFSwitch13Port> ofPort;
+  ofPort = CreateObject<OFSwitch13Port> (m_datapath, csmaPortDevice, this);
+ 
+  // Save pointer for further use
+  std::pair<uint32_t, Ptr<OFSwitch13Port> > entry (ofPort->m_portNo, ofPort);
+  m_portsByNo.insert (entry);
 
   // Notify the controller that this port has been added
   ofl_msg_port_status msg;
@@ -215,7 +220,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   dp_send_message (m_datapath, (ofl_msg_header*)&msg, 0);
 
   // Register a trace sink at OFSwitch13Port to get packets from CsmaNetDevice.
-  csmaPortDevice->TraceConnectWithoutContext ("OpenFlowRx", 
+  csmaPortDevice->TraceConnectWithoutContext ("OpenFlowRx",
       MakeCallback (&OFSwitch13Port::Receive, ofPort));
   return ofPort->m_portNo;
 }

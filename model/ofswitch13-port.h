@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -44,13 +46,17 @@ class OFSwitch13NetDevice;
  * NetDevice and the pointer to ofsoftswitch internal sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
  */
-class OFSwitch13Port : public SimpleRefCount<OFSwitch13Port>
+class OFSwitch13Port : public Object
 {
   friend class OFSwitch13NetDevice;
 
 public:
+  OFSwitch13Port ();            //!< Default constructor
+  virtual ~OFSwitch13Port ();   //!< Dummy destructor, see DoDipose
+  void DoDispose ();            //!< Destructor implementation
+
   /**
-   * Create and populate a new datapath port.
+   * Complete Constructor. Create and populate a new datapath port.
    * \see ofsoftswitch new_port () at udatapath/dp_ports.c
    * \param dp The datapath.
    * \param csmaDev The underlying CsmaNetDevice.
@@ -59,8 +65,11 @@ public:
   OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev, 
                   Ptr<OFSwitch13NetDevice> openflowDev);
 
-  /** Default destructor */
-  ~OFSwitch13Port ();
+  /**
+   * Register this type.
+   * \return The object TypeId.
+   */
+  static TypeId GetTypeId (void);
 
 private:
   /**
@@ -84,9 +93,20 @@ private:
    * the packet to the OpenFlow pipeline.
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
    * \param sender The underlying NetDevice where the packet was received on.
-   * \param packet The Packet itself.
+   * \param packet The received packet.
    */
   void Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet);
+
+  /**
+   * Called when a packet is received on the underlying CsmaNetDevice. 
+   * This method is a trace sink for the OpenFlowRx trace source at
+   * CsmaNetDevice. It will check port configuration, update counter and send
+   * the packet to the OpenFlow pipeline.
+   * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
+   * \param packet The Packet to send.
+   * \param queueNo The queue to use.
+   */
+  bool Send (Ptr<Packet> packet, uint32_t queueNo);
 
   uint32_t       m_portNo; //!< Port number
   sw_port*       m_swPort; //!< Pointer to datapath sw_port

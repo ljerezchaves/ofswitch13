@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -39,8 +41,7 @@ namespace ns3 {
 
 class OFSwitch13Port;
 
-/** Structure to map port number to port information. */
-typedef std::map<uint32_t, Ptr<OFSwitch13Port> > PortNoMap_t;
+
 
 /**
  * \ingroup ofswitch13
@@ -324,6 +325,9 @@ private:
    */
   TracedCallback<Ptr<const Packet> > m_meterDropTrace; 
   
+  
+  /** Structure to map port number to port information. */
+  typedef std::map<uint32_t, Ptr<OFSwitch13Port> > PortNoMap_t;
 
   /** Structure to save packets, indexed by its uid. */
   typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;
