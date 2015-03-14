@@ -21,19 +21,11 @@
 #ifndef OFSWITCH13_PORT_H
 #define OFSWITCH13_PORT_H
 
-#include <errno.h>
-
 #include "ns3/object.h"
 #include "ns3/net-device.h"
-#include "ns3/mac48-address.h"
-#include "ns3/bridge-channel.h"
 #include "ns3/csma-net-device.h"
-#include "ns3/node.h"
 #include "ns3/packet.h"
-#include "ns3/socket.h"
-#include "ns3/simple-ref-count.h"
 #include "ns3/traced-callback.h"
-
 #include "ofswitch13-interface.h"
 
 namespace ns3 {
@@ -43,14 +35,12 @@ class OFSwitch13NetDevice;
 /**
  * \ingroup ofswitch13
  *
- * A OpenFlow switch port, saving metadata as the port number, the pointer to
- * the ns-3 underlying NetDevice, the pointer to OpenFlow NetDevice and to the
- * ofsoftswitch13 internal sw_port structure.
+ * A OpenFlow switch port, interconnecting the ns-3 underlying CsmaNetDevice to
+ * the OpenFlow OFSwitch13NetDevice. It handles the ofsoftswitch13 internal
+ * sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
- *
- * \attention Each underlying NetDevice used as port must only be assigned a
- * Mac Address.  adding an Ipv4 or Ipv6 layer to it will cause an error. It
- * also must support a SendFrom call.
+ * \attention Each underlying CsmaNetDevice used as port must only be assigned
+ * a Mac Address. Adding an Ipv4 or Ipv6 layer to it will cause an error.
  */
 class OFSwitch13Port : public Object
 {
@@ -116,6 +106,11 @@ private:
    */
   void Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet);
 
+  /** Trace source fired when a packet arrives at this switch port. */
+  TracedCallback<Ptr<const Packet> > m_rxTrace; 
+
+  /** Trace source fired when a packet will be sent over this switch port. */
+  TracedCallback<Ptr<const Packet> > m_txTrace; 
 
   uint32_t                  m_portNo;       //!< Port number
   sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port

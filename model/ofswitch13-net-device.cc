@@ -21,16 +21,6 @@
 #include "ofswitch13-net-device.h"
 #include "ofswitch13-interface.h"
 
-#include "ns3/simulator.h"
-#include "ns3/integer.h"
-#include "ns3/uinteger.h"
-#include "ns3/log.h"
-#include "ns3/string.h"
-#include "ns3/ethernet-header.h"
-#include "ns3/ethernet-trailer.h"
-#include "ns3/tcp-header.h"
-#include "ns3/inet-socket-address.h"
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13NetDevice");
@@ -146,17 +136,6 @@ OFSwitch13NetDevice::GetTypeId (void)
                    StringValue ("none"),
                    MakeStringAccessor (&OFSwitch13NetDevice::SetLibLogLevel),
                    MakeStringChecker ())
-
-    .AddTraceSource ("SwitchPortRx", 
-                     "Trace source indicating a packet "
-                     "received at any physical switch port",
-                     MakeTraceSourceAccessor (&OFSwitch13NetDevice::m_swPortRxTrace),
-                     "ns3::OFSwitch13NetDevice::PacketPortCallback")
-    .AddTraceSource ("SwitchPortTx", 
-                     "Trace source indicating a packet "
-                     "transmitted at any physical switch port",
-                     MakeTraceSourceAccessor (&OFSwitch13NetDevice::m_swPortTxTrace),
-                     "ns3::OFSwitch13NetDevice::PacketPortCallback")
     .AddTraceSource ("MeterDrop", 
                      "Trace source indicating a packet dropped by meter band",
                      MakeTraceSourceAccessor (&OFSwitch13NetDevice::m_meterDropTrace),

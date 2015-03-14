@@ -21,19 +21,11 @@
 #ifndef OFSWITCH13_NET_DEVICE_H
 #define OFSWITCH13_NET_DEVICE_H
 
-#include <errno.h>
-
-#include "ns3/object.h"
-#include "ns3/net-device.h"
-#include "ns3/mac48-address.h"
-#include "ns3/bridge-channel.h"
-#include "ns3/csma-net-device.h"
-#include "ns3/node.h"
-#include "ns3/packet.h"
 #include "ns3/socket.h"
-#include "ns3/simple-ref-count.h"
-#include "ns3/traced-callback.h"
-
+#include "ns3/uinteger.h"
+#include "ns3/inet-socket-address.h"
+#include "ns3/string.h"
+#include "ns3/tcp-header.h"
 #include "ofswitch13-interface.h"
 #include "ofswitch13-port.h"
 
@@ -61,14 +53,6 @@ public:
    */
   typedef void (*OpenFlowCallback) 
     (Ptr<NetDevice> netdev, Ptr<Packet> packet);
-
-  /**
-   * TracedCallback signature for OpenFlow packets input/output at switch ports.
-   * \param packet The Packet.
-   * \param port The OpenFlow port.
-   */
-  typedef void (*PacketPortCallback) 
-    (Ptr<const OFSwitch13Port> port, Ptr<const Packet> packet);
 
   /**
    * Register this type.
@@ -301,32 +285,14 @@ private:
    */
   static bool CopyTags (Ptr<const Packet> srcPkt, Ptr<const Packet> dstPkt);
 
-
-  /**
-   * The trace source fired when a packet arrives at a switch port, before
-   * being sent to OpenFlow pipeline.
-   */
-  TracedCallback<Ptr<const Packet>, Ptr<const OFSwitch13Port> > m_swPortRxTrace; 
-
-  /**
-   * The trace source fired when the OpenFlow pipeline sent a packets over a
-   * switch port.
-   */
-  TracedCallback<Ptr<const Packet>, Ptr<const OFSwitch13Port> > m_swPortTxTrace; 
-  
-  /**
-   * The trace source fired when the OpenFlow pipeline drops a packet due to
-   * meter band.
-   */
+  /** Trace source fired when the OpenFlow meter band drops a packet */ 
   TracedCallback<Ptr<const Packet> > m_meterDropTrace; 
-  
-  
+   
   /** Structure to map port number to port information. */
   typedef std::map<uint32_t, Ptr<OFSwitch13Port> > PortNoMap_t;
 
   /** Structure to save packets, indexed by its uid. */
   typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;
-
 
   uint64_t        m_dpId;         //!< This datapath id
   Ptr<Node>       m_node;         //!< Node this device is installed on

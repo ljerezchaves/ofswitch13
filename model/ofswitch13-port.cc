@@ -18,18 +18,10 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
-#include "ofswitch13-net-device.h"
-#include "ofswitch13-interface.h"
-
-#include "ns3/simulator.h"
-#include "ns3/integer.h"
-#include "ns3/uinteger.h"
-#include "ns3/log.h"
-#include "ns3/string.h"
 #include "ns3/ethernet-header.h"
 #include "ns3/ethernet-trailer.h"
-#include "ns3/tcp-header.h"
-#include "ns3/inet-socket-address.h"
+#include "ofswitch13-net-device.h"
+#include "ofswitch13-port.h"
 
 namespace ns3 {
 
@@ -61,6 +53,14 @@ OFSwitch13Port::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::OFSwitch13Port") 
     .SetParent<Object> ()
     .AddConstructor<OFSwitch13Port> ()
+    .AddTraceSource ("SwitchPortRx", 
+                     "Trace source indicating a packet received at this switch port",
+                     MakeTraceSourceAccessor (&OFSwitch13Port::m_rxTrace),
+                     "ns3::Packet::TracedCallback")
+    .AddTraceSource ("SwitchPortTx", 
+                     "Trace source indicating a packet transmitted at this switch port",
+                     MakeTraceSourceAccessor (&OFSwitch13Port::m_txTrace),
+                     "ns3::Packet::TracedCallback")
   ;
   return tid; 
 }
@@ -105,7 +105,7 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   // m_swPort->netdev to ns3::CsmaNetDevice, but it will not be used.
   m_swPort->netdev = (struct netdev*)PeekPointer (csmaDev);
   m_swPort->max_queues = NETDEV_MAX_QUEUES;
-  m_swPort->num_queues = 0; // FIXME No queue support by now
+  m_swPort->num_queues = 0;     // FIXME No queue support by now
   m_swPort->created = time_msec ();
 
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
@@ -221,9 +221,8 @@ OFSwitch13Port::Receive (Ptr<const NetDevice> sender, Ptr<Packet> packet)
   m_swPort->stats->rx_packets++;
   m_swPort->stats->rx_bytes += packet->GetSize ();
 
-  // Fire RX trace source
-  // m_swPortRxTrace (packet, this);
-  
+  // Fire RX trace source and send the packet to OpenFlow pipeline
+  m_rxTrace (packet);
   m_openflowDev->ReceiveFromSwitchPort (packet, m_portNo);
 }
 
@@ -239,7 +238,7 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
     }
 
   // Fire TX trace source (with complete packet)
-  // m_swPortTxTrace (packet, port);
+  m_txTrace (packet);
   
   // Removing the Ethernet header and trailer from packet, which will be
   // included again by CsmaNetDevice

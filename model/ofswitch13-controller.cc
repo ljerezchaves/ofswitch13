@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -15,8 +17,6 @@
  *
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
-
-#ifdef NS3_OFSWITCH13
 
 #include <wordexp.h>
 #include "ns3/uinteger.h"
@@ -637,4 +637,3 @@ OFSwitch13Controller::SocketPeerError (Ptr<Socket> socket)
 }
 
 } // namespace ns3
-#endif // NS3_OFSWITCH13
