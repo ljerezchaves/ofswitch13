@@ -164,7 +164,7 @@ OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> swtch,
   return DpctlCommand (GetSwitchMetadata (swtch), textCmd);
 }
 
-void 
+void
 OFSwitch13Controller::DpctlSendAndPrint (vconn *swtch, ofl_msg_header *msg)
 {
   NS_LOG_FUNCTION_NOARGS ();

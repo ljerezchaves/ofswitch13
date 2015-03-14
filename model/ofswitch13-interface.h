@@ -92,7 +92,7 @@ class OFSwitch13Controller;
  * \param netdev The underlying CsmaNetDevice switch port.
  * \param packet The packet.
  */
-typedef void (*OpenFlowCallback) (Ptr<Packet> packet);
+typedef void (*OpenFlowCallback)(Ptr<Packet> packet);
 
 /**
  * \ingroup ofswitch13

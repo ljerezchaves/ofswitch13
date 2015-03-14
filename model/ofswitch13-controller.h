@@ -1,7 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2015 University of Campinas (Unicamp)
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -212,15 +212,15 @@ protected:
 
   /** Echo request metadata used by controller. */
   struct EchoInfo
-    {
-      bool waiting;               //!< True when waiting for reply
-      Time send;                  //!< Send time
-      Time recv;                  //!< Received time
-      Ipv4Address destIp;         //!< Destination IPv4
-    
-      EchoInfo (Ipv4Address ip);  //!< Constructor
-      Time GetRtt ();             //!< Compute the echo RTT
-    };
+  {
+    bool waiting;                 //!< True when waiting for reply
+    Time send;                    //!< Send time
+    Time recv;                    //!< Received time
+    Ipv4Address destIp;           //!< Destination IPv4
+
+    EchoInfo (Ipv4Address ip);    //!< Constructor
+    Time GetRtt ();               //!< Compute the echo RTT
+  };
 
   /** Structure to map IPv4 to switch info */
   typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
@@ -259,7 +259,7 @@ private:
    * \param swtch The switch metadata.
    */
   void ScheduleCommand (SwitchInfo swtch, const std::string textCmd);
-  
+
   /** Structure to store echo information */
   typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
 

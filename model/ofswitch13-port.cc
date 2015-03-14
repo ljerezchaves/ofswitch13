@@ -42,32 +42,32 @@ void
 OFSwitch13Port::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
-   
+
   m_csmaDev = 0;
   m_openflowDev = 0;
   ofl_structs_free_port (m_swPort->conf);
   free (m_swPort->stats);
 }
 
-TypeId 
-OFSwitch13Port::GetTypeId (void) 
+TypeId
+OFSwitch13Port::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::OFSwitch13Port") 
+  static TypeId tid = TypeId ("ns3::OFSwitch13Port")
     .SetParent<Object> ()
     .AddConstructor<OFSwitch13Port> ()
-    .AddTraceSource ("SwitchPortRx", 
+    .AddTraceSource ("SwitchPortRx",
                      "Trace source indicating a packet received at this switch port",
                      MakeTraceSourceAccessor (&OFSwitch13Port::m_rxTrace),
                      "ns3::Packet::TracedCallback")
-    .AddTraceSource ("SwitchPortTx", 
+    .AddTraceSource ("SwitchPortTx",
                      "Trace source indicating a packet transmitted at this switch port",
                      MakeTraceSourceAccessor (&OFSwitch13Port::m_txTrace),
                      "ns3::Packet::TracedCallback")
   ;
-  return tid; 
+  return tid;
 }
 
-OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev, 
+OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
                                 Ptr<OFSwitch13NetDevice> openflowDev)
   : m_csmaDev (csmaDev),
     m_openflowDev (openflowDev)
@@ -122,8 +122,8 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
 
   // Register a trace sink at OFSwitch13Port to get packets from CsmaNetDevice.
-  csmaDev->TraceConnectWithoutContext ("OpenFlowRx",
-      MakeCallback (&OFSwitch13Port::Receive, this));
+  csmaDev->TraceConnectWithoutContext (
+    "OpenFlowRx", MakeCallback (&OFSwitch13Port::Receive, this));
 }
 
 uint32_t
@@ -148,13 +148,13 @@ OFSwitch13Port::PortUpdateState ()
 
   if (orig_state != m_swPort->conf->state)
     {
-       NS_LOG_DEBUG ("Port status has changed. Notifying the controller.");
-       ofl_msg_port_status msg;
-       msg.header.type = OFPT_PORT_STATUS;
-       msg.reason = OFPPR_MODIFY;
-       msg.desc = m_swPort->conf;
-       dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
-       return true;
+      NS_LOG_DEBUG ("Port status has changed. Notifying the controller.");
+      ofl_msg_port_status msg;
+      msg.header.type = OFPT_PORT_STATUS;
+      msg.reason = OFPPR_MODIFY;
+      msg.desc = m_swPort->conf;
+      dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
+      return true;
     }
   return false;
 }
@@ -241,7 +241,7 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
 
   // Fire TX trace source (with complete packet)
   m_txTrace (packet);
-  
+
   // Removing the Ethernet header and trailer from packet, which will be
   // included again by CsmaNetDevice
   EthernetTrailer trailer;

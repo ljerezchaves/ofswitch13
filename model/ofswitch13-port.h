@@ -79,7 +79,7 @@ public:
   /**
    * Send a packet over this OpenFlow switch port. It will check port
    * configuration, update counters and send the packet over the underlying
-   * CsmaNetDevice. 
+   * CsmaNetDevice.
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
    * \param packet The Packet to send.
    * \param queueNo The queue to use.
@@ -106,10 +106,10 @@ private:
   void Receive (Ptr<Packet> packet);
 
   /** Trace source fired when a packet arrives at this switch port. */
-  TracedCallback<Ptr<const Packet> > m_rxTrace; 
+  TracedCallback<Ptr<const Packet> > m_rxTrace;
 
   /** Trace source fired when a packet will be sent over this switch port. */
-  TracedCallback<Ptr<const Packet> > m_txTrace; 
+  TracedCallback<Ptr<const Packet> > m_txTrace;
 
   uint32_t                  m_portNo;       //!< Port number
   sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port

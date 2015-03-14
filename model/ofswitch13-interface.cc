@@ -35,7 +35,7 @@ BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
 
   ofpbuf *buffer;
   uint32_t pktSize;
-  
+
   pktSize = packet->GetSize ();
   buffer = ofpbuf_new_with_headroom (bodyRoom, headRoom);
   packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
@@ -50,7 +50,7 @@ PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
   int error;
   uint8_t *buf;
   size_t buf_size;
-  Ptr<Packet> packet; 
+  Ptr<Packet> packet;
   ofpbuf *buffer;
 
   buffer = ofpbuf_new (0);
@@ -70,8 +70,8 @@ PacketFromBuffer (ofpbuf* buffer)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
-  Ptr<Packet> packet; 
-  
+  Ptr<Packet> packet;
+
   packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
   return packet;
 }
@@ -109,10 +109,10 @@ send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
 }
 
 void
-dp_actions_output_port (struct packet *pkt, uint32_t out_port, 
-    uint32_t out_queue, uint16_t max_len, uint64_t cookie)
+dp_actions_output_port (struct packet *pkt, uint32_t out_port,
+                        uint32_t out_queue, uint16_t max_len, uint64_t cookie)
 {
-  OFSwitch13NetDevice::DpActionsOutputPort (pkt, out_port, out_queue, 
+  OFSwitch13NetDevice::DpActionsOutputPort (pkt, out_port, out_queue,
                                             max_len, cookie);
 }
 
