@@ -64,6 +64,7 @@ def build(bld):
     module = bld.create_ns3_module('ofswitch13', ['internet', 'bridge', 'mpi', 'network', 'core', 'stats', 'csma', 'point-to-point', 'applications'])
     module.source = [
         'model/ofswitch13-interface.cc',
+        'model/ofswitch13-port.cc',
         'model/ofswitch13-net-device.cc',
         'model/ofswitch13-controller.cc',
         'model/ofswitch13-learning-controller.cc',
@@ -81,6 +82,7 @@ def build(bld):
     headers.module = 'ofswitch13'
     headers.source = [
         'model/ofswitch13-interface.h',
+        'model/ofswitch13-port.h',
         'model/ofswitch13-net-device.h',
         'model/ofswitch13-controller.h',
         'model/ofswitch13-learning-controller.h',

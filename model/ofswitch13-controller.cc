@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -16,8 +18,6 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
-#ifdef NS3_OFSWITCH13
-
 #include <wordexp.h>
 #include "ns3/uinteger.h"
 #include "ofswitch13-controller.h"
@@ -25,7 +25,7 @@
 
 namespace ns3 {
 
-EchoInfo::EchoInfo (Ipv4Address ip)
+OFSwitch13Controller::EchoInfo::EchoInfo (Ipv4Address ip)
 {
   waiting = true;
   send = Simulator::Now ();
@@ -33,7 +33,7 @@ EchoInfo::EchoInfo (Ipv4Address ip)
 }
 
 Time
-EchoInfo::GetRtt ()
+OFSwitch13Controller::EchoInfo::GetRtt ()
 {
   if (waiting)
     {
@@ -126,31 +126,6 @@ OFSwitch13Controller::GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev)
 }
 
 int
-OFSwitch13Controller::SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg,
-                                    uint32_t xid)
-{
-  char *msg_str = ofl_msg_to_string (msg, NULL);
-  NS_LOG_DEBUG ("TX to switch " << swtch->ipv4 << ": " << msg_str);
-  free (msg_str);
-
-  if (!xid)
-    {
-      xid = GetNextXid ();
-    }
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg (msg, xid);
-
-  // Check for available space in TCP buffer before sending the packet
-  Ptr<Socket> switchSocket = swtch->socket;
-  if (switchSocket->GetTxAvailable () < pkt->GetSize ())
-    {
-      NS_FATAL_ERROR ("Unavailable space to send OpenFlow message");
-    }
-
-  return !switchSocket->Send (pkt);
-}
-
-int
 OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
 {
   // If no TCP connection, schedule the command for further execution
@@ -189,12 +164,13 @@ OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> swtch,
   return DpctlCommand (GetSwitchMetadata (swtch), textCmd);
 }
 
-void
-OFSwitch13Controller::ScheduleCommand (SwitchInfo swtch, const std::string textCmd)
+void 
+OFSwitch13Controller::DpctlSendAndPrint (vconn *swtch, ofl_msg_header *msg)
 {
-  NS_ASSERT (swtch.netdev);
-  std::pair<Ptr<OFSwitch13NetDevice>,std::string> entry (swtch.netdev, textCmd);
-  m_schedCommands.insert (entry);
+  NS_LOG_FUNCTION_NOARGS ();
+
+  SwitchInfo *sw = (SwitchInfo*)swtch;
+  sw->ctrl->SendToSwitch (sw, msg, 0);
 }
 
 /********* Protected methods *********/
@@ -250,6 +226,31 @@ void
 OFSwitch13Controller::ConnectionStarted (SwitchInfo swtch)
 {
   NS_LOG_FUNCTION (this << swtch.ipv4);
+}
+
+int
+OFSwitch13Controller::SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg,
+                                    uint32_t xid)
+{
+  char *msg_str = ofl_msg_to_string (msg, NULL);
+  NS_LOG_DEBUG ("TX to switch " << swtch->ipv4 << ": " << msg_str);
+  free (msg_str);
+
+  if (!xid)
+    {
+      xid = GetNextXid ();
+    }
+
+  Ptr<Packet> pkt = ofs::PacketFromMsg (msg, xid);
+
+  // Check for available space in TCP buffer before sending the packet
+  Ptr<Socket> switchSocket = swtch->socket;
+  if (switchSocket->GetTxAvailable () < pkt->GetSize ())
+    {
+      NS_FATAL_ERROR ("Unavailable space to send OpenFlow message");
+    }
+
+  return !switchSocket->Send (pkt);
 }
 
 int
@@ -636,5 +637,12 @@ OFSwitch13Controller::SocketPeerError (Ptr<Socket> socket)
   NS_LOG_WARN (this << socket);
 }
 
+void
+OFSwitch13Controller::ScheduleCommand (SwitchInfo swtch, const std::string textCmd)
+{
+  NS_ASSERT (swtch.netdev);
+  std::pair<Ptr<OFSwitch13NetDevice>,std::string> entry (swtch.netdev, textCmd);
+  m_schedCommands.insert (entry);
+}
+
 } // namespace ns3
-#endif // NS3_OFSWITCH13

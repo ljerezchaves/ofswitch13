@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -33,24 +35,6 @@ class OFSwitch13Controller;
 
 /**
  * \ingroup ofswitch13
- * \brief Echo request metadata used by controller.
- */
-struct EchoInfo
-{
-  bool waiting;               //!< True when waiting for reply
-  Time send;                  //!< Send time
-  Time recv;                  //!< Received time
-  Ipv4Address destIp;         //!< Destination IPv4
-
-  EchoInfo (Ipv4Address ip);  //!< Constructor
-  Time GetRtt ();             //!< Compute the echo RTT
-};
-
-/** Structure to store echo information */
-typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
-
-/**
- * \ingroup ofswitch13
  * \brief Switch metadata used by controller
  */
 struct SwitchInfo
@@ -65,12 +49,9 @@ struct SwitchInfo
   InetSocketAddress GetInet ();     //!< Get Inet address conversion
 };
 
-/** Structure to map IPv4 to switch info */
-typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
-
 /**
  * \ingroup ofswitch13
- * \brief An OpenFlow 1.3 controller base class for OFSwitch13NetDevice devices
+ * \brief An OpenFlow 1.3 controller base class for OFSwitch13NetDevice devices.
  */
 class OFSwitch13Controller : public Application
 {
@@ -119,13 +100,15 @@ public:
   int DpctlCommand (Ptr<OFSwitch13NetDevice> swtch, const std::string textCmd);
 
   /**
-   * Send a OFLib message to a registered switch.
-   * \param swtch The switch to receive the message.
+   * Overriding ofsoftswitch13 dpctl_send_and_print  and
+   * dpctl_transact_and_print weak functions from utilities/dpctl.c. Send a
+   * message from controller to switch.
+   * \param swtch The SwitchInfo pointer, sent from controller to
+   * dpctl_exec_ns3_command function and get back here to proper identify the
+   * controller object.
    * \param msg The OFLib message to send.
-   * \param xid The transaction id to use.
-   * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg, uint32_t xid = 0);
+  static void DpctlSendAndPrint (vconn *swtch, ofl_msg_header *msg);
 
 protected:
   // inherited from Application
@@ -144,6 +127,15 @@ protected:
    * \param swtch The connected switch.
    */
   virtual void ConnectionStarted (SwitchInfo swtch);
+
+  /**
+   * Send a OFLib message to a registered switch.
+   * \param swtch The switch to receive the message.
+   * \param msg The OFLib message to send.
+   * \param xid The transaction id to use.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  int SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg, uint32_t xid = 0);
 
   /**
    * Send an echo request message to switch, and wait for a reply.
@@ -218,6 +210,20 @@ protected:
   HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
   //\}
 
+  /** Echo request metadata used by controller. */
+  struct EchoInfo
+    {
+      bool waiting;               //!< True when waiting for reply
+      Time send;                  //!< Send time
+      Time recv;                  //!< Received time
+      Ipv4Address destIp;         //!< Destination IPv4
+    
+      EchoInfo (Ipv4Address ip);  //!< Constructor
+      Time GetRtt ();             //!< Compute the echo RTT
+    };
+
+  /** Structure to map IPv4 to switch info */
+  typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
   SwitchsMap_t m_switchesMap; //!< Registered switches metadata's
 
 private:
@@ -253,6 +259,9 @@ private:
    * \param swtch The switch metadata.
    */
   void ScheduleCommand (SwitchInfo swtch, const std::string textCmd);
+  
+  /** Structure to store echo information */
+  typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
 
   /** Multimap saving pair <pointer to device / dpctl command str> */
   typedef std::multimap<Ptr<OFSwitch13NetDevice>, std::string> DevCmdMap_t;
