@@ -131,8 +131,6 @@ public:
   virtual bool SupportsSendFrom () const;
   // Inherited from NetDevice base class
 
-  /** ofsoftswitch13 overriding and callback functions. */
-  //\{
   /**
    * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
    * from udatapath/datapath.c. Sends the given OFLib buffer message to the
@@ -192,7 +190,6 @@ public:
    */
   static void
   BufferRetrieveCallback (struct packet *pkt);
-  //\}
 
 private:
   virtual void DoDispose (void);
