@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -16,18 +18,14 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
-#ifdef NS3_OFSWITCH13
-
 #include <wordexp.h>
 #include "ns3/uinteger.h"
 #include "ofswitch13-controller.h"
 #include "ofswitch13-net-device.h"
 
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13Controller");
-
 namespace ns3 {
 
-EchoInfo::EchoInfo (Ipv4Address ip)
+OFSwitch13Controller::EchoInfo::EchoInfo (Ipv4Address ip)
 {
   waiting = true;
   send = Simulator::Now ();
@@ -35,7 +33,7 @@ EchoInfo::EchoInfo (Ipv4Address ip)
 }
 
 Time
-EchoInfo::GetRtt ()
+OFSwitch13Controller::EchoInfo::GetRtt ()
 {
   if (waiting)
     {
@@ -55,6 +53,7 @@ SwitchInfo::GetInet ()
 }
 
 /********** Public methods ***********/
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13Controller");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller);
 
 OFSwitch13Controller::OFSwitch13Controller ()
@@ -91,6 +90,7 @@ OFSwitch13Controller::DoDispose ()
   m_serverSocket = 0;
   m_switchesMap.clear ();
   m_echoMap.clear ();
+  m_schedCommands.clear ();
 
   Application::DoDispose ();
 }
@@ -109,40 +109,32 @@ OFSwitch13Controller::RegisterSwitchMetadata (SwitchInfo swInfo)
     }
 }
 
-void
-OFSwitch13Controller::SetConnectionCallback (SwitchConnectionCallback_t cb)
+SwitchInfo
+OFSwitch13Controller::GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev)
 {
-  m_connectionCallback = cb;
-}
+  NS_LOG_FUNCTION (dev);
 
-int
-OFSwitch13Controller::SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg,
-                                    uint32_t xid)
-{
-  char *msg_str = ofl_msg_to_string (msg, NULL);
-  NS_LOG_DEBUG ("TX to switch: " << msg_str);
-  free (msg_str);
-
-  if (!xid)
+  SwitchsMap_t::iterator it;
+  for (it = m_switchesMap.begin (); it != m_switchesMap.end (); it++)
     {
-      xid = GetNextXid ();
+      if (it->second.netdev == dev)
+        {
+          return it->second;
+        }
     }
-
-  Ptr<Packet> pkt = ofs::PacketFromMsg (msg, xid);
-
-  // Check for available space in TCP buffer before sending the packet
-  Ptr<Socket> switchSocket = swtch->socket;
-  if (switchSocket->GetTxAvailable () < pkt->GetSize ())
-    {
-      NS_FATAL_ERROR ("Unavailable space to send OpenFlow message");
-    }
-  
-  return !switchSocket->Send (pkt);
+  return SwitchInfo ();
 }
 
 int
 OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
 {
+  // If no TCP connection, schedule the command for further execution
+  if (swtch.socket == NULL)
+    {
+      ScheduleCommand (swtch, textCmd);
+      return -1;
+    }
+
   int error = 0;
   char **argv;
   size_t argc;
@@ -165,6 +157,21 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
   return error;
 }
 
+int
+OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> swtch,
+                                    const std::string textCmd)
+{
+  return DpctlCommand (GetSwitchMetadata (swtch), textCmd);
+}
+
+void
+OFSwitch13Controller::DpctlSendAndPrint (vconn *swtch, ofl_msg_header *msg)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  SwitchInfo *sw = (SwitchInfo*)swtch;
+  sw->ctrl->SendToSwitch (sw, msg, 0);
+}
 
 /********* Protected methods *********/
 void
@@ -177,7 +184,7 @@ OFSwitch13Controller::StartApplication ()
     {
       m_serverSocket = Socket::CreateSocket (GetNode (),
                                              TcpSocketFactory::GetTypeId ());
-      m_serverSocket->SetAttribute ("SegmentSize", UintegerValue (2960));
+      m_serverSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
       m_serverSocket->Bind (InetSocketAddress (Ipv4Address::GetAny (), m_port));
       m_serverSocket->Listen ();
     }
@@ -213,6 +220,37 @@ uint32_t
 OFSwitch13Controller::GetNextXid ()
 {
   return ++m_xid;
+}
+
+void
+OFSwitch13Controller::ConnectionStarted (SwitchInfo swtch)
+{
+  NS_LOG_FUNCTION (this << swtch.ipv4);
+}
+
+int
+OFSwitch13Controller::SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg,
+                                    uint32_t xid)
+{
+  char *msg_str = ofl_msg_to_string (msg, NULL);
+  NS_LOG_DEBUG ("TX to switch " << swtch->ipv4 << ": " << msg_str);
+  free (msg_str);
+
+  if (!xid)
+    {
+      xid = GetNextXid ();
+    }
+
+  Ptr<Packet> pkt = ofs::PacketFromMsg (msg, xid);
+
+  // Check for available space in TCP buffer before sending the packet
+  Ptr<Socket> switchSocket = swtch->socket;
+  if (switchSocket->GetTxAvailable () < pkt->GetSize ())
+    {
+      NS_FATAL_ERROR ("Unavailable space to send OpenFlow message");
+    }
+
+  return !switchSocket->Send (pkt);
 }
 
 int
@@ -457,38 +495,46 @@ void
 OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-  
+  static Ptr<Packet> pendingPacket = 0;
+  static uint32_t pendingBytes = 0;
+  static Address from;
+
   do
     {
-      // At least 8 bytes (OpenFlow header) must be available for read
-      uint32_t rxBytesAvailable = socket->GetRxAvailable ();
-      NS_ASSERT_MSG (rxBytesAvailable >= 8, "At least 8 bytes must be available for read");
-
-      // Receive the OpenFlow header
-      Address from;
-      Ptr<Packet> packet = socket->RecvFrom (sizeof (ofp_header), 0, from);
-      
-      // Get the OpenFlow message size
-      ofp_header header;
-      packet->CopyData ((uint8_t*)&header, sizeof (ofp_header));
-      uint32_t remainingBytes = ntohs (header.length) - sizeof (ofp_header); 
-     
-      // Receive the remaining OpenFlow message
-      if (remainingBytes)
+      if (!pendingBytes)
         {
-          NS_ASSERT_MSG (socket->GetRxAvailable () >= remainingBytes, 
-                         "No support for OpenFlow packets fragmented by TCP.");
-          packet->AddAtEnd (socket->Recv (remainingBytes, 0));
+          // Starting with a new OpenFlow message.
+          // At least 8 bytes (OpenFlow header) must be available for read
+          uint32_t rxBytesAvailable = socket->GetRxAvailable ();
+          NS_ASSERT_MSG (rxBytesAvailable >= 8, "At least 8 bytes must be available for read");
+
+          // Receive the OpenFlow header
+          pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
+
+          // Get the OpenFlow message size
+          ofp_header header;
+          pendingPacket->CopyData ((uint8_t*)&header, sizeof (ofp_header));
+          pendingBytes = ntohs (header.length) - sizeof (ofp_header);
+        }
+
+      // Receive the remaining OpenFlow message
+      if (pendingBytes)
+        {
+          if (socket->GetRxAvailable () < pendingBytes)
+            {
+              // We need to wait for more bytes
+              return;
+            }
+          pendingPacket->AddAtEnd (socket->Recv (pendingBytes, 0));
         }
 
       if (InetSocketAddress::IsMatchingType (from))
         {
           Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
-          NS_LOG_LOGIC ("At time "
-                        << Simulator::Now ().GetSeconds ()
-                        << "s the OpenFlow Controller received "
-                        <<  packet->GetSize () << " bytes from switch " << ipv4
-                        << " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
+          NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
+                        "s the OpenFlow Controller received " <<  pendingPacket->GetSize () <<
+                        " bytes from switch " << ipv4 <<
+                        " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
 
           uint32_t xid;
           ofl_msg_header *msg;
@@ -498,12 +544,12 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
           NS_ASSERT_MSG (it != m_switchesMap.end (), "Unknown switch " << from);
 
           // Get the openflow buffer, unpack the message and send to handler
-          ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
+          ofpbuf *buffer = ofs::BufferFromPacket (pendingPacket, pendingPacket->GetSize ());
           error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, &xid, NULL);
           if (!error)
             {
               char *msg_str = ofl_msg_to_string (msg, NULL);
-              NS_LOG_DEBUG ("Rx from switch: " << msg_str);
+              NS_LOG_DEBUG ("RX from switch " << ipv4 << ": " << msg_str);
               free (msg_str);
 
               error = ReceiveFromSwitch (it->second, msg, xid);
@@ -519,9 +565,12 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
             }
           ofpbuf_delete (buffer);
         }
-    
-    // Repeat until socket buffer gets emtpy
-    } while (socket->GetRxAvailable ());
+      pendingPacket = 0;
+      pendingBytes = 0;
+
+      // Repeat until socket buffer gets emtpy
+    }
+  while (socket->GetRxAvailable ());
 }
 
 bool
@@ -547,6 +596,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
   SwitchInfo *swInfo = &it->second;
   socket->SetRecvCallback (MakeCallback (&OFSwitch13Controller::SocketRead, this));
 
+  // Update other switch information
   swInfo->ctrl = this;
   swInfo->socket = socket;
   swInfo->port = InetSocketAddress::ConvertFrom (from).GetPort ();
@@ -562,11 +612,17 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
 
   SendBarrierRequest (*swInfo);
 
-  // Callback to notify that a new TCP connection has been established.
-  if (!m_connectionCallback.IsNull ())
+  // Executing any scheduled commands for this switch
+  std::pair <DevCmdMap_t::iterator, DevCmdMap_t::iterator> ret;
+  ret = m_schedCommands.equal_range (swInfo->netdev);
+  for (DevCmdMap_t::iterator it = ret.first; it != ret.second; it++)
     {
-      m_connectionCallback (*swInfo);
+      DpctlCommand (*swInfo, it->second);
     }
+  m_schedCommands.erase (ret.first, ret.second);
+
+  // Notify the connection started
+  ConnectionStarted (*swInfo);
 }
 
 void
@@ -581,5 +637,12 @@ OFSwitch13Controller::SocketPeerError (Ptr<Socket> socket)
   NS_LOG_WARN (this << socket);
 }
 
+void
+OFSwitch13Controller::ScheduleCommand (SwitchInfo swtch, const std::string textCmd)
+{
+  NS_ASSERT (swtch.netdev);
+  std::pair<Ptr<OFSwitch13NetDevice>,std::string> entry (swtch.netdev, textCmd);
+  m_schedCommands.insert (entry);
+}
+
 } // namespace ns3
-#endif // NS3_OFSWITCH13

@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -30,25 +32,6 @@ namespace ns3 {
 
 class OFSwitch13NetDevice;
 class OFSwitch13Controller;
-class OFSwitch13Helper;
-
-/**
- * \ingroup ofswitch13
- * \brief Echo request metadata used by controller.
- */
-struct EchoInfo
-{
-  bool waiting;               //!< True when waiting for reply
-  Time send;                  //!< Send time
-  Time recv;                  //!< Received time
-  Ipv4Address destIp;         //!< Destination IPv4
-
-  EchoInfo (Ipv4Address ip);  //!< Constructor
-  Time GetRtt ();             //!< Compute the echo RTT
-};
-
-/** Structure to store echo information */
-typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
 
 /**
  * \ingroup ofswitch13
@@ -66,24 +49,15 @@ struct SwitchInfo
   InetSocketAddress GetInet ();     //!< Get Inet address conversion
 };
 
-/** Structure to map IPv4 to switch info */
-typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
-
 /**
  * \ingroup ofswitch13
- * \brief An OpenFlow 1.3 controller base class for OFSwitch13NetDevice devices
+ * \brief An OpenFlow 1.3 controller base class for OFSwitch13NetDevice devices.
  */
 class OFSwitch13Controller : public Application
 {
 public:
   OFSwitch13Controller ();          //!< Default constructor
   virtual ~OFSwitch13Controller (); //!< Dummy destructor, see DoDispose.
-
-  /**
-   * Switch TCP connection started callback
-   * \param The switch metadata that initiated a connection with controller
-   */
-  typedef Callback<void, SwitchInfo> SwitchConnectionCallback_t;
 
   /**
    * Register this type.
@@ -103,11 +77,11 @@ public:
   void RegisterSwitchMetadata (SwitchInfo swInfo);
 
   /**
-   * \brief Register a TCP connection callback
-   * \param cb Callback to invoke whenever a switch starts a TCP connection to
-   * this controller
+   * Look for registered switch metadata from OpenFlow device.
+   * \param dev The OpenFlow NetDevice.
+   * \return The switch metadata information.
    */
-  void SetConnectionCallback (SwitchConnectionCallback_t cb);
+  SwitchInfo GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev);
 
   /**
    * \brief Execute a dpctl command to interact with the switch.
@@ -118,13 +92,23 @@ public:
   int DpctlCommand (SwitchInfo swtch, const std::string textCmd);
 
   /**
-   * Send a OFLib message to a registered switch.
-   * \param swtch The switch to receive the message.
-   * \param msg The OFLib message to send.
-   * \param xid The transaction id to use.
+   * \brief Execute a dpctl command to interact with the switch.
+   * \param swtch The target switch device
+   * \param textCmd The dpctl command to create the message.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg, uint32_t xid = 0);
+  int DpctlCommand (Ptr<OFSwitch13NetDevice> swtch, const std::string textCmd);
+
+  /**
+   * Overriding ofsoftswitch13 dpctl_send_and_print  and
+   * dpctl_transact_and_print weak functions from utilities/dpctl.c. Send a
+   * message from controller to switch.
+   * \param swtch The SwitchInfo pointer, sent from controller to
+   * dpctl_exec_ns3_command function and get back here to proper identify the
+   * controller object.
+   * \param msg The OFLib message to send.
+   */
+  static void DpctlSendAndPrint (vconn *swtch, ofl_msg_header *msg);
 
 protected:
   // inherited from Application
@@ -135,6 +119,23 @@ protected:
    * \return The next (in sequence) transaction ID for this controller.
    */
   uint32_t GetNextXid ();
+
+  /**
+   * \brief Function invoked whenever a switch starts a TCP connection to this
+   * controller. Derived classes can override this function to implement any
+   * relevant logic.
+   * \param swtch The connected switch.
+   */
+  virtual void ConnectionStarted (SwitchInfo swtch);
+
+  /**
+   * Send a OFLib message to a registered switch.
+   * \param swtch The switch to receive the message.
+   * \param msg The OFLib message to send.
+   * \param xid The transaction id to use.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  int SendToSwitch (SwitchInfo *swtch, ofl_msg_header *msg, uint32_t xid = 0);
 
   /**
    * Send an echo request message to switch, and wait for a reply.
@@ -172,20 +173,57 @@ protected:
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  ofl_err HandleEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
-  ofl_err HandleEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid) = 0;
-  virtual ofl_err HandleError (ofl_msg_error *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandlePortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint32_t xid);
-  virtual ofl_err HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
+  ofl_err
+  HandleEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
+
+  ofl_err
+  HandleEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
+
+  virtual ofl_err
+  HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid) = 0;
+
+  virtual ofl_err
+  HandleError (ofl_msg_error *msg, SwitchInfo swtch, uint32_t xid);
+
+  virtual ofl_err
+  HandleFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint32_t xid);
+
+  virtual ofl_err
+  HandleGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
+
+  virtual ofl_err
+  HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid);
+
+  virtual ofl_err
+  HandlePortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint32_t xid);
+
+  virtual ofl_err
+  HandleAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint32_t xid);
+
+  virtual ofl_err
+  HandleMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint32_t xid);
+
+  virtual ofl_err
+  HandleRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint32_t xid);
+
+  virtual ofl_err
+  HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
   //\}
 
+  /** Echo request metadata used by controller. */
+  struct EchoInfo
+  {
+    bool waiting;                 //!< True when waiting for reply
+    Time send;                    //!< Send time
+    Time recv;                    //!< Received time
+    Ipv4Address destIp;           //!< Destination IPv4
+
+    EchoInfo (Ipv4Address ip);    //!< Constructor
+    Time GetRtt ();               //!< Compute the echo RTT
+  };
+
+  /** Structure to map IPv4 to switch info */
+  typedef std::map<Ipv4Address, SwitchInfo> SwitchsMap_t;
   SwitchsMap_t m_switchesMap; //!< Registered switches metadata's
 
 private:
@@ -214,12 +252,26 @@ private:
   void SocketPeerError  (Ptr<Socket> socket);                       //!< TCP connection error
   //\}
 
-  uint32_t              m_xid;                      //!< Global transaction idx
-  uint16_t              m_port;                     //!< Local controller tcp port
-  Ptr<Socket>           m_serverSocket;             //!< Listening server socket
+  /**
+   * Save a Dpctl command to be executed just after the connection
+   * establishment between switch and controller.
+   * \param textCmd The Dpctl command.
+   * \param swtch The switch metadata.
+   */
+  void ScheduleCommand (SwitchInfo swtch, const std::string textCmd);
 
-  EchoMsgMap_t m_echoMap;                           //!< Metadata for echo requests
-  SwitchConnectionCallback_t m_connectionCallback;  //!< TCP connection callback
+  /** Structure to store echo information */
+  typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
+
+  /** Multimap saving pair <pointer to device / dpctl command str> */
+  typedef std::multimap<Ptr<OFSwitch13NetDevice>, std::string> DevCmdMap_t;
+
+  uint32_t      m_xid;              //!< Global transaction idx
+  uint16_t      m_port;             //!< Local controller tcp port
+  Ptr<Socket>   m_serverSocket;     //!< Listening server socket
+
+  EchoMsgMap_t  m_echoMap;          //!< Metadata for echo requests
+  DevCmdMap_t   m_schedCommands;    //!< Scheduled commands for execution
 };
 
 } // namespace ns3

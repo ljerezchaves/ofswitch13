@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -18,12 +20,12 @@
 
 /**
  * \defgroup ofswitch13 OpenFlow 1.3 softswitch
- * This section documents the API of ns3 OpenFlow 1.3 compatible switch
- * and controller implementation. This module follows the
- * OpenFlow 1.3 switch specification
+ *
+ * This section documents the API of the ns-3 OpenFlow 1.3 compatible switch
+ * and controller. This module follows the OpenFlow 1.3 switch specification
  * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
  * It depends on the CPqD ofsoftswitch13 <https://github.com/ljerezchaves/ofsoftswitch13>
- * implementation compiled as a library (use ./configure --enable-ns3-lib).
+ * software switch compiled as a library (use ./configure --enable-ns3-lib).
  *
  * \attention Currently, not all OpenFlow 1.3 features are supported.
  */
@@ -54,6 +56,8 @@ extern "C"
 #include "udatapath/meter_table.h"
 #include "udatapath/dp_ports.h"
 #include "udatapath/dp_control.h"
+#include "udatapath/dp_actions.h"
+#include "udatapath/dp_buffers.h"
 
 #include "lib/ofpbuf.h"
 #include "lib/vlog.h"
@@ -82,12 +86,21 @@ class OFSwitch13NetDevice;
 class OFSwitch13Controller;
 
 /**
- * \ingroup ofswitch13
- * Create and OpenFlow ofpbuf from ns3::Packet.  Takes a Ptr<Packet> and
- * generates an OpenFlow buffer (ofpbuf*) from it, loading the packet data as
- * well as its headers into the buffer.
- * \see ofsoftswitch13 function netdev_recv () at lib/netdev.c
+ * TracedCallback signature for sending packets from CsmaNetDevice to OpenFlow
+ * pipeline.
+ * \attention The packet can be modified by the OpenFlow pipeline.
+ * \param netdev The underlying CsmaNetDevice switch port.
  * \param packet The packet.
+ */
+typedef void (*OpenFlowCallback)(Ptr<Packet> packet);
+
+/**
+ * \ingroup ofswitch13
+ * Create an internal ofsoftswitch13 buffer from ns3::Packet. Takes a
+ * Ptr<Packet> and generates a buffer (ofpbuf*) from it, loading the packet
+ * data as well as its headers into the buffer.
+ * \see ofsoftswitch13 function netdev_recv () at lib/netdev.c
+ * \param packet The ns-3 packet.
  * \param bodyRoom The size to allocate for data.
  * \param headRoom The size to allocate for headers (left unitialized).
  * \return The OpenFlow Buffer created from the packet.
@@ -97,22 +110,10 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
 
 /**
  * \ingroup ofswitch13
- * Create and OpenFlow ofpbuf from internal ofl_msg_*. Takes a ofl_msg_*
- * structure and generates an OpenFlow buffer (ofpbuf*) from it, packing
- * message data into the buffer using wire format.
- * \param msg The ofl_msg_* structure.
- * \param xid The transaction id to use.
- * \param exp Experiment handler.
- * \return The OpenFlow Buffer created from the message.
- */
-ofpbuf* BufferFromMsg (ofl_msg_header *msg, uint32_t xid, ofl_exp *exp = NULL);
-
-/**
- * \ingroup ofswitch13
- * Create an ns3::Packet from internal ofl_msg_*.  Takes a ofl_msg_* structure
- * and generates an Ptr<Packet> from it, packing message data into the packet
- * using wire format.
- * \param msg The ofl_msg_* structure.
+ * Create a new ns3::Packet from internal OFLib message. Takes a ofl_msg_*
+ * structure, pack the message using wire format and generates a Ptr<Packet>
+ * from it.
+ * \param msg The OFLib message structure.
  * \param xid The transaction id to use.
  * \return The ns3::Packet created.
  */
@@ -120,33 +121,13 @@ Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid = 0);
 
 /**
  * \ingroup ofswitch13
- * Create an ns3::Packet from OpenFlow buffer.  Takes an OpenFlow buffer
- * (ofpbuf*) and generates a Ptr<Packet> from it, load the data as well as its
- * headers into the packet and free the buffer memory.
- * \param buffer The ofpbuf buffer.
- * \return The ns3::Packet created.
- */
-Ptr<Packet> PacketFromBufferAndFree (ofpbuf* buffer);
-
-/**
- * \ingroup ofswitch13
- * Create an ns3::Packet from OpenFlow buffer. Takes an OpenFlow buffer
+ * Create a new ns3::Packet from internal ofsoftswitch13 buffer. Takes a buffer
  * (ofpbuf*) and generates a Ptr<Packet> from it, load the data as well as its
  * headers into the packet.
- * \param buffer The ofpbuf buffer.
+ * \param buffer The internal buffer.
  * \return The ns3::Packet created.
  */
 Ptr<Packet> PacketFromBuffer (ofpbuf* buffer);
-
-/**
- * \ingroup ofswitch13
- * Create an ns3::Packet from internal OpenFlow packet.  Takes an internal
- * OpenFlow packet (struct packet*) and generates a Ptr<Packet> from it, load
- * the data as well as its headers into the packet.
- * \param pkt The internal openflow packet.
- * \return The ns3::Packet created.
- */
-Ptr<Packet> PacketFromInternalPacket (packet *pkt);
 
 } // namespace ofs
 } // namespace ns3

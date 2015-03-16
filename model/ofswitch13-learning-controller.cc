@@ -18,38 +18,37 @@
 
 #ifdef NS3_OFSWITCH13
 
-#include "learning-controller.h"
+#include "ofswitch13-learning-controller.h"
 
-NS_LOG_COMPONENT_DEFINE ("LearningController");
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13LearningController");
 
 namespace ns3 {
 
-NS_OBJECT_ENSURE_REGISTERED (LearningController);
+NS_OBJECT_ENSURE_REGISTERED (OFSwitch13LearningController);
 
 /********** Public methods ***********/
-LearningController::LearningController ()
+OFSwitch13LearningController::OFSwitch13LearningController ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
-  SetConnectionCallback (MakeCallback (&LearningController::ConnectionStarted, this));
+  NS_LOG_FUNCTION (this);
 }
 
-LearningController::~LearningController ()
+OFSwitch13LearningController::~OFSwitch13LearningController ()
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this);
 }
 
 TypeId
-LearningController::GetTypeId (void)
+OFSwitch13LearningController::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::LearningController")
+  static TypeId tid = TypeId ("ns3::OFSwitch13LearningController")
     .SetParent<OFSwitch13Controller> ()
-    .AddConstructor<LearningController> ()
+    .AddConstructor<OFSwitch13LearningController> ()
   ;
   return tid;
 }
 
 void
-LearningController::DoDispose ()
+OFSwitch13LearningController::DoDispose ()
 {
   m_learnedInfo.clear ();
   OFSwitch13Controller::DoDispose ();
@@ -57,7 +56,7 @@ LearningController::DoDispose ()
 }
 
 ofl_err
-LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid)
+OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
 
@@ -66,7 +65,7 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
   uint64_t dpId = swtch.netdev->GetDatapathId ();
   enum ofp_packet_in_reason reason = msg->reason;
 
-  char *m = ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, NULL);
+  char *m = ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, 0);
   NS_LOG_DEBUG ("Packet in match: " << m);
   free (m);
 
@@ -173,12 +172,12 @@ LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, ui
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, NULL /*dp->exp*/);
+  ofl_msg_free ((ofl_msg_header*)msg, 0);
   return 0;
 }
 
 ofl_err
-LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid)
+OFSwitch13LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");
@@ -200,13 +199,13 @@ LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swt
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free_flow_removed (msg, true, NULL);
+  ofl_msg_free_flow_removed (msg, true, 0);
   return 0;
 }
 
 /********** Private methods **********/
 void
-LearningController::ConnectionStarted (SwitchInfo swtch)
+OFSwitch13LearningController::ConnectionStarted (SwitchInfo swtch)
 {
   NS_LOG_FUNCTION (this << swtch.ipv4);
 
