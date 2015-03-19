@@ -339,7 +339,8 @@ private:
   Address         m_ctrlAddr;     //!< Controller Address
   uint32_t        m_ifIndex;      //!< NetDevice Interface Index
   Time            m_timeout;      //!< Datapath Timeout
-  Time            m_lookupDelay;  //!< Flow Table Lookup Delay overhead.
+  Time            m_tcamDelay;    //!< Flow Table TCAM lookup delay.
+  Time            m_pipeDelay;    //!< Flow Table average delay.
   std::string     m_libLog;       //!< The ofsoftswitch13 library logging levels.
   datapath*       m_datapath;     //!< The OpenFlow datapath
   Ptr<Packet>     m_pktPipeline;  //!< Packet under switch pipeline.

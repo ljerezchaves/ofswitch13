@@ -43,11 +43,11 @@ OFSwitch13NetDevice::GetTypeId (void)
                    UintegerValue (0),
                    MakeUintegerAccessor (&OFSwitch13NetDevice::m_dpId),
                    MakeUintegerChecker<uint64_t> ())
-    .AddAttribute ("FlowTableDelay",
-                   "Overhead for looking up in the flow table "
-                   "(Default: standard TCAM on an FPGA).",
+    .AddAttribute ("TCAMDelay",
+                   "Average time to perform a TCAM operation "
+                   "(Default: standard TCAM on a NetFPGA).",
                    TimeValue (NanoSeconds (30)),
-                   MakeTimeAccessor (&OFSwitch13NetDevice::m_lookupDelay),
+                   MakeTimeAccessor (&OFSwitch13NetDevice::m_tcamDelay),
                    MakeTimeChecker ())
     .AddAttribute ("DatapathTimeout",
                    "The interval between timeout operations on pipeline.",
@@ -132,7 +132,7 @@ OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo)
 {
   NS_LOG_FUNCTION (this << packet->GetUid ());
 
-  Simulator::Schedule (m_lookupDelay, &OFSwitch13NetDevice::SendToPipeline,
+  Simulator::Schedule (m_pipeDelay, &OFSwitch13NetDevice::SendToPipeline,
                        this, packet, portNo);
 }
 
@@ -610,6 +610,17 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
     {
       it->second->PortUpdateState ();
     }
+
+  // Update pipeline average delay based on current number of flow entries
+  uint32_t entries = 0;
+  struct flow_table *table;
+  for (size_t i = 0; i < PIPELINE_TABLES; i++)
+    {
+      table = m_datapath->pipeline->tables[i];
+      if (table->disabled) continue;
+      entries += table->stats->active_count;
+    }
+  m_pipeDelay = m_tcamDelay * (int64_t)log2 (entries);
 
   dp->last_timeout = time_now ();
   Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, this, dp);
