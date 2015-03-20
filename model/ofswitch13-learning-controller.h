@@ -65,12 +65,63 @@ public:
    * \return 0 if everything's ok, otherwise an error number.
    */
   ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid);
+  
+  /**
+   * Notify this controller of a new eNB IP device connected to the OpenFlow
+   * network over some switch port. This function will save the IP address /
+   * MAC address from this IP device for further ARP resolution. 
+   * \attention This dev is not the one added as port to switch. Instead, this
+   * is the 'other' end of this connection, associated with a eNB or SgwPgw
+   * node.
+   * \param dev The device connected to the OpenFlow network.
+   * \param ip The IPv4 address assigned to this device.
+   * \param switchIdx The switch index this device is attached to.
+   */
+  virtual void 
+  NotifyNewIpDevice (Ptr<NetDevice> dev, Ipv4Address ip, uint16_t switchIdx); //ref//
 
 protected:
   // Inherited from OFSwitch13Controller
   void ConnectionStarted (SwitchInfo swtch);
+  
+  /**
+   * Extract an IPv4 address from packet match.
+   * \param oxm_of The OXM_IF_* IPv4 field.
+   * \param match The ofl_match structure pointer.
+   * \return The IPv4 address.
+   */
+  Ipv4Address ExtractIpv4Address (uint32_t oxm_of, ofl_match* match); //ref//
 
 private:
+  /**
+   * Handle packet-in messages sent from switch with arp message.
+   * \param msg The packet-in message.
+   * \param swtch The switch information.
+   * \param xid Transaction id.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
+  ofl_err HandleArpPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, 
+                             uint32_t xid);
+
+  /**
+   * Perform an ARP resolution
+   * \param ip The Ipv4Address to search.
+   * \return The MAC address for this ip.
+   */
+  Mac48Address ArpLookup (Ipv4Address ip);
+
+  /**
+   * Create a Packet with an ARP reply, encapsulated inside of an Ethernet
+   * frame (with header and trailer.
+   * \param srcMac Source MAC address.
+   * \param srcIP Source IP address.
+   * \param dstMac Destination MAC address.
+   * \param dstMac Destination IP address.
+   * \return The ns3 Ptr<Packet> with the ARP reply.
+   */
+  Ptr<Packet> CreateArpReply (Mac48Address srcMac, Ipv4Address srcIp, 
+                              Mac48Address dstMac, Ipv4Address dstIp);  
+
   /**
    * \name L2 switching structures
    */
