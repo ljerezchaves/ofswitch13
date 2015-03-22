@@ -93,7 +93,7 @@ main (int argc, char *argv[])
 	// Configure the OpenFlow network
 	Ptr<Node> of13ControllerNode = CreateObject<Node> ();
   Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
-	of13Helper->InstallDefaultController (of13ControllerNode);
+	Ptr<OFSwitch13LearningController> learningCTRL = DynamicCast<OFSwitch13LearningController> (of13Helper->InstallDefaultController (of13ControllerNode));
 	NetDeviceContainer of13SwitchDevice;
 	of13SwitchDevice = of13Helper->InstallSwitch (of13SwitchNode, of13SwitchPorts);
 
@@ -106,6 +106,12 @@ main (int argc, char *argv[])
 	Ipv4InterfaceContainer internetIpIfaces;
 	ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
 	internetIpIfaces = ipv4switches.Assign (hostDevices);
+
+	// Notify the controller about the devices connected and its ip
+	for (size_t i = 0; i < nHosts; i++)
+		{
+			learningCTRL->NotifyNewIpDevice (hostDevices.Get (i), internetIpIfaces.GetAddress(i));
+		}
 
 	// Get random hosts
 	Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();

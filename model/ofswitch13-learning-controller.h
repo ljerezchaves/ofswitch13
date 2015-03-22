@@ -22,6 +22,10 @@
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
 #include "ofswitch13-controller.h"
+#include <ns3/arp-header.h>
+#include <ns3/ethernet-header.h>
+#include <ns3/ethernet-trailer.h>
+#include <ns3/arp-l3-protocol.h>
 
 namespace ns3 {
 
@@ -78,7 +82,7 @@ public:
    * \param switchIdx The switch index this device is attached to.
    */
   virtual void 
-  NotifyNewIpDevice (Ptr<NetDevice> dev, Ipv4Address ip, uint16_t switchIdx); //ref//
+  NotifyNewIpDevice (Ptr<NetDevice> dev, Ipv4Address ip); //ref//
 
 protected:
   // Inherited from OFSwitch13Controller
@@ -121,6 +125,14 @@ private:
    */
   Ptr<Packet> CreateArpReply (Mac48Address srcMac, Ipv4Address srcIp, 
                               Mac48Address dstMac, Ipv4Address dstIp);  
+
+  /** Map saving <IPv4 address / MAC address> */
+  typedef std::map<Ipv4Address, Mac48Address> IpMacMap_t;
+
+  /** Map saving <IPv4 address / Switch index > */
+  typedef std::map<Ipv4Address, uint16_t> IpSwitchMap_t;
+
+  IpMacMap_t        m_arpTable;         //!< ARP resolution table.
 
   /**
    * \name L2 switching structures

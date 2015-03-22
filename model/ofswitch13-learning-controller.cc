@@ -85,6 +85,16 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
       ofl_match_tlv *ethDst = oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->match);
       dst48.CopyFrom (ethDst->value);
 
+      uint16_t ethType;
+      ofl_match_tlv *eth = oxm_match_lookup (OXM_OF_ETH_TYPE, (ofl_match*)msg->match);
+      memcpy (&ethType, eth->value, OXM_LENGTH (OXM_OF_ETH_TYPE));
+
+      // Check for ARP packet
+      if (ethType == ArpL3Protocol::PROT_NUMBER)
+        {
+          return HandleArpPacketIn (msg, swtch, xid);
+        }
+
       // Get L2Table for this datapath
       DatapathMap_t::iterator it = m_learnedInfo.find (dpId);
       if (it != m_learnedInfo.end ())
@@ -251,8 +261,7 @@ OFSwitch13LearningController::ExtractIpv4Address (uint32_t oxm_of, ofl_match* ma
 } //ref//
 
 void 
-OFSwitch13LearningController::NotifyNewIpDevice (Ptr<NetDevice> dev, Ipv4Address ip, 
-    uint16_t switchIdx)
+OFSwitch13LearningController::NotifyNewIpDevice (Ptr<NetDevice> dev, Ipv4Address ip)
 {
   { // Save the pair IP/MAC address in ARP table
     Mac48Address macAddr = Mac48Address::ConvertFrom (dev->GetAddress ());
@@ -264,17 +273,6 @@ OFSwitch13LearningController::NotifyNewIpDevice (Ptr<NetDevice> dev, Ipv4Address
         NS_FATAL_ERROR ("This IP already exists in ARP table.");
       }
     NS_LOG_DEBUG ("New ARP entry: " << ip << " - " << macAddr);
-  }
-
-  { // Save the pair IP/Switch index in switch table
-    std::pair<Ipv4Address, uint16_t> entry (ip, switchIdx);
-    std::pair <IpSwitchMap_t::iterator, bool> ret;
-    ret = m_ipSwitchTable.insert (entry);
-    if (ret.second == false)
-      {
-        NS_FATAL_ERROR ("This IP already existis in switch index table.");
-      }
-    NS_LOG_DEBUG ("New IP/Switch entry: " << ip << " - " << switchIdx);
   }
 } //ref//
 

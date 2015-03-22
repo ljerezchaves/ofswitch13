@@ -117,12 +117,12 @@ main (int argc, char *argv[])
   Ptr<OFSwitch13Helper> of13Helper0 = CreateObject<OFSwitch13Helper> ();
   Ptr<OFSwitch13Helper> of13Helper1 = CreateObject<OFSwitch13Helper> ();
 
-	of13Helper0->InstallDefaultController (of13ControllerNode0);
+	Ptr<OFSwitch13LearningController> learningCTRL0 = DynamicCast<OFSwitch13LearningController> (of13Helper0->InstallDefaultController (of13ControllerNode0));
 	of13Helper0->InstallSwitch (of13SwitchNodes.Get (0), of13SwitchPorts [0]);
 	of13Helper0->InstallSwitch (of13SwitchNodes.Get (1), of13SwitchPorts [1]);
 	
 	of13Helper1->SetAddressBase ("10.100.151.0", "255.255.255.0");
-	of13Helper1->InstallDefaultController (of13ControllerNode1);
+	Ptr<OFSwitch13LearningController> learningCTRL1 = DynamicCast<OFSwitch13LearningController> (of13Helper1->InstallDefaultController (of13ControllerNode1));
 	of13Helper1->InstallSwitch (of13SwitchNodes.Get (2), of13SwitchPorts [2]);
 	of13Helper1->InstallSwitch (of13SwitchNodes.Get (3), of13SwitchPorts [3]);
 
@@ -135,6 +135,13 @@ main (int argc, char *argv[])
 	Ipv4InterfaceContainer internetIpIfaces;
 	ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
 	internetIpIfaces = ipv4switches.Assign (hostDevices);
+
+	// Notify controllers bout hosts IPs
+	for (size_t i = 0; i < 4; i++)
+		{
+			learningCTRL0->NotifyNewIpDevice (hostDevices.Get (i), internetIpIfaces.GetAddress (i));
+			learningCTRL1->NotifyNewIpDevice (hostDevices.Get (i), internetIpIfaces.GetAddress (i));
+		}
 
 	// Send TCP traffic from host 0 to 3
 	Ipv4Address h3Addr = internetIpIfaces.GetAddress (3);

@@ -116,6 +116,7 @@ main (int argc, char *argv[])
   Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
 	Ptr<OFSwitch13Controller> of13ControllerApp;
 	of13ControllerApp = of13Helper->InstallDefaultController (of13ControllerNode);
+	Ptr<OFSwitch13LearningController> learningCTRL = DynamicCast<OFSwitch13LearningController> (of13ControllerApp);
 
 	// Install OpenFlow device in every switch
 	NetDeviceContainer of13SwitchDevices;
@@ -134,6 +135,11 @@ main (int argc, char *argv[])
 	Ipv4InterfaceContainer internetIpIfaces;
 	ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
 	internetIpIfaces = ipv4switches.Assign (hostDevices);
+
+	// Notify controllers about the hosts IP
+	learningCTRL->NotifyNewIpDevice (hostDevices.Get (0), internetIpIfaces.GetAddress (0));
+	learningCTRL->NotifyNewIpDevice (hostDevices.Get (1), internetIpIfaces.GetAddress (1));
+
 
 	// Send TCP traffic from host 0 to 1
 	Ipv4Address h1Addr = internetIpIfaces.GetAddress (1);
