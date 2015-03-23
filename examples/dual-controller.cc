@@ -146,8 +146,8 @@ main (int argc, char *argv[])
     }
 
   // Send TCP traffic from host 0 to 3
-  Ipv4Address h3Addr = internetIpIfaces.GetAddress (3); BulkSendHelper senderHelper ("ns3::TcpSocketFactory",
-                               InetSocketAddress (h3Addr, 8080));
+  Ipv4Address h3Addr = internetIpIfaces.GetAddress (3); 
+  BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (h3Addr, 8080));
   senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
   ApplicationContainer senderApp  = senderHelper.Install (hosts.Get (0));
   senderApp.Start (Seconds (1));
