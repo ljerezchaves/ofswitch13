@@ -71,6 +71,16 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
 
   if (reason == OFPR_NO_MATCH)
     {
+      uint16_t ethType;
+      ofl_match_tlv *eth = oxm_match_lookup (OXM_OF_ETH_TYPE, (ofl_match*)msg->match);
+      memcpy (&ethType, eth->value, OXM_LENGTH (OXM_OF_ETH_TYPE));
+
+      // Check for ARP packet
+      if (ethType == ArpL3Protocol::PROT_NUMBER)
+        {
+          return HandleArpPacketIn (msg, swtch, xid);
+        }
+
       // Let's get necessary information (input port and mac address)
       uint32_t inPort;
       size_t portLen = OXM_LENGTH (OXM_OF_IN_PORT); // (Always 4 bytes)
@@ -84,16 +94,6 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
       Mac48Address dst48;
       ofl_match_tlv *ethDst = oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->match);
       dst48.CopyFrom (ethDst->value);
-
-      uint16_t ethType;
-      ofl_match_tlv *eth = oxm_match_lookup (OXM_OF_ETH_TYPE, (ofl_match*)msg->match);
-      memcpy (&ethType, eth->value, OXM_LENGTH (OXM_OF_ETH_TYPE));
-
-      // Check for ARP packet
-      if (ethType == ArpL3Protocol::PROT_NUMBER)
-        {
-          return HandleArpPacketIn (msg, swtch, xid);
-        }
 
       // Get L2Table for this datapath
       DatapathMap_t::iterator it = m_learnedInfo.find (dpId);
@@ -239,46 +239,45 @@ OFSwitch13LearningController::ConnectionStarted (SwitchInfo swtch)
     }
 }
 
-Ipv4Address 
+Ipv4Address
 OFSwitch13LearningController::ExtractIpv4Address (uint32_t oxm_of, ofl_match* match)
 {
   switch (oxm_of)
     {
-      case OXM_OF_ARP_SPA:
-      case OXM_OF_ARP_TPA:
-      case OXM_OF_IPV4_DST:
-      case OXM_OF_IPV4_SRC:
-        {
-          uint32_t ip;
-          int size = OXM_LENGTH (oxm_of);
-          ofl_match_tlv *tlv = oxm_match_lookup (oxm_of, match);
-          memcpy (&ip, tlv->value, size);
-          return Ipv4Address (ntohl (ip));
-        }
-      default:
-        NS_FATAL_ERROR ("Invalid IP field.");
+    case OXM_OF_ARP_SPA:
+    case OXM_OF_ARP_TPA:
+    case OXM_OF_IPV4_DST:
+    case OXM_OF_IPV4_SRC:
+      {
+        uint32_t ip;
+        int size = OXM_LENGTH (oxm_of);
+        ofl_match_tlv *tlv = oxm_match_lookup (oxm_of, match);
+        memcpy (&ip, tlv->value, size);
+        return Ipv4Address (ntohl (ip));
+      }
+    default:
+      NS_FATAL_ERROR ("Invalid IP field.");
     }
-} //ref//
+}
 
-void 
+void
 OFSwitch13LearningController::NotifyNewIpDevice (Ptr<NetDevice> dev, Ipv4Address ip)
 {
-  { // Save the pair IP/MAC address in ARP table
-    Mac48Address macAddr = Mac48Address::ConvertFrom (dev->GetAddress ());
-    std::pair<Ipv4Address, Mac48Address> entry (ip, macAddr);
-    std::pair <IpMacMap_t::iterator, bool> ret;
-    ret = m_arpTable.insert (entry);
-    if (ret.second == false)
-      {
-        NS_FATAL_ERROR ("This IP already exists in ARP table.");
-      }
-    NS_LOG_DEBUG ("New ARP entry: " << ip << " - " << macAddr);
-  }
-} //ref//
+  // Save the pair IP/MAC address in ARP table
+  Mac48Address macAddr = Mac48Address::ConvertFrom (dev->GetAddress ());
+  std::pair<Ipv4Address, Mac48Address> entry (ip, macAddr);
+  std::pair <IpMacMap_t::iterator, bool> ret;
+  ret = m_arpTable.insert (entry);
+  if (ret.second == false)
+    {
+      NS_FATAL_ERROR ("This IP already exists in ARP table.");
+    }
+  NS_LOG_DEBUG ("New ARP entry: " << ip << " - " << macAddr);
+}
 
 ofl_err
-OFSwitch13LearningController::HandleArpPacketIn (ofl_msg_packet_in *msg, 
-    SwitchInfo swtch, uint32_t xid)
+OFSwitch13LearningController::HandleArpPacketIn (ofl_msg_packet_in *msg,
+                                                 SwitchInfo swtch, uint32_t xid)
 {
   ofl_match_tlv *tlv;
 
@@ -286,7 +285,7 @@ OFSwitch13LearningController::HandleArpPacketIn (ofl_msg_packet_in *msg,
   uint16_t arpOp;
   tlv = oxm_match_lookup (OXM_OF_ARP_OP, (ofl_match*)msg->match);
   memcpy (&arpOp, tlv->value, OXM_LENGTH (OXM_OF_ARP_OP));
- 
+
   // Get input port
   uint32_t inPort;
   tlv = oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
@@ -298,14 +297,14 @@ OFSwitch13LearningController::HandleArpPacketIn (ofl_msg_packet_in *msg,
       // Get target IP address
       Ipv4Address dstIp;
       dstIp = ExtractIpv4Address (OXM_OF_ARP_TPA, (ofl_match*)msg->match);
-      
+
       // Get target MAC address from ARP table
       Mac48Address dstMac = ArpLookup (dstIp);
-      NS_LOG_DEBUG ("Got ARP request for IP " << dstIp << 
+      NS_LOG_DEBUG ("Got ARP request for IP " << dstIp <<
                     ", resolved to " << dstMac);
 
       // Get source IP address
-      Ipv4Address srcIp; 
+      Ipv4Address srcIp;
       srcIp = ExtractIpv4Address (OXM_OF_ARP_SPA, (ofl_match*)msg->match);
 
       // Get Source MAC address
@@ -324,7 +323,7 @@ OFSwitch13LearningController::HandleArpPacketIn (ofl_msg_packet_in *msg,
       reply.buffer_id = OFP_NO_BUFFER;
       reply.in_port = inPort;
       reply.data_length = pkt->GetSize ();
-      reply.data = &pktData[0]; 
+      reply.data = &pktData[0];
 
       // Send the ARP replay back to the input port
       ofl_action_output *action;
@@ -332,7 +331,7 @@ OFSwitch13LearningController::HandleArpPacketIn (ofl_msg_packet_in *msg,
       action->header.type = OFPAT_OUTPUT;
       action->port = OFPP_IN_PORT;
       action->max_len = 0;
-      
+
       reply.actions_num = 1;
       reply.actions = (ofl_action_header**)&action;
 
@@ -340,10 +339,10 @@ OFSwitch13LearningController::HandleArpPacketIn (ofl_msg_packet_in *msg,
       free (action);
       if (error)
         {
-          NS_LOG_ERROR ("Error sending packet out with arp request"); 
+          NS_LOG_ERROR ("Error sending packet out with arp request");
         }
     }
-  else 
+  else
     {
       NS_LOG_WARN ("Not supposed to get ARP reply. Ignoring...");
     }
@@ -353,7 +352,7 @@ OFSwitch13LearningController::HandleArpPacketIn (ofl_msg_packet_in *msg,
   return 0;
 }
 
-Mac48Address 
+Mac48Address
 OFSwitch13LearningController::ArpLookup (Ipv4Address ip)
 {
   IpMacMap_t::iterator ret;
@@ -366,17 +365,17 @@ OFSwitch13LearningController::ArpLookup (Ipv4Address ip)
   NS_FATAL_ERROR ("No ARP information for this IP.");
 }
 
-Ptr<Packet> 
-OFSwitch13LearningController::CreateArpReply (Mac48Address srcMac, Ipv4Address srcIp, 
-    Mac48Address dstMac, Ipv4Address dstIp)
+Ptr<Packet>
+OFSwitch13LearningController::CreateArpReply (Mac48Address srcMac, Ipv4Address srcIp,
+                                              Mac48Address dstMac, Ipv4Address dstIp)
 {
   Ptr<Packet> packet = Create<Packet> ();
-  
+
   // ARP header
   ArpHeader arp;
   arp.SetReply (srcMac, srcIp, dstMac, dstIp);
   packet->AddHeader (arp);
-  
+
   // Ethernet header
   EthernetHeader eth (false);
   eth.SetSource (srcMac);
@@ -399,7 +398,7 @@ OFSwitch13LearningController::CreateArpReply (Mac48Address srcMac, Ipv4Address s
     }
   trailer.CalcFcs (packet);
   packet->AddTrailer (trailer);
-  
+
   return packet;
 }
 

@@ -98,7 +98,7 @@ OFSwitch13NetDevice::~OFSwitch13NetDevice ()
   NS_LOG_FUNCTION (this);
 }
 
-Ptr<OFSwitch13Port> 
+Ptr<OFSwitch13Port>
 OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 {
   NS_LOG_FUNCTION (this << portDevice);
@@ -463,15 +463,15 @@ OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
     case (OFPP_ALL):
       {
         sw_port *p;
-        LIST_FOR_EACH (p, struct sw_port, node, &pkt->dp->port_list) 
-          {
-            if ((p->stats->port_no == pkt->in_port) ||
-                (outPort == OFPP_FLOOD && p->conf->config & OFPPC_NO_FWD)) 
-              {
-                continue;
-              }
-            dev->SendToSwitchPort (pkt, p->stats->port_no, 0);
-          }
+        LIST_FOR_EACH (p, struct sw_port, node, &pkt->dp->port_list)
+        {
+          if ((p->stats->port_no == pkt->in_port)
+              || (outPort == OFPP_FLOOD && p->conf->config & OFPPC_NO_FWD))
+            {
+              continue;
+            }
+          dev->SendToSwitchPort (pkt, p->stats->port_no, 0);
+        }
         break;
       }
     case (OFPP_NORMAL):
@@ -617,7 +617,10 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
   for (size_t i = 0; i < PIPELINE_TABLES; i++)
     {
       table = m_datapath->pipeline->tables[i];
-      if (table->disabled) continue;
+      if (table->disabled)
+        {
+          continue;
+        }
       entries += table->stats->active_count;
     }
   m_pipeDelay = m_tcamDelay * (int64_t)log2 (entries);
