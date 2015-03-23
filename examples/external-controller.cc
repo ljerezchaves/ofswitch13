@@ -17,7 +17,7 @@
  *
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  *
- * Connecting a single OpenFlow 1.3 switch to a external controller. 
+ * Connecting a single OpenFlow 1.3 switch to a external controller.
  * Traffic flows from host H0 to host H1.
  *
  *          H0
@@ -28,7 +28,7 @@
  *          |
  *          H1
  *
- * FIXME: Not sure that this example is ok. 
+ * FIXME: Not sure that this example is ok.
  */
 
 #include <iostream>
@@ -82,7 +82,7 @@ main (int argc, char *argv[])
   CsmaHelper csmaHelper;
   csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
   csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
-  
+
   NetDeviceContainer hostDevices;
   NetDeviceContainer of13SwitchPorts;
   for (size_t i = 0; i < hosts.GetN (); i++)

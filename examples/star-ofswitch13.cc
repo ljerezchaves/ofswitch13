@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Vítor M. Eichemberger <vitor.marge@gmail.com>
+ * Author: Vitor M. Eichemberger <vitor.marge@gmail.com>
  *         Luciano Chaves <luciano@lrc.ic.unicamp.br>
  *
  * N hosts connected to a single OpenFlow 1.3 switch with a single controller
@@ -45,128 +45,128 @@ NS_LOG_COMPONENT_DEFINE ("StarOFSwitch13");
 int
 main (int argc, char *argv[])
 {
-	size_t nHosts = 2;
-	bool verbose = false;
-	bool trace = false;
+  size_t nHosts = 2;
+  bool verbose = false;
+  bool trace = false;
 
-	CommandLine cmd;
-	cmd.AddValue ("hots", "Number of hosts", nHosts);
-	cmd.AddValue ("verbose", "Tell application to log if true", verbose);
+  CommandLine cmd;
+  cmd.AddValue ("hots", "Number of hosts", nHosts);
+  cmd.AddValue ("verbose", "Tell application to log if true", verbose);
   cmd.AddValue ("trace", "Tracing traffic to files", trace);
-	cmd.Parse (argc, argv);
+  cmd.Parse (argc, argv);
 
-	if (verbose)
-		{
-			LogComponentEnable ("StarOFSwitch13", LOG_LEVEL_ALL);
+  if (verbose)
+    {
+      LogComponentEnable ("StarOFSwitch13", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13NetDevice", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
-		}
-	
-	// Enabling Checksum computations
-	GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
+    }
 
-	// Create the hosts
-	NodeContainer hosts;
-	hosts.Create (nHosts);
+  // Enabling Checksum computations
+  GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
 
-	// Create the switch
-	Ptr<Node> of13SwitchNode = CreateObject<Node> ();
+  // Create the hosts
+  NodeContainer hosts;
+  hosts.Create (nHosts);
 
-	// Configure the CsmaHelper
-	CsmaHelper csmaHelper;
-	csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
-	csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
+  // Create the switch
+  Ptr<Node> of13SwitchNode = CreateObject<Node> ();
 
-	NetDeviceContainer hostDevices;
-	NetDeviceContainer of13SwitchPorts;
-	for (size_t i = 0; i < nHosts; i++)
-		{
-			NodeContainer nc (hosts.Get (i), of13SwitchNode);
-			NetDeviceContainer link = csmaHelper.Install (nc);
-			hostDevices.Add (link.Get (0));
-			of13SwitchPorts.Add (link.Get (1));
-		}
+  // Configure the CsmaHelper
+  CsmaHelper csmaHelper;
+  csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
+  csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 
-	// Configure the OpenFlow network
-	Ptr<Node> of13ControllerNode = CreateObject<Node> ();
+  NetDeviceContainer hostDevices;
+  NetDeviceContainer of13SwitchPorts;
+  for (size_t i = 0; i < nHosts; i++)
+    {
+      NodeContainer nc (hosts.Get (i), of13SwitchNode);
+      NetDeviceContainer link = csmaHelper.Install (nc);
+      hostDevices.Add (link.Get (0));
+      of13SwitchPorts.Add (link.Get (1));
+    }
+
+  // Configure the OpenFlow network
+  Ptr<Node> of13ControllerNode = CreateObject<Node> ();
   Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
-	Ptr<OFSwitch13LearningController> learningCTRL = DynamicCast<OFSwitch13LearningController> (of13Helper->InstallDefaultController (of13ControllerNode));
-	NetDeviceContainer of13SwitchDevice;
-	of13SwitchDevice = of13Helper->InstallSwitch (of13SwitchNode, of13SwitchPorts);
+  Ptr<OFSwitch13LearningController> learningCtrl = DynamicCast<OFSwitch13LearningController> (of13Helper->InstallDefaultController (of13ControllerNode));
+  NetDeviceContainer of13SwitchDevice;
+  of13SwitchDevice = of13Helper->InstallSwitch (of13SwitchNode, of13SwitchPorts);
 
-	// Installing the tcp/ip stack into hosts
-	InternetStackHelper internet;
-	internet.Install (hosts);
+  // Installing the tcp/ip stack into hosts
+  InternetStackHelper internet;
+  internet.Install (hosts);
 
-	// Set IPv4 terminal address
-	Ipv4AddressHelper ipv4switches;
-	Ipv4InterfaceContainer internetIpIfaces;
-	ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
-	internetIpIfaces = ipv4switches.Assign (hostDevices);
+  // Set IPv4 terminal address
+  Ipv4AddressHelper ipv4switches;
+  Ipv4InterfaceContainer internetIpIfaces;
+  ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
+  internetIpIfaces = ipv4switches.Assign (hostDevices);
 
-	// Notify the controller about the devices connected and its ip
-	for (size_t i = 0; i < nHosts; i++)
-		{
-			learningCTRL->NotifyNewIpDevice (hostDevices.Get (i), internetIpIfaces.GetAddress(i));
-		}
+  // Notify controller about hosts IP
+  for (uint32_t i = 0; i < hostDevices.GetN (); i++)
+    {
+      learningCtrl->NotifyNewIpDevice (hostDevices.Get (i), internetIpIfaces.GetAddress (i));
+    }
 
-	// Get random hosts
-	Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
-	rand->SetAttribute ("Min", DoubleValue (0));
-	rand->SetAttribute ("Max", DoubleValue (nHosts - 1));
-	
-	int src, dst;
-	src = rand->GetInteger ();
-	dst = rand->GetInteger ();
-	while (dst == src)
-		{
-			dst = rand->GetInteger ();
-		}
+  // Get random hosts
+  Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
+  rand->SetAttribute ("Min", DoubleValue (0));
+  rand->SetAttribute ("Max", DoubleValue (nHosts - 1));
 
-	// Send TCP traffic from host 0 to 1
-	Ipv4Address dstAddr = internetIpIfaces.GetAddress (dst);
-	BulkSendHelper senderHelper ("ns3::TcpSocketFactory", 
-															 InetSocketAddress (dstAddr, 8080));
-	senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
-	ApplicationContainer senderApp  = senderHelper.Install (hosts.Get (src));
-	senderApp.Start (Seconds (1));
-	PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", 
-			                         InetSocketAddress (Ipv4Address::GetAny (), 8080));
-	ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (dst));
-	sinkApp.Start (Seconds (0));
+  int src, dst;
+  src = rand->GetInteger ();
+  dst = rand->GetInteger ();
+  while (dst == src)
+    {
+      dst = rand->GetInteger ();
+    }
 
-	// Enable datapath logs
+  // Send TCP traffic from host 0 to 1
+  Ipv4Address dstAddr = internetIpIfaces.GetAddress (dst);
+  BulkSendHelper senderHelper ("ns3::TcpSocketFactory",
+                               InetSocketAddress (dstAddr, 8080));
+  senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+  ApplicationContainer senderApp  = senderHelper.Install (hosts.Get (src));
+  senderApp.Start (Seconds (1));
+  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory",
+                               InetSocketAddress (Ipv4Address::GetAny (), 8080));
+  ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (dst));
+  sinkApp.Start (Seconds (0));
+
+  // Enable datapath logs
   if (verbose)
     {
       of13Helper->EnableDatapathLogs ("all");
     }
 
-	// Enable pcap traces
-	if (trace)
-		{
-			of13Helper->EnableOpenFlowPcap ();
-  		csmaHelper.EnablePcap ("ofswitch", NodeContainer (of13SwitchNode), true);
-  		csmaHelper.EnablePcap ("host", hostDevices);
-		}
+  // Enable pcap traces
+  if (trace)
+    {
+      of13Helper->EnableOpenFlowPcap ();
+      csmaHelper.EnablePcap ("ofswitch", NodeContainer (of13SwitchNode), true);
+      csmaHelper.EnablePcap ("host", hostDevices);
+    }
 
-	// Install FlowMonitor
-	FlowMonitorHelper monitor;
-	monitor.Install (hosts);
+  // Install FlowMonitor
+  FlowMonitorHelper monitor;
+  monitor.Install (hosts);
 
-	// Run the simulation for 30 seconds
-	Simulator::Stop (Seconds (30));
-	Simulator::Run ();
-	Simulator::Destroy ();
+  // Run the simulation for 30 seconds
+  Simulator::Stop (Seconds (30));
+  Simulator::Run ();
+  Simulator::Destroy ();
 
-	// Transmitted bytes
-	Ptr<PacketSink> sink = DynamicCast<PacketSink> (sinkApp.Get (0));
-  std::cout << "Total bytes sent from " << src << " to " << dst << ": " 
-  	        << sink->GetTotalRx () << std::endl;
+  // Transmitted bytes
+  Ptr<PacketSink> sink = DynamicCast<PacketSink> (sinkApp.Get (0));
+  std::cout << "Total bytes sent from " << src << " to " << dst << ": "
+            << sink->GetTotalRx () << std::endl;
 
-	// Dump FlowMonitor results
-	monitor.SerializeToXmlFile ("FlowMonitor.xml", false, false);
+  // Dump FlowMonitor results
+  monitor.SerializeToXmlFile ("FlowMonitor.xml", false, false);
 
 }
