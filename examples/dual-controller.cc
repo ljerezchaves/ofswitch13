@@ -146,14 +146,12 @@ main (int argc, char *argv[])
     }
 
   // Send TCP traffic from host 0 to 3
-  Ipv4Address h3Addr = internetIpIfaces.GetAddress (3);
-  BulkSendHelper senderHelper ("ns3::TcpSocketFactory",
+  Ipv4Address h3Addr = internetIpIfaces.GetAddress (3); BulkSendHelper senderHelper ("ns3::TcpSocketFactory",
                                InetSocketAddress (h3Addr, 8080));
   senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
   ApplicationContainer senderApp  = senderHelper.Install (hosts.Get (0));
   senderApp.Start (Seconds (1));
-  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory",
-                               InetSocketAddress (Ipv4Address::GetAny (), 8080));
+  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 8080));
   ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (3));
   sinkApp.Start (Seconds (0));
 
@@ -184,8 +182,7 @@ main (int argc, char *argv[])
 
   // Transmitted bytes
   Ptr<PacketSink> sink = DynamicCast<PacketSink> (sinkApp.Get (0));
-  std::cout << "Total bytes sent from H0 to H1: "
-            << sink->GetTotalRx () << std::endl;
+  std::cout << "Total bytes sent from H0 to H1: " << sink->GetTotalRx () << std::endl;
 
   // Dump FlowMonitor results
   monitor.SerializeToXmlFile ("FlowMonitor.xml", false, false);
