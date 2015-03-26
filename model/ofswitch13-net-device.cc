@@ -148,6 +148,25 @@ OFSwitch13NetDevice::GetDatapathId (void) const
   return m_dpId;
 }
 
+uint32_t
+OFSwitch13NetDevice::GetNumberFlowEntries (void) const
+{
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+
+  uint32_t entries = 0;
+  struct flow_table *table;
+  for (size_t i = 0; i < PIPELINE_TABLES; i++)
+    {
+      table = m_datapath->pipeline->tables[i];
+      if (table->disabled)
+        {
+          continue;
+        }
+      entries += table->stats->active_count;
+    }
+  return entries;
+}
+
 void
 OFSwitch13NetDevice::SetLibLogLevel (std::string log)
 {
@@ -612,18 +631,7 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
     }
 
   // Update pipeline average delay based on current number of flow entries
-  uint32_t entries = 0;
-  struct flow_table *table;
-  for (size_t i = 0; i < PIPELINE_TABLES; i++)
-    {
-      table = m_datapath->pipeline->tables[i];
-      if (table->disabled)
-        {
-          continue;
-        }
-      entries += table->stats->active_count;
-    }
-  m_pipeDelay = m_tcamDelay * (int64_t)log2 (entries);
+  m_pipeDelay = m_tcamDelay * (int64_t)ceil (log2 (GetNumberFlowEntries ()));
 
   dp->last_timeout = time_now ();
   Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, this, dp);
