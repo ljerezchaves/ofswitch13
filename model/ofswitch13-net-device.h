@@ -296,6 +296,12 @@ private:
   void BufferPacketRetrieve (uint64_t packetUid);
 
   /**
+   * Delete the ns-3 packet from buffer map.
+   * \param packetUid The ns-3 packet uid.
+   */
+  void BufferPacketDelete (uint64_t packetUid);
+
+  /**
    * Copy all tags (packet and byte) from srcPkt packet to dstPkt packet.
    * \attention In the case of byte tags, the tags in dstPkt will cover the
    * entire packet, regardless of the byte range in srcPkt.

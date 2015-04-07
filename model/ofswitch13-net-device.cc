@@ -871,16 +871,23 @@ OFSwitch13NetDevice::NotifyPacketDestroyed (struct packet *pkt)
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid);
 
-  if (m_pktPipeline)
+  if (m_pktPipeline && m_pktPipeline->GetUid () == pkt->ns3_uid)
     {
-      NS_ASSERT_MSG (m_pktPipeline->GetUid () == pkt->ns3_uid,
-                     "Mismatch between pipeline packets.");
       if (!pkt->clone)
         {
           m_pktPipeline = 0;
           NS_LOG_DEBUG ("Packet " << pkt->ns3_uid <<
                         " done at switch " << GetDatapathId ());
         }
+    }
+  else
+    {
+      // This dropped packet is not the one currenty under pipeline. It must be
+      // an old packet that was saved into buffer and will be deleted now,
+      // freeing up space for a new packet to be saved in same buffer index
+      // (that's how the ofsoftswitch13 handles the buffer). So, we are going
+      // to remove this packet from our buffer list, if it still exists there. 
+      BufferPacketDelete (pkt->ns3_uid);
     }
 }
 
@@ -905,6 +912,7 @@ void
 OFSwitch13NetDevice::BufferPacketSave (uint64_t packetUid)
 {
   NS_LOG_FUNCTION (this << packetUid);
+  NS_ASSERT_MSG (m_pktPipeline, "No pipeline packet.");
   NS_ASSERT_MSG (m_pktPipeline->GetUid () == packetUid,
                  "Mismatch between pipeline packets.");
 
@@ -928,13 +936,22 @@ OFSwitch13NetDevice::BufferPacketRetrieve (uint64_t packetUid)
 
   // Remove from buffer map and save back into pipeline
   UidPacketMap_t::iterator it = m_pktsBuffer.find (packetUid);
-  if (it != m_pktsBuffer.end ())
-    {
-      NS_LOG_WARN ("Packet " << packetUid << " not found in switch "
-                             << GetDatapathId () << " buffer.");
-    }
+  NS_ASSERT_MSG (it != m_pktsBuffer.end (), "Packet not found in buffer.");
   m_pktPipeline = it->second;
   m_pktsBuffer.erase (it);
+}
+
+void
+OFSwitch13NetDevice::BufferPacketDelete (uint64_t packetUid)
+{
+  NS_LOG_FUNCTION (this << packetUid);
+
+  // Delete from buffer map
+  UidPacketMap_t::iterator it = m_pktsBuffer.find (packetUid);
+  if (it != m_pktsBuffer.end ())
+    {
+      m_pktsBuffer.erase (it);
+    }
 }
 
 bool
