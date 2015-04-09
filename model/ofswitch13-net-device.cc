@@ -154,15 +154,23 @@ OFSwitch13NetDevice::GetNumberFlowEntries (void) const
   NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
 
   uint32_t entries = 0;
-  struct flow_table *table;
   for (size_t i = 0; i < PIPELINE_TABLES; i++)
     {
-      table = m_datapath->pipeline->tables[i];
-      if (table->disabled)
-        {
-          continue;
-        }
-      entries += table->stats->active_count;
+      entries += GetNumberFlowEntries (i);
+    }
+  return entries;
+}
+
+uint32_t
+OFSwitch13NetDevice::GetNumberFlowEntries (size_t tid) const
+{
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+
+  uint32_t entries = 0;
+  struct flow_table *table = m_datapath->pipeline->tables[tid];
+  if (!(table->disabled))
+    {
+      entries = table->stats->active_count;
     }
   return entries;
 }

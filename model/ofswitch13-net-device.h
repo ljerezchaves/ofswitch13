@@ -93,9 +93,15 @@ public:
   uint64_t GetDatapathId (void) const;
 
   /**
-   * \return The current number of flow entries in switch pipeline.
+   * \return The current number of flow entries in all pipeline tables.
    */
   uint32_t GetNumberFlowEntries (void) const;
+
+  /**
+   * \param tid Table id.
+   * \return The current number of flow entries at a specific table.
+   */
+  uint32_t GetNumberFlowEntries (size_t tid) const;
 
   /**
    * Set the logging level of ofsoftswitch13 library.
