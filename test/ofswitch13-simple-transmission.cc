@@ -1,6 +1,9 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+/*
+ * Author: Vítor M. Eichemberger <vitor.marge@gmail.com>
+ *
+ */
 
-// Include a header file from your module to test.
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -8,15 +11,10 @@
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/ofswitch13-module.h"
-
-// An essential include is test.h
 #include "ns3/test.h"
 
-// Do not put your test classes in namespace ns3.  You may find it useful
-// to use the using directive to access the ns3 namespace directly
 using namespace ns3;
 
-// This is an example TestCase.
 class Ofswitch13TestCase1 : public TestCase
 {
 public:
@@ -27,22 +25,16 @@ private:
   virtual void DoRun (void);
 };
 
-// Add some help text to this case to describe what it is intended to test
 Ofswitch13TestCase1::Ofswitch13TestCase1 ()
-  : TestCase ("Ofswitch13 test case (does nothing)")
+  : TestCase ("Tests a simple transmission of 1024 bytes between two hosts (with the learning controller).")
 {
 }
 
-// This destructor does nothing but we include it as a reminder that
-// the test case should clean up after itself
 Ofswitch13TestCase1::~Ofswitch13TestCase1 ()
 {
 }
 
-//
-// This method is the pure virtual method from class TestCase that every
-// TestCase must implement
-//
+// Makes the test
 void
 Ofswitch13TestCase1::DoRun (void)
 {
@@ -63,6 +55,7 @@ Ofswitch13TestCase1::DoRun (void)
   csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
   csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 
+  // Connects hosts and the switch
   NetDeviceContainer hostDevices;
   NetDeviceContainer of13SwitchPorts;
   for (size_t i = 0; i < nHosts; i++)
@@ -107,6 +100,7 @@ Ofswitch13TestCase1::DoRun (void)
   ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (dst));
   sinkApp.Start (Seconds (0));
 
+  // Makes the simulation
   Simulator::Stop (Seconds (10));
   Simulator::Run ();
 
@@ -115,10 +109,6 @@ Ofswitch13TestCase1::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (sink->GetTotalRx (), 1024, "It hasn't received all the 1024 bytes as expected.");
 }
 
-// The TestSuite class names the TestSuite, identifies what type of TestSuite,
-// and enables the TestCases to be run.  Typically, only the constructor for
-// this class must be defined
-//
 class Ofswitch13TestSuite : public TestSuite
 {
 public:
@@ -126,12 +116,10 @@ public:
 };
 
 Ofswitch13TestSuite::Ofswitch13TestSuite ()
-  : TestSuite ("ofswitch13", UNIT)
+  : TestSuite ("ofswitch13-simple-transmission", UNIT)
 {
-  // TestDuration for TestCase can be QUICK, EXTENSIVE or TAKES_FOREVER
   AddTestCase (new Ofswitch13TestCase1, TestCase::QUICK);
 }
 
-// Do not forget to allocate an instance of this TestSuite
 static Ofswitch13TestSuite ofswitch13TestSuite;
 
