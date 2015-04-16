@@ -18,6 +18,9 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
+#define NS_LOG_APPEND_CONTEXT \
+  if (m_dpId) { std::clog << "[dp " << m_dpId << "] "; }
+
 #include "ofswitch13-net-device.h"
 #include "ofswitch13-interface.h"
 
@@ -151,6 +154,7 @@ OFSwitch13NetDevice::GetDatapathId (void) const
 uint32_t
 OFSwitch13NetDevice::GetNumberFlowEntries (void) const
 {
+  NS_LOG_FUNCTION (this);
   NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
 
   uint32_t entries = 0;
@@ -414,20 +418,13 @@ OFSwitch13NetDevice::SupportsSendFrom () const
 int
 OFSwitch13NetDevice::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl)
 {
-  NS_LOG_FUNCTION_NOARGS ();
-
   Ptr<OFSwitch13NetDevice> dev =
     OFSwitch13NetDevice::GetDatapathDevice (ctrl->dp->id);
 
   // FIXME No support for multiple controllers nor auxiliary connections by now.
   // So, just ignoring remote information and sending to our single socket.
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
-  int error = dev->SendToController (packet);
-  if (error)
-    {
-      NS_LOG_WARN ("There was an error sending the message!");
-    }
-  return error;
+  return dev->SendToController (packet);
 }
 
 void
@@ -435,8 +432,6 @@ OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
                                           uint32_t outQueue, uint16_t maxLen,
                                           uint64_t cookie)
 {
-  NS_LOG_FUNCTION_NOARGS ();
-
   Ptr<OFSwitch13NetDevice> dev =
     OFSwitch13NetDevice::GetDatapathDevice (pkt->dp->id);
 
@@ -449,10 +444,6 @@ OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
             // Makes sure packet cannot be resubmit to pipeline again.
             pkt->packet_out = false;
             pipeline_process_packet (pkt->dp->pipeline, pkt);
-          }
-        else
-          {
-            NS_LOG_WARN ("Trying to resubmit packet to pipeline.");
           }
         break;
       }
@@ -505,13 +496,9 @@ OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
     case (OFPP_LOCAL):
     default:
       {
-        if (pkt->in_port == outPort)
+        if (pkt->in_port != outPort)
           {
-            NS_LOG_WARN ("Can't directly forward to input port.");
-          }
-        else
-          {
-            NS_LOG_DEBUG ("Outputting packet on port " << outPort);
+            // Outputting packet on port outPort
             dev->SendToSwitchPort (pkt, outPort, outQueue);
           }
       }
@@ -628,6 +615,8 @@ OFSwitch13NetDevice::DatapathNew ()
 void
 OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 {
+  NS_LOG_INFO (this);
+
   meter_table_add_tokens (dp->meters);
   pipeline_timeout (dp->pipeline);
 
@@ -745,13 +734,19 @@ OFSwitch13NetDevice::SendToController (Ptr<Packet> packet)
                            this, packet);
     }
 
-  return !m_ctrlSocket->Send (packet);
+  uint32_t bytes = m_ctrlSocket->Send (packet);
+  if (bytes != packet->GetSize ())
+    {
+      NS_LOG_WARN ("There was an error sending the message!");
+    }
+  return (int)!bytes;
 }
 
 void
 OFSwitch13NetDevice::ReceiveFromController (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
+ 
   static Ptr<Packet> pendingPacket = 0;
   static uint32_t pendingBytes = 0;
   static Address from;
@@ -854,6 +849,7 @@ void
 OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
+
   NS_LOG_LOGIC ("Controller accepted connection request!");
   socket->SetRecvCallback (
     MakeCallback (&OFSwitch13NetDevice::ReceiveFromController, this));
@@ -920,6 +916,7 @@ void
 OFSwitch13NetDevice::BufferPacketSave (uint64_t packetUid)
 {
   NS_LOG_FUNCTION (this << packetUid);
+
   NS_ASSERT_MSG (m_pktPipeline, "No pipeline packet.");
   NS_ASSERT_MSG (m_pktPipeline->GetUid () == packetUid,
                  "Mismatch between pipeline packets.");
@@ -940,6 +937,7 @@ void
 OFSwitch13NetDevice::BufferPacketRetrieve (uint64_t packetUid)
 {
   NS_LOG_FUNCTION (this << packetUid);
+
   NS_ASSERT_MSG (!m_pktPipeline, "Another packet is already in pipeline.");
 
   // Remove from buffer map and save back into pipeline
@@ -966,8 +964,6 @@ bool
 OFSwitch13NetDevice::CopyTags (Ptr<const Packet> srcPkt,
                                Ptr<const Packet> dstPkt)
 {
-  NS_LOG_FUNCTION (srcPkt << dstPkt);
-
   // Copy packet tags
   PacketTagIterator pktIt = srcPkt->GetPacketTagIterator ();
   while (pktIt.HasNext ())
@@ -1003,7 +999,7 @@ OFSwitch13NetDevice::RegisterDatapath (uint64_t id, Ptr<OFSwitch13NetDevice> dev
   ret = OFSwitch13NetDevice::m_globalSwitchMap.insert (entry);
   if (ret.second == false)
     {
-      NS_LOG_ERROR ("Error inserting datapath device into global map.");
+      NS_FATAL_ERROR ("Error inserting datapath device into global map.");
     }
 }
 
@@ -1018,7 +1014,7 @@ OFSwitch13NetDevice::UnregisterDatapath (uint64_t id)
     }
   else
     {
-      NS_LOG_ERROR ("Error removing datapath device from global map.");
+      NS_FATAL_ERROR ("Error removing datapath device from global map.");
     }
 }
 
@@ -1033,7 +1029,7 @@ OFSwitch13NetDevice::GetDatapathDevice (uint64_t id)
     }
   else
     {
-      NS_LOG_ERROR ("Error retrieving datapath device from global map.");
+      NS_FATAL_ERROR ("Error retrieving datapath device from global map.");
       return 0;
     }
 }
