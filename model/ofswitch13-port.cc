@@ -98,7 +98,7 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   m_swPort->conf->curr = PortGetFeatures ();
   m_swPort->conf->advertised = PortGetFeatures ();
   m_swPort->conf->supported = PortGetFeatures ();
-  // m_swPort->conf->peer = PortGetFeatures ();
+  m_swPort->conf->peer = 0x00000000; // FIXME no information about peer port
   m_swPort->conf->curr_speed = port_speed (m_swPort->conf->curr);
   m_swPort->conf->max_speed = port_speed (m_swPort->conf->supported);
 
@@ -114,7 +114,7 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   // m_swPort->netdev to ns3::CsmaNetDevice, but it will not be used.
   m_swPort->netdev = (struct netdev*)PeekPointer (csmaDev);
   m_swPort->max_queues = NETDEV_MAX_QUEUES;
-  m_swPort->num_queues = 0;     // FIXME No queue support by now
+  m_swPort->num_queues = 0; // FIXME No queue support by now
   m_swPort->created = time_msec ();
 
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
