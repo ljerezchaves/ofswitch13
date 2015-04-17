@@ -83,12 +83,6 @@ Ofswitch13TestCase1::DoRun (void)
   ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
   internetIpIfaces = ipv4switches.Assign (hostDevices);
 
-  // Notify controller about hosts IP
-  for (uint32_t i = 0; i < hostDevices.GetN (); i++)
-    {
-      learningCtrl->NotifyNewIpDevice (hostDevices.Get (i), internetIpIfaces.GetAddress (i));
-    }
-
   // Send TCP traffic from host 0 to 1
   int src=0, dst=1;
   Ipv4Address dstAddr = internetIpIfaces.GetAddress (dst);

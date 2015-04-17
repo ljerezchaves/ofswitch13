@@ -22,10 +22,6 @@
 #include "ofswitch13-interface.h"
 #include "ofswitch13-net-device.h"
 #include "ofswitch13-controller.h"
-#include <ns3/arp-header.h>
-#include <ns3/ethernet-header.h>
-#include <ns3/ethernet-trailer.h>
-#include <ns3/arp-l3-protocol.h>
 
 namespace ns3 {
 
@@ -70,59 +66,11 @@ public:
    */
   ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid);
 
-  /**
-   * Notify this controller of a new IP device connected to the OpenFlow
-   * network over some switch port. This function will save the IP address /
-   * MAC address from this IP device for further ARP resolution.
-   * \attention This dev is not the one added as port to switch. Instead, this
-   * is the 'other' end of this connection, associated with a host node.
-   * \param dev The device connected to the OpenFlow network.
-   * \param ip The IPv4 address assigned to this device.
-   */
-  void NotifyNewIpDevice (Ptr<NetDevice> dev, Ipv4Address ip);
-
 protected:
   // Inherited from OFSwitch13Controller
   void ConnectionStarted (SwitchInfo swtch);
 
-  /**
-   * Extract an IPv4 address from a packet match.
-   * \param oxm_of The OXM_IF_* IPv4 field.
-   * \param match The ofl_match structure pointer.
-   * \return The IPv4 address.
-   */
-  Ipv4Address ExtractIpv4Address (uint32_t oxm_of, ofl_match* match);
-
 private:
-  /**
-   * Handle packet-in messages sent from switch with arp messages.
-   * \param msg The packet-in message.
-   * \param swtch The switch information.
-   * \param xid Transaction id.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  ofl_err HandleArpPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
-                             uint32_t xid);
-
-  /**
-   * Perform an ARP resolution
-   * \param ip The Ipv4Address to search.
-   * \return The MAC address for this ip.
-   */
-  Mac48Address ArpLookup (Ipv4Address ip);
-
-  /**
-   * Create a Packet with an ARP reply, encapsulated inside of an Ethernet
-   * frame (with header and trailer).
-   * \param srcMac Source MAC address.
-   * \param srcIP Source IP address.
-   * \param dstMac Destination MAC address.
-   * \param dstMac Destination IP address.
-   * \return The ns3 Ptr<Packet> with the ARP reply.
-   */
-  Ptr<Packet> CreateArpReply (Mac48Address srcMac, Ipv4Address srcIp,
-                              Mac48Address dstMac, Ipv4Address dstIp);
-
   /** Map saving <IPv4 address / MAC address> */
   typedef std::map<Ipv4Address, Mac48Address> IpMacMap_t;
   IpMacMap_t m_arpTable; //!< ARP resolution table.

@@ -138,13 +138,6 @@ main (int argc, char *argv[])
   ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
   internetIpIfaces = ipv4switches.Assign (hostDevices);
 
-  // Notify controllers about hosts IP
-  for (size_t i = 0; i < 4; i++)
-    {
-      learningCtrl0->NotifyNewIpDevice (hostDevices.Get (i), internetIpIfaces.GetAddress (i));
-      learningCtrl1->NotifyNewIpDevice (hostDevices.Get (i), internetIpIfaces.GetAddress (i));
-    }
-
   // Send TCP traffic from host 0 to 3
   Ipv4Address h3Addr = internetIpIfaces.GetAddress (3); 
   BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (h3Addr, 8080));
