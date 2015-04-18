@@ -221,7 +221,7 @@ OFSwitch13Port::PortGetFeatures ()
 void
 OFSwitch13Port::Receive (Ptr<Packet> packet)
 {
-  NS_LOG_FUNCTION (this << packet->GetUid ());
+  NS_LOG_FUNCTION (this << packet);
 
   // Check port configuration.
   if (m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
@@ -242,7 +242,7 @@ OFSwitch13Port::Receive (Ptr<Packet> packet)
 bool
 OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
 {
-  NS_LOG_FUNCTION (this << packet->GetUid () << queueNo);
+  NS_LOG_FUNCTION (this << packet << queueNo);
 
   if (m_swPort->conf->config & (OFPPC_PORT_DOWN))
     {

@@ -31,6 +31,7 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
 
 // Initializing OFSwitch13NetDevice static members
 uint64_t OFSwitch13NetDevice::m_globalDpId = 0;
+uint64_t OFSwitch13NetDevice::m_globalPktId = 0;
 OFSwitch13NetDevice::DpIdDevMap_t OFSwitch13NetDevice::m_globalSwitchMap;
 
 /********** Public methods **********/
@@ -133,7 +134,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
 void
 OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo)
 {
-  NS_LOG_FUNCTION (this << packet->GetUid ());
+  NS_LOG_FUNCTION (this << packet);
 
   Simulator::Schedule (m_pipeDelay, &OFSwitch13NetDevice::SendToPipeline,
                        this, packet, portNo);
@@ -699,7 +700,7 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
 void
 OFSwitch13NetDevice::SendToPipeline (Ptr<Packet> packet, uint32_t portNo)
 {
-  NS_LOG_FUNCTION (this << packet->GetUid ());
+  NS_LOG_FUNCTION (this << packet);
   NS_ASSERT_MSG (!m_pktPipeline, "Another packet is already in pipeline.");
 
   // Creating the internal OpenFlow packet structure from ns-3 packet
@@ -958,6 +959,12 @@ OFSwitch13NetDevice::BufferPacketDelete (uint64_t packetUid)
     {
       m_pktsBuffer.erase (it);
     }
+}
+  
+uint64_t 
+OFSwitch13NetDevice::GetNewPacketId ()
+{
+  return ++m_globalPktId;
 }
 
 bool

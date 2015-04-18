@@ -308,6 +308,15 @@ private:
   void BufferPacketDelete (uint64_t packetUid);
 
   /**
+   * Increase the global packet ID counter and return a new packet ID. This ID
+   * is different from the internal ns3::Packet::GetUid (), as we need an
+   * unique value even for fragmented or brodcast packets. Its usage is
+   * restricted to this NetDevice.
+   * \return New unique ID for this packet.
+   */
+  static uint64_t GetNewPacketId ();
+
+  /**
    * Copy all tags (packet and byte) from srcPkt packet to dstPkt packet.
    * \attention In the case of byte tags, the tags in dstPkt will cover the
    * entire packet, regardless of the byte range in srcPkt.
@@ -365,6 +374,7 @@ private:
   UidPacketMap_t  m_pktsBuffer;   //!< Packets saved in switch buffer.
 
   static uint64_t m_globalDpId;   //!< Global counter of datapath IDs
+  static uint64_t m_globalPktId;  //!< Global counter for packets IDs
 
   /**
    * As the integration of ofsoftswitch13 and ns-3 involve overriding some C
