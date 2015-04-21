@@ -959,6 +959,13 @@ OFSwitch13NetDevice::BufferPacketSave (uint64_t packetId, time_t timeout)
                              << GetDatapathId () << " buffer.");
     }
   m_pktPipe.DelCopy (packetId);
+
+  // Schedulling the buffer remove for expired packet. Since packet timeout
+  // resolution is expressed in seconds, let's double it to avoid rounding
+  // conflicts.
+  Simulator::Schedule (Time::FromInteger (2 * timeout, Time::S), 
+                       &OFSwitch13NetDevice::BufferPacketDelete, 
+                       this, packetId);
 }
 
 void
