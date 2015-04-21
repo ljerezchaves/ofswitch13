@@ -120,7 +120,7 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
       NS_FATAL_ERROR ("NetDevice must be of CsmaNetDevice type.");
     }
 
-  // Create the Openflow port for this device
+  // Create the OpenFlow port for this device
   Ptr<OFSwitch13Port> ofPort;
   ofPort = CreateObject<OFSwitch13Port> (m_datapath, csmaPortDevice, this);
 
@@ -260,7 +260,7 @@ OFSwitch13NetDevice::GetChannel (void) const
   return 0;
 }
 
-// This is a openflow device, so we really don't need any kind of address
+// This is a OpenFlow device, so we really don't need any kind of address
 // information. We simply ignore it.
 void
 OFSwitch13NetDevice::SetAddress (Address address)
@@ -352,7 +352,7 @@ OFSwitch13NetDevice::IsBridge (void) const
   return false;
 }
 
-// This is a openflow device, so we don't send packets from here. Instead, we
+// This is a OpenFlow device, so we don't send packets from here. Instead, we
 // use port netdevices to do this.
 bool
 OFSwitch13NetDevice::Send (Ptr<Packet> packet, const Address& dest,
@@ -391,7 +391,7 @@ OFSwitch13NetDevice::NeedsArp (void) const
   return false;
 }
 
-// This is a openflow device, so we don't expect packets addressed to this
+// This is a OpenFlow device, so we don't expect packets addressed to this
 // node. So, there is no need for receive callbacks. Install a new device on
 // this node to send/receive packets to/from it (and don't add this device as
 // switch port). This is the principle for communication between switch and
@@ -444,7 +444,7 @@ OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
           {
             // Makes sure packet cannot be resubmit to pipeline again setting
             // packet_out to false. Also, pipeline_process_packet takes
-            // overship of the packet, we need a copy.
+            // ownership of the packet, we need a copy.
             struct packet *pkt_copy = packet_clone (pkt);
             pkt_copy->packet_out = false;
             pipeline_process_packet (pkt_copy->dp->pipeline, pkt_copy);
@@ -518,7 +518,7 @@ OFSwitch13NetDevice::MeterDropCallback (struct packet *pkt)
 }
 
 void
-OFSwitch13NetDevice::PacketCloneCallback (struct packet *pkt, 
+OFSwitch13NetDevice::PacketCloneCallback (struct packet *pkt,
                                           struct packet *clone)
 {
   Ptr<OFSwitch13NetDevice> dev =
@@ -767,7 +767,7 @@ void
 OFSwitch13NetDevice::ReceiveFromController (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
- 
+
   static Ptr<Packet> pendingPacket = 0;
   static uint32_t pendingBytes = 0;
   static Address from;
@@ -892,11 +892,11 @@ OFSwitch13NetDevice::SocketCtrlFailed (Ptr<Socket> socket)
 }
 
 void
-OFSwitch13NetDevice::NotifyPacketCloned (struct packet *pkt, 
+OFSwitch13NetDevice::NotifyPacketCloned (struct packet *pkt,
                                          struct packet *cloned)
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid);
-  
+
 
   // Assigning a new unique ID for this cloned packet.
   cloned->ns3_uid = OFSwitch13NetDevice::GetNewPacketId ();
@@ -915,17 +915,17 @@ OFSwitch13NetDevice::NotifyPacketDestroyed (struct packet *pkt)
       bool valid = m_pktPipe.DelCopy (pkt->ns3_uid);
       if (!valid)
         {
-          NS_LOG_DEBUG ("Packet " << pkt->ns3_uid << 
+          NS_LOG_DEBUG ("Packet " << pkt->ns3_uid <<
                         " done at switch " << GetDatapathId ());
         }
     }
   else
     {
-      // This dropped packet is not the one currenty under pipeline. It must be
+      // This dropped packet is not the one current under pipeline. It must be
       // an old packet that was previously saved into buffer and will be
       // deleted now, freeing up space for a new packet at same buffer index
       // (that's how the ofsoftswitch13 handles the buffer). So, we are going
-      // to remove this packet from our buffer list, if it still exists there. 
+      // to remove this packet from our buffer list, if it still exists there.
       BufferPacketDelete (pkt->ns3_uid);
     }
 }
@@ -960,11 +960,11 @@ OFSwitch13NetDevice::BufferPacketSave (uint64_t packetId, time_t timeout)
     }
   m_pktPipe.DelCopy (packetId);
 
-  // Schedulling the buffer remove for expired packet. Since packet timeout
+  // Scheduling the buffer remove for expired packet. Since packet timeout
   // resolution is expressed in seconds, let's double it to avoid rounding
   // conflicts.
-  Simulator::Schedule (Time::FromInteger (2 * timeout, Time::S), 
-                       &OFSwitch13NetDevice::BufferPacketDelete, 
+  Simulator::Schedule (Time::FromInteger (2 * timeout, Time::S),
+                       &OFSwitch13NetDevice::BufferPacketDelete,
                        this, packetId);
 }
 
@@ -994,8 +994,8 @@ OFSwitch13NetDevice::BufferPacketDelete (uint64_t packetId)
       m_pktsBuffer.erase (it);
     }
 }
-  
-uint64_t 
+
+uint64_t
 OFSwitch13NetDevice::GetNewPacketId ()
 {
   return ++m_globalPktId;
@@ -1082,7 +1082,7 @@ OFSwitch13NetDevice::PipelinePacket::PipelinePacket ()
 }
 
 void
-OFSwitch13NetDevice::PipelinePacket::SetPacket (uint64_t id, 
+OFSwitch13NetDevice::PipelinePacket::SetPacket (uint64_t id,
                                                 Ptr<Packet> packet)
 {
   NS_ASSERT_MSG (id && packet, "Invalid packet metadata values.");
@@ -1091,14 +1091,14 @@ OFSwitch13NetDevice::PipelinePacket::SetPacket (uint64_t id,
   m_ids.push_back (id);
 }
 
-Ptr<Packet> 
+Ptr<Packet>
 OFSwitch13NetDevice::PipelinePacket::GetPacket (void) const
 {
   NS_ASSERT_MSG (IsValid (), "Invalid packet metadata.");
   return m_packet;
 }
 
-  void
+void
 OFSwitch13NetDevice::PipelinePacket::Invalidate (void)
 {
   m_valid = false;
@@ -1123,7 +1123,7 @@ bool
 OFSwitch13NetDevice::PipelinePacket::DelCopy (uint64_t id)
 {
   NS_ASSERT_MSG (m_valid, "Invalid packet metadata.");
-  
+
   std::vector<uint64_t>::iterator it;
   for (it = m_ids.begin (); it != m_ids.end (); it++)
     {
@@ -1140,7 +1140,7 @@ OFSwitch13NetDevice::PipelinePacket::DelCopy (uint64_t id)
   return m_valid;
 }
 
-bool 
+bool
 OFSwitch13NetDevice::PipelinePacket::HasId (uint64_t id)
 {
   NS_ASSERT_MSG (m_valid, "Invalid packet metadata.");

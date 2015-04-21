@@ -143,7 +143,7 @@ bool
 OFSwitch13Port::PortUpdateState ()
 {
   NS_LOG_FUNCTION (this);
-  
+
   uint32_t orig_state = m_swPort->conf->state;
   if (m_csmaDev->IsLinkUp ())
     {
@@ -172,7 +172,7 @@ uint32_t
 OFSwitch13Port::PortGetFeatures ()
 {
   NS_LOG_FUNCTION (this);
-  
+
   DataRateValue drv;
   DataRate dr;
   Ptr<CsmaChannel> channel = DynamicCast<CsmaChannel> (m_csmaDev->GetChannel ());

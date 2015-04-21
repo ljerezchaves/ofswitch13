@@ -76,7 +76,7 @@ public:
 
   /**
    * Called when a packet is received on one of the switch's ports. This method
-   * will schedulle the packet for OpenFlow pipeline.
+   * will schedule the packet for OpenFlow pipeline.
    * \param packet The packet.
    * \param portNo The switch input port number.
    */
@@ -146,7 +146,7 @@ public:
    * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
    * from udatapath/datapath.c. Sends the given OFLib buffer message to the
    * controller associated with remote connection structure.
-   * \internal This function relies on the global map that stores openflow
+   * \internal This function relies on the global map that stores OpenFlow
    * devices to call the method on the correct object.
    * \param buffer The message buffer to send.
    * \param ctrl The controller connection information.
@@ -161,12 +161,12 @@ public:
    * code is nearly the same on ofsoftswitch, but it gets the openflow device
    * from datapath id and uses member functions to send the packet over ns3
    * structures.
-   * \internal This function relies on the global map that stores openflow
+   * \internal This function relies on the global map that stores OpenFlow
    * devices to call the method on the correct object.
    * \param pkt The internal packet to send.
    * \param outPort The output switch port number.
    * \param outQueue The output queue number.
-   * \param maxLen Max lenght of packet to send to controller.
+   * \param maxLen Max length of packet to send to controller.
    * \param cookie Packet cookie to send to controller.
    */
   static void
@@ -179,7 +179,7 @@ public:
    */
   static void
   MeterDropCallback (struct packet *pkt);
-  
+
   /**
    * Callback fired when a packet is cloned.
    * \param pkt The internal original packet.
@@ -258,7 +258,7 @@ private:
    * \see SendOpenflowBufferToRemote ().
    * \attention Don't use this method to directly send messages to controller.
    * Use dp_send_message () instead, as it deals with multiple connections and
-   * check assync config.
+   * check async config.
    * \param packet The ns-3 packet to send.
    * \return 0 if everything's ok, otherwise an error number.
    */
@@ -363,7 +363,7 @@ private:
   static Ptr<OFSwitch13NetDevice> GetDatapathDevice (uint64_t id);
 
 
-  /** 
+  /**
    * Structure to save packet metadata while it is under OpenFlow pipeline.
    * This structure keeps track of packets under OpenFlow pipeline, including
    * the ID for each packet copy (notified by the clone callback). Note that
@@ -376,7 +376,7 @@ private:
     /** Default (empty) constructor. */
     PipelinePacket ();
 
-    /** 
+    /**
      * Save packet metadata.
      * \param id Packet unique ID.
      * \param packet The packet pointer.
@@ -388,23 +388,23 @@ private:
 
     /** Invalidate packet metatada.*/
     void Invalidate (void);
-    
+
     /** \return true when valid packet metadata. */
     bool IsValid (void) const;
 
     /** Notify a new copy for this packet, with a new unique ID. */
     void NewCopy (uint64_t id);
 
-    /** 
-     * Delete an existing copy for this packet. 
+    /**
+     * Delete an existing copy for this packet.
      * \return false when the packet metadata becomes invalid.
      */
     bool DelCopy (uint64_t id);
 
     /** \return true when the id is associated with this packet */
     bool HasId (uint64_t id);
-  
-  private: 
+
+private:
     bool                  m_valid;  //!< Valid flag.
     Ptr<Packet>           m_packet; //!< Packet pointer.
     std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
@@ -443,7 +443,7 @@ private:
    * As the integration of ofsoftswitch13 and ns-3 involve overriding some C
    * functions, we are using a global map to store a pointer to all
    * OFSwitch13NetDevices objects in simulation, and allow faster object
-   * retrive by datapath id. In this way, static functions like
+   * retrieve by datapath id. In this way, static functions like
    * SendOpenflowBufferToRemote, DpActionsOutputPort, and other callbacks can
    * get the object pointer and call member functions.
    */
