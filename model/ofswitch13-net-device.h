@@ -179,6 +179,14 @@ public:
    */
   static void
   MeterDropCallback (struct packet *pkt);
+  
+  /**
+   * Callback fired when a packet is cloned.
+   * \param pkt The internal original packet.
+   * \param clone The internal cloned packet.
+   */
+  static void
+  PacketCloneCallback (struct packet *pkt, struct packet *clone);
 
   /**
    * Callback fired when a packet is destroyed.
@@ -276,6 +284,13 @@ private:
   void SocketCtrlFailed (Ptr<Socket> socket);
 
   /**
+   * Notify this device of a packet cloned by the OpenFlow pipeline.
+   * \param pkt The original ofsoftswitch13 packet.
+   * \param clone The cloned ofsoftswitch13 packet.
+   */
+  void NotifyPacketCloned (struct packet *pkt, struct packet *cloned);
+
+  /**
    * Notify this device of a packet destroyed by the OpenFlow pipeline.
    * \param pkt The ofsoftswitch13 packet.
    */
@@ -290,22 +305,23 @@ private:
   /**
    * Notify this device of a packet saved into buffer. This method will get the
    * ns-3 packet in pipeline and save into buffer map.
-   * \param packetUid The ns-3 packet uid.
+   * \param packetId The ns-3 packet id.
+   * \param timeout The buffer timeout.
    */
-  void BufferPacketSave (uint64_t packetUid);
+  void BufferPacketSave (uint64_t packetId, time_t timeout);
 
   /**
    * Notify this device of a packet retrieved from buffer. This method will get
    * the ns-3 packet from buffer map and put it back into pipeline.
-   * \param packetUid The ns-3 packet uid.
+   * \param packetId The ns-3 packet id.
    */
-  void BufferPacketRetrieve (uint64_t packetUid);
+  void BufferPacketRetrieve (uint64_t packetId);
 
   /**
    * Delete the ns-3 packet from buffer map.
-   * \param packetUid The ns-3 packet uid.
+   * \param packetId The ns-3 packet id.
    */
-  void BufferPacketDelete (uint64_t packetUid);
+  void BufferPacketDelete (uint64_t packetId);
 
   /**
    * Increase the global packet ID counter and return a new packet ID. This ID
@@ -347,6 +363,53 @@ private:
   static Ptr<OFSwitch13NetDevice> GetDatapathDevice (uint64_t id);
 
 
+  /** 
+   * Structure to save packet metadata while it is under OpenFlow pipeline.
+   * This structure keeps track of packets under OpenFlow pipeline, including
+   * the ID for each packet copy (notified by the clone callback). Note that
+   * only one packet can be in pipeline at a time, but the packet can have
+   * multiple internal copies (which one will receive an unique packet ID), and
+   * can also be saved into buffer for later usage.
+   */
+  struct PipelinePacket
+  {
+    /** Default (empty) constructor. */
+    PipelinePacket ();
+
+    /** 
+     * Save packet metadata.
+     * \param id Packet unique ID.
+     * \param packet The packet pointer.
+     */
+    void SetPacket (uint64_t id, Ptr<Packet> packet);
+
+    /** \return The packet pointer. */
+    Ptr<Packet> GetPacket (void) const;
+
+    /** Invalidate packet metatada.*/
+    void Invalidate (void);
+    
+    /** \return true when valid packet metadata. */
+    bool IsValid (void) const;
+
+    /** Notify a new copy for this packet, with a new unique ID. */
+    void NewCopy (uint64_t id);
+
+    /** 
+     * Delete an existing copy for this packet. 
+     * \return false when the packet metadata becomes invalid.
+     */
+    bool DelCopy (uint64_t id);
+
+    /** \return true when the id is associated with this packet */
+    bool HasId (uint64_t id);
+  
+  private: 
+    bool                  m_valid;  //!< Valid flag.
+    Ptr<Packet>           m_packet; //!< Packet pointer.
+    std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
+  };
+
   /** Trace source fired when the OpenFlow meter band drops a packet */
   TracedCallback<Ptr<const Packet> > m_meterDropTrace;
 
@@ -356,8 +419,8 @@ private:
   /** Structure to map datapath id to OpenFlow device. */
   typedef std::map<uint64_t, Ptr<OFSwitch13NetDevice> > DpIdDevMap_t;
 
-  /** Structure to save packets, indexed by its uid. */
-  typedef std::map<uint64_t, Ptr<Packet> > UidPacketMap_t;
+  /** Structure to save packets, indexed by its id. */
+  typedef std::map<uint64_t, Ptr<Packet> > IdPacketMap_t;
 
   uint64_t        m_dpId;         //!< This datapath id
   Ptr<Node>       m_node;         //!< Node this device is installed on
@@ -369,9 +432,9 @@ private:
   Time            m_pipeDelay;    //!< Flow Table average delay.
   std::string     m_libLog;       //!< The ofsoftswitch13 library logging levels.
   datapath*       m_datapath;     //!< The OpenFlow datapath
-  Ptr<Packet>     m_pktPipeline;  //!< Packet under switch pipeline.
+  PipelinePacket  m_pktPipe;      //!< Packet under switch pipeline.
   PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
-  UidPacketMap_t  m_pktsBuffer;   //!< Packets saved in switch buffer.
+  IdPacketMap_t   m_pktsBuffer;   //!< Packets saved in switch buffer.
 
   static uint64_t m_globalDpId;   //!< Global counter of datapath IDs
   static uint64_t m_globalPktId;  //!< Global counter for packets IDs
