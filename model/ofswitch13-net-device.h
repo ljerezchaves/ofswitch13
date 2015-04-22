@@ -362,8 +362,11 @@ private:
    */
   static Ptr<OFSwitch13NetDevice> GetDatapathDevice (uint64_t id);
 
+  /** Trace source fired when the OpenFlow meter band drops a packet */
+  TracedCallback<Ptr<const Packet> > m_meterDropTrace;
 
   /**
+   * \ingroup ofswitch13
    * Structure to save packet metadata while it is under OpenFlow pipeline.
    * This structure keeps track of packets under OpenFlow pipeline, including
    * the ID for each packet copy (notified by the clone callback). Note that
@@ -371,7 +374,7 @@ private:
    * multiple internal copies (which one will receive an unique packet ID), and
    * can also be saved into buffer for later usage.
    */
-  struct PipelinePacket
+  typedef struct PipelinePacket
   {
     /** Default (empty) constructor. */
     PipelinePacket ();
@@ -404,14 +407,11 @@ private:
     /** \return true when the id is associated with this packet */
     bool HasId (uint64_t id);
 
-private:
+  private:
     bool                  m_valid;  //!< Valid flag.
     Ptr<Packet>           m_packet; //!< Packet pointer.
     std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
   };
-
-  /** Trace source fired when the OpenFlow meter band drops a packet */
-  TracedCallback<Ptr<const Packet> > m_meterDropTrace;
 
   /** Structure to map port number to port information. */
   typedef std::map<uint32_t, Ptr<OFSwitch13Port> > PortNoMap_t;
