@@ -374,7 +374,7 @@ private:
    * multiple internal copies (which one will receive an unique packet ID), and
    * can also be saved into buffer for later usage.
    */
-  typedef struct PipelinePacket
+  struct PipelinePacket
   {
     /** Default (empty) constructor. */
     PipelinePacket ();
