@@ -27,6 +27,7 @@
 #include "ns3/packet.h"
 #include "ns3/traced-callback.h"
 #include "ofswitch13-interface.h"
+#include "ns3/queue.h"
 
 namespace ns3 {
 
@@ -86,6 +87,36 @@ public:
    */
   bool Send (Ptr<Packet> packet, uint32_t queueNo);
 
+  /**
+   * Add an OpenFoow queue.
+   * \param queue The pointer to the new queue.
+   * \param queueNo The queue number, used to index this queue.
+   * \return true if the addition has succeeded, false otherwise.
+   */
+  bool AddQueue (Ptr<Queue> queue, uint32_t queueNo);
+
+  /**
+   * Remove an OpenFoow queue.
+   * \param queueNo The queue number, used to index this queue.
+   * \return true if the remotion has succeeded, false otherwise.
+   */
+  bool RemoveQueue (uint32_t queueNo);
+ 
+  /**
+   * Insert a packet in an especific queue.
+   * \param packet The packet to insert.
+   * \param queueNo The queue number.
+   * \return true if it has succeeded, false otherwise.
+   */
+  bool InsertPacketInQueue (Ptr<Packet> packet, uint32_t queueNo);
+
+  /**
+   * Notify OpenFlow when the csma queue has possibly available space, and then
+   * verifies if it really has.
+   * \param packet The last packet removed or dropped from the csma queue.
+   */
+  void NotifyQueueSpace (const Ptr<Packet> packet);
+
 private:
   /**
    * Create the bitmaps of OFPPF_* describing port features, based on
@@ -111,10 +142,14 @@ private:
   /** Trace source fired when a packet will be sent over this switch port. */
   TracedCallback<Ptr<const Packet> > m_txTrace;
 
-  uint32_t                  m_portNo;       //!< Port number
-  sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port
-  Ptr<CsmaNetDevice>        m_csmaDev;      //!< Underlying CsmaNetDevice
-  Ptr<OFSwitch13NetDevice>  m_openflowDev;  //!< OpenFlow NetDevice
+  /** Structure to ave queues, indexed by queue id */
+  typedef std::map<uint64_t, Ptr<Queue> > QueueMap_t;
+
+  uint32_t                  m_portNo;         //!< Port number
+  sw_port*                  m_swPort;         //!< ofsoftswitch13 struct sw_port
+  Ptr<CsmaNetDevice>        m_csmaDev;        //!< Underlying CsmaNetDevice
+  Ptr<OFSwitch13NetDevice>  m_openflowDev;    //!< OpenFlow NetDevice
+  QueueMap_t                m_openflowQueues; //!< OpenFlow queues, indexed by id
 };
 
 } // namespace ns3

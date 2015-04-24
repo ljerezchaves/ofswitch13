@@ -131,6 +131,12 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   // Register a trace sink at OFSwitch13Port to get packets from CsmaNetDevice.
   csmaDev->TraceConnectWithoutContext (
     "OpenFlowRx", MakeCallback (&OFSwitch13Port::Receive, this));
+
+  // Register a trace sink to monitor CsmaNetDevice queue
+  csmaDev->GetQueue ()->TraceConnectWithoutContext ("Dequeue", 
+      MakeCallback (&OFSwitch13Port::NotifyQueueSpace, this));
+  csmaDev->GetQueue ()->TraceConnectWithoutContext ("Drop", 
+      MakeCallback (&OFSwitch13Port::NotifyQueueSpace, this));
 }
 
 uint32_t
@@ -276,6 +282,43 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
     }
 
   return status;
+}
+
+bool
+OFSwitch13Port::AddQueue (Ptr<Queue> queue, uint32_t queueNo)
+{
+  NS_LOG_DEBUG (this << queue << queueNo);
+
+  std::pair<uint32_t, Ptr<Queue> > entry (queueNo, queue);
+  return m_openflowQueues.insert (entry).second;
+}
+
+bool
+OFSwitch13Port::RemoveQueue (uint32_t queueNo)
+{
+  NS_LOG_DEBUG (this << queueNo);
+
+  return m_openflowQueues.erase (queueNo);
+}
+
+void
+OFSwitch13Port::NotifyQueueSpace (const Ptr<Packet> packet)
+{
+
+}
+
+bool
+OFSwitch13Port::InsertPacketInQueue (Ptr<Packet> packet, uint32_t queueNo)
+{
+  QueueMap_t::iterator it;
+  it = m_openflowQueues.find (queueNo);
+  if (it == m_openflowQueues.end ())
+    {
+      NS_LOG_ERROR ("No available queue.");
+      return false;
+    }
+  Ptr<Queue> queue = it->second;
+  return queue->Enqueue (packet);
 }
 
 } // namespace ns3
