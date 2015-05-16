@@ -908,10 +908,9 @@ OFSwitch13NetDevice::NotifyPacketDestroyed (struct packet *pkt)
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid);
 
-  if (m_pktPipe.IsValid ())
+  if (m_pktPipe.IsValid () && m_pktPipe.HasId (pkt->ns3_uid))
     {
-      NS_ASSERT_MSG (m_pktPipe.HasId (pkt->ns3_uid), "Invalid packet ID.");
-
+      // This is the packet current under pipeline
       bool valid = m_pktPipe.DelCopy (pkt->ns3_uid);
       if (!valid)
         {
