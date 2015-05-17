@@ -34,7 +34,7 @@ def configure(conf):
     # Checking for libraries and configuring paths
     conf.env.DL = conf.check(mandatory=True, lib='dl', define_name='DL', uselib_store='DL')
     conf.env.NBEE = conf.check(mandatory=True, lib='nbee', define_name='NBEE', uselib_store='NBEE')
-    conf.env.OFSWITCH13 = conf.check(mandatory=True, lib='ns3openflow13', use='NBEE',
+    conf.env.OFSWITCH13 = conf.check(mandatory=True, lib='ns3ofswitch13', use='NBEE',
             libpath=os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'udatapath')))
      
     conf.env.DEFINES_OFSWITCH13 = ['NS3_OFSWITCH13']
@@ -46,11 +46,11 @@ def configure(conf):
             os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'oflib-exp')),
             os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'secchan')),
             os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'udatapath'))];
-    conf.env.LIB_OFSWITCH13 = ['dl', 'nbee', 'ns3openflow13']
+    conf.env.LIB_OFSWITCH13 = ['dl', 'nbee', 'ns3ofswitch13']
     conf.env.LIBPATH_OFSWITCH13 = [os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'udatapath'))]
    
     conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 Integration",
-            conf.env.OFSWITCH13, "ns3openflow13 library not found")
+            conf.env.OFSWITCH13, "ns3ofswitch13 library not found")
     
     if not conf.env.OFSWITCH13:
         conf.env.MODULES_NOT_BUILT.append('ofswitch13')
