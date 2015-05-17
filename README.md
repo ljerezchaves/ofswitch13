@@ -18,16 +18,9 @@ To start using this module, the first step is to download and compile the ofsoft
 ```
 * **Note**: before compiling the ofsoftswitch13, you must install the NetBee library (as indicated in the installation guide. Some users have experienced erros during this process, and it is possible to find the solution at http://tocai.dia.uniroma3.it/compunet-wiki/index.php/Installing_and_setting_up_OpenFlow_tools.
 
-Once everything gets compiled, the libns3openflow13.a library will be available under ofsoftswitch13/udatapath/ directory. Don't forget to run the sudo make install command, otherwise you will experience the following error:
-```
-#!bash
+Once everything gets compiled, the libns3ofswitch13.a library will be available under ofsoftswitch13/udatapath/ directory. 
 
-Error initializing the NetBee Library; Exception during parsing: The primary document entity could not be opened. Id=/usr/local/share/openflow/customnetpdl.xml.
-```
-
-Now, its time to download a recent (and stable) ns-3 code from http://www.nsnam.org/releases/ into your machine. 
-
-Before compiling the simulator, place the code from this repository inside a new /src/ofswitch13 folder (you will have to create it). 
+Now, its time to download a recent (and stable) ns-3 code from http://www.nsnam.org/releases/ into your machine. Before compiling the simulator, place the code from this repository inside a new /src/ofswitch13 folder (you will have to create it). 
 
 Also, you need to path the ns-3 code with the ofswitch13-csma.path available in this repository. This patch creates a simple new TraceSource at CsmaNetDevice, allowing OpenFlow switch to get raw L2 packets from this NetDevice. To this, go to the root ns-3 directory and run the following command:
 
