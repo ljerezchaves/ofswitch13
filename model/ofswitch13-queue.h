@@ -39,7 +39,7 @@ namespace ns3 {
  * the OpenFlow requires a set of queues and not only one, but to transmit
  * by the ethernet (CsmaNetDevice class, in NS-3) there is only one queue.
  */
-class OFSwitch13Queue : public Object
+class OFSwitch13Queue : public Queue
 {
 public:
   OFSwitch13Queue ();            //!< Default constructor
