@@ -23,6 +23,7 @@
 #include <queue>
 #include "ns3/packet.h"
 #include "ns3/queue.h"
+#include "queue-tag.h"
 
 namespace ns3 {
 
@@ -33,7 +34,7 @@ namespace ns3 {
  * An OpenFlow switch provides limited Quality-of-Service support (QoS) through
  * a simple queuing mechanism. One (or more) queues can attach to a port and be
  * used to map flow entries on it. Flow entries mapped to a specific queue will
- * be treated according to that queue’s configuration (e.g. min rate). Queue
+ * be treated according to that queues configuration (e.g. min rate). Queue
  * configuration takes place outside the OpenFlow protocol. This class
  * implements a common queue interface, extending the ns3::Queue class to allow
  * compatibility with existing NetDevices (especially, the CsmaNetDevice used
@@ -42,7 +43,8 @@ namespace ns3 {
  * internal queue will hold the packet, and the internal schedulling algorithms
  * decides from which queue get the packets to send over the wire.
  */
-class OFSwitch13Queue : public Queue {
+class OFSwitch13Queue : public Queue
+{
 public:
   /**
    * \brief Get the type ID.
@@ -51,7 +53,7 @@ public:
   static TypeId GetTypeId (void);
 
   OFSwitch13Queue ();           //!< Default constructor
-  virtual ~OFSwitch13Queue();   //!< Dummy destructor, see DoDispose.
+  virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
 
   /**
    * Set the operating mode of this device (bytes or packets).

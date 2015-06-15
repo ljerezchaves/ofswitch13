@@ -28,13 +28,13 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Queue");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Queue);
 
-TypeId OFSwitch13Queue::GetTypeId (void) 
+TypeId OFSwitch13Queue::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Queue")
     .SetParent<Queue> ()
-    .SetGroupName("OFswitch13")
+    .SetGroupName ("OFswitch13")
     .AddConstructor<OFSwitch13Queue> ()
-    .AddAttribute ("Mode", 
+    .AddAttribute ("Mode",
                    "Whether to use bytes (see MaxBytes) or packets "
                    "(see MaxPackets) as the maximum queue size metric.",
                    EnumValue (QUEUE_MODE_PACKETS),
@@ -46,7 +46,7 @@ TypeId OFSwitch13Queue::GetTypeId (void)
                    UintegerValue (100),
                    MakeUintegerAccessor (&OFSwitch13Queue::m_maxPackets),
                    MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("MaxBytes", 
+    .AddAttribute ("MaxBytes",
                    "The maximum number of bytes accepted by this OFSwitch13Queue.",
                    UintegerValue (100 * 65535),
                    MakeUintegerAccessor (&OFSwitch13Queue::m_maxBytes),
@@ -55,10 +55,10 @@ TypeId OFSwitch13Queue::GetTypeId (void)
   return tid;
 }
 
-OFSwitch13Queue::OFSwitch13Queue () :
-  Queue (),
-  m_packets (),
-  m_bytesInQueue (0)
+OFSwitch13Queue::OFSwitch13Queue ()
+  : Queue (),
+    m_packets (),
+    m_bytesInQueue (0)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -82,7 +82,7 @@ OFSwitch13Queue::GetMode (void)
   return m_mode;
 }
 
-bool 
+bool
 OFSwitch13Queue::DoEnqueue (Ptr<Packet> p)
 {
   NS_LOG_FUNCTION (this << p);
