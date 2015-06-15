@@ -145,9 +145,9 @@ public:
   /**
    * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
    * from udatapath/datapath.c. Sends the given OFLib buffer message to the
-   * controller associated with remote connection structure.
-   * \internal This function relies on the global map that stores OpenFlow
-   * devices to call the method on the correct object.
+   * controller associated with remote connection structure. This function
+   * relies on the global map that stores OpenFlow devices to call the method
+   * on the correct object.
    * \param buffer The message buffer to send.
    * \param ctrl The controller connection information.
    * \return 0 if everything's ok, error number otherwise.
@@ -407,7 +407,7 @@ private:
     /** \return true when the id is associated with this packet */
     bool HasId (uint64_t id);
 
-  private:
+private:
     bool                  m_valid;  //!< Valid flag.
     Ptr<Packet>           m_packet; //!< Packet pointer.
     std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
