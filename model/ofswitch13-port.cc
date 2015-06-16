@@ -60,6 +60,7 @@ OFSwitch13Port::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Port")
     .SetParent<Object> ()
+    .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Port> ()
     .AddTraceSource ("SwitchPortRx",
                      "Trace source indicating a packet received at this switch port",
@@ -86,6 +87,7 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
 
   memset (m_swPort, '\0', sizeof *m_swPort);
 
+  // Filling ofsoftswitch13 internal structures for this port.
   m_swPort->dp = dp;
   m_swPort->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
   memset (m_swPort->conf, 0x00, sizeof (ofl_port));
@@ -111,7 +113,7 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
 
   // To avoid a null check failure in
   // dp_ports_handle_stats_request_port (), we are pointing
-  // m_swPort->netdev to ns3::CsmaNetDevice, but it will not be used.
+  // m_swPort->netdev to ns3::CsmaNetDevice, but it will must not be used!
   m_swPort->netdev = (struct netdev*)PeekPointer (csmaDev);
 
   // Creating the OpenFlowQueue for this switch port

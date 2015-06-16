@@ -42,6 +42,7 @@ OFSwitch13LearningController::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13LearningController")
     .SetParent<OFSwitch13Controller> ()
+    .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13LearningController> ()
   ;
   return tid;

@@ -40,6 +40,7 @@ OFSwitch13NetDevice::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13NetDevice")
     .SetParent<NetDevice> ()
+    .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13NetDevice> ()
     .AddAttribute ("DatapathId",
                    "The identification of the OFSwitch13NetDevice/Datapath.",
