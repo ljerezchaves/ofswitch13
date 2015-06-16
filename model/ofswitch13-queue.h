@@ -67,6 +67,27 @@ public:
    */
   Queue::QueueMode GetMode (void);
 
+  /**
+   * Get the maximun number of queues allowed.
+   * \return The number of allowed queues.
+   */ 
+  static uint16_t GetMaxQueues (void);
+
+  /**
+   * Add a new internal queue to this OpenFlow queue.
+   * \param queue The queue pointer.
+   * \param id The queue ID.
+   * \return true if the queue was successfully added, false otherwise.
+   */
+  bool AddInternalQueue (Ptr<Queue> queue, uint16_t id);
+
+  /**
+   * Delete an internal queue from this OpenFlow queue.
+   * \param id The queue ID.
+   * \return true if the queue was successfully deleted, false otherwise.
+   */
+  bool DelInternalQueue (uint16_t id);
+
 private:
   // Inherited from Queue
   virtual bool DoEnqueue (Ptr<Packet> p);
@@ -78,6 +99,8 @@ private:
   uint32_t m_maxBytes;                //!< max bytes in the queue
   uint32_t m_bytesInQueue;            //!< actual bytes in the queue
   QueueMode m_mode;                   //!< queue mode (packets or bytes limited)
+
+  static const uint16_t m_maxQueues;       //!< Maximum number of queues
 };
 
 } // namespace ns3

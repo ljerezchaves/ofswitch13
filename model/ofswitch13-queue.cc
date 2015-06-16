@@ -28,6 +28,11 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Queue");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Queue);
 
+// m_maxQueues must be less or equal to ofsoftswitch13 NETDEV_MAX_QUEUES
+// constant, which is currently set to 8. To increase this value, update
+// dp_ports.h sw_port structure.
+const uint16_t OFSwitch13Queue::m_maxQueues = 8;
+
 TypeId OFSwitch13Queue::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Queue")
@@ -80,6 +85,26 @@ OFSwitch13Queue::GetMode (void)
 {
   NS_LOG_FUNCTION (this);
   return m_mode;
+}
+
+uint16_t
+OFSwitch13Queue::GetMaxQueues (void)
+{
+  return m_maxQueues;
+}
+
+bool
+OFSwitch13Queue::AddInternalQueue (Ptr<Queue> queue, uint16_t id)
+{
+  // TODO
+  return true;
+}
+
+bool
+OFSwitch13Queue::DelInternalQueue (uint16_t id)
+{
+  // TODO
+  return true;
 }
 
 bool
