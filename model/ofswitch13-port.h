@@ -27,6 +27,7 @@
 #include "ns3/packet.h"
 #include "ns3/traced-callback.h"
 #include "ofswitch13-interface.h"
+#include "ofswitch13-queue.h"
 
 namespace ns3 {
 
@@ -86,6 +87,22 @@ public:
    */
   bool Send (Ptr<Packet> packet, uint32_t queueNo);
 
+  /**
+   * Add a new queue to this port.
+   * \see ofsoftswitch13 function ports_add_queue () at udatapath/dp_ports.c
+   * \param id The queue ID.
+   * \param queue The queue pointer.
+   * \return true if the queue was successfully added, false otherwise.
+   */
+  bool AddQueue (uint16_t id, Ptr<Queue> queue);
+
+  /**
+   * Delete a queue from this port.
+   * \param id The queue ID.
+   * \return true if the queue was successfully deleted, false otherwise.
+   */
+  bool DelQueue (uint16_t id);
+
 private:
   /**
    * Create the bitmaps of OFPPF_* describing port features, based on
@@ -114,6 +131,7 @@ private:
   uint32_t                  m_portNo;       //!< Port number
   sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port
   Ptr<CsmaNetDevice>        m_csmaDev;      //!< Underlying CsmaNetDevice
+  Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue
   Ptr<OFSwitch13NetDevice>  m_openflowDev;  //!< OpenFlow NetDevice
 };
 

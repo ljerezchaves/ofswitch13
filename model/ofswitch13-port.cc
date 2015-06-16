@@ -113,11 +113,15 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   // dp_ports_handle_stats_request_port (), we are pointing
   // m_swPort->netdev to ns3::CsmaNetDevice, but it will not be used.
   m_swPort->netdev = (struct netdev*)PeekPointer (csmaDev);
-  m_swPort->max_queues = NETDEV_MAX_QUEUES;
-  m_swPort->num_queues = 0; // FIXME No queue support by now
-  m_swPort->created = time_msec ();
 
+  // Creating the OpenFlowQueue for this switch port
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
+  m_swPort->max_queues = OFSwitch13Queue::GetMaxQueues ();
+  m_swPort->num_queues = 0;
+  m_portQueue = CreateObject<OFSwitch13Queue> (m_swPort);
+  csmaDev->SetQueue (m_portQueue);
+ 
+  m_swPort->created = time_msec ();
 
   list_push_back (&dp->port_list, &m_swPort->node);
 
@@ -166,6 +170,34 @@ OFSwitch13Port::PortUpdateState ()
       return true;
     }
   return false;
+}
+
+bool
+OFSwitch13Port::AddQueue (uint16_t id, Ptr<Queue> queue)
+{
+  NS_LOG_FUNCTION (this << queue << id);
+
+  NS_ASSERT_MSG (queue, "Invalid queue pointer");
+  
+  if (id >= m_swPort->max_queues)
+    {
+      NS_FATAL_ERROR ("Max number of queues already installed.");
+    }
+  
+  if (m_swPort->queues[id].port != NULL)
+    {
+      NS_FATAL_ERROR ("Existing queue with this ID.");
+    }
+
+  return m_portQueue->AddInternalQueue (id, queue);
+}
+
+bool
+OFSwitch13Port::DelQueue (uint16_t id)
+{
+  NS_LOG_FUNCTION (this << id);
+
+  return m_portQueue->DelInternalQueue (id);
 }
 
 uint32_t
@@ -260,7 +292,9 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
   EthernetHeader header;
   packet->RemoveHeader (header);
 
-  // FIXME No queue support by now
+  // Tagging the packet with queue number
+  QueueTag queueNoTag (queueNo);
+  packet->AddPacketTag (queueNoTag);
   bool status = m_csmaDev->SendFrom (packet, header.GetSource (),
                                      header.GetDestination (),
                                      header.GetLengthType ());

@@ -23,6 +23,7 @@
 #include <queue>
 #include "ns3/packet.h"
 #include "ns3/queue.h"
+#include "ofswitch13-interface.h"
 #include "queue-tag.h"
 
 namespace ns3 {
@@ -30,21 +31,24 @@ namespace ns3 {
 /**
  * \ingroup ofswitch13
  *
- * \brief The OpenFlow 1.3 queue interface for QoS management.
+ * \brief The OpenFlow 1.3 queue interface for simple QoS management.
  * An OpenFlow switch provides limited Quality-of-Service support (QoS) through
  * a simple queuing mechanism. One (or more) queues can attach to a port and be
  * used to map flow entries on it. Flow entries mapped to a specific queue will
- * be treated according to that queues configuration (e.g. min rate). Queue
+ * be treated according to that queue's configuration (e.g. min rate). Queue
  * configuration takes place outside the OpenFlow protocol. This class
  * implements a common queue interface, extending the ns3::Queue class to allow
- * compatibility with existing NetDevices (especially, the CsmaNetDevice used
- * in OFSwitch13Port). Internally, it can hold a collection of queues,
- * indentified by an unique id. The ns3::QueueTag is used to identify which
- * internal queue will hold the packet, and the internal schedulling algorithms
- * decides from which queue get the packets to send over the wire.
+ * compatibility with the CsmaNetDevice used in OFSwitch13Port. Internally, it
+ * can hold a collection of queues, indentified by an unique id. The
+ * ns3::QueueTag is used to identify which internal queue will hold the packet,
+ * and the internal schedulling algorithms decides from which queue get the
+ * packets to send over the wire. The default internal DropTailQueue with id 0
+ * is created at constructor, and can not be removed.
  */
 class OFSwitch13Queue : public Queue
 {
+  friend class OFSwitch13Port;
+
 public:
   /**
    * \brief Get the type ID.
@@ -55,17 +59,7 @@ public:
   OFSwitch13Queue ();           //!< Default constructor
   virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
 
-  /**
-   * Set the operating mode of this device (bytes or packets).
-   * \param mode The operating mode of this device.
-   */
-  void SetMode (Queue::QueueMode mode);
-
-  /**
-   * Get the encapsulation mode of this device.
-   * \returns The encapsulation mode of this device.
-   */
-  Queue::QueueMode GetMode (void);
+  OFSwitch13Queue (sw_port* port);
 
   /**
    * Get the maximun number of queues allowed.
@@ -73,34 +67,45 @@ public:
    */ 
   static uint16_t GetMaxQueues (void);
 
+private:
   /**
    * Add a new internal queue to this OpenFlow queue.
-   * \param queue The queue pointer.
    * \param id The queue ID.
+   * \param queue The queue pointer.
    * \return true if the queue was successfully added, false otherwise.
    */
-  bool AddInternalQueue (Ptr<Queue> queue, uint16_t id);
+  bool AddInternalQueue (uint32_t id, Ptr<Queue> queue);
 
   /**
    * Delete an internal queue from this OpenFlow queue.
    * \param id The queue ID.
    * \return true if the queue was successfully deleted, false otherwise.
    */
-  bool DelInternalQueue (uint16_t id);
+  bool DelInternalQueue (uint32_t id);
 
-private:
+  /**
+   * Get the internal queue pointer by its id.
+   * \param id The queue id.
+   * \return The queue pointer.
+   * \attention This function is marked as const to allow its usage inside
+   * DoPeek () member function, but there is no guarantee the returned pointer
+   * will not be modified.
+   */
+  Ptr<Queue> GetQueue (uint32_t id) const;
+
   // Inherited from Queue
   virtual bool DoEnqueue (Ptr<Packet> p);
   virtual Ptr<Packet> DoDequeue (void);
   virtual Ptr<const Packet> DoPeek (void) const;
 
-  std::queue<Ptr<Packet> > m_packets; //!< the packets in the queue
-  uint32_t m_maxPackets;              //!< max packets in the queue
-  uint32_t m_maxBytes;                //!< max bytes in the queue
-  uint32_t m_bytesInQueue;            //!< actual bytes in the queue
-  QueueMode m_mode;                   //!< queue mode (packets or bytes limited)
+  /** Structure to save internal queues, indexed by its id. */
+  typedef std::map<uint32_t, Ptr<Queue> > IdQueueMap_t;
+  IdQueueMap_t m_queues;              //!< Interal collection of queues
 
-  static const uint16_t m_maxQueues;       //!< Maximum number of queues
+  sw_port* m_swPort;                  //!< ofsoftswitch13 struct sw_port
+  uint16_t m_numQueues;               //!< Current number of queues
+  
+  static const uint16_t m_maxQueues;  //!< Maximum number of queues
 };
 
 } // namespace ns3
