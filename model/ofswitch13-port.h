@@ -48,7 +48,6 @@ class OFSwitch13Port : public Object
 public:
   OFSwitch13Port ();            //!< Default constructor
   virtual ~OFSwitch13Port ();   //!< Dummy destructor, see DoDipose
-  void DoDispose ();            //!< Destructor implementation
 
   /**
    * Register this type.
@@ -56,7 +55,10 @@ public:
    */
   static TypeId GetTypeId (void);
 
-  /** \return The port number. */
+  /** 
+   * Get the OpenFlow port number for this port.
+   * \return The port number. 
+   */
   uint32_t GetPortNo (void) const;
 
   /**
@@ -102,6 +104,10 @@ public:
    * \return true if the queue was successfully deleted, false otherwise.
    */
   bool DelQueue (uint16_t id);
+
+protected:
+  /** Destructor implementation */
+  virtual void DoDispose ();
 
 private:
   /**

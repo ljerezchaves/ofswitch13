@@ -51,8 +51,13 @@ OFSwitch13Port::DoDispose ()
 
   m_csmaDev = 0;
   m_openflowDev = 0;
+  
+  // Calling DoDispose on internal port, so it can use m_swPort pointer to free
+  // internal strucutures first.
+  m_portQueue->DoDispose ();
   ofl_structs_free_port (m_swPort->conf);
   free (m_swPort->stats);
+  m_swPort = 0;
 }
 
 TypeId
@@ -111,12 +116,12 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   m_swPort->stats->port_no = m_portNo;
   m_swPort->flags |= SWP_USED;
 
-  // To avoid a null check failure in
-  // dp_ports_handle_stats_request_port (), we are pointing
-  // m_swPort->netdev to ns3::CsmaNetDevice, but it will must not be used!
+  // To avoid a null check failure in ofsoftswitch13
+  // dp_ports_handle_stats_request_port (), we are pointing m_swPort->netdev to
+  // corresponding ns3::CsmaNetDevice, but this pointer must not be used!
   m_swPort->netdev = (struct netdev*)PeekPointer (csmaDev);
 
-  // Creating the OpenFlowQueue for this switch port
+  // Creating the OFSwitch13Queue for this switch port
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
   m_swPort->max_queues = OFSwitch13Queue::GetMaxQueues ();
   m_swPort->num_queues = 0;
@@ -178,19 +183,8 @@ bool
 OFSwitch13Port::AddQueue (uint16_t id, Ptr<Queue> queue)
 {
   NS_LOG_FUNCTION (this << queue << id);
-
   NS_ASSERT_MSG (queue, "Invalid queue pointer");
   
-  if (id >= m_swPort->max_queues)
-    {
-      NS_FATAL_ERROR ("Max number of queues already installed.");
-    }
-  
-  if (m_swPort->queues[id].port != NULL)
-    {
-      NS_FATAL_ERROR ("Existing queue with this ID.");
-    }
-
   return m_portQueue->AddInternalQueue (id, queue);
 }
 
