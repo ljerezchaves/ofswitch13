@@ -567,6 +567,7 @@ OFSwitch13NetDevice::DoDispose ()
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
   meter_table_destroy (m_datapath->meters);
+  free (m_datapath);
 
   NetDevice::DoDispose ();
 }
