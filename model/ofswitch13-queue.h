@@ -47,8 +47,6 @@ namespace ns3 {
  */
 class OFSwitch13Queue : public Queue
 {
-  friend class OFSwitch13Port;
-
 public:
   /**
    * \brief Get the type ID.
@@ -59,6 +57,14 @@ public:
   OFSwitch13Queue ();           //!< Default constructor
   virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
 
+  /** Destructor implementation */
+  virtual void DoDispose ();
+  
+  /**
+   * Complete constructor, including the pointer to the ofsoftswitch13 internal
+   * port structure. 
+   * \param port The ofsoftswitch13 port structure
+   */
   OFSwitch13Queue (sw_port* port);
 
   /**
@@ -67,7 +73,6 @@ public:
    */ 
   static uint16_t GetMaxQueues (void);
 
-private:
   /**
    * Add a new internal queue to this OpenFlow queue.
    * \param id The queue ID.
@@ -84,15 +89,16 @@ private:
   bool DelInternalQueue (uint32_t id);
 
   /**
-   * Get the internal queue pointer by its id.
+   * Get a pointer to internal queue with specific id.
    * \param id The queue id.
    * \return The queue pointer.
-   * \attention This function is marked as const to allow its usage inside
-   * DoPeek () member function, but there is no guarantee the returned pointer
-   * will not be modified.
+   * \internal 
+   * This function is marked as const to allow its usage inside DoPeek ()
+   * member function.
    */
   Ptr<Queue> GetQueue (uint32_t id) const;
 
+private:
   // Inherited from Queue
   virtual bool DoEnqueue (Ptr<Packet> p);
   virtual Ptr<Packet> DoDequeue (void);
@@ -103,7 +109,6 @@ private:
   IdQueueMap_t m_queues;              //!< Interal collection of queues
 
   sw_port* m_swPort;                  //!< ofsoftswitch13 struct sw_port
-  uint16_t m_numQueues;               //!< Current number of queues
   
   static const uint16_t m_maxQueues;  //!< Maximum number of queues
 };

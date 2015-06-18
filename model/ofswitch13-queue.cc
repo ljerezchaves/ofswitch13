@@ -18,6 +18,9 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
+#define NS_LOG_APPEND_CONTEXT \
+  if (m_swPort != 0) { std::clog << "[dp " << m_swPort->dp->id << " port " << m_swPort->conf->port_no << "] "; }
+
 #include "ns3/log.h"
 #include "ns3/enum.h"
 #include "ns3/uinteger.h"
@@ -31,14 +34,15 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Queue);
 
 // m_maxQueues must be less or equal to ofsoftswitch13 NETDEV_MAX_QUEUES
 // constant, which is currently set to 8. To increase this value, update
-// dp_ports.h sw_port structure.
+// dp_ports.h sw_port.queues structure.
 const uint16_t OFSwitch13Queue::m_maxQueues = 8;
 
-TypeId OFSwitch13Queue::GetTypeId (void)
+TypeId 
+OFSwitch13Queue::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Queue")
     .SetParent<Queue> ()
-    .SetGroupName ("OFswitch13")
+    .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Queue> ()
   ;
   return tid;
@@ -46,28 +50,46 @@ TypeId OFSwitch13Queue::GetTypeId (void)
 
 OFSwitch13Queue::OFSwitch13Queue ()
   : Queue (),
-    m_swPort (0),
-    m_numQueues (0)
+    m_swPort (0)
 {
   NS_LOG_FUNCTION (this);
 }
 
 OFSwitch13Queue::OFSwitch13Queue (sw_port* port)
   : Queue (),
-    m_swPort (0),
-    m_numQueues (0)
+    m_swPort (port)
 {
   NS_LOG_FUNCTION (this << port);
 
-  m_swPort = port;
-
-  // Adding the default drop tail queue with id 0
+  // Adding the default ns3::DropTailQueue with 
+  // id = 0 for best-effort traffic.
   AddInternalQueue (0, CreateObject<DropTailQueue> ());
 }
 
 OFSwitch13Queue::~OFSwitch13Queue ()
 {
   NS_LOG_FUNCTION (this);
+}
+
+void
+OFSwitch13Queue::DoDispose ()
+{
+  NS_LOG_FUNCTION (this);
+
+  // While m_swPort is valid, free internal stats and props 
+  // structures for each available queue
+  if (m_swPort)
+    {
+      sw_queue* swQueue;
+      IdQueueMap_t::iterator it;
+      for (it = m_queues.begin (); it != m_queues.end (); it++)
+        {
+          swQueue = &(m_swPort->queues[it->first]);
+          free (swQueue->stats);
+          free (swQueue->props);
+        }
+      m_swPort = 0;
+    }
   m_queues.clear ();
 }
 
@@ -80,43 +102,37 @@ OFSwitch13Queue::GetMaxQueues (void)
 bool
 OFSwitch13Queue::AddInternalQueue (uint32_t id, Ptr<Queue> queue)
 {
-  NS_LOG_FUNCTION (this << queue << id);
- 
-  // Filling ofsoftswitch13 internal structures for this port.
-  sw_queue* swQueue = &(m_swPort->queues[id]);
-  NS_ASSERT_MSG (!swQueue->port, "Not empty queue position.");
+  NS_LOG_FUNCTION (this << id << queue);
+  
+  NS_ASSERT_MSG (m_swPort, "Invalid OpenFlow port metadata.");
+  NS_ASSERT_MSG (id < m_maxQueues, "Invalid queue id.");
 
+  sw_queue* swQueue = &(m_swPort->queues[id]);
+  NS_ASSERT_MSG (!swQueue->port, "Queue id already in use.");
+
+  // Filling ofsoftswitch13 internal structures for this queue
   swQueue->port = m_swPort;
   swQueue->created = time_msec ();
+
   swQueue->stats = (ofl_queue_stats*)xmalloc (sizeof (ofl_queue_stats));
+  memset (swQueue->stats, 0x00, sizeof (ofl_queue_stats));
   swQueue->stats->port_no = m_swPort->conf->port_no;
   swQueue->stats->queue_id = id;
-  swQueue->stats->tx_bytes = 0;
-  swQueue->stats->tx_packets = 0;
-  swQueue->stats->tx_errors = 0;
-  swQueue->stats->duration_sec = 0;
-  swQueue->stats->duration_nsec = 0;
-
+  
   swQueue->props = (ofl_packet_queue*)xmalloc (sizeof (struct ofl_packet_queue));
   swQueue->props->queue_id = id;
   swQueue->props->properties_num = 0;
   
-  // FIXME ofsoftswitch assumes the packet queue has exactly one property, for min rate
-  // swQueue->props->properties = (ofl_queue_prop_header*)xmalloc (
-  //   sizeof (struct ofl_queue_prop_header*));
-  // swQueue->props->properties [0] = xmalloc (
-  //   sizeof(struct ofl_queue_prop_min_rate));
-  // ((ofl_queue_prop_min_rate*)(queue->props->properties[0]))->header.type = OFPQT_MIN_RATE;
-  // ((ofl_queue_prop_min_rate*)(queue->props->properties[0]))->rate = mr->rate;
-
-  std::pair<uint32_t, Ptr<Queue> > entry (0, queue);
+  // Inserting the ns3::Queue object into queue map.
+  std::pair<uint32_t, Ptr<Queue> > entry (id, queue);
   std::pair<IdQueueMap_t::iterator, bool> ret;
   ret = m_queues.insert (entry);
-  NS_ASSERT_MSG (ret.second, "Unable to insert queue " << id);
+  if (ret.second == false)
+    {
+      NS_FATAL_ERROR ("Unable to insert queue id = " << id);
+    }
 
   m_swPort->num_queues++;
-  m_numQueues++;
-  
   return true;
 }
 
@@ -124,20 +140,23 @@ bool
 OFSwitch13Queue::DelInternalQueue (uint32_t id)
 {
   NS_LOG_FUNCTION (this << id);
+  
+  sw_queue* swQueue = dp_ports_lookup_queue (m_swPort, id);
+  NS_ASSERT_MSG (swQueue, "Invalid queue id.");
+  NS_ASSERT_MSG (id != 0, "Can't remove default queue");
 
-  sw_queue* swQueue = &(m_swPort->queues[id]);
-  NS_ASSERT_MSG (swQueue->port, "Invalid queue pointer");
+  IdQueueMap_t::iterator it = m_queues.find (id);
+  if (it == m_queues.end ())
+    {
+      NS_LOG_ERROR ("Can't remove invalid queue id = " << id);
+      return false;
+    }
+  m_queues.erase (it);
 
   free (swQueue->stats);
   free (swQueue->props);
   memset (swQueue, 0x00, sizeof (sw_queue));
   m_swPort->num_queues--;
-  m_numQueues--;
-
-  IdQueueMap_t::iterator it = m_queues.find (id);
-  NS_ASSERT_MSG (it != m_queues.end (), "Invalid queue id.");
-  m_queues.erase (it);
-
   return true;
 }
 
@@ -155,14 +174,28 @@ OFSwitch13Queue::DoEnqueue (Ptr<Packet> p)
 {
   NS_LOG_FUNCTION (this << p);
 
+  sw_queue* swQueue;
   QueueTag queueNoTag;
-  bool found = p->RemovePacketTag (queueNoTag);
-  NS_ASSERT_MSG (found, "Packet was supposed to be tagged with queue number.");
-  
-  uint32_t queueNo = queueNoTag.GetQueueId ();
-  NS_LOG_UNCOND ("Packet " << p << " to be enqueued in queue no " << queueNo);
+  uint32_t queueNo = 0;
+  if (p->RemovePacketTag (queueNoTag))
+    {
+      queueNo = queueNoTag.GetQueueId ();
+    }
+  NS_LOG_DEBUG ("Packet " << p << " to be enqueued in queue no " << queueNo);
 
-  return GetQueue (queueNo)->Enqueue (p);
+  swQueue = dp_ports_lookup_queue (m_swPort, queueNo);
+  NS_ASSERT_MSG (swQueue, "Invalid queue id.");
+  if (GetQueue (queueNo)->Enqueue (p))
+    {
+      swQueue->stats->tx_packets++;
+      swQueue->stats->tx_bytes += p->GetSize ();
+      return true;
+    }
+  else
+    {
+      swQueue->stats->tx_errors++;
+      return false;
+    }
 }
 
 Ptr<Packet>
@@ -170,6 +203,7 @@ OFSwitch13Queue::DoDequeue (void)
 {
   NS_LOG_FUNCTION (this);
 
+  // TODO From which queue we should get the packet?
   return GetQueue (0)->Dequeue ();
 }
 
@@ -178,6 +212,7 @@ OFSwitch13Queue::DoPeek (void) const
 {
   NS_LOG_FUNCTION (this);
 
+  // TODO From which queue we should get the packet?
   Ptr<const Queue> queue = GetQueue (0);
   return queue->Peek ();
 }
