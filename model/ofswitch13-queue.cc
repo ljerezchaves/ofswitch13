@@ -26,6 +26,7 @@
 #include "ns3/uinteger.h"
 #include "ns3/drop-tail-queue.h"
 #include "ofswitch13-queue.h"
+#include <algorithm> 
 
 namespace ns3 {
 
@@ -61,8 +62,7 @@ OFSwitch13Queue::OFSwitch13Queue (sw_port* port)
 {
   NS_LOG_FUNCTION (this << port);
 
-  // Adding the default ns3::DropTailQueue with 
-  // id = 0 for best-effort traffic.
+  // Adding the default ns3::DropTailQueue with id 0 for best-effort traffic.
   AddInternalQueue (0, CreateObject<DropTailQueue> ());
 }
 
@@ -91,6 +91,7 @@ OFSwitch13Queue::DoDispose ()
       m_swPort = 0;
     }
   m_queues.clear ();
+  m_queueIds.clear ();
 }
 
 uint16_t
@@ -132,6 +133,9 @@ OFSwitch13Queue::AddInternalQueue (uint32_t id, Ptr<Queue> queue)
       NS_FATAL_ERROR ("Unable to insert queue id = " << id);
     }
 
+  // Saving queue id for faster output queue lookup.
+  m_queueIds.push_back (id);
+  std::sort (m_queueIds.begin(), m_queueIds.end());
   m_swPort->num_queues++;
   return true;
 }
@@ -156,6 +160,13 @@ OFSwitch13Queue::DelInternalQueue (uint32_t id)
   free (swQueue->stats);
   free (swQueue->props);
   memset (swQueue, 0x00, sizeof (sw_queue));
+  
+  std::vector<uint32_t>::iterator pos;
+  pos = std::find (m_queueIds.begin(), m_queueIds.end(), id);
+  if (pos != m_queueIds.end ())
+    {
+      m_queueIds.erase (pos);
+    }
   m_swPort->num_queues--;
   return true;
 }
@@ -203,8 +214,9 @@ OFSwitch13Queue::DoDequeue (void)
 {
   NS_LOG_FUNCTION (this);
 
-  // TODO From which queue we should get the packet?
-  return GetQueue (0)->Dequeue ();
+  uint32_t qId = GetOutputQueue (false);
+  NS_LOG_DEBUG ("Packet dequeued from queue no " << qId);
+  return GetQueue (qId)->Dequeue ();
 }
 
 Ptr<const Packet>
@@ -212,9 +224,55 @@ OFSwitch13Queue::DoPeek (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  // TODO From which queue we should get the packet?
-  Ptr<const Queue> queue = GetQueue (0);
-  return queue->Peek ();
+  uint32_t qId = GetOutputQueue (true);
+  NS_LOG_DEBUG ("Packet peek from queue no " << qId);
+  return GetQueue (qId)->Peek ();
+}
+
+uint32_t
+OFSwitch13Queue::GetOutputQueue (bool peekLock) const
+{
+  static bool isLocked = false;
+  static uint32_t queueId = 0;
+  static uint32_t queuePos = 0;
+
+  // If output queue is locked, we can't change its id.
+  if (isLocked)
+    {
+      if (peekLock)
+        {
+          // If peekLock is true, return the queue and keep it locked.
+          return queueId;
+        }
+      else
+        {
+          // If peekLock is false, unlock it and return the queue.
+          isLocked = false;
+          return queueId;
+        }
+    }
+ 
+  // If output queue is unlocked, let's get the new queue id for this
+  // operation. Current implementation performs round-robin scheduling.
+  // Starting for the next id, let's find the first valid non-empty queue.
+  for (uint32_t nextPos = (queuePos + 1) % m_queueIds.size ();
+      nextPos != queuePos; nextPos = (nextPos + 1) % m_queueIds.size ())
+    {
+      if (GetQueue (m_queueIds.at (nextPos))->IsEmpty () == false)
+        {
+          // We found a non-empty valid queue.
+          queueId = m_queueIds.at (nextPos);
+          queuePos = nextPos;
+          break;
+        }
+    }
+
+  if (peekLock)
+    {
+      // If peekLock is true, lock the output queue before returning it.
+      isLocked = true;
+    }
+  return queueId;
 }
 
 } // namespace ns3

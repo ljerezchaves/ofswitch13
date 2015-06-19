@@ -104,12 +104,25 @@ private:
   virtual Ptr<Packet> DoDequeue (void);
   virtual Ptr<const Packet> DoPeek (void) const;
 
+  /**
+   * Return the queue id that will be used by DoPeek and DoDequeue functions.
+   * Currently, we performs round-robing scheduling among available queues.
+   * \internal
+   * This function has to keep consistence in its queue decision despite
+   * arbitrary calls from peek and dequeue functions. When a peek operation is
+   * performed, a output queue must be selected and has to remain the same
+   * until the packet is effectively dequeued from it.
+   * \param peekLock Get the output queue and lock it.
+   * \return The queue id.
+   */
+  uint32_t GetOutputQueue (bool peekLock = false) const;
+
   /** Structure to save internal queues, indexed by its id. */
   typedef std::map<uint32_t, Ptr<Queue> > IdQueueMap_t;
   IdQueueMap_t m_queues;              //!< Interal collection of queues
 
-  sw_port* m_swPort;                  //!< ofsoftswitch13 struct sw_port
-  
+  sw_port*              m_swPort;     //!< ofsoftswitch13 struct sw_port
+  std::vector<uint32_t> m_queueIds;   //!< List of available queue ids
   static const uint16_t m_maxQueues;  //!< Maximum number of queues
 };
 
