@@ -75,28 +75,28 @@ public:
 
   /**
    * Add a new internal queue to this OpenFlow queue.
-   * \param id The queue ID.
+   * \param queueId The queue ID.
    * \param queue The queue pointer.
    * \return true if the queue was successfully added, false otherwise.
    */
-  bool AddInternalQueue (uint32_t id, Ptr<Queue> queue);
+  bool AddQueue (uint32_t queueId, Ptr<Queue> queue);
 
   /**
    * Delete an internal queue from this OpenFlow queue.
-   * \param id The queue ID.
+   * \param queueId The queue ID.
    * \return true if the queue was successfully deleted, false otherwise.
    */
-  bool DelInternalQueue (uint32_t id);
+  bool DelQueue (uint32_t queueId);
 
   /**
    * Get a pointer to internal queue with specific id.
-   * \param id The queue id.
+   * \param queueId The queue id.
    * \return The queue pointer.
    * \internal 
    * This function is marked as const to allow its usage inside DoPeek ()
    * member function.
    */
-  Ptr<Queue> GetQueue (uint32_t id) const;
+  Ptr<Queue> GetQueue (uint32_t queueId) const;
 
 private:
   // Inherited from Queue

@@ -239,6 +239,13 @@ OFSwitch13NetDevice::StartControllerConnection ()
   NS_LOG_ERROR ("Controller already set.");
 }
 
+Ptr<OFSwitch13Queue>
+OFSwitch13NetDevice::GetOutputQueue (uint32_t portNo)
+{
+  NS_LOG_FUNCTION (this << portNo);
+  return GetOFSwitch13Port (portNo)->GetOutputQueue ();
+}
+
 // Inherited from NetDevice base class
 void
 OFSwitch13NetDevice::SetIfIndex (const uint32_t index)

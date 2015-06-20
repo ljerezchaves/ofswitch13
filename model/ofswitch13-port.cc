@@ -179,21 +179,11 @@ OFSwitch13Port::PortUpdateState ()
   return false;
 }
 
-bool
-OFSwitch13Port::AddQueue (uint16_t id, Ptr<Queue> queue)
+Ptr<OFSwitch13Queue> 
+OFSwitch13Port::GetOutputQueue ()
 {
-  NS_LOG_FUNCTION (this << queue << id);
-  NS_ASSERT_MSG (queue, "Invalid queue pointer");
-  
-  return m_portQueue->AddInternalQueue (id, queue);
-}
-
-bool
-OFSwitch13Port::DelQueue (uint16_t id)
-{
-  NS_LOG_FUNCTION (this << id);
-
-  return m_portQueue->DelInternalQueue (id);
+  NS_LOG_FUNCTION (this);
+  return m_portQueue;
 }
 
 uint32_t

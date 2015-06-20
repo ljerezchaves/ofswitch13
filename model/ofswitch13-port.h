@@ -90,20 +90,10 @@ public:
   bool Send (Ptr<Packet> packet, uint32_t queueNo);
 
   /**
-   * Add a new queue to this port.
-   * \see ofsoftswitch13 function ports_add_queue () at udatapath/dp_ports.c
-   * \param id The queue ID.
-   * \param queue The queue pointer.
-   * \return true if the queue was successfully added, false otherwise.
+   * Get a pointer to the collection of output queues at this port.
+   * \return The OFSwitch13Queue pointer.
    */
-  bool AddQueue (uint16_t id, Ptr<Queue> queue);
-
-  /**
-   * Delete a queue from this port.
-   * \param id The queue ID.
-   * \return true if the queue was successfully deleted, false otherwise.
-   */
-  bool DelQueue (uint16_t id);
+  Ptr<OFSwitch13Queue> GetOutputQueue ();
 
 protected:
   /** Destructor implementation */

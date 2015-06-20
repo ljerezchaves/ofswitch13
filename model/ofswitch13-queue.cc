@@ -63,7 +63,7 @@ OFSwitch13Queue::OFSwitch13Queue (sw_port* port)
   NS_LOG_FUNCTION (this << port);
 
   // Adding the default ns3::DropTailQueue with id 0 for best-effort traffic.
-  AddInternalQueue (0, CreateObject<DropTailQueue> ());
+  AddQueue (0, CreateObject<DropTailQueue> ());
 }
 
 OFSwitch13Queue::~OFSwitch13Queue ()
@@ -101,14 +101,15 @@ OFSwitch13Queue::GetMaxQueues (void)
 }
 
 bool
-OFSwitch13Queue::AddInternalQueue (uint32_t id, Ptr<Queue> queue)
+OFSwitch13Queue::AddQueue (uint32_t queueId, Ptr<Queue> queue)
 {
-  NS_LOG_FUNCTION (this << id << queue);
+  NS_LOG_FUNCTION (this << queueId);
   
+  NS_ASSERT_MSG (queue, "Invalid queue pointer.");
   NS_ASSERT_MSG (m_swPort, "Invalid OpenFlow port metadata.");
-  NS_ASSERT_MSG (id < m_maxQueues, "Invalid queue id.");
+  NS_ASSERT_MSG (queueId < m_maxQueues, "Invalid queue id.");
 
-  sw_queue* swQueue = &(m_swPort->queues[id]);
+  sw_queue* swQueue = &(m_swPort->queues[queueId]);
   NS_ASSERT_MSG (!swQueue->port, "Queue id already in use.");
 
   // Filling ofsoftswitch13 internal structures for this queue
@@ -118,41 +119,41 @@ OFSwitch13Queue::AddInternalQueue (uint32_t id, Ptr<Queue> queue)
   swQueue->stats = (ofl_queue_stats*)xmalloc (sizeof (ofl_queue_stats));
   memset (swQueue->stats, 0x00, sizeof (ofl_queue_stats));
   swQueue->stats->port_no = m_swPort->conf->port_no;
-  swQueue->stats->queue_id = id;
+  swQueue->stats->queue_id = queueId;
   
   swQueue->props = (ofl_packet_queue*)xmalloc (sizeof (struct ofl_packet_queue));
-  swQueue->props->queue_id = id;
+  swQueue->props->queue_id = queueId;
   swQueue->props->properties_num = 0;
   
   // Inserting the ns3::Queue object into queue map.
-  std::pair<uint32_t, Ptr<Queue> > entry (id, queue);
+  std::pair<uint32_t, Ptr<Queue> > entry (queueId, queue);
   std::pair<IdQueueMap_t::iterator, bool> ret;
   ret = m_queues.insert (entry);
   if (ret.second == false)
     {
-      NS_FATAL_ERROR ("Unable to insert queue id = " << id);
+      NS_FATAL_ERROR ("Unable to insert queue id = " << queueId);
     }
 
   // Saving queue id for faster output queue lookup.
-  m_queueIds.push_back (id);
+  m_queueIds.push_back (queueId);
   std::sort (m_queueIds.begin(), m_queueIds.end());
   m_swPort->num_queues++;
   return true;
 }
 
 bool
-OFSwitch13Queue::DelInternalQueue (uint32_t id)
+OFSwitch13Queue::DelQueue (uint32_t queueId)
 {
-  NS_LOG_FUNCTION (this << id);
+  NS_LOG_FUNCTION (this << queueId);
   
-  sw_queue* swQueue = dp_ports_lookup_queue (m_swPort, id);
+  sw_queue* swQueue = dp_ports_lookup_queue (m_swPort, queueId);
   NS_ASSERT_MSG (swQueue, "Invalid queue id.");
-  NS_ASSERT_MSG (id != 0, "Can't remove default queue");
+  NS_ASSERT_MSG (queueId != 0, "Can't remove default queue");
 
-  IdQueueMap_t::iterator it = m_queues.find (id);
+  IdQueueMap_t::iterator it = m_queues.find (queueId);
   if (it == m_queues.end ())
     {
-      NS_LOG_ERROR ("Can't remove invalid queue id = " << id);
+      NS_LOG_ERROR ("Can't remove invalid queue id = " << queueId);
       return false;
     }
   m_queues.erase (it);
@@ -162,7 +163,7 @@ OFSwitch13Queue::DelInternalQueue (uint32_t id)
   memset (swQueue, 0x00, sizeof (sw_queue));
   
   std::vector<uint32_t>::iterator pos;
-  pos = std::find (m_queueIds.begin(), m_queueIds.end(), id);
+  pos = std::find (m_queueIds.begin(), m_queueIds.end(), queueId);
   if (pos != m_queueIds.end ())
     {
       m_queueIds.erase (pos);
@@ -172,9 +173,9 @@ OFSwitch13Queue::DelInternalQueue (uint32_t id)
 }
 
 Ptr<Queue>
-OFSwitch13Queue::GetQueue (uint32_t id) const
+OFSwitch13Queue::GetQueue (uint32_t queueId) const
 {
-  IdQueueMap_t::const_iterator it = m_queues.find (id);
+  IdQueueMap_t::const_iterator it = m_queues.find (queueId);
   NS_ASSERT_MSG (it != m_queues.end (), "Invalid queue id.");
   
   return it->second;
