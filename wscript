@@ -68,6 +68,8 @@ def build(bld):
         'model/ofswitch13-net-device.cc',
         'model/ofswitch13-controller.cc',
         'model/ofswitch13-learning-controller.cc',
+        'model/ofswitch13-queue.cc',
+        'model/queue-tag.cc',
         'helper/ofswitch13-helper.cc'
         ]
     module.use.extend('OFSWITCH13'.split())
@@ -87,6 +89,8 @@ def build(bld):
         'model/ofswitch13-net-device.h',
         'model/ofswitch13-controller.h',
         'model/ofswitch13-learning-controller.h',
+        'model/ofswitch13-queue.h',
+        'model/queue-tag.h',
         'helper/ofswitch13-helper.h'
         ]
 

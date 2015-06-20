@@ -27,6 +27,7 @@
 #include "ns3/packet.h"
 #include "ns3/traced-callback.h"
 #include "ofswitch13-interface.h"
+#include "ofswitch13-queue.h"
 
 namespace ns3 {
 
@@ -47,7 +48,6 @@ class OFSwitch13Port : public Object
 public:
   OFSwitch13Port ();            //!< Default constructor
   virtual ~OFSwitch13Port ();   //!< Dummy destructor, see DoDipose
-  void DoDispose ();            //!< Destructor implementation
 
   /**
    * Register this type.
@@ -55,7 +55,10 @@ public:
    */
   static TypeId GetTypeId (void);
 
-  /** \return The port number. */
+  /** 
+   * Get the OpenFlow port number for this port.
+   * \return The port number. 
+   */
   uint32_t GetPortNo (void) const;
 
   /**
@@ -86,6 +89,16 @@ public:
    */
   bool Send (Ptr<Packet> packet, uint32_t queueNo);
 
+  /**
+   * Get a pointer to the collection of output queues at this port.
+   * \return The OFSwitch13Queue pointer.
+   */
+  Ptr<OFSwitch13Queue> GetOutputQueue ();
+
+protected:
+  /** Destructor implementation */
+  virtual void DoDispose ();
+
 private:
   /**
    * Create the bitmaps of OFPPF_* describing port features, based on
@@ -114,6 +127,7 @@ private:
   uint32_t                  m_portNo;       //!< Port number
   sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port
   Ptr<CsmaNetDevice>        m_csmaDev;      //!< Underlying CsmaNetDevice
+  Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue
   Ptr<OFSwitch13NetDevice>  m_openflowDev;  //!< OpenFlow NetDevice
 };
 

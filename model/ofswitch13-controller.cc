@@ -74,6 +74,7 @@ OFSwitch13Controller::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Controller")
     .SetParent<Object> ()
+    .SetGroupName ("OFSwitch13")
     .AddAttribute ("Port",
                    "Port on which we listen for incoming packets.",
                    TypeId::ATTR_GET,

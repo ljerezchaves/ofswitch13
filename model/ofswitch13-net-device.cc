@@ -40,6 +40,7 @@ OFSwitch13NetDevice::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13NetDevice")
     .SetParent<NetDevice> ()
+    .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13NetDevice> ()
     .AddAttribute ("DatapathId",
                    "The identification of the OFSwitch13NetDevice/Datapath.",
@@ -236,6 +237,13 @@ OFSwitch13NetDevice::StartControllerConnection ()
     }
 
   NS_LOG_ERROR ("Controller already set.");
+}
+
+Ptr<OFSwitch13Queue>
+OFSwitch13NetDevice::GetOutputQueue (uint32_t portNo)
+{
+  NS_LOG_FUNCTION (this << portNo);
+  return GetOFSwitch13Port (portNo)->GetOutputQueue ();
 }
 
 // Inherited from NetDevice base class
@@ -566,6 +574,7 @@ OFSwitch13NetDevice::DoDispose ()
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
   meter_table_destroy (m_datapath->meters);
+  free (m_datapath);
 
   NetDevice::DoDispose ();
 }
@@ -610,7 +619,7 @@ OFSwitch13NetDevice::DatapathNew ()
 
   list_init (&dp->port_list);
   dp->ports_num = 0;
-  dp->max_queues = 0; // No queue support by now
+  dp->max_queues = OFSwitch13Queue::GetMaxQueues ();
   dp->exp = 0;
 
   dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling

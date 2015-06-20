@@ -114,6 +114,14 @@ public:
    */
   void StartControllerConnection ();
 
+  /**
+   * Get a pointer to the collection of output queues at a specific port on
+   * this switch.
+   * \param portNo The switch output port number.
+   * \return The queue pointer.
+   */
+  Ptr<OFSwitch13Queue> GetOutputQueue (uint32_t portNo);
+
   // Inherited from NetDevice base class
   virtual void SetIfIndex (const uint32_t index);
   virtual uint32_t GetIfIndex (void) const;
