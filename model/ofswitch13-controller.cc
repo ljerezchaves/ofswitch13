@@ -111,7 +111,7 @@ OFSwitch13Controller::RegisterSwitchMetadata (SwitchInfo swInfo)
 }
 
 SwitchInfo
-OFSwitch13Controller::GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev)
+OFSwitch13Controller::GetSwitchMetadata (Ptr<const OFSwitch13NetDevice> dev)
 {
   NS_LOG_FUNCTION (dev);
 
@@ -159,7 +159,7 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
 }
 
 int
-OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> swtch,
+OFSwitch13Controller::DpctlCommand (Ptr<const OFSwitch13NetDevice> swtch,
                                     const std::string textCmd)
 {
   return DpctlCommand (GetSwitchMetadata (swtch), textCmd);
