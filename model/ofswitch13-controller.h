@@ -81,7 +81,7 @@ public:
    * \param dev The OpenFlow NetDevice.
    * \return The switch metadata information.
    */
-  SwitchInfo GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev);
+  SwitchInfo GetSwitchMetadata (Ptr<const OFSwitch13NetDevice> dev);
 
   /**
    * \brief Execute a dpctl command to interact with the switch.
@@ -97,7 +97,8 @@ public:
    * \param textCmd The dpctl command to create the message.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int DpctlCommand (Ptr<OFSwitch13NetDevice> swtch, const std::string textCmd);
+  int DpctlCommand (Ptr<const OFSwitch13NetDevice> swtch, 
+                    const std::string textCmd);
 
   /**
    * Overriding ofsoftswitch13 dpctl_send_and_print  and
