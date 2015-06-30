@@ -74,6 +74,7 @@ OFSwitch13Controller::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Controller")
     .SetParent<Object> ()
+    .SetGroupName ("OFSwitch13")
     .AddAttribute ("Port",
                    "Port on which we listen for incoming packets.",
                    TypeId::ATTR_GET,
@@ -110,7 +111,7 @@ OFSwitch13Controller::RegisterSwitchMetadata (SwitchInfo swInfo)
 }
 
 SwitchInfo
-OFSwitch13Controller::GetSwitchMetadata (Ptr<OFSwitch13NetDevice> dev)
+OFSwitch13Controller::GetSwitchMetadata (Ptr<const OFSwitch13NetDevice> dev)
 {
   NS_LOG_FUNCTION (dev);
 
@@ -158,7 +159,7 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
 }
 
 int
-OFSwitch13Controller::DpctlCommand (Ptr<OFSwitch13NetDevice> swtch,
+OFSwitch13Controller::DpctlCommand (Ptr<const OFSwitch13NetDevice> swtch,
                                     const std::string textCmd)
 {
   return DpctlCommand (GetSwitchMetadata (swtch), textCmd);

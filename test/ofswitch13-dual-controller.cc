@@ -1,74 +1,43 @@
-/* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
+/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014 University of Campinas (Unicamp)
+ * Author: Vítor M. Eichemberger <vitor.marge@gmail.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Vitor M. Eichemberger <vitor.marge@gmail.com>
- *         Luciano Chaves <luciano@lrc.ic.unicamp.br>
- *
- * Four OpenFlow 1.3 switches connected in sequence, with a single host each.
- * The first pair of switches are controlled by CTRL0, and the second pair by
- * CTRL1. Traffic flows from host H0 to host H2.
- *
- *    H0        H1        H2        H3
- *    |         |         |         |
- * -------   -------   -------   -------
- * | Sw0 |---| Sw1 |---| Sw2 |---| Sw3 |
- * -------   -------   -------   -------
- *    :         :         :         :
- *    ...........         ...........
- *         :                   :
- *       CTRL0               CTRL1
  */
+
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/csma-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
-#include "ns3/flow-monitor-module.h"
 #include "ns3/ofswitch13-module.h"
+#include "ns3/test.h"
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE ("DualCtrlOFSwitch13");
-
-int
-main (int argc, char *argv[])
+class Ofswitch13TestCase2 : public TestCase
 {
-  bool verbose = false;
-  bool trace = false;
+public:
+  Ofswitch13TestCase2 ();
+  virtual ~Ofswitch13TestCase2 ();
 
-  CommandLine cmd;
-  cmd.AddValue ("verbose", "Tell application to log if true", verbose);
-  cmd.AddValue ("trace", "Tracing traffic to files", trace);
-  cmd.Parse (argc, argv);
+private:
+  virtual void DoRun (void);
+};
 
-  if (verbose)
-    {
-      LogComponentEnable ("DualCtrlOFSwitch13", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13NetDevice", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
-    }
+Ofswitch13TestCase2::Ofswitch13TestCase2 ()
+  : TestCase ("Tests the transmission of 1024 bytes between two hosts in a sequence of 4 switches with 2 controllers.")
+{
+}
 
-  // Enabling Checksum computations
-  GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
+Ofswitch13TestCase2::~Ofswitch13TestCase2 ()
+{
+}
 
+// Makes the test
+void
+Ofswitch13TestCase2::DoRun (void)
+{
   // Create the host nodes
   NodeContainer hosts;
   hosts.Create (4);
@@ -141,42 +110,34 @@ main (int argc, char *argv[])
   // Send TCP traffic from host 0 to 3
   Ipv4Address h3Addr = internetIpIfaces.GetAddress (3); 
   BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (h3Addr, 8080));
-  senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+  senderHelper.SetAttribute ("MaxBytes", UintegerValue(1024));
   ApplicationContainer senderApp  = senderHelper.Install (hosts.Get (0));
   senderApp.Start (Seconds (1));
   PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 8080));
   ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (3));
   sinkApp.Start (Seconds (0));
 
-  // Enable datapath logs
-  if (verbose)
-    {
-      of13Helper0->EnableDatapathLogs ("all");
-      of13Helper1->EnableDatapathLogs ("all");
-    }
-
-  // Enable pcap traces
-  if (trace)
-    {
-      of13Helper0->EnableOpenFlowPcap ("ofCtrl0");
-      of13Helper1->EnableOpenFlowPcap ("ofCtrl1");
-      csmaHelper.EnablePcap ("ofswitch", of13SwitchNodes, true);
-      csmaHelper.EnablePcap ("host", hostDevices);
-    }
-
-  // Install FlowMonitor
-  FlowMonitorHelper monitor;
-  monitor.Install (hosts);
-
   // Run the simulation for 30 seconds
   Simulator::Stop (Seconds (30));
   Simulator::Run ();
   Simulator::Destroy ();
 
-  // Transmitted bytes
+  // Checkout transmitted bytes
   Ptr<PacketSink> sink = DynamicCast<PacketSink> (sinkApp.Get (0));
-  std::cout << "Total bytes sent from H0 to H1: " << sink->GetTotalRx () << std::endl;
-
-  // Dump FlowMonitor results
-  monitor.SerializeToXmlFile ("FlowMonitor.xml", false, false);
+  NS_TEST_ASSERT_MSG_EQ (sink->GetTotalRx (), 1024, "It hasn't received all the 1024 bytes as expected.");
 }
+
+class Ofswitch13TestSuite2 : public TestSuite
+{
+public:
+  Ofswitch13TestSuite2 ();
+};
+
+Ofswitch13TestSuite2::Ofswitch13TestSuite2 ()
+  : TestSuite ("ofswitch13-dual-controller", UNIT)
+{
+  AddTestCase (new Ofswitch13TestCase2, TestCase::QUICK);
+}
+
+static Ofswitch13TestSuite2 ofswitch13TestSuite2;
+

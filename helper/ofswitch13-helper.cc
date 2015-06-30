@@ -54,6 +54,7 @@ OFSwitch13Helper::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Helper")
     .SetParent<Object> ()
+    .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Helper> ()
     .AddAttribute ("ChannelType",
                    "The configuration used to create the Openflow channel",

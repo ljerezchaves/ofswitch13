@@ -71,6 +71,10 @@ protected:
   void ConnectionStarted (SwitchInfo swtch);
 
 private:
+  /** Map saving <IPv4 address / MAC address> */
+  typedef std::map<Ipv4Address, Mac48Address> IpMacMap_t;
+  IpMacMap_t m_arpTable; //!< ARP resolution table.
+
   /**
    * \name L2 switching structures
    */

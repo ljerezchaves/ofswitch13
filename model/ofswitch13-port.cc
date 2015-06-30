@@ -18,6 +18,9 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
+#define NS_LOG_APPEND_CONTEXT \
+  if (m_swPort != 0) { std::clog << "[dp " << m_swPort->dp->id << " port " << m_swPort->conf->port_no << "] "; }
+
 #include "ns3/ethernet-header.h"
 #include "ns3/ethernet-trailer.h"
 #include "ofswitch13-net-device.h"
@@ -29,6 +32,9 @@ NS_LOG_COMPONENT_DEFINE ("OFSwitch13Port");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Port);
 
 OFSwitch13Port::OFSwitch13Port ()
+  : m_swPort (0),
+    m_csmaDev (0),
+    m_openflowDev (0)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -45,8 +51,13 @@ OFSwitch13Port::DoDispose ()
 
   m_csmaDev = 0;
   m_openflowDev = 0;
+  
+  // Calling DoDispose on internal port, so it can use m_swPort pointer to free
+  // internal strucutures first.
+  m_portQueue->DoDispose ();
   ofl_structs_free_port (m_swPort->conf);
   free (m_swPort->stats);
+  m_swPort = 0;
 }
 
 TypeId
@@ -54,6 +65,7 @@ OFSwitch13Port::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Port")
     .SetParent<Object> ()
+    .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Port> ()
     .AddTraceSource ("SwitchPortRx",
                      "Trace source indicating a packet received at this switch port",
@@ -69,7 +81,8 @@ OFSwitch13Port::GetTypeId (void)
 
 OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
                                 Ptr<OFSwitch13NetDevice> openflowDev)
-  : m_csmaDev (csmaDev),
+  : m_swPort (0),
+    m_csmaDev (csmaDev),
     m_openflowDev (openflowDev)
 {
   NS_LOG_FUNCTION (this << csmaDev << openflowDev);
@@ -79,6 +92,7 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
 
   memset (m_swPort, '\0', sizeof *m_swPort);
 
+  // Filling ofsoftswitch13 internal structures for this port.
   m_swPort->dp = dp;
   m_swPort->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
   memset (m_swPort->conf, 0x00, sizeof (ofl_port));
@@ -91,7 +105,7 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   m_swPort->conf->curr = PortGetFeatures ();
   m_swPort->conf->advertised = PortGetFeatures ();
   m_swPort->conf->supported = PortGetFeatures ();
-  // m_swPort->conf->peer = PortGetFeatures ();
+  m_swPort->conf->peer = 0x00000000; // FIXME no information about peer port
   m_swPort->conf->curr_speed = port_speed (m_swPort->conf->curr);
   m_swPort->conf->max_speed = port_speed (m_swPort->conf->supported);
 
@@ -102,15 +116,19 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   m_swPort->stats->port_no = m_portNo;
   m_swPort->flags |= SWP_USED;
 
-  // To avoid a null check failure in
-  // dp_ports_handle_stats_request_port (), we are pointing
-  // m_swPort->netdev to ns3::CsmaNetDevice, but it will not be used.
+  // To avoid a null check failure in ofsoftswitch13
+  // dp_ports_handle_stats_request_port (), we are pointing m_swPort->netdev to
+  // corresponding ns3::CsmaNetDevice, but this pointer must not be used!
   m_swPort->netdev = (struct netdev*)PeekPointer (csmaDev);
-  m_swPort->max_queues = NETDEV_MAX_QUEUES;
-  m_swPort->num_queues = 0;     // FIXME No queue support by now
-  m_swPort->created = time_msec ();
 
+  // Creating the OFSwitch13Queue for this switch port
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
+  m_swPort->max_queues = OFSwitch13Queue::GetMaxQueues ();
+  m_swPort->num_queues = 0;
+  m_portQueue = CreateObject<OFSwitch13Queue> (m_swPort);
+  csmaDev->SetQueue (m_portQueue);
+ 
+  m_swPort->created = time_msec ();
 
   list_push_back (&dp->port_list, &m_swPort->node);
 
@@ -135,6 +153,8 @@ OFSwitch13Port::GetPortNo (void) const
 bool
 OFSwitch13Port::PortUpdateState ()
 {
+  NS_LOG_FUNCTION (this);
+
   uint32_t orig_state = m_swPort->conf->state;
   if (m_csmaDev->IsLinkUp ())
     {
@@ -159,9 +179,18 @@ OFSwitch13Port::PortUpdateState ()
   return false;
 }
 
+Ptr<OFSwitch13Queue> 
+OFSwitch13Port::GetOutputQueue ()
+{
+  NS_LOG_FUNCTION (this);
+  return m_portQueue;
+}
+
 uint32_t
 OFSwitch13Port::PortGetFeatures ()
 {
+  NS_LOG_FUNCTION (this);
+
   DataRateValue drv;
   DataRate dr;
   Ptr<CsmaChannel> channel = DynamicCast<CsmaChannel> (m_csmaDev->GetChannel ());
@@ -231,7 +260,7 @@ OFSwitch13Port::Receive (Ptr<Packet> packet)
 bool
 OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
 {
-  NS_LOG_FUNCTION (this << packet);
+  NS_LOG_FUNCTION (this << packet << queueNo);
 
   if (m_swPort->conf->config & (OFPPC_PORT_DOWN))
     {
@@ -249,7 +278,9 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
   EthernetHeader header;
   packet->RemoveHeader (header);
 
-  // FIXME No queue support by now
+  // Tagging the packet with queue number
+  QueueTag queueNoTag (queueNo);
+  packet->AddPacketTag (queueNoTag);
   bool status = m_csmaDev->SendFrom (packet, header.GetSource (),
                                      header.GetDestination (),
                                      header.GetLengthType ());
