@@ -650,7 +650,16 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
       it->second->PortUpdateState ();
     }
 
-  // Update pipeline average delay based on current number of flow entries
+  //
+  // To provide a more realistic OpenFlow switch model, specially with respect
+  // to flow table search time, we are considering that in real OpenFlow
+  // implementations, packet classification can use sophisticated search
+  // algorithms, as the HyperSplit (DOI 10.1109/FPT.2010.5681492). As most of
+  // theses algorithms classifies the packet based on binary search trees, we
+  // are estimating the pipeline average time to a K * log (n), where k is the
+  // m_tcamDelay set to the time for a TCAM operation in a NetFPGA hardware,
+  // and n is the current number of entries in flow tables. 
+  //
   m_pipeDelay = m_tcamDelay * (int64_t)ceil (log2 (GetNumberFlowEntries ()));
 
   dp->last_timeout = time_now ();
