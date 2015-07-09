@@ -169,8 +169,9 @@ public:
    * code is nearly the same on ofsoftswitch, but it gets the openflow device
    * from datapath id and uses member functions to send the packet over ns3
    * structures.
-   * \internal This function relies on the global map that stores OpenFlow
-   * devices to call the method on the correct object.
+   * \internal 
+   * This function relies on the global map that stores OpenFlow devices to
+   * call the method on the correct object.
    * \param pkt The internal packet to send.
    * \param outPort The output switch port number.
    * \param outQueue The output queue number.
