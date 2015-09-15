@@ -638,7 +638,7 @@ OFSwitch13NetDevice::DatapathNew ()
 void
 OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 {
-  NS_LOG_INFO (this);
+  NS_LOG_FUNCTION (this);
 
   meter_table_add_tokens (dp->meters);
   pipeline_timeout (dp->pipeline);
