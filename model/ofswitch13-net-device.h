@@ -183,7 +183,14 @@ public:
                        uint32_t outQueue, uint16_t maxLen, uint64_t cookie);
 
   /**
-   * Callback fired when a packet is dropped by meter band
+   * Callback fired when a new meter entry is created at meter table.
+   * \param entry The new created meter entry.
+   */
+  static void
+  MeterCreatedCallback (struct meter_entry *entry);
+  
+  /**
+   * Callback fired when a packet is dropped by meter band.
    * \param pkt The original internal packet.
    */
   static void
@@ -291,6 +298,15 @@ private:
    * \param socket The TCP socket.
    */
   void SocketCtrlFailed (Ptr<Socket> socket);
+
+  /**
+   * Notify this device of a new meter entry created at meter table. This is
+   * used to update the initial number of tokens for this meter. Doing this, we
+   * avoid the problem of discarding the initial packets before the next
+   * datapath timeout.
+   * \param entry The new created meter entry.
+   */
+  void NotifyMeterEntryCreated (struct meter_entry *entry);
 
   /**
    * Notify this device of a packet cloned by the OpenFlow pipeline.
@@ -431,16 +447,17 @@ private:
   /** Structure to save packets, indexed by its id. */
   typedef std::map<uint64_t, Ptr<Packet> > IdPacketMap_t;
 
-  uint64_t        m_dpId;         //!< This datapath id
-  Ptr<Node>       m_node;         //!< Node this device is installed on
-  Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller
-  Address         m_ctrlAddr;     //!< Controller Address
-  uint32_t        m_ifIndex;      //!< NetDevice Interface Index
-  Time            m_timeout;      //!< Datapath Timeout
+  uint64_t        m_dpId;         //!< This datapath id.
+  Ptr<Node>       m_node;         //!< Node this device is installed on.
+  Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller.
+  Address         m_ctrlAddr;     //!< Controller Address.
+  uint32_t        m_ifIndex;      //!< NetDevice Interface Index.
+  Time            m_timeout;      //!< Datapath timeout interval.
+  Time            m_lastTimeout;  //!< Datapath last timeout.
   Time            m_tcamDelay;    //!< Flow Table TCAM lookup delay.
   Time            m_pipeDelay;    //!< Flow Table average delay.
   std::string     m_libLog;       //!< The ofsoftswitch13 library logging levels.
-  datapath*       m_datapath;     //!< The OpenFlow datapath
+  datapath*       m_datapath;     //!< The OpenFlow datapath.
   PipelinePacket  m_pktPipe;      //!< Packet under switch pipeline.
   PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
   IdPacketMap_t   m_pktsBuffer;   //!< Packets saved in switch buffer.

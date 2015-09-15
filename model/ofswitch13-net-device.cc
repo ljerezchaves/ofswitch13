@@ -518,6 +518,14 @@ OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
 }
 
 void
+OFSwitch13NetDevice::MeterCreatedCallback (struct meter_entry *entry)
+{
+  Ptr<OFSwitch13NetDevice> dev =
+    OFSwitch13NetDevice::GetDatapathDevice (entry->dp->id);
+  dev->NotifyMeterEntryCreated (entry);
+}
+
+void
 OFSwitch13NetDevice::MeterDropCallback (struct packet *pkt)
 {
   Ptr<OFSwitch13NetDevice> dev =
@@ -599,6 +607,7 @@ OFSwitch13NetDevice::DatapathNew ()
 
   dp->id = m_dpId;
   dp->last_timeout = time_now ();
+  m_lastTimeout = Simulator::Now ();
   list_init (&dp->remotes);
 
   // unused
@@ -631,6 +640,7 @@ OFSwitch13NetDevice::DatapathNew ()
   dp->buff_save_cb = &OFSwitch13NetDevice::BufferSaveCallback;
   dp->buff_retrieve_cb = &OFSwitch13NetDevice::BufferRetrieveCallback;
   dp->meter_drop_cb = &OFSwitch13NetDevice::MeterDropCallback;
+  dp->meter_created_cb = &OFSwitch13NetDevice::MeterCreatedCallback;
 
   return dp;
 }
@@ -658,11 +668,12 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
   // theses algorithms classifies the packet based on binary search trees, we
   // are estimating the pipeline average time to a K * log (n), where k is the
   // m_tcamDelay set to the time for a TCAM operation in a NetFPGA hardware,
-  // and n is the current number of entries in flow tables. 
+  // and n is the current number of entries in flow tables.
   //
   m_pipeDelay = m_tcamDelay * (int64_t)ceil (log2 (GetNumberFlowEntries ()));
 
   dp->last_timeout = time_now ();
+  m_lastTimeout = Simulator::Now ();
   Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, this, dp);
 }
 
@@ -907,6 +918,21 @@ OFSwitch13NetDevice::SocketCtrlFailed (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
   NS_LOG_ERROR ("Controller did not accepted connection request!");
+}
+
+void
+OFSwitch13NetDevice::NotifyMeterEntryCreated (struct meter_entry *entry)
+{
+  NS_LOG_FUNCTION (this << entry->config->meter_id);
+
+  // Update meter entry last_fill field with the time of last datapath timeout,
+  // and force a new bucket refill based on this elapsed time.
+  for (size_t i = 0; i < entry->config->meter_bands_num; i++)
+    {
+      entry->stats->band_stats [i]->last_fill =
+        static_cast<uint64_t> (m_lastTimeout.GetMilliSeconds ());
+    }
+  meter_table_add_tokens (m_datapath->meters);
 }
 
 void
