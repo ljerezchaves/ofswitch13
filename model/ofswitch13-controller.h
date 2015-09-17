@@ -51,7 +51,7 @@ struct SwitchInfo
 
 /**
  * \ingroup ofswitch13
- * \brief An OpenFlow 1.3 controller base class for OFSwitch13NetDevice devices.
+ * \brief OpenFlow 1.3 controller base class for OFSwitch13NetDevice devices.
  */
 class OFSwitch13Controller : public Application
 {
@@ -97,7 +97,7 @@ public:
    * \param textCmd The dpctl command to create the message.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int DpctlCommand (Ptr<const OFSwitch13NetDevice> swtch, 
+  int DpctlCommand (Ptr<const OFSwitch13NetDevice> swtch,
                     const std::string textCmd);
 
   /**
@@ -187,13 +187,16 @@ protected:
   HandleError (ofl_msg_error *msg, SwitchInfo swtch, uint32_t xid);
 
   virtual ofl_err
-  HandleFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch, uint32_t xid);
+  HandleFeaturesReply (ofl_msg_features_reply *msg, SwitchInfo swtch,
+                       uint32_t xid);
 
   virtual ofl_err
-  HandleGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
+  HandleGetConfigReply (ofl_msg_get_config_reply *msg, SwitchInfo swtch,
+                        uint32_t xid);
 
   virtual ofl_err
-  HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid);
+  HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch,
+                     uint32_t xid);
 
   virtual ofl_err
   HandlePortStatus (ofl_msg_port_status *msg, SwitchInfo swtch, uint32_t xid);
@@ -202,13 +205,15 @@ protected:
   HandleAsyncReply (ofl_msg_async_config *msg, SwitchInfo swtch, uint32_t xid);
 
   virtual ofl_err
-  HandleMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch, uint32_t xid);
+  HandleMultipartReply (ofl_msg_multipart_reply_header *msg, SwitchInfo swtch,
+                        uint32_t xid);
 
   virtual ofl_err
   HandleRoleReply (ofl_msg_role_request *msg, SwitchInfo swtch, uint32_t xid);
 
   virtual ofl_err
-  HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint32_t xid);
+  HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg,
+                             SwitchInfo swtch, uint32_t xid);
   //\}
 
   /** Echo request metadata used by controller. */
@@ -246,11 +251,20 @@ private:
    * \param from The source Address
    */
   //\{
-  void SocketRead       (Ptr<Socket> socket);                       //!< Receive packet from switch
-  bool SocketRequest    (Ptr<Socket> socket, const Address& from);  //!< TCP request from switch
-  void SocketAccept     (Ptr<Socket> socket, const Address& from);  //!< TCP handshake succeeded
-  void SocketPeerClose  (Ptr<Socket> socket);                       //!< TCP connection closed
-  void SocketPeerError  (Ptr<Socket> socket);                       //!< TCP connection error
+  /** Receive packet from switch */
+  void SocketRead       (Ptr<Socket> socket);
+
+  /** TCP request from switch */
+  bool SocketRequest    (Ptr<Socket> socket, const Address& from);
+
+  /** TCP handshake succeeded */
+  void SocketAccept     (Ptr<Socket> socket, const Address& from);
+
+  /** TCP connection closed */
+  void SocketPeerClose  (Ptr<Socket> socket);
+
+  /** TCP connection error */
+  void SocketPeerError  (Ptr<Socket> socket);
   //\}
 
   /**

@@ -57,7 +57,8 @@ OFSwitch13LearningController::DoDispose ()
 }
 
 ofl_err
-OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid)
+OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg,
+                                              SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
 
@@ -66,7 +67,8 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
   uint64_t dpId = swtch.netdev->GetDatapathId ();
   enum ofp_packet_in_reason reason = msg->reason;
 
-  char *m = ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, 0);
+  char *m =
+    ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, 0);
   NS_LOG_DEBUG ("Packet in match: " << m);
   free (m);
 
@@ -75,15 +77,18 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
       // Let's get necessary information (input port and mac address)
       uint32_t inPort;
       size_t portLen = OXM_LENGTH (OXM_OF_IN_PORT); // (Always 4 bytes)
-      ofl_match_tlv *input = oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
+      ofl_match_tlv *input = oxm_match_lookup (OXM_OF_IN_PORT,
+                                               (ofl_match*)msg->match);
       memcpy (&inPort, input->value, portLen);
 
       Mac48Address src48;
-      ofl_match_tlv *ethSrc = oxm_match_lookup (OXM_OF_ETH_SRC, (ofl_match*)msg->match);
+      ofl_match_tlv *ethSrc = oxm_match_lookup (OXM_OF_ETH_SRC,
+                                                (ofl_match*)msg->match);
       src48.CopyFrom (ethSrc->value);
 
       Mac48Address dst48;
-      ofl_match_tlv *ethDst = oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->match);
+      ofl_match_tlv *ethDst = oxm_match_lookup (OXM_OF_ETH_DST,
+                                                (ofl_match*)msg->match);
       dst48.CopyFrom (ethDst->value);
 
       // Get L2Table for this datapath
@@ -92,7 +97,7 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
         {
           L2Table_t *l2Table = &it->second;
 
-          // Looking for out port based on destination address (except for broadcast)
+          // Looking for out port based on dst address (except for broadcast)
           if (!dst48.IsBroadcast ())
             {
               L2Table_t::iterator itDst = l2Table->find (dst48);
@@ -102,37 +107,42 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
                 }
               else
                 {
-                  NS_LOG_DEBUG ("No L2 switch information for mac " << dst48 << " yet. Flooding...");
+                  NS_LOG_DEBUG ("No L2 switch information for mac " << dst48 <<
+                                " yet. Flooding...");
                 }
             }
 
           // Learning port from source address
-          NS_ASSERT_MSG (!src48.IsBroadcast (), "Invalid source broadcast address");
+          NS_ASSERT_MSG (!src48.IsBroadcast (), "Invalid src broadcast addr");
           L2Table_t::iterator itSrc = l2Table->find (src48);
           if (itSrc == l2Table->end ())
             {
               std::pair <L2Table_t::iterator, bool> ret;
-              ret = l2Table->insert (std::pair<Mac48Address, uint32_t> (src48, inPort));
+              ret = l2Table->insert (
+                  std::pair<Mac48Address, uint32_t> (src48, inPort));
               if (ret.second == false)
                 {
                   NS_LOG_ERROR ("Can't insert mac48address / port pair");
                 }
               else
                 {
-                  NS_LOG_DEBUG ("Learning that mac " << src48 << " can be found at port " << inPort);
+                  NS_LOG_DEBUG ("Learning that mac " << src48 <<
+                                " can be found at port " << inPort);
 
                   // Send a flow-mod to switch creating this flow. Let's
                   // configure the flow entry to 10s idle timeout and to
                   // notify the controller when flow expires. (flags=0x0001)
                   std::ostringstream cmd;
-                  cmd << "flow-mod cmd=add,table=0,idle=10,flags=0x0001" <<
-                  ",prio=" << ++prio << " eth_dst=" << src48 << " apply:output=" << inPort;
+                  cmd << "flow-mod cmd=add,table=0,idle=10,flags=0x0001"
+                      << ",prio=" << ++prio << " eth_dst=" << src48
+                      << " apply:output=" << inPort;
                   DpctlCommand (swtch, cmd.str ());
                 }
             }
           else
             {
-              NS_ASSERT_MSG (itSrc->second == inPort, "Inconsistent L2 switching table");
+              NS_ASSERT_MSG (itSrc->second == inPort,
+                             "Inconsistent L2 switching table");
             }
         }
       else
@@ -156,7 +166,8 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
         }
 
       // Create output action
-      ofl_action_output *a = (ofl_action_output*)xmalloc (sizeof (struct ofl_action_output));
+      ofl_action_output *a =
+        (ofl_action_output*)xmalloc (sizeof (struct ofl_action_output));
       a->header.type = OFPAT_OUTPUT;
       a->port = outPort;
       a->max_len = 0;
@@ -169,7 +180,7 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
     }
   else
     {
-      NS_LOG_WARN ("This packet was sent to controller for a reason that we can't handle.");
+      NS_LOG_WARN ("This controller can't handle the packet. Unkwnon reason.");
     }
 
   // All handlers must free the message when everything is ok
@@ -178,7 +189,8 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo
 }
 
 ofl_err
-OFSwitch13LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid)
+OFSwitch13LearningController::HandleFlowRemoved (
+  ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");
@@ -188,7 +200,8 @@ OFSwitch13LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg, Swit
   if (it != m_learnedInfo.end ())
     {
       Mac48Address mac48;
-      ofl_match_tlv *ethSrc = oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->stats->match);
+      ofl_match_tlv *ethSrc =
+        oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->stats->match);
       mac48.CopyFrom (ethSrc->value);
 
       L2Table_t *l2Table = &it->second;

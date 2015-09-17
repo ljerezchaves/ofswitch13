@@ -33,7 +33,7 @@ class OFSwitch13LearningController : public OFSwitch13Controller
 {
 public:
   OFSwitch13LearningController ();          //!< Default constructor
-  virtual ~OFSwitch13LearningController (); //!< Dummy destructor, see DoDispose.
+  virtual ~OFSwitch13LearningController (); //!< Dummy destructor.
 
   /**
    * Register this type.
@@ -53,18 +53,20 @@ public:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid);
+  ofl_err HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
+                          uint32_t xid);
 
   /**
-   * Handle flow removed messages sent from switch to this controller. Look for L2
-   * switching information and removes associated entry.
+   * Handle flow removed messages sent from switch to this controller. Look for
+   * L2 switching information and removes associated entry.
    *
    * \param msg The flow removed message.
    * \param swtch The switch information.
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid);
+  ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch,
+                             uint32_t xid);
 
 protected:
   // Inherited from OFSwitch13Controller
@@ -79,9 +81,14 @@ private:
    * \name L2 switching structures
    */
   //\{
-  typedef std::map<Mac48Address, uint32_t> L2Table_t;     //!< L2SwitchingTable: map MacAddress to port
-  typedef std::map<uint64_t, L2Table_t>    DatapathMap_t; //!< Map datapathID to L2SwitchingTable
-  DatapathMap_t                            m_learnedInfo; //!< Switching information for all dapataths
+  /** L2SwitchingTable: map MacAddress to port */
+  typedef std::map<Mac48Address, uint32_t> L2Table_t;
+
+  /** Map datapathID to L2SwitchingTable */
+  typedef std::map<uint64_t, L2Table_t> DatapathMap_t;
+
+  /** Switching information for all dapataths */
+  DatapathMap_t m_learnedInfo;
   //\}
 };
 

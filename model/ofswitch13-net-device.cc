@@ -61,7 +61,8 @@ OFSwitch13NetDevice::GetTypeId (void)
                    MakeTimeChecker ())
     .AddAttribute ("ControllerAddr",
                    "The controller InetSocketAddress.",
-                   AddressValue (InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
+                   AddressValue (
+                     InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
                    MakeAddressAccessor (&OFSwitch13NetDevice::m_ctrlAddr),
                    MakeAddressChecker ())
     .AddAttribute ("LibLogLevel",
@@ -76,7 +77,8 @@ OFSwitch13NetDevice::GetTypeId (void)
     // Meter band packet drop trace source
     .AddTraceSource ("MeterDrop",
                      "Trace source indicating a packet dropped by meter band",
-                     MakeTraceSourceAccessor (&OFSwitch13NetDevice::m_meterDropTrace),
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13NetDevice::m_meterDropTrace),
                      "ns3::Packet::TracedCallback")
   ;
   return tid;
@@ -93,7 +95,8 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   m_ctrlAddr = Address ();
   m_ifIndex = 0;
   m_datapath = DatapathNew ();
-  OFSwitch13NetDevice::RegisterDatapath (m_dpId, Ptr<OFSwitch13NetDevice> (this));
+  OFSwitch13NetDevice::RegisterDatapath (m_dpId,
+                                         Ptr<OFSwitch13NetDevice> (this));
   Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout,
                        this, m_datapath);
 }
@@ -126,14 +129,16 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   ofPort = CreateObject<OFSwitch13Port> (m_datapath, csmaPortDevice, this);
 
   // Save pointer for further use
-  std::pair<uint32_t, Ptr<OFSwitch13Port> > entry (ofPort->GetPortNo (), ofPort);
+  std::pair<uint32_t, Ptr<OFSwitch13Port> > entry (ofPort->GetPortNo (),
+                                                   ofPort);
   m_portsByNo.insert (entry);
 
   return ofPort;
 }
 
 void
-OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo)
+OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<Packet> packet,
+                                            uint32_t portNo)
 {
   NS_LOG_FUNCTION (this << packet);
 
@@ -222,7 +227,8 @@ OFSwitch13NetDevice::StartControllerConnection ()
           return;
         }
 
-      error = m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom (m_ctrlAddr));
+      error =
+        m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom (m_ctrlAddr));
       if (error)
         {
           NS_LOG_ERROR ("Error connecting socket " << error);
@@ -411,7 +417,8 @@ OFSwitch13NetDevice::SetReceiveCallback (NetDevice::ReceiveCallback cb)
 }
 
 void
-OFSwitch13NetDevice::SetPromiscReceiveCallback (NetDevice::PromiscReceiveCallback cb)
+OFSwitch13NetDevice::SetPromiscReceiveCallback (
+  NetDevice::PromiscReceiveCallback cb)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -430,7 +437,7 @@ OFSwitch13NetDevice::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl)
   Ptr<OFSwitch13NetDevice> dev =
     OFSwitch13NetDevice::GetDatapathDevice (ctrl->dp->id);
 
-  // FIXME No support for multiple controllers nor auxiliary connections by now.
+  // FIXME No support for multiple controllers / auxiliary connections by now.
   // So, just ignoring remote information and sending to our single socket.
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
   return dev->SendToController (packet);
@@ -674,7 +681,8 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 
   dp->last_timeout = time_now ();
   m_lastTimeout = Simulator::Now ();
-  Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, this, dp);
+  Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout,
+                       this, dp);
 }
 
 Ptr<OFSwitch13Port>
@@ -877,7 +885,7 @@ OFSwitch13NetDevice::ReceiveFromController (Ptr<Socket> socket)
             }
           if (error)
             {
-              NS_LOG_ERROR ("Error processing OpenFlow message from controller.");
+              NS_LOG_ERROR ("Error processing OpenFlow msg from controller.");
               // Notify the controller
               ofl_msg_error err;
               err.header.type = OFPT_ERROR;
@@ -1078,7 +1086,8 @@ OFSwitch13NetDevice::CopyTags (Ptr<const Packet> srcPkt,
 }
 
 void
-OFSwitch13NetDevice::RegisterDatapath (uint64_t id, Ptr<OFSwitch13NetDevice> dev)
+OFSwitch13NetDevice::RegisterDatapath (uint64_t id,
+                                       Ptr<OFSwitch13NetDevice> dev)
 {
   std::pair<uint64_t, Ptr<OFSwitch13NetDevice> > entry (id, dev);
   std::pair<DpIdDevMap_t::iterator, bool> ret;

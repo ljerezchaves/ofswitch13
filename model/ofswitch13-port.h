@@ -55,9 +55,9 @@ public:
    */
   static TypeId GetTypeId (void);
 
-  /** 
+  /**
    * Get the OpenFlow port number for this port.
-   * \return The port number. 
+   * \return The port number.
    */
   uint32_t GetPortNo (void) const;
 

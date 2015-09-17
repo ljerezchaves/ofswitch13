@@ -139,14 +139,16 @@ public:
   virtual Address GetMulticast (Ipv6Address addr) const;
   virtual bool IsPointToPoint (void) const;
   virtual bool IsBridge (void) const;
-  virtual bool Send (Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber);
-  virtual bool SendFrom (Ptr<Packet> packet, const Address& source, const Address& dest,
-                         uint16_t protocolNumber);
+  virtual bool Send (Ptr<Packet> packet, const Address& dest,
+                     uint16_t protocolNumber);
+  virtual bool SendFrom (Ptr<Packet> packet, const Address& source,
+                         const Address& dest, uint16_t protocolNumber);
   virtual Ptr<Node> GetNode (void) const;
   virtual void SetNode (Ptr<Node> node);
   virtual bool NeedsArp (void) const;
   virtual void SetReceiveCallback (NetDevice::ReceiveCallback cb);
-  virtual void SetPromiscReceiveCallback (NetDevice::PromiscReceiveCallback cb);
+  virtual void SetPromiscReceiveCallback (
+    NetDevice::PromiscReceiveCallback cb);
   virtual bool SupportsSendFrom () const;
   // Inherited from NetDevice base class
 
@@ -169,7 +171,7 @@ public:
    * code is nearly the same on ofsoftswitch, but it gets the openflow device
    * from datapath id and uses member functions to send the packet over ns3
    * structures.
-   * \internal 
+   * \internal
    * This function relies on the global map that stores OpenFlow devices to
    * call the method on the correct object.
    * \param pkt The internal packet to send.
@@ -188,7 +190,7 @@ public:
    */
   static void
   MeterCreatedCallback (struct meter_entry *entry);
-  
+
   /**
    * Callback fired when a packet is dropped by meter band.
    * \param pkt The original internal packet.
@@ -260,7 +262,8 @@ private:
    * \param queueNo The queue number.
    * \return True if success, false otherwise.
    */
-  bool SendToSwitchPort (struct packet *pkt, uint32_t portNo, uint32_t queueNo);
+  bool SendToSwitchPort (struct packet *pkt, uint32_t portNo,
+                         uint32_t queueNo);
 
   /**
    * Send the packet to the OpenFlow ofsoftswitch13 pipeline.
@@ -456,7 +459,7 @@ private:
   Time            m_lastTimeout;  //!< Datapath last timeout.
   Time            m_tcamDelay;    //!< Flow Table TCAM lookup delay.
   Time            m_pipeDelay;    //!< Flow Table average delay.
-  std::string     m_libLog;       //!< The ofsoftswitch13 library logging levels.
+  std::string     m_libLog;       //!< The ofsoftswitch13 library log levels.
   datapath*       m_datapath;     //!< The OpenFlow datapath.
   PipelinePacket  m_pktPipe;      //!< Packet under switch pipeline.
   PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
