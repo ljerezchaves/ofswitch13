@@ -505,9 +505,12 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
       if (!pendingBytes)
         {
           // Starting with a new OpenFlow message.
-          // At least 8 bytes (OpenFlow header) must be available for read
+          // At least 8 bytes (OpenFlow header) must be available.
           uint32_t rxBytesAvailable = socket->GetRxAvailable ();
-          NS_ASSERT_MSG (rxBytesAvailable >= 8, "At least 8 bytes must be available for read");
+          if (rxBytesAvailable < 8)
+            {
+              return; // Wait for more bytes.
+            }
 
           // Receive the OpenFlow header
           pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
