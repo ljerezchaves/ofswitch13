@@ -88,7 +88,7 @@ using namespace ns3;
 time_t
 time_now (void)
 {
-  return (time_t) Simulator::Now ().ToInteger (Time::S);
+  return static_cast<time_t> (Simulator::Now ().ToInteger (Time::S));
 }
 
 /**
@@ -98,7 +98,7 @@ time_now (void)
 long long int
 time_msec (void)
 {
-  return (long long int) Simulator::Now ().GetMilliSeconds ();
+  return static_cast<long long int> (Simulator::Now ().GetMilliSeconds ());
 }
 
 /** Overriding ofsoftswitch weak functions using static member functions. */

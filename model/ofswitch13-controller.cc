@@ -127,7 +127,8 @@ OFSwitch13Controller::GetSwitchMetadata (Ptr<const OFSwitch13NetDevice> dev)
 }
 
 int
-OFSwitch13Controller::DpctlCommand (SwitchInfo swtch, const std::string textCmd)
+OFSwitch13Controller::DpctlCommand (SwitchInfo swtch,
+                                    const std::string textCmd)
 {
   // If no TCP connection, schedule the command for further execution
   if (swtch.socket == NULL)
@@ -178,15 +179,16 @@ OFSwitch13Controller::DpctlSendAndPrint (vconn *swtch, ofl_msg_header *msg)
 void
 OFSwitch13Controller::StartApplication ()
 {
-  NS_LOG_FUNCTION (this << "Starting Controller application at port " << m_port);
+  NS_LOG_FUNCTION (this << "Starting Controller app at port " << m_port);
 
   // Create the server listening socket
   if (!m_serverSocket)
     {
-      m_serverSocket = Socket::CreateSocket (GetNode (),
-                                             TcpSocketFactory::GetTypeId ());
+      m_serverSocket =
+        Socket::CreateSocket (GetNode (),TcpSocketFactory::GetTypeId ());
       m_serverSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
-      m_serverSocket->Bind (InetSocketAddress (Ipv4Address::GetAny (), m_port));
+      m_serverSocket->Bind (InetSocketAddress (Ipv4Address::GetAny (),
+                                               m_port));
       m_serverSocket->Listen ();
     }
 
@@ -212,7 +214,8 @@ OFSwitch13Controller::StopApplication ()
   if (m_serverSocket)
     {
       m_serverSocket->Close ();
-      m_serverSocket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
+      m_serverSocket->SetRecvCallback (
+        MakeNullCallback<void, Ptr<Socket> > ());
     }
   m_switchesMap.clear ();
 }
@@ -298,8 +301,7 @@ OFSwitch13Controller::SendBarrierRequest (SwitchInfo swtch)
 
 // --- BEGIN: Handlers functions -------
 ofl_err
-OFSwitch13Controller::HandleEchoRequest (ofl_msg_echo *msg,
-                                         SwitchInfo swtch,
+OFSwitch13Controller::HandleEchoRequest (ofl_msg_echo *msg, SwitchInfo swtch,
                                          uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
@@ -315,8 +317,7 @@ OFSwitch13Controller::HandleEchoRequest (ofl_msg_echo *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleEchoReply (ofl_msg_echo *msg,
-                                       SwitchInfo swtch,
+OFSwitch13Controller::HandleEchoReply (ofl_msg_echo *msg, SwitchInfo swtch,
                                        uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
@@ -340,8 +341,7 @@ OFSwitch13Controller::HandleEchoReply (ofl_msg_echo *msg,
 
 
 ofl_err
-OFSwitch13Controller::HandleError (ofl_msg_error *msg,
-                                   SwitchInfo swtch,
+OFSwitch13Controller::HandleError (ofl_msg_error *msg, SwitchInfo swtch,
                                    uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
@@ -357,8 +357,7 @@ OFSwitch13Controller::HandleError (ofl_msg_error *msg,
 
 ofl_err
 OFSwitch13Controller::HandleFeaturesReply (ofl_msg_features_reply *msg,
-                                           SwitchInfo swtch,
-                                           uint32_t xid)
+                                           SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   ofl_msg_free ((ofl_msg_header*)msg, NULL /*exp*/);
@@ -367,8 +366,7 @@ OFSwitch13Controller::HandleFeaturesReply (ofl_msg_features_reply *msg,
 
 ofl_err
 OFSwitch13Controller::HandleGetConfigReply (ofl_msg_get_config_reply *msg,
-                                            SwitchInfo swtch,
-                                            uint32_t xid)
+                                            SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   ofl_msg_free ((ofl_msg_header*)msg, NULL /*exp*/);
@@ -377,8 +375,7 @@ OFSwitch13Controller::HandleGetConfigReply (ofl_msg_get_config_reply *msg,
 
 ofl_err
 OFSwitch13Controller::HandleFlowRemoved (ofl_msg_flow_removed *msg,
-                                         SwitchInfo swtch,
-                                         uint32_t xid)
+                                         SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   ofl_msg_free_flow_removed (msg, true, NULL);
@@ -387,8 +384,7 @@ OFSwitch13Controller::HandleFlowRemoved (ofl_msg_flow_removed *msg,
 
 ofl_err
 OFSwitch13Controller::HandlePortStatus (ofl_msg_port_status *msg,
-                                        SwitchInfo swtch,
-                                        uint32_t xid)
+                                        SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   ofl_msg_free ((ofl_msg_header*)msg, NULL /*exp*/);
@@ -397,8 +393,7 @@ OFSwitch13Controller::HandlePortStatus (ofl_msg_port_status *msg,
 
 ofl_err
 OFSwitch13Controller::HandleAsyncReply (ofl_msg_async_config *msg,
-                                        SwitchInfo swtch,
-                                        uint32_t xid)
+                                        SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   ofl_msg_free ((ofl_msg_header*)msg, NULL /*exp*/);
@@ -406,9 +401,8 @@ OFSwitch13Controller::HandleAsyncReply (ofl_msg_async_config *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleMultipartReply (ofl_msg_multipart_reply_header *msg,
-                                            SwitchInfo swtch,
-                                            uint32_t xid)
+OFSwitch13Controller::HandleMultipartReply (
+  ofl_msg_multipart_reply_header *msg, SwitchInfo swtch,  uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   ofl_msg_free ((ofl_msg_header*)msg, NULL /*exp*/);
@@ -417,8 +411,7 @@ OFSwitch13Controller::HandleMultipartReply (ofl_msg_multipart_reply_header *msg,
 
 ofl_err
 OFSwitch13Controller::HandleRoleReply (ofl_msg_role_request *msg,
-                                       SwitchInfo swtch,
-                                       uint32_t xid)
+                                       SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   ofl_msg_free ((ofl_msg_header*)msg, NULL /*exp*/);
@@ -426,9 +419,8 @@ OFSwitch13Controller::HandleRoleReply (ofl_msg_role_request *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg,
-                                                 SwitchInfo swtch,
-                                                 uint32_t xid)
+OFSwitch13Controller::HandleQueueGetConfigReply (
+  ofl_msg_queue_get_config_reply *msg, SwitchInfo swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   ofl_msg_free ((ofl_msg_header*)msg, NULL /*exp*/);
@@ -478,13 +470,15 @@ OFSwitch13Controller::ReceiveFromSwitch (SwitchInfo swtch, ofl_msg_header *msg,
       return HandleAsyncReply ((ofl_msg_async_config*)msg, swtch, xid);
 
     case OFPT_MULTIPART_REPLY:
-      return HandleMultipartReply ((ofl_msg_multipart_reply_header*)msg, swtch, xid);
+      return HandleMultipartReply ((ofl_msg_multipart_reply_header*)msg,
+                                   swtch, xid);
 
     case OFPT_ROLE_REPLY:
       return HandleRoleReply ((ofl_msg_role_request*)msg, swtch, xid);
 
     case OFPT_QUEUE_GET_CONFIG_REPLY:
-      return HandleQueueGetConfigReply ((ofl_msg_queue_get_config_reply*)msg, swtch, xid);
+      return HandleQueueGetConfigReply ((ofl_msg_queue_get_config_reply*)msg,
+                                        swtch, xid);
 
     case OFPT_EXPERIMENTER:
     default:
@@ -505,9 +499,12 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
       if (!pendingBytes)
         {
           // Starting with a new OpenFlow message.
-          // At least 8 bytes (OpenFlow header) must be available for read
+          // At least 8 bytes (OpenFlow header) must be available.
           uint32_t rxBytesAvailable = socket->GetRxAvailable ();
-          NS_ASSERT_MSG (rxBytesAvailable >= 8, "At least 8 bytes must be available for read");
+          if (rxBytesAvailable < 8)
+            {
+              return; // Wait for more bytes.
+            }
 
           // Receive the OpenFlow header
           pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
@@ -533,20 +530,23 @@ OFSwitch13Controller::SocketRead (Ptr<Socket> socket)
         {
           Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
           NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
-                        "s the OpenFlow Controller received " <<  pendingPacket->GetSize () <<
-                        " bytes from switch " << ipv4 <<
-                        " port " << InetSocketAddress::ConvertFrom (from).GetPort ());
+                        "s the OpenFlow Controller received " <<
+                        pendingPacket->GetSize () << " bytes from switch " <<
+                        ipv4 << " port " <<
+                        InetSocketAddress::ConvertFrom (from).GetPort ());
 
           uint32_t xid;
           ofl_msg_header *msg;
           ofl_err error;
 
           SwitchsMap_t::iterator it = m_switchesMap.find (ipv4);
-          NS_ASSERT_MSG (it != m_switchesMap.end (), "Unknown switch " << from);
+          NS_ASSERT_MSG (it != m_switchesMap.end (), "Unknown swtch " << from);
 
           // Get the openflow buffer, unpack the message and send to handler
-          ofpbuf *buffer = ofs::BufferFromPacket (pendingPacket, pendingPacket->GetSize ());
-          error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, &xid, NULL);
+          ofpbuf *buffer = ofs::BufferFromPacket (pendingPacket,
+                                                  pendingPacket->GetSize ());
+          error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
+                                  &xid, NULL);
           if (!error)
             {
               char *msg_str = ofl_msg_to_string (msg, NULL);
@@ -595,7 +595,8 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
 
   NS_LOG_LOGIC ("Switch request connection accepted from " << ipv4);
   SwitchInfo *swInfo = &it->second;
-  socket->SetRecvCallback (MakeCallback (&OFSwitch13Controller::SocketRead, this));
+  socket->SetRecvCallback (
+    MakeCallback (&OFSwitch13Controller::SocketRead, this));
 
   // Update other switch information
   swInfo->ctrl = this;
@@ -639,10 +640,12 @@ OFSwitch13Controller::SocketPeerError (Ptr<Socket> socket)
 }
 
 void
-OFSwitch13Controller::ScheduleCommand (SwitchInfo swtch, const std::string textCmd)
+OFSwitch13Controller::ScheduleCommand (SwitchInfo swtch,
+                                       const std::string textCmd)
 {
   NS_ASSERT (swtch.netdev);
-  std::pair<Ptr<OFSwitch13NetDevice>,std::string> entry (swtch.netdev, textCmd);
+  std::pair<Ptr<OFSwitch13NetDevice>,std::string> entry (swtch.netdev,
+                                                         textCmd);
   m_schedCommands.insert (entry);
 }
 

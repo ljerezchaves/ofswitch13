@@ -59,10 +59,10 @@ public:
 
   /** Destructor implementation */
   virtual void DoDispose ();
-  
+
   /**
    * Complete constructor, including the pointer to the ofsoftswitch13 internal
-   * port structure. 
+   * port structure.
    * \param port The ofsoftswitch13 port structure
    */
   OFSwitch13Queue (sw_port* port);
@@ -70,7 +70,7 @@ public:
   /**
    * Get the maximun number of queues allowed.
    * \return The number of allowed queues.
-   */ 
+   */
   static uint16_t GetMaxQueues (void);
 
   /**
@@ -92,7 +92,7 @@ public:
    * Get a pointer to internal queue with specific id.
    * \param queueId The queue id.
    * \return The queue pointer.
-   * \internal 
+   * \internal
    * This function is marked as const to allow its usage inside DoPeek ()
    * member function.
    */

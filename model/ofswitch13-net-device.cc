@@ -61,7 +61,8 @@ OFSwitch13NetDevice::GetTypeId (void)
                    MakeTimeChecker ())
     .AddAttribute ("ControllerAddr",
                    "The controller InetSocketAddress.",
-                   AddressValue (InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
+                   AddressValue (
+                     InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
                    MakeAddressAccessor (&OFSwitch13NetDevice::m_ctrlAddr),
                    MakeAddressChecker ())
     .AddAttribute ("LibLogLevel",
@@ -76,7 +77,8 @@ OFSwitch13NetDevice::GetTypeId (void)
     // Meter band packet drop trace source
     .AddTraceSource ("MeterDrop",
                      "Trace source indicating a packet dropped by meter band",
-                     MakeTraceSourceAccessor (&OFSwitch13NetDevice::m_meterDropTrace),
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13NetDevice::m_meterDropTrace),
                      "ns3::Packet::TracedCallback")
   ;
   return tid;
@@ -93,7 +95,8 @@ OFSwitch13NetDevice::OFSwitch13NetDevice ()
   m_ctrlAddr = Address ();
   m_ifIndex = 0;
   m_datapath = DatapathNew ();
-  OFSwitch13NetDevice::RegisterDatapath (m_dpId, Ptr<OFSwitch13NetDevice> (this));
+  OFSwitch13NetDevice::RegisterDatapath (m_dpId,
+                                         Ptr<OFSwitch13NetDevice> (this));
   Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout,
                        this, m_datapath);
 }
@@ -126,14 +129,16 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   ofPort = CreateObject<OFSwitch13Port> (m_datapath, csmaPortDevice, this);
 
   // Save pointer for further use
-  std::pair<uint32_t, Ptr<OFSwitch13Port> > entry (ofPort->GetPortNo (), ofPort);
+  std::pair<uint32_t, Ptr<OFSwitch13Port> > entry (ofPort->GetPortNo (),
+                                                   ofPort);
   m_portsByNo.insert (entry);
 
   return ofPort;
 }
 
 void
-OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo)
+OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<Packet> packet,
+                                            uint32_t portNo)
 {
   NS_LOG_FUNCTION (this << packet);
 
@@ -222,7 +227,8 @@ OFSwitch13NetDevice::StartControllerConnection ()
           return;
         }
 
-      error = m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom (m_ctrlAddr));
+      error =
+        m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom (m_ctrlAddr));
       if (error)
         {
           NS_LOG_ERROR ("Error connecting socket " << error);
@@ -411,7 +417,8 @@ OFSwitch13NetDevice::SetReceiveCallback (NetDevice::ReceiveCallback cb)
 }
 
 void
-OFSwitch13NetDevice::SetPromiscReceiveCallback (NetDevice::PromiscReceiveCallback cb)
+OFSwitch13NetDevice::SetPromiscReceiveCallback (
+  NetDevice::PromiscReceiveCallback cb)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -430,7 +437,7 @@ OFSwitch13NetDevice::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl)
   Ptr<OFSwitch13NetDevice> dev =
     OFSwitch13NetDevice::GetDatapathDevice (ctrl->dp->id);
 
-  // FIXME No support for multiple controllers nor auxiliary connections by now.
+  // FIXME No support for multiple controllers / auxiliary connections by now.
   // So, just ignoring remote information and sending to our single socket.
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
   return dev->SendToController (packet);
@@ -518,6 +525,14 @@ OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
 }
 
 void
+OFSwitch13NetDevice::MeterCreatedCallback (struct meter_entry *entry)
+{
+  Ptr<OFSwitch13NetDevice> dev =
+    OFSwitch13NetDevice::GetDatapathDevice (entry->dp->id);
+  dev->NotifyMeterEntryCreated (entry);
+}
+
+void
 OFSwitch13NetDevice::MeterDropCallback (struct packet *pkt)
 {
   Ptr<OFSwitch13NetDevice> dev =
@@ -599,6 +614,7 @@ OFSwitch13NetDevice::DatapathNew ()
 
   dp->id = m_dpId;
   dp->last_timeout = time_now ();
+  m_lastTimeout = Simulator::Now ();
   list_init (&dp->remotes);
 
   // unused
@@ -631,6 +647,7 @@ OFSwitch13NetDevice::DatapathNew ()
   dp->buff_save_cb = &OFSwitch13NetDevice::BufferSaveCallback;
   dp->buff_retrieve_cb = &OFSwitch13NetDevice::BufferRetrieveCallback;
   dp->meter_drop_cb = &OFSwitch13NetDevice::MeterDropCallback;
+  dp->meter_created_cb = &OFSwitch13NetDevice::MeterCreatedCallback;
 
   return dp;
 }
@@ -638,7 +655,7 @@ OFSwitch13NetDevice::DatapathNew ()
 void
 OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 {
-  NS_LOG_INFO (this);
+  NS_LOG_FUNCTION (this);
 
   meter_table_add_tokens (dp->meters);
   pipeline_timeout (dp->pipeline);
@@ -650,11 +667,22 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
       it->second->PortUpdateState ();
     }
 
-  // Update pipeline average delay based on current number of flow entries
+  //
+  // To provide a more realistic OpenFlow switch model, specially with respect
+  // to flow table search time, we are considering that in real OpenFlow
+  // implementations, packet classification can use sophisticated search
+  // algorithms, as the HyperSplit (DOI 10.1109/FPT.2010.5681492). As most of
+  // theses algorithms classifies the packet based on binary search trees, we
+  // are estimating the pipeline average time to a K * log (n), where k is the
+  // m_tcamDelay set to the time for a TCAM operation in a NetFPGA hardware,
+  // and n is the current number of entries in flow tables.
+  //
   m_pipeDelay = m_tcamDelay * (int64_t)ceil (log2 (GetNumberFlowEntries ()));
 
   dp->last_timeout = time_now ();
-  Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout, this, dp);
+  m_lastTimeout = Simulator::Now ();
+  Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout,
+                       this, dp);
 }
 
 Ptr<OFSwitch13Port>
@@ -786,10 +814,12 @@ OFSwitch13NetDevice::ReceiveFromController (Ptr<Socket> socket)
       if (!pendingBytes)
         {
           // Starting with a new OpenFlow message.
-          // At least 8 bytes (OpenFlow header) must be available for read
+          // At least 8 bytes (OpenFlow header) must be available.
           uint32_t rxBytesAvailable = socket->GetRxAvailable ();
-          NS_ASSERT_MSG (rxBytesAvailable >= 8,
-                         "At least 8 bytes must be available for read");
+          if (rxBytesAvailable < 8)
+            {
+              return; // Wait for more bytes.
+            }
 
           // Receive the OpenFlow header and get the OpenFlow message size
           ofp_header header;
@@ -855,7 +885,7 @@ OFSwitch13NetDevice::ReceiveFromController (Ptr<Socket> socket)
             }
           if (error)
             {
-              NS_LOG_ERROR ("Error processing OpenFlow message from controller.");
+              NS_LOG_ERROR ("Error processing OpenFlow msg from controller.");
               // Notify the controller
               ofl_msg_error err;
               err.header.type = OFPT_ERROR;
@@ -898,6 +928,21 @@ OFSwitch13NetDevice::SocketCtrlFailed (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
   NS_LOG_ERROR ("Controller did not accepted connection request!");
+}
+
+void
+OFSwitch13NetDevice::NotifyMeterEntryCreated (struct meter_entry *entry)
+{
+  NS_LOG_FUNCTION (this << entry->config->meter_id);
+
+  // Update meter entry last_fill field with the time of last datapath timeout,
+  // and force a new bucket refill based on this elapsed time.
+  for (size_t i = 0; i < entry->config->meter_bands_num; i++)
+    {
+      entry->stats->band_stats [i]->last_fill =
+        static_cast<uint64_t> (m_lastTimeout.GetMilliSeconds ());
+    }
+  meter_table_add_tokens (m_datapath->meters);
 }
 
 void
@@ -1041,7 +1086,8 @@ OFSwitch13NetDevice::CopyTags (Ptr<const Packet> srcPkt,
 }
 
 void
-OFSwitch13NetDevice::RegisterDatapath (uint64_t id, Ptr<OFSwitch13NetDevice> dev)
+OFSwitch13NetDevice::RegisterDatapath (uint64_t id,
+                                       Ptr<OFSwitch13NetDevice> dev)
 {
   std::pair<uint64_t, Ptr<OFSwitch13NetDevice> > entry (id, dev);
   std::pair<DpIdDevMap_t::iterator, bool> ret;

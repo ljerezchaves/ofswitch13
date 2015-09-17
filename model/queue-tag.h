@@ -29,7 +29,8 @@ class Tag;
 
 /**
  * \ingroup ofswitch13
- * Tag used to hold the queue id before enqueueing a packet into OFSwitch13Queue.
+ * Tag used to hold the queue id before enqueueing a packet into
+ * OFSwitch13Queue.
  */
 class QueueTag : public Tag
 {

@@ -51,7 +51,7 @@ OFSwitch13Port::DoDispose ()
 
   m_csmaDev = 0;
   m_openflowDev = 0;
-  
+
   // Calling DoDispose on internal port, so it can use m_swPort pointer to free
   // internal strucutures first.
   m_portQueue->DoDispose ();
@@ -68,11 +68,13 @@ OFSwitch13Port::GetTypeId (void)
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Port> ()
     .AddTraceSource ("SwitchPortRx",
-                     "Trace source indicating a packet received at this switch port",
+                     "Trace source indicating a packet "
+                     "received at this switch port",
                      MakeTraceSourceAccessor (&OFSwitch13Port::m_rxTrace),
                      "ns3::Packet::TracedCallback")
     .AddTraceSource ("SwitchPortTx",
-                     "Trace source indicating a packet transmitted at this switch port",
+                     "Trace source indicating a packet "
+                     "transmitted at this switch port",
                      MakeTraceSourceAccessor (&OFSwitch13Port::m_txTrace),
                      "ns3::Packet::TracedCallback")
   ;
@@ -127,7 +129,7 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   m_swPort->num_queues = 0;
   m_portQueue = CreateObject<OFSwitch13Queue> (m_swPort);
   csmaDev->SetQueue (m_portQueue);
- 
+
   m_swPort->created = time_msec ();
 
   list_push_back (&dp->port_list, &m_swPort->node);
@@ -179,7 +181,7 @@ OFSwitch13Port::PortUpdateState ()
   return false;
 }
 
-Ptr<OFSwitch13Queue> 
+Ptr<OFSwitch13Queue>
 OFSwitch13Port::GetOutputQueue ()
 {
   NS_LOG_FUNCTION (this);
@@ -193,7 +195,8 @@ OFSwitch13Port::PortGetFeatures ()
 
   DataRateValue drv;
   DataRate dr;
-  Ptr<CsmaChannel> channel = DynamicCast<CsmaChannel> (m_csmaDev->GetChannel ());
+  Ptr<CsmaChannel> channel =
+    DynamicCast<CsmaChannel> (m_csmaDev->GetChannel ());
   channel->GetAttribute ("DataRate", drv);
   dr = drv.Get ();
 
