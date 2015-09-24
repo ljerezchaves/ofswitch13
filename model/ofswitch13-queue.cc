@@ -45,6 +45,11 @@ OFSwitch13Queue::GetTypeId (void)
     .SetParent<Queue> ()
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Queue> ()
+    .AddAttribute ("Scheduling",
+                   "The output queue scheduling algorithm.",
+                   EnumValue (OFSwitch13Queue::PRIO),
+                   MakeEnumAccessor (&OFSwitch13Queue::m_scheduling),
+                   MakeEnumChecker (OFSwitch13Queue::PRIO, "prio"))
   ;
   return tid;
 }
@@ -169,6 +174,7 @@ OFSwitch13Queue::DelQueue (uint32_t queueId)
     {
       m_queueIds.erase (pos);
     }
+  std::sort (m_queueIds.begin (), m_queueIds.end ());
   m_swPort->num_queues--;
   return true;
 }
@@ -236,44 +242,41 @@ OFSwitch13Queue::GetOutputQueue (bool peekLock) const
 {
   static bool isLocked = false;
   static uint32_t queueId = 0;
-  static uint32_t queuePos = 0;
 
   // If output queue is locked, we can't change its id.
   if (isLocked)
     {
-      if (peekLock)
+      // If peekLock is false, unlock it before returning the queue id.
+      if (!peekLock)
         {
-          // If peekLock is true, return the queue and keep it locked.
-          return queueId;
-        }
-      else
-        {
-          // If peekLock is false, unlock it and return the queue.
           isLocked = false;
-          return queueId;
         }
+      return queueId;
     }
 
-  // If output queue is unlocked, let's get the new queue id for this
-  // operation. Current implementation performs round-robin scheduling.
-  // Starting for the next id, let's find the first valid non-empty queue.
-  for (uint32_t nextPos = (queuePos + 1) % m_queueIds.size ();
-       nextPos != queuePos; nextPos = (nextPos + 1) % m_queueIds.size ())
+  // If output queue is unlocked, let's select the queue based on output queue
+  // scheduling algorithm.
+  if (m_scheduling == OFSwitch13Queue::PRIO)
     {
-      if (GetQueue (m_queueIds.at (nextPos))->IsEmpty () == false)
+      // For priority queuing, select the higher-priority nonempty queue.
+      // We use the queue id as priority indicator (lowest priority id is 0).
+      for (uint32_t pos = m_queueIds.size () - 1; pos >= 0; pos--)
         {
-          // We found a non-empty valid queue.
-          queueId = m_queueIds.at (nextPos);
-          queuePos = nextPos;
-          break;
+          // Check for nonempty queue
+          if (GetQueue (m_queueIds.at (pos))->IsEmpty () == false)
+              {
+              queueId = m_queueIds.at (pos);
+              break;
+            }
         }
     }
 
+  // If peekLock is true, lock the output queue before returning it.
   if (peekLock)
     {
-      // If peekLock is true, lock the output queue before returning it.
       isLocked = true;
     }
+
   return queueId;
 }
 
