@@ -49,6 +49,15 @@ class OFSwitch13Queue : public Queue
 {
 public:
   /**
+   * The output queue scheduling algorithm, used to decide from which queue
+   * the dequeue discipline will select.
+   */
+  enum Scheduling
+  {
+    PRIO = 0    //!< Priority queuing
+  };
+
+  /**
    * \brief Get the type ID.
    * \return the object TypeId
    */
@@ -122,8 +131,9 @@ private:
   IdQueueMap_t m_queues;              //!< Interal collection of queues
 
   sw_port*              m_swPort;     //!< ofsoftswitch13 struct sw_port
-  std::vector<uint32_t> m_queueIds;   //!< List of available queue ids
+  std::vector<uint32_t> m_queueIds;   //!< Sorted list of available queue ids
   static const uint16_t m_maxQueues;  //!< Maximum number of queues
+  Scheduling            m_scheduling; //!< Output scheduling strategy
 };
 
 } // namespace ns3
