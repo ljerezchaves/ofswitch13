@@ -264,7 +264,7 @@ OFSwitch13Queue::GetOutputQueue (bool peekLock) const
         {
           // Check for nonempty queue
           if (GetQueue (m_queueIds.at (pos))->IsEmpty () == false)
-              {
+            {
               queueId = m_queueIds.at (pos);
               break;
             }

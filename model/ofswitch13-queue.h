@@ -48,15 +48,15 @@ namespace ns3 {
 class OFSwitch13Queue : public Queue
 {
 public:
-  /** 
+  /**
    * The output queue scheduling algorithm, used to decide from which queue
-   * the dequeue discipline will select. 
+   * the dequeue discipline will select.
    */
   enum Scheduling
   {
     PRIO = 0    //!< Priority queuing
   };
-  
+
   /**
    * \brief Get the type ID.
    * \return the object TypeId
