@@ -37,7 +37,7 @@ class OFSwitch13Port;
  * \ingroup ofswitch13
  *
  * A NetDevice that switches multiple LAN segments via OpenFlow protocol.
- * The OFSwitch13NetDevice object aggregates multiple netdevices as ports
+ * The OFSwitch13NetDevice object holds a list of OFSwitch13Port as ports
  * and acts like a switch. It implements OpenFlow datapath compatibility,
  * according to the OpenFlow Switch Specification v1.3.
  */
