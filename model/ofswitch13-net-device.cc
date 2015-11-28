@@ -21,6 +21,7 @@
 #define NS_LOG_APPEND_CONTEXT \
   if (m_dpId) { std::clog << "[dp " << m_dpId << "] "; }
 
+#include "ns3/object-vector.h"
 #include "ofswitch13-net-device.h"
 #include "ofswitch13-interface.h"
 
@@ -43,13 +44,18 @@ OFSwitch13NetDevice::GetTypeId (void)
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13NetDevice> ()
     .AddAttribute ("DatapathId",
-                   "The identification of the OFSwitch13NetDevice/Datapath.",
+                   "The unique identification of this OpenFlow switch.",
                    TypeId::ATTR_GET,
                    UintegerValue (0),
                    MakeUintegerAccessor (&OFSwitch13NetDevice::m_dpId),
                    MakeUintegerChecker<uint64_t> ())
+    .AddAttribute ("PortList", 
+                   "The list of ports associated to this switch.",
+                   ObjectVectorValue (),
+                   MakeObjectVectorAccessor (&OFSwitch13NetDevice::m_ports),
+                   MakeObjectVectorChecker<OFSwitch13Port> ())
     .AddAttribute ("TCAMDelay",
-                   "Average time to perform a TCAM operation "
+                   "Average time to perform a TCAM operation in pipeline "
                    "(Default: standard TCAM on a NetFPGA).",
                    TimeValue (NanoSeconds (30)),
                    MakeTimeAccessor (&OFSwitch13NetDevice::m_tcamDelay),
@@ -128,11 +134,10 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   Ptr<OFSwitch13Port> ofPort;
   ofPort = CreateObject<OFSwitch13Port> (m_datapath, csmaPortDevice, this);
 
-  // Save pointer for further use
-  std::pair<uint32_t, Ptr<OFSwitch13Port> > entry (ofPort->GetPortNo (),
-                                                   ofPort);
-  m_portsByNo.insert (entry);
-
+  // Save port in port list (assert port no and vector index)
+  m_ports.push_back (ofPort);
+  NS_ASSERT (m_ports.size () == ofPort->GetPortNo ());
+  
   return ofPort;
 }
 
@@ -584,7 +589,14 @@ OFSwitch13NetDevice::DoDispose ()
 
   m_node = 0;
   m_ctrlSocket = 0;
-  m_portsByNo.clear ();
+  PortList_t::iterator it;
+  for (it = m_ports.begin (); it != m_ports.end (); it++)
+    {
+      Ptr<OFSwitch13Port> port = *it;
+      port->Dispose ();
+      *it = 0;
+    }
+  m_ports.clear ();
 
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
@@ -661,10 +673,11 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
   pipeline_timeout (dp->pipeline);
 
   // Check for changes in links (port) status
-  PortNoMap_t::iterator it;
-  for (it = m_portsByNo.begin (); it != m_portsByNo.end (); it++)
+  PortList_t::iterator it;
+  for (it = m_ports.begin (); it != m_ports.end (); it++)
     {
-      it->second->PortUpdateState ();
+      Ptr<OFSwitch13Port> port = *it;
+      port->PortUpdateState ();
     }
 
   //
@@ -689,18 +702,11 @@ Ptr<OFSwitch13Port>
 OFSwitch13NetDevice::GetOFSwitch13Port (uint32_t no)
 {
   NS_LOG_FUNCTION (this << no);
-
-  PortNoMap_t::iterator it;
-  it = m_portsByNo.find (no);
-  if (it != m_portsByNo.end ())
-    {
-      return it->second;
-    }
-  else
-    {
-      NS_LOG_ERROR ("No port found!");
-      return 0;
-    }
+  
+  // Assert port no (starts at 1)
+  NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), 
+                 "Port no " << no << " is out of range.");
+  return m_ports [no - 1];
 }
 
 bool
