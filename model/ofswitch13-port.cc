@@ -23,6 +23,7 @@
 
 #include "ns3/ethernet-header.h"
 #include "ns3/ethernet-trailer.h"
+#include "ns3/pointer.h"
 #include "ofswitch13-net-device.h"
 #include "ofswitch13-port.h"
 
@@ -67,6 +68,11 @@ OFSwitch13Port::GetTypeId (void)
     .SetParent<Object> ()
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Port> ()
+    .AddAttribute ("PortQueue",
+                   "The OpenFlow queue to use as the tx queue in this port.",
+                   PointerValue (),
+                   MakePointerAccessor (&OFSwitch13Port::m_portQueue),
+                   MakePointerChecker<OFSwitch13Queue> ())
     .AddTraceSource ("SwitchPortRx",
                      "Trace source indicating a packet "
                      "received at this switch port",

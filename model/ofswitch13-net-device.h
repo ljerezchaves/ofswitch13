@@ -441,8 +441,8 @@ private:
     std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
   };
 
-  /** Structure to map port number to port information. */
-  typedef std::map<uint32_t, Ptr<OFSwitch13Port> > PortNoMap_t;
+  /** Structure to save the list of ports in this datapath. */
+  typedef std::vector<Ptr<OFSwitch13Port> > PortList_t;
 
   /** Structure to map datapath id to OpenFlow device. */
   typedef std::map<uint64_t, Ptr<OFSwitch13NetDevice> > DpIdDevMap_t;
@@ -462,7 +462,7 @@ private:
   std::string     m_libLog;       //!< The ofsoftswitch13 library log levels.
   datapath*       m_datapath;     //!< The OpenFlow datapath.
   PipelinePacket  m_pktPipe;      //!< Packet under switch pipeline.
-  PortNoMap_t     m_portsByNo;    //!< Switch ports indexed by port number.
+  PortList_t      m_ports;        //!< List of switch ports.
   IdPacketMap_t   m_pktsBuffer;   //!< Packets saved in switch buffer.
 
   static uint64_t m_globalDpId;   //!< Global counter of datapath IDs
