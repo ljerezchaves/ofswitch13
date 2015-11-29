@@ -213,6 +213,7 @@ OFSwitch13Queue::DoEnqueue (Ptr<Packet> p)
   else
     {
       swQueue->stats->tx_errors++;
+      Drop (p);
       return false;
     }
 }
