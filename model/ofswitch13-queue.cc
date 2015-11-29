@@ -24,6 +24,7 @@
 #include "ns3/log.h"
 #include "ns3/enum.h"
 #include "ns3/uinteger.h"
+#include "ns3/object-vector.h"
 #include "ns3/drop-tail-queue.h"
 #include "ofswitch13-queue.h"
 #include <algorithm>
@@ -45,6 +46,11 @@ OFSwitch13Queue::GetTypeId (void)
     .SetParent<Queue> ()
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Queue> ()
+    .AddAttribute ("QueueList", 
+                   "The list of internal queues associated to this port queue.",
+                   ObjectVectorValue (),
+                   MakeObjectVectorAccessor (&OFSwitch13Queue::m_queues),
+                   MakeObjectVectorChecker<Queue> ())
     .AddAttribute ("Scheduling",
                    "The output queue scheduling algorithm.",
                    EnumValue (OFSwitch13Queue::PRIO),
@@ -68,7 +74,8 @@ OFSwitch13Queue::OFSwitch13Queue (sw_port* port)
   NS_LOG_FUNCTION (this << port);
 
   // Adding the default ns3::DropTailQueue with id 0 for best-effort traffic.
-  AddQueue (0, CreateObject<DropTailQueue> ());
+  uint32_t id = AddQueue (CreateObject<DropTailQueue> ());
+  NS_LOG_DEBUG ("New queue " << id << " at port " << m_swPort->conf->port_no);
 }
 
 OFSwitch13Queue::~OFSwitch13Queue ()
@@ -86,17 +93,15 @@ OFSwitch13Queue::DoDispose ()
   if (m_swPort)
     {
       sw_queue* swQueue;
-      IdQueueMap_t::iterator it;
-      for (it = m_queues.begin (); it != m_queues.end (); it++)
+      for (uint32_t i = 0; i < GetNQueues (); i++)
         {
-          swQueue = &(m_swPort->queues[it->first]);
+          swQueue = &(m_swPort->queues[i]);
           free (swQueue->stats);
           free (swQueue->props);
         }
       m_swPort = 0;
     }
   m_queues.clear ();
-  m_queueIds.clear ();
 }
 
 uint16_t
@@ -105,15 +110,22 @@ OFSwitch13Queue::GetMaxQueues (void)
   return m_maxQueues;
 }
 
-bool
-OFSwitch13Queue::AddQueue (uint32_t queueId, Ptr<Queue> queue)
+uint16_t
+OFSwitch13Queue::GetNQueues (void) const
 {
-  NS_LOG_FUNCTION (this << queueId);
+  return m_queues.size ();
+}
+
+uint32_t
+OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
+{
+  NS_LOG_FUNCTION (this << queue);
 
   NS_ASSERT_MSG (queue, "Invalid queue pointer.");
   NS_ASSERT_MSG (m_swPort, "Invalid OpenFlow port metadata.");
-  NS_ASSERT_MSG (queueId < m_maxQueues, "Invalid queue id.");
+  NS_ASSERT_MSG (GetNQueues () < GetMaxQueues (), "No more queues available.");
 
+  uint32_t queueId = (m_swPort->num_queues)++;
   sw_queue* swQueue = &(m_swPort->queues[queueId]);
   NS_ASSERT_MSG (!swQueue->port, "Queue id already in use.");
 
@@ -131,61 +143,17 @@ OFSwitch13Queue::AddQueue (uint32_t queueId, Ptr<Queue> queue)
   swQueue->props->queue_id = queueId;
   swQueue->props->properties_num = 0;
 
-  // Inserting the ns3::Queue object into queue map.
-  std::pair<uint32_t, Ptr<Queue> > entry (queueId, queue);
-  std::pair<IdQueueMap_t::iterator, bool> ret;
-  ret = m_queues.insert (entry);
-  if (ret.second == false)
-    {
-      NS_FATAL_ERROR ("Unable to insert queue id = " << queueId);
-    }
-
-  // Saving queue id for faster output queue lookup.
-  m_queueIds.push_back (queueId);
-  std::sort (m_queueIds.begin (), m_queueIds.end ());
-  m_swPort->num_queues++;
-  return true;
-}
-
-bool
-OFSwitch13Queue::DelQueue (uint32_t queueId)
-{
-  NS_LOG_FUNCTION (this << queueId);
-
-  sw_queue* swQueue = dp_ports_lookup_queue (m_swPort, queueId);
-  NS_ASSERT_MSG (swQueue, "Invalid queue id.");
-  NS_ASSERT_MSG (queueId != 0, "Can't remove default queue");
-
-  IdQueueMap_t::iterator it = m_queues.find (queueId);
-  if (it == m_queues.end ())
-    {
-      NS_LOG_ERROR ("Can't remove invalid queue id = " << queueId);
-      return false;
-    }
-  m_queues.erase (it);
-
-  free (swQueue->stats);
-  free (swQueue->props);
-  memset (swQueue, 0x00, sizeof (sw_queue));
-
-  std::vector<uint32_t>::iterator pos;
-  pos = std::find (m_queueIds.begin (), m_queueIds.end (), queueId);
-  if (pos != m_queueIds.end ())
-    {
-      m_queueIds.erase (pos);
-    }
-  std::sort (m_queueIds.begin (), m_queueIds.end ());
-  m_swPort->num_queues--;
-  return true;
+  // Inserting the ns3::Queue object into queue list.
+  m_queues.push_back (queue);
+  
+  return queueId;
 }
 
 Ptr<Queue>
 OFSwitch13Queue::GetQueue (uint32_t queueId) const
 {
-  IdQueueMap_t::const_iterator it = m_queues.find (queueId);
-  NS_ASSERT_MSG (it != m_queues.end (), "Invalid queue id.");
-
-  return it->second;
+  NS_ASSERT_MSG (queueId < GetNQueues (), "Queue is out of range.");
+  return m_queues.at (queueId);
 }
 
 bool
@@ -261,12 +229,12 @@ OFSwitch13Queue::GetOutputQueue (bool peekLock) const
     {
       // For priority queuing, select the higher-priority nonempty queue.
       // We use the queue id as priority indicator (lowest priority id is 0).
-      for (uint32_t pos = m_queueIds.size () - 1; pos >= 0; pos--)
+      for (uint32_t i = GetNQueues () - 1; i >= 0; i--)
         {
           // Check for nonempty queue
-          if (GetQueue (m_queueIds.at (pos))->IsEmpty () == false)
+          if (GetQueue (i)->IsEmpty () == false)
             {
-              queueId = m_queueIds.at (pos);
+              queueId = i;
               break;
             }
         }
