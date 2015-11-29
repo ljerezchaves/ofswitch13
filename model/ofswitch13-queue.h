@@ -83,19 +83,18 @@ public:
   static uint16_t GetMaxQueues (void);
 
   /**
+   * Get the current number of queues.
+   * \return The current number of queues.
+   */
+  uint16_t GetNQueues (void) const;
+
+  /**
    * Add a new internal queue to this OpenFlow queue.
    * \param queueId The queue ID.
    * \param queue The queue pointer.
-   * \return true if the queue was successfully added, false otherwise.
+   * \return The queue id for the new queue.
    */
-  bool AddQueue (uint32_t queueId, Ptr<Queue> queue);
-
-  /**
-   * Delete an internal queue from this OpenFlow queue.
-   * \param queueId The queue ID.
-   * \return true if the queue was successfully deleted, false otherwise.
-   */
-  bool DelQueue (uint32_t queueId);
+  uint32_t AddQueue (Ptr<Queue> queue);
 
   /**
    * Get a pointer to internal queue with specific id.
@@ -126,12 +125,11 @@ private:
    */
   uint32_t GetOutputQueue (bool peekLock = false) const;
 
-  /** Structure to save internal queues, indexed by its id. */
-  typedef std::map<uint32_t, Ptr<Queue> > IdQueueMap_t;
-  IdQueueMap_t m_queues;              //!< Interal collection of queues
+  /** Structure to save the list of internal queues in this port queue. */
+  typedef std::vector<Ptr<Queue> > QueueList_t;
 
   sw_port*              m_swPort;     //!< ofsoftswitch13 struct sw_port
-  std::vector<uint32_t> m_queueIds;   //!< Sorted list of available queue ids
+  QueueList_t           m_queues;     //!< Sorted list of available queues 
   static const uint16_t m_maxQueues;  //!< Maximum number of queues
   Scheduling            m_scheduling; //!< Output scheduling strategy
 };
