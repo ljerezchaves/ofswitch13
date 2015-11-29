@@ -441,7 +441,7 @@ private:
     std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
   };
 
-  /** Structure to map port number to port information. */
+  /** Structure to save the list of ports in this datapath. */
   typedef std::vector<Ptr<OFSwitch13Port> > PortList_t;
 
   /** Structure to map datapath id to OpenFlow device. */
