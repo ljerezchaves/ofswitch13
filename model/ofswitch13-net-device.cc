@@ -704,8 +704,7 @@ OFSwitch13NetDevice::GetOFSwitch13Port (uint32_t no)
   NS_LOG_FUNCTION (this << no);
   
   // Assert port no (starts at 1)
-  NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), 
-                 "Port no " << no << " is out of range.");
+  NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Port is out of range.");
   return m_ports.at (no - 1);
 }
 
