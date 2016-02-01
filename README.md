@@ -47,4 +47,3 @@ Some OpenFlow 1.3 main features are not yet supported by this module:
 
 * Auxiliary connections
 * Multiple controllers
-* Queues at output ports
