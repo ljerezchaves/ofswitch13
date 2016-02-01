@@ -23,7 +23,7 @@ Thanks to the main contributors:
 Luciano Jerez Chaves (luciano at lrc dot ic dot unicamp dot br)
 
 [ns-3]: https://www.nsnam.org
-[ofp13]: https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf
+[ofp13]: https://www.opennetworking.org/sdn-resources/technical-library
 [ofs13]: https://github.com/ljerezchaves/ofsoftswitch13
 [project]: http://www.lrc.ic.unicamp.br/ofswitch13/
 [wiki]: https://bitbucket.org/ljerezchaves/ofswitch13-module/wiki/Home
