@@ -1,6 +1,6 @@
 # OpenFlow 1.3 module for ns-3 simulator #
 
-This module can enhance the ns-3 network simulator with OpenFlow 1.3 capabilities. It provides  OpenFlow compatibles switch and controller, allowing the user to simulate software defined networks.
+This OFSwitch13 module can enhance the ns-3 network simulator with OpenFlow 1.3 capabilities. It provides  OpenFlow compatibles switch and controller, allowing the user to simulate software defined networks.
 
 ### CPqD ofsoftswitch13 ###
 
