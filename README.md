@@ -1,49 +1,30 @@
-# OpenFlow 1.3 module for ns-3 simulator #
+# OpenFlow 1.3 module for the ns-3 simulator #
+This `OFSwitch13` module enhances the [ns-3 Network Simulator][ns-3] with OpenFlow 1.3 capabilities. It provides an OpenFlow compatible switch and a controller interface, allowing the user to simulate Software Defined Networks. For more information on the module design, please, visit the [project homepage][project].
 
-This OFSwitch13 module can enhance the ns-3 network simulator with OpenFlow 1.3 capabilities. It provides  OpenFlow compatibles switch and controller, allowing the user to simulate software defined networks.
+# How do I get started? #
+Instructions on how to download and compile the code can be found in the [project wiki][wiki]. If you want to get a fast hands on, try the [pre-configured Ubuntu VM][ofs13vm], which includes the ns-3 simulator compiled with the `OFSwitch13` module. User and password for the VM are set to *user*. 
 
-### CPqD ofsoftswitch13 ###
+# Contribute #
+Please, contribute to this project submitting your bug reports to our [issue tracker][issues]. For fixes and suggestions, consider creating a pull request.
 
-This module was designed to work together with the CPqD ofsoftswitch13 user-space software switch implementation, originally available at https://github.com/CPqD/ofsoftswitch13. This user-space switch is based on the Ericsson TrafficLab 1.1 softswitch implementation, with changes in the forwarding plane to support OpenFlow 1.3. 
+# License #
+The `OFSwitch13` module is free software, licensed under the [GNU GPLv2 license][gpl], and is publicly available for research, development, and use.
 
-In fact, this module provides an interface for interconnecting the ns-3 OFSwitch13NetDevice to the ofsoftswitch13 datapath. Also, it interconnects the OFSwitch13Controller to the dpctl utility, in order to simplify the process of sending OpenFlow messages to the switch. To this end, the ofsoftswitch13 project must be compiled as a static library and get proper linked with ns-3 simulator. 
+# Acknowledgments #
+* Eder Leão Fernandes
+* Vítor Marge Eichemberger
+* Islene Calciolari Garcia
+* Luciano Jerez Chaves
+* *"Your name here"*
 
-### Installation ###
+# Contact #
+Luciano Jerez Chaves (luciano at lrc dot ic dot unicamp dot br)
 
-To start using this module, the first step is to download and compile the ofsoftswitch13 as a static library. To this, clone the modified repository https://github.com/ljerezchaves/ofsoftswitch13 and update to the ns3lib branch. Follow the instructions on the ofsoftswitch13 README.md file to build the switch, just **replacing the configure command for the following one**:
-```
-#!bash
-
-./configure --enable-ns3-lib
-```
-* **Note**: before compiling the ofsoftswitch13, you must install the NetBee library (as indicated in the installation guide. Some users have experienced erros during this process, and it is possible to find the solution at http://tocai.dia.uniroma3.it/compunet-wiki/index.php/Installing_and_setting_up_OpenFlow_tools.
-
-Once everything gets compiled, the libns3ofswitch13.a library will be available under ofsoftswitch13/udatapath/ directory. 
-
-Now, its time to download a recent (and stable) ns-3 code from http://www.nsnam.org/releases/ into your machine. Before compiling the simulator, place the code from this repository inside a new /src/ofswitch13 folder (you will have to create it). 
-
-Also, you need to path the ns-3 code with the ofswitch13-csma.path available in this repository. This patch creates a simple new TraceSource at CsmaNetDevice, allowing OpenFlow switch to get raw L2 packets from this NetDevice. To this, go to the root ns-3 directory and run the following command:
-
-```
-#!bash
-
-patch -p1 < src/ofswitch13/ofswitch13-csma.patch 
-```
-Now, you can configure the ns-3 including the --with-ofswitch13 option to show the simulator where it can find the ofsoftswitch13 files.
-```
-#!bash
-
-./waf configure --with-ofswitch13=path/to/ofsoftswitch13
-```
-
-That's it! Compile the simulator using ./waf and have fun! 
-
-### Documentation and examples ###
-You can find some examples on how using this module inside examples folder. The code is commented following the ns3 doxygen style, and you can compile the documentation using ./waf doxygen. The manual will be update soon!
-
-### Important considerations ###
-
-Some OpenFlow 1.3 main features are not yet supported by this module:
-
-* Auxiliary connections
-* Multiple controllers
+[cpqdofs13]: http://cpqd.github.io/ofsoftswitch13/
+[project]: http://www.lrc.ic.unicamp.br/ofswitch13/
+[wiki]: https://bitbucket.org/ljerezchaves/ofswitch13-module/wiki/Home
+[ns-3]: https://www.nsnam.org
+[ederlf]: https://github.com/ederlf
+[ofs13vm]: http://www.lrc.ic.unicamp.br/~luciano/files/OFSwitch13.ova
+[issues]: https://bitbucket.org/ljerezchaves/ofswitch13-module/issues?status=new&status=open
+[gpl]: http://www.gnu.org/copyleft/gpl.html
