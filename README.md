@@ -1,5 +1,5 @@
 # OpenFlow 1.3 module for ns-3 #
-This is the `OFSwitch13` module, which enhances the [ns-3 Network Simulator][ns-3] with [OpenFlow 1.3][ofp13] capabilities. It implements an OpenFlow compatible switch and a controller interface, allowing ns-3 users to simulate Software Defined Networks (SDN). It was designed to work together with the [OpenFlow 1.3 Software Switch for ns-3][ofs13] (`ofsoftswitch13`), providing an interface for interconnecting the ns-3 to the `ofsoftswitch13` library. 
+This is the `OFSwitch13` module, which enhances the [ns-3 Network Simulator][ns-3] with [OpenFlow 1.3][ofp13] capabilities. It implements an OpenFlow compatible switch and a controller interface, allowing ns-3 users to simulate Software-Defined Networks (SDN). It was designed to work together with the [OpenFlow 1.3 Software Switch for ns-3][ofs13] (`ofsoftswitch13`), providing an interface for interconnecting the ns-3 to the `ofsoftswitch13` library. 
 
 Please, visit the [project homepage][project] for detailed information on the `OFSwitch13` module design and documentation.
 # How do I get started? #
