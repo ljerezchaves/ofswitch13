@@ -86,6 +86,7 @@ public:
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
    * \param packet The Packet to send.
    * \param queueNo The queue to use.
+   * \return true if the packet was sent successfully, false otherwise.
    */
   bool Send (Ptr<Packet> packet, uint32_t queueNo);
 
