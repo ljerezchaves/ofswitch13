@@ -4,9 +4,6 @@ In fact, this module implements the interface for interconnecting the ns-3 simul
 
 Please, visit the `OFSwitch13` [project homepage][project] for detailed information on the module design, documentation, and *how to get started* tutorials.
 
-# How do I get started? #
-Instructions on how to download, compile and use the module can be found in the [module documentation][manual]. If you want to get a fast hands on, try the [pre-configured Ubuntu VM][ofs13vm], which includes the ns-3 simulator compiled with the `OFSwitch13` module. User and password for the VM are set to *user*. 
-
 # Contribute #
 Please, contribute to this project submitting your bug reports to our [issue tracker][issues]. For fixes and suggestions, consider creating a pull request.
 
