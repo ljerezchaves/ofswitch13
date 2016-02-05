@@ -1,0 +1,47 @@
+# User Luciano J Chaves <luciano@lrc.ic.unicamp.br>
+Including the references to the OFSwitch13 module into doc config files.
+
+diff -Naur a/doc/doxygen.conf b/doc/doxygen.conf
+--- a/doc/doxygen.conf	2015-09-23 16:28:41.000000000 -0300
++++ b/doc/doxygen.conf	2016-02-05 00:53:13.000000000 -0200
+@@ -884,6 +884,7 @@
+                          src/network/examples \
+                          src/nix-vector-routing/examples \
+                          src/olsr/examples \
++                         src/ofswitch13/examples \
+                          src/openflow/examples \
+                          src/point-to-point/examples \
+                          src/propagation/examples \
+diff -Naur a/doc/main.h b/doc/main.h
+--- a/doc/main.h	2015-09-23 16:28:41.000000000 -0300
++++ b/doc/main.h	2016-02-05 00:43:27.000000000 -0200
+@@ -47,6 +47,7 @@
+  *     - nix-vector-routing
+  *     - ns3tcp
+  *     - ns3wifi
++ *     - ofswitch13
+  *     - olsr
+  *     - openflow
+  *     - point-to-point
+diff -Naur a/doc/models/Makefile b/doc/models/Makefile
+--- a/doc/models/Makefile	2015-09-29 00:17:55.000000000 -0300
++++ b/doc/models/Makefile	2016-02-05 00:46:21.000000000 -0200
+@@ -64,6 +64,7 @@
+ 	$(SRC)/internet/doc/codel.rst \
+ 	$(SRC)/mobility/doc/mobility.rst \
+ 	$(SRC)/olsr/doc/olsr.rst \
++	$(SRC)/ofswitch13/doc/ofswitch13.rst \
+ 	$(SRC)/openflow/doc/openflow-switch.rst \
+ 	$(SRC)/point-to-point/doc/point-to-point.rst \
+ 	$(SRC)/wifi/doc/source/wifi.rst \
+diff -Naur a/doc/models/source/index.rst b/doc/models/source/index.rst
+--- a/doc/models/source/index.rst	2015-09-23 16:28:41.000000000 -0300
++++ b/doc/models/source/index.rst	2016-02-05 00:48:26.000000000 -0200
+@@ -40,6 +40,7 @@
+    mobility
+    network
+    olsr
++   ofswitch13
+    openflow-switch
+    point-to-point
+    propagation

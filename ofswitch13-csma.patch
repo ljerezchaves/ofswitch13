@@ -11,7 +11,7 @@ Ethernet header, which is necessary by OpenFlow pipeline processing.
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
 --- a/src/csma/model/csma-net-device.cc
 +++ b/src/csma/model/csma-net-device.cc
-@@ -108,6 +108,12 @@
+@@ -109,6 +109,12 @@
                       "This is a promiscuous trace,",
                       MakeTraceSourceAccessor (&CsmaNetDevice::m_macPromiscRxTrace),
                       "ns3::Packet::TracedCallback")
@@ -24,7 +24,7 @@ diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.
      .AddTraceSource ("MacRx", 
                       "A packet has been received by this device, "
                       "has been passed up from the physical layer "
-@@ -804,6 +810,13 @@
+@@ -805,6 +805,13 @@
      }
  
    //
@@ -41,7 +41,7 @@ diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.
 diff --git a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
 --- a/src/csma/model/csma-net-device.h
 +++ b/src/csma/model/csma-net-device.h
-@@ -558,6 +558,18 @@
+@@ -565,6 +565,18 @@
    TracedCallback<Ptr<const Packet> > m_macPromiscRxTrace;
  
    /**
