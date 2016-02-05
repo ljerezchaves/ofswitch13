@@ -29,7 +29,7 @@ Luciano Jerez Chaves (luciano at lrc dot ic dot unicamp dot br)
 [ofs13]: https://github.com/ljerezchaves/ofsoftswitch13
 [project]: http://www.lrc.ic.unicamp.br/ofswitch13/
 [wiki]: https://bitbucket.org/ljerezchaves/ofswitch13-module/wiki/Home
-[ofs13vm]: http://www.lrc.ic.unicamp.br/~luciano/files/OFSwitch13.ova
+[ofs13vm]: http://www.lrc.ic.unicamp.br/~luciano/files/ns3-ofswitch13.ova
 [issues]: https://bitbucket.org/ljerezchaves/ofswitch13-module/issues?status=new&status=open
 [gpl]: http://www.gnu.org/copyleft/gpl.html
 [manual]: http://www.lrc.ic.unicamp.br/ofswitch13/
