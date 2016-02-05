@@ -1,2 +1,4 @@
 syntax: glob
 doc/build
+doc/source/figures/module.pdf
+doc/source/figures/module.png

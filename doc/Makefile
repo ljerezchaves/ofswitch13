@@ -1,38 +1,30 @@
 EPSTOPDF = epstopdf
 DIA = dia
-CONVERT = convert
+CONVERT = convert -density 250
 
 SOURCE = source
 FIGURES = $(SOURCE)/figures
 
-# specify figures from which .png and .pdf figures need to be
-# generated (all dia and eps figures)
-IMAGES_EPS =
+# specify eps figures from which .png and .pdf figures need to be built
+IMAGES_EPS = \
+	$(FIGURES)/module.eps
 
-# specify figures for build process (all eps figures)
-GRAPHS_EPS = 
+# specify .png or .pdf figures that don't need to be built
+IMAGES_NOBUILD = 
 
 # rescale pdf figures as necessary
+$(FIGURES)/module.pdf_width = 3in
 
-IMAGES_PNG = ${IMAGES_EPS:.eps=.png}
-IMAGES_PDF = ${IMAGES_EPS:.eps=.pdf} 
+IMAGES_BUILD = \
+	${IMAGES_EPS:.eps=.png} \
+	${IMAGES_EPS:.eps=.pdf} 
 
-IMAGES = $(IMAGES_EPS) $(IMAGES_PNG) $(IMAGES_PDF)
+IMAGES = $(IMAGES_NOBUILD) $(IMAGES_BUILD)
 
 RESCALE = ../../../utils/rescale-pdf.sh
 
 %.eps : %.dia; $(DIA) -t eps $< -e $@
 %.png : %.dia; $(DIA) -t png $< -e $@
-%.png : %.eps; $(CONVERT) $< $@
-%.pdf : %.eps
-	$(EPSTOPDF) $< -o=$@
-	@if test x$($@_width) != x; then $(RESCALE) $($@_width) $@ ; fi
-
-GRAPHS_PNG = ${GRAPHS_EPS:.eps=.png}
-GRAPHS_PDF = ${GRAPHS_EPS:.eps=.pdf}
-
-GRAPHS = $(GRAPHS_EPS) $(GRAPHS_PNG) $(GRAPHS_PDF)
-
 %.png : %.eps; $(CONVERT) $< $@
 %.pdf : %.eps
 	$(EPSTOPDF) $< -o=$@
@@ -72,17 +64,16 @@ help:
 
 clean:
 	-rm -rf $(BUILDDIR)/*
-	-rm -f $(IMAGES_PNG)
-	-rm -f $(IMAGES_PDF)
-	-rm -f $(GRAPHS_PNG)
-	-rm -f $(GRAPHS_PDF)
+	-rm -f $(IMAGES_BUILD)
+
+images: $(IMAGES_NOBUILD) $(IMAGES_BUILD)
 
 frag: pickle
 	@if test ! -d $(BUILDDIR)/frag; then mkdir $(BUILDDIR)/frag; fi
 	pushd $(BUILDDIR)/frag && ../../pickle-to-xml.py ../pickle/index.fpickle  > navigation.xml && popd
 	cp -r $(BUILDDIR)/pickle/_images $(BUILDDIR)/frag
 
-html:  $(IMAGES) ${GRAPHS}
+html:  $(IMAGES) 
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
@@ -136,14 +127,14 @@ epub:  $(IMAGES)
 	@echo
 	@echo "Build finished. The epub file is in $(BUILDDIR)/epub."
 
-latex:  $(IMAGES) ${GRAPHS}
+latex:  $(IMAGES)
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo
 	@echo "Build finished; the LaTeX files are in $(BUILDDIR)/latex."
 	@echo "Run \`make' in that directory to run these through (pdf)latex" \
 	      "(use \`make latexpdf' here to do that automatically)."
 
-latexpdf:  $(IMAGES) ${GRAPHS}
+latexpdf:  $(IMAGES)
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
@@ -174,5 +165,4 @@ doctest:  $(IMAGES)
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
-
 
