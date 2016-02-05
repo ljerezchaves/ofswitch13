@@ -7,13 +7,13 @@ FIGURES = $(SOURCE)/figures
 
 # specify eps figures from which .png and .pdf figures need to be built
 IMAGES_EPS = \
-	$(FIGURES)/module.eps
+	$(FIGURES)/ofswitch13-module.eps
 
 # specify .png or .pdf figures that don't need to be built
 IMAGES_NOBUILD = 
 
 # rescale pdf figures as necessary
-$(FIGURES)/module.pdf_width = 3in
+$(FIGURES)/ofswitch13-module.pdf_width = 10cm
 
 IMAGES_BUILD = \
 	${IMAGES_EPS:.eps=.png} \
