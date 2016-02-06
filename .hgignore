@@ -1,4 +1,6 @@
 syntax: glob
 doc/build
-doc/source/figures/module.pdf
-doc/source/figures/module.png
+doc/source/figures/ofsoftswitch13-library.pdf
+doc/source/figures/ofsoftswitch13-library.png
+doc/source/figures/ofswitch13-module.pdf
+doc/source/figures/ofswitch13-module.png

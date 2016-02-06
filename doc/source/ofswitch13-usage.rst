@@ -73,8 +73,8 @@ Configure and build the library (don't forget to add the ``--enable-ns3-lib`` du
 Once everything gets compiled, the static library ``libns3ofswitch13.a`` will be available under ``ofsoftswitch13/udatapath/`` directory. Let's proceed with the |ns3| simulator compilation and linkage.
 
 
-Linking and compiling the simulator
-###################################
+Linking the library to the simulator
+####################################
 
 It's time to download a recent (preferably stable) |ns3| code into your machine. Here, we are going to use the mercurial repository for ns-3.24.
 
@@ -112,6 +112,63 @@ Check for the enabled |ns3| OpenFlow 1.3 Integration feature at the end of the c
   $ ./waf
 
 That's it! Enjoy your |ns3| fresh compilation with OpenFlow 1.3 capabilities. 
+
+
+Basic module usage
+==================
+
+
+Here goes a general code example::
+
+    // Nodes and Links Configuration:
+    NodeContainer hosts;
+    hosts.Create (2);
+
+    NodeContainer switches;
+    switches.Create (1);
+
+    NodeContainer controller;
+    controller.Create (1);
+
+    CsmaHelper csmaHelper;
+    NetDeviceContainer hostDevices;
+    NetDeviceContainer switchDevices;
+    for (size_t i = 0; i < hosts.GetN (); i++)
+    {
+        NetDeviceContainer link = csmaHelper.Install (NodeContainer (hosts.Get (i), switches.Get(0)));
+        hostDevices.Add (link.Get (0));
+        switchDevices.Add (link.Get (1));
+    }
+
+    ////////////////////////////
+    // ofSwitch13 Configuration:
+
+    // First of all, we need to create 2 pointers, to the controller
+    // and switches nodes.
+    Ptr<Node> of13ControllerNode = controller.Get(0);
+    Ptr<Node> of13SwitchNode = switches.Get(0);
+
+    // Then, we just create and use the helper
+    OFSwitch13Helper of13Helper; // creates a Helper
+    of13Helper.InstallControllerApp (of13ControllerNode); // installs the controller
+    of13Helper.InstallSwitch (of13SwitchNode, switchDevices); // installs the switches
+    ////////////////////////////
+
+    // Other configurations (apps, ip/tcp, etc)
+    ...
+
+    // Simulating
+    Simulator::Run ();
+    Simulator::Destroy ();
+
+*OBS:*
+    * The example above explain nothing more than how to use and configure the *of13switch* module. If you need exmplanation about other details, please checkout the |ns3| tutorial.
+    * If you use more than 1 switch, just multiply the switch pointers, node numbers and installations (.InstallSwitch(...)), and don't forget to use 1 NetDeviceContainer for each switch.
+    * If you use more than 1 controller, just multiply the controller pointers, node numbers and installations (.InstallControllerApp(...)), and don't forget to use 1 helper (with the respective switches installations) for each controller.
+
+It is very importante **not to forget to include the module** at the beggining of code::
+
+    #include "ns3/ofswitch13-module.h"
 
 
 Helpers
@@ -180,58 +237,6 @@ in additional sections, as needed.
 Examples
 ========
 
-
-Here goes a general code example::
-
-    // Nodes and Links Configuration:
-    NodeContainer hosts;
-    hosts.Create (2);
-
-    NodeContainer switches;
-    switches.Create (1);
-
-    NodeContainer controller;
-    controller.Create (1);
-
-    CsmaHelper csmaHelper;
-    NetDeviceContainer hostDevices;
-    NetDeviceContainer switchDevices;
-    for (size_t i = 0; i < hosts.GetN (); i++)
-    {
-        NetDeviceContainer link = csmaHelper.Install (NodeContainer (hosts.Get (i), switches.Get(0)));
-        hostDevices.Add (link.Get (0));
-        switchDevices.Add (link.Get (1));
-    }
-
-    ////////////////////////////
-    // ofSwitch13 Configuration:
-
-    // First of all, we need to create 2 pointers, to the controller
-    // and switches nodes.
-    Ptr<Node> of13ControllerNode = controller.Get(0);
-    Ptr<Node> of13SwitchNode = switches.Get(0);
-
-    // Then, we just create and use the helper
-    OFSwitch13Helper of13Helper; // creates a Helper
-    of13Helper.InstallControllerApp (of13ControllerNode); // installs the controller
-    of13Helper.InstallSwitch (of13SwitchNode, switchDevices); // installs the switches
-    ////////////////////////////
-
-    // Other configurations (apps, ip/tcp, etc)
-    ...
-
-    // Simulating
-    Simulator::Run ();
-    Simulator::Destroy ();
-
-*OBS:*
-    * The example above explain nothing more than how to use and configure the *of13switch* module. If you need exmplanation about other details, please checkout the |ns3| tutorial.
-    * If you use more than 1 switch, just multiply the switch pointers, node numbers and installations (.InstallSwitch(...)), and don't forget to use 1 NetDeviceContainer for each switch.
-    * If you use more than 1 controller, just multiply the controller pointers, node numbers and installations (.InstallControllerApp(...)), and don't forget to use 1 helper (with the respective switches installations) for each controller.
-
-It is very importante **not to forget to include the module** at the beggining of code::
-
-    #include "ns3/ofswitch13-module.h"
 
 
 The examples are located in `src/ofswitch13/examples`.

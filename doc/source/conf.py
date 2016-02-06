@@ -204,6 +204,10 @@ latex_documents = [
 # If false, no module index is generated.
 #latex_domain_indices = True
 
+latex_elements = {
+    'classoptions': ',openany,oneside', 
+    'babel' : '\\usepackage[english]{babel}' 
+}
 
 # -- Options for manual page output --------------------------------------------
 

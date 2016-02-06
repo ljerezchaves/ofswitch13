@@ -19,6 +19,7 @@ To overcome these shortcomings, the ``OFSwitch13`` module interconnects the |ns3
 
 With this module it is possible to interconnect simulated |ns3| nodes to send and receive traffic using the existing |ns3| CSMA devices and channels. To orchestrate the network, the OpenFlow controller interface provides a straightforward way to send OpenFlow messages to the switches, using ``dpctl`` command strings with a simple syntax. The controller can be extended to implement any desired feature, such as those necessary to control a complex SDN-based network.
 
+The source code for the ``OFSwitch13`` module lives in the directory ``src/ofswitch13``.
 
 Design
 ======
@@ -26,16 +27,28 @@ Design
 Briefly describe the software design of the model and how it fits into 
 the existing |ns3| architecture. 
 
-.. figure:: figures/module.*
+.. _fig-ofswitch13-module:
+
+.. figure:: figures/ofswitch13-module.*
    :align: center
 
-   Overview of the OFSwitch13 modele
+   Overview of the ``OFSwitch13`` module
 
 
 
 This module was designed to work together with the CPqD ofsoftswitch13 user-space software switch implementation, originally available at https://github.com/CPqD/ofsoftswitch13. This user-space switch is based on the Ericsson TrafficLab 1.1 softswitch implementation, with changes in the forwarding plane to support OpenFlow 1.3.
 
 In fact, this module provides an interface for interconnecting the |ns3| OFSwitch13NetDevice to the ofsoftswitch13 datapath. Also, it interconnects the OFSwitch13Controller to the dpctl utility, in order to simplify the process of sending OpenFlow messages to the switch. To this end, the ofsoftswitch13 project must be compiled as a static library and get proper linked with |ns3| simulator.
+
+
+The 
+
+.. _fig-ofsoftswitch13-library:
+
+.. figure:: figures/ofsoftswitch13-library.*
+   :align: center
+
+   The OpenFlow 1.3 software switch architecture
 
 
 
