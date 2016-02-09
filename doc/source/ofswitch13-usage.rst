@@ -29,7 +29,7 @@ Before starting, install the following packages on your system:
   $ sudo apt-get install libpcap-dev libxerces-c2-dev libpcre3-dev flex bison 
   $ sudo apt-get install pkg-config autoconf libtool libboost-dev
 
-First, it is necessary to compile the `ofsoftswitch13` as a static library. The ``ofsoftswitch13`` code relies on another library, called ``NetBee``, which is used to parse the network packets.  So we need to compile and install them in the proper order.
+First, it is necessary to compile the `ofsoftswitch13` as a static library. The ``ofsoftswitch13`` code relies on another library, called ``NetBee`` (http://www.nbee.org), which is used to parse the network packets. So we need to compile and install them in the proper order.
 
 Download the most recent `NetBee` version and unpack the source code:
 
@@ -70,8 +70,7 @@ Configure and build the library (don't forget to add the ``--enable-ns3-lib`` du
   $ ./configure --enable-ns3-lib
   $ make
 
-Once everything gets compiled, the static library ``libns3ofswitch13.a`` will be available under ``ofsoftswitch13/udatapath/`` directory. Let's proceed with the |ns3| simulator compilation and linkage.
-
+Once everything gets compiled, the static library ``libns3ofswitch13.a`` will be available under ``ofsoftswitch13/udatapath/`` directory.
 
 Linking the library to the simulator
 ####################################
@@ -97,7 +96,7 @@ Also, you need to path the |ns3| code with the patches available under the ``ofs
   $ patch -p1 < src/ofswitch13/utils/ofswitch13-csma.patch 
   $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc.patch 
 
-The ``ofswitch13-csma.patch`` creates a simple new ``TraceSource`` at ``CsmaNetDevice``, allowing OpenFlow switch to get raw L2 packets from this device. The optional ``ofswitch13-doc.patch`` instructs the simulator to include the module in the expository "user-guide"-style chapters, and source code API documentation.
+The ``ofswitch13-csma.patch`` creates a simple new ``TraceSource`` at ``CsmaNetDevice``, allowing OpenFlow switch to get raw L2 packets from this device. The optional ``ofswitch13-doc.patch`` instructs the simulator to include the module in the |ns3| model library and source code API documentation.
 
 Now, you can configure the |ns3| including the ``--with-ofswitch13`` option to show the simulator where it can find the ``ofsoftswitch13`` main directory:
 
@@ -105,7 +104,7 @@ Now, you can configure the |ns3| including the ``--with-ofswitch13`` option to s
 
   $ ./waf configure --with-ofswitch13=path/to/ofsoftswitch13
 
-Check for the enabled |ns3| OpenFlow 1.3 Integration feature at the end of the configuration process. Finally, compile the simulator:
+Check for the enabled |ns3| *OpenFlow 1.3 Integration* feature at the end of the configuration process. Finally, compile the simulator:
 
 .. code-block:: bash
 
@@ -114,8 +113,8 @@ Check for the enabled |ns3| OpenFlow 1.3 Integration feature at the end of the c
 That's it! Enjoy your |ns3| fresh compilation with OpenFlow 1.3 capabilities. 
 
 
-Basic module usage
-==================
+Basic usage
+===========
 
 
 Here goes a general code example::
@@ -234,6 +233,8 @@ Advanced Usage
 Go into further details (such as using the API outside of the helpers)
 in additional sections, as needed.
 
+Enable library log.
+
 Examples
 ========
 
@@ -263,3 +264,7 @@ If you're using more than one helper, don't forget to change the adress base, ot
     * for this use the helper method `SetAddressBase (Ipv4Address network, Ipv4Mask mask);`
 
 More doubts? Checkout the examples or the Usage example.
+
+Note that the Spanning Tree Protocol part of 802.1D is not implemented in the ``OFSwitch13LearningController``. Therefore, you have to be careful not to create bridging loops, or else the network will collapse.
+
+
