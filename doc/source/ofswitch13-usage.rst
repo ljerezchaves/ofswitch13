@@ -14,9 +14,16 @@ Usage
 Building the Module
 ===================
 
-The ``OFSwitch13`` module was designed to work together with the ``ofsoftswitch13`` library, providing an interface for interconnecting the |ns3| simulator to the library. To this end, the ``ofsoftswitch13`` project must be compiled as a *static library* and get proper linked with |ns3| simulator. 
+The ``OFSwitch13`` module was designed to work together with the
+``ofsoftswitch13`` library, providing an interface for interconnecting the
+|ns3| simulator to the library. To this end, the ``ofsoftswitch13`` project
+must be compiled as a *static library* and get proper linked with |ns3|
+simulator. 
 
-Currently, the user must download and compile the code manually.  Follow the instructions below to compile and link the |ns3| simulator to the ``ofsoftswitch13`` library. *These instructions have been tested on Ubuntu 14.04.3 LTS. Other distributions or versions may require different steps.*
+Currently, the user must download and compile the code manually.  Follow the
+instructions below to compile and link the |ns3| simulator to the
+``ofsoftswitch13`` library. *These instructions have been tested on Ubuntu
+14.04.3 LTS. Other distributions or versions may require different steps.*
 
 Compiling the library
 #####################
@@ -29,7 +36,10 @@ Before starting, install the following packages on your system:
   $ sudo apt-get install libpcap-dev libxerces-c2-dev libpcre3-dev flex bison 
   $ sudo apt-get install pkg-config autoconf libtool libboost-dev
 
-First, it is necessary to compile the `ofsoftswitch13` as a static library. The ``ofsoftswitch13`` code relies on another library, called ``NetBee`` (http://www.nbee.org), which is used to parse the network packets. So we need to compile and install them in the proper order.
+First, it is necessary to compile the `ofsoftswitch13` as a static library. The
+``ofsoftswitch13`` code relies on another library, called ``NetBee``
+(http://www.nbee.org), which is used to parse the network packets. So we need
+to compile and install them in the proper order.
 
 Download the most recent `NetBee` version and unpack the source code:
 
@@ -46,7 +56,8 @@ Create the build system and compile de library:
   $ cmake .
   $ make
 
-Add the shared libraries built to your library directory, configure dynamic linker run-time bindings, and copy the include files:
+Add the shared libraries built to your library directory, configure dynamic
+linker run-time bindings, and copy the include files:
 
 .. code-block:: bash
 
@@ -54,7 +65,9 @@ Add the shared libraries built to your library directory, configure dynamic link
   $ sudo ldconfig
   $ sudo cp -R ../include/* /usr/include/
 
-Ok! We are done with the ``NetBee`` library. Now, let's proceed with the ``ofsoftswitch13`` code. Clone the repository and update to the ``ns3lib`` branch:
+Ok! We are done with the ``NetBee`` library. Now, let's proceed with the
+``ofsoftswitch13`` code. Clone the repository and update to the ``ns3lib``
+branch:
 
 .. code-block:: bash
 
@@ -62,7 +75,8 @@ Ok! We are done with the ``NetBee`` library. Now, let's proceed with the ``ofsof
   $ cd ofsoftswitch13
   $ git checkout ns3lib
 
-Configure and build the library (don't forget to add the ``--enable-ns3-lib`` during configuration process):
+Configure and build the library (don't forget to add the ``--enable-ns3-lib``
+during configuration process):
 
 .. code-block:: bash
 
@@ -70,25 +84,30 @@ Configure and build the library (don't forget to add the ``--enable-ns3-lib`` du
   $ ./configure --enable-ns3-lib
   $ make
 
-Once everything gets compiled, the static library ``libns3ofswitch13.a`` will be available under ``ofsoftswitch13/udatapath/`` directory.
+Once everything gets compiled, the static library ``libns3ofswitch13.a`` will
+be available under ``ofsoftswitch13/udatapath/`` directory.
 
 Linking the library to the simulator
 ####################################
 
-It's time to download a recent (preferably stable) |ns3| code into your machine. Here, we are going to use the mercurial repository for ns-3.24.
+It's time to download a recent (preferably stable) |ns3| code into your
+machine. Here, we are going to use the mercurial repository for ns-3.24.
 
 .. code-block:: bash
   
   $ hg clone http://code.nsnam.org/ns-3.24
 
-Before configuring and compiling the simulator, download the ``OFSwitch13`` code from the module repository and place it inside a new ``/src/ofswitch13`` folder:
+Before configuring and compiling the simulator, download the ``OFSwitch13``
+code from the module repository and place it inside a new ``/src/ofswitch13``
+folder:
 
 .. code-block:: bash
 
   $ cd ns-3.24/src
   $ hg clone https://ljerezchaves@bitbucket.org/ljerezchaves/ofswitch13-module ofswitch13
 
-Also, you need to path the |ns3| code with the patches available under the ``ofswitch13/utils`` directory: 
+Also, you need to path the |ns3| code with the patches available under the
+``ofswitch13/utils`` directory: 
 
 .. code-block:: bash
 
@@ -96,15 +115,21 @@ Also, you need to path the |ns3| code with the patches available under the ``ofs
   $ patch -p1 < src/ofswitch13/utils/ofswitch13-csma.patch 
   $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc.patch 
 
-The ``ofswitch13-csma.patch`` creates a simple new ``TraceSource`` at ``CsmaNetDevice``, allowing OpenFlow switch to get raw L2 packets from this device. The optional ``ofswitch13-doc.patch`` instructs the simulator to include the module in the |ns3| model library and source code API documentation.
+The ``ofswitch13-csma.patch`` creates a simple new ``TraceSource`` at
+``CsmaNetDevice``, allowing OpenFlow switch to get raw L2 packets from this
+device. The optional ``ofswitch13-doc.patch`` instructs the simulator to
+include the module in the |ns3| model library and source code API
+documentation.
 
-Now, you can configure the |ns3| including the ``--with-ofswitch13`` option to show the simulator where it can find the ``ofsoftswitch13`` main directory:
+Now, you can configure the |ns3| including the ``--with-ofswitch13`` option to
+show the simulator where it can find the ``ofsoftswitch13`` main directory:
 
 .. code-block:: bash
 
   $ ./waf configure --with-ofswitch13=path/to/ofsoftswitch13
 
-Check for the enabled |ns3| *OpenFlow 1.3 Integration* feature at the end of the configuration process. Finally, compile the simulator:
+Check for the enabled |ns3| *OpenFlow 1.3 Integration* feature at the end of
+the configuration process. Finally, compile the simulator:
 
 .. code-block:: bash
 
