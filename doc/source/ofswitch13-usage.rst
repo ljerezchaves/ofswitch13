@@ -194,6 +194,9 @@ It is very importante **not to forget to include the module** at the beggining o
 
     #include "ns3/ofswitch13-module.h"
 
+``dpctl`` commands
+##################
+
 
 Helpers
 =======
@@ -260,6 +263,16 @@ in additional sections, as needed.
 
 Enable library log.
 
+
+Extending the controller
+########################
+
+
+Connecting to an external controller
+####################################
+To do...
+
+
 Examples
 ========
 
@@ -292,4 +305,5 @@ More doubts? Checkout the examples or the Usage example.
 
 Note that the Spanning Tree Protocol part of 802.1D is not implemented in the ``OFSwitch13LearningController``. Therefore, you have to be careful not to create bridging loops, or else the network will collapse.
 
+problem packet print?
 

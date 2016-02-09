@@ -9,6 +9,7 @@ FIGURES = $(SOURCE)/figures
 IMAGES_EPS = \
 	$(FIGURES)/ofswitch13-module.eps \
 	$(FIGURES)/ofswitch13-netdevice.eps \
+	$(FIGURES)/ofswitch13-queue.eps \
 	$(FIGURES)/ofsoftswitch13-library.eps
 
 # specify .png or .pdf figures that don't need to be built
@@ -17,6 +18,7 @@ IMAGES_NOBUILD =
 # rescale pdf figures as necessary
 $(FIGURES)/ofswitch13-module.pdf_width = 10cm
 $(FIGURES)/ofswitch13-netdevice.pdf_width = 8cm
+$(FIGURES)/ofswitch13-queue.pdf_width = 8cm
 $(FIGURES)/ofsoftswitch13-library.pdf_width = 14cm
 
 IMAGES_BUILD = \

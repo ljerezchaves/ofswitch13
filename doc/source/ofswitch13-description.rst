@@ -86,55 +86,126 @@ both an OpenFlow 1.3 switch device and an OpenFlow 1.3 controller interface.
 .. figure:: figures/ofswitch13-netdevice.*
    :align: center
 
-   The ``OFSwitch13NetDevice`` structure
+   The ``OFSwitch13NetDevice`` port collection
 
 Library integration
 ###################
-This module was designed to work together with the CPqD ofsoftswitch13
-user-space software switch implementation, originally available at
-https://github.com/CPqD/ofsoftswitch13. This user-space switch is based on the
-Ericsson TrafficLab 1.1 softswitch implementation, with changes in the
-forwarding plane to support OpenFlow 1.3.
 
-In fact, this module provides an interface for interconnecting the |ns3|
-OFSwitch13NetDevice to the ofsoftswitch13 datapath. Also, it interconnects the
-OFSwitch13Controller to the dpctl utility, in order to simplify the process of
-sending OpenFlow messages to the switch. To this end, the ofsoftswitch13
-project must be compiled as a static library and get proper linked with |ns3|
-simulator.
+This module was designed to work together with the ``ofsoftswitch13``
+user-space software switch implementation. The `original implementation
+<https://github.com/CPqD/ofsoftswitch13>`_ was forked and slightly modified,
+resulting in the `OpenFlow 1.3 Software Switch for ns-3
+<https://github.com/ljerezchaves/ofsoftswitch13>`_ library. The code does not
+modify the original switch datapath implementation, which is currently
+maintained in the original repository and regularly synced to the modified one.
+The ``ns3lib`` branch includes some callbacks, compiler directives and minor
+changes in struct declarations to allow integration with the ``OFSwitch13``
+module for the |ns3|.
+
+Figure :ref:`fig-ofsoftswitch13-library`, adapted from [Fernandes2014]_, shows
+the library architecture and highlights the |ns3| integration points. The
+library provides the complete OpenFlow switch datapath, including the
+input/output ports, the ``NetBee`` parser and link, which uses the *Netpdl*
+xml-based language for packet header description [Risso2006]_, the flow-table
+pipeline for matching, the group table, and the meter table. On the controller
+side, the ``dpctl`` utility is also available for converting text commands to
+OpenFlow messages. The library also provides the ``OFLib``, used for
+converting OpenFlow messages to and from OpenFlow 1.3 wire format. 
 
 .. _fig-ofsoftswitch13-library:
 
 .. figure:: figures/ofsoftswitch13-library.*
    :align: center
 
-   The |ns3| integration to the OpenFlow 1.3 software switch architecture
+   |ns3| integration to the OpenFlow 1.3 software switch architecture
 
+For proper |ns3| integration, the ``ofsoftswitch13`` ports and the control
+channel port were set aside, and the code was modified to receive and send
+packets directly to the |ns3| environment. To this, the ``ofsoftswitch13``
+functions related to sending and receiving packets were marked as *weak*, so
+this module can override them in order to integrate the library with the
+simulated environment. This same *weak* strategy is used for overriding
+time-related functions, ensuring time consistency between the library and the
+simulator.
 
+The module relies heavily on callbacks, which are used by the library to notify
+the simulator about packet internal events like packet drop by meter band,
+packet modifications by pipeline instructions, packet cloned by group actions,
+and buffered packets sent to controller. As this integration involves
+callbacks and overridden functions, and considering that the library code is
+written in C, the module uses a global map to save pointers to all
+``OFSwitch13NetDevices`` objects in the simulation, allowing faster object
+retrieve by datapath id.
 
+Packet conversion
+#################
 
-Following the same strategy on the |ns3| ``OpenFlow module``, ...
+One of the major performance drawbacks of this module is the packet conversion
+between the internal ``ns3::Packet`` representation and the serialized
+representation of the actual data in the packet in the library (see
+``ns3::OFSwitch13Interface`` for conversion functions). This becomes even worse
+when the packet content is empty, as |ns3| provides optimized internal
+representation of empty packets.
 
-Virtual Flow Table, TCAM: Typical OF-enabled switches are implemented on a
-hardware TCAM. The OFSID we turn into a library includes a modelled software
-TCAM, that produces the same results as a hardware TCAM. We include an
-attribute FlowTableLookupDelay, which allows a simple delay of using the TCAM
-to be modelled. We don’t endeavor to make this delay more complicated, based on
-the tasks we are running on the TCAM, that is a possible future improvement.
-The OpenFlowSwitch network device is aimed to model an OpenFlow switch, with a
-TCAM and a connection to a controller program. With some tweaking, it can model
-every switch type, per OpenFlow’s extensibility. It outsources the complexity
-of the switch ports to NetDevices of the user’s choosing. It should be noted
-that these NetDevices must behave like practical switch ports, i.e. a Mac
-Address is assigned, and nothing more. It also must support a SendFrom function
-so that the OpenFlowSwitch can forward across that port.
+To improve the performance, when a packet is sent to the OpenFlow pipeline for
+library processing, the module keep track of its original ``ns3::Packet`` using
+the ``PipelinePacket`` structure. When the packet is processed by the pipeline
+with no content changes, the module forwards the original ``ns3::Packet`` to
+the specified output port. When the packet content is changed in the pipeline,
+the module creates a new ``ns3::Packet`` with the modified content and copy all
+packet and byte tags from the original packet to the new one. This approach
+is more expensive than the previous one, but is far more simple than
+identifying which changes were performed in the packet to modify the original
+``ns3::Packet``. *In the case of byte tags, the tags in the new packet will
+cover the entire packet, regardless of the byte range in original packet.*
 
+Multiple output queues
+######################
 
+An OpenFlow switch provides limited Quality-of-Service support through a simple
+queuing mechanism. One or more queues can attach to a port and be used to map
+flow entries on it. Flow entries mapped to a specific queue will be treated
+according to that queue's configuration (e.g. min rate). Note that queue
+configuration takes place outside the OpenFlow protocol. 
 
-Structure to save packet metadata while it is under OpenFlow pipeline.
+The ``OFSwitch13Queue`` class implements a common queue interface, extending
+the ``ns3::Queue`` class to allow compatibility with the ``CsmaNetDevice`` used
+in ``OFSwitch13Port`` objects. In this way, it is possible to replace the
+standard ``CsmaNetDevice::TxQueue`` attribute by this modified
+``OFSwitch13Queue`` object. Internally, the ``OFSwitch13Queue`` can hold a
+collection of ``ns3::Queue`` objects, identified by an unique id. Packets sent
+to the ``OFSwitch13Queue`` are expected to carry the ``ns3::QueueTag``, which
+is used to identify which internal queue will hold the packet. The internal
+scheduling algorithms decides from which queue get the packets during dequeue
+procedures (currently, only a priority queue scheduling is available).  Figure
+:ref:`fig-ofswitch13-queue` shows this architecture. A default internal
+``DropTailQueue`` object with id 0 is created at constructor, and can not be
+removed.
 
-This structure keeps track of packets under OpenFlow pipeline, including the ID for each packet copy (notified by the clone callback). Note that only one packet can be in pipeline at a time, but the packet can have multiple internal copies (which one will receive an unique packet ID), and can also be saved into buffer for later usage.
+.. _fig-ofswitch13-queue:
 
+.. figure:: figures/ofswitch13-queue.*
+  :align: center
+
+  The ``OFSwitch13Queue`` internal structure
+
+Virtual TCAM
+############
+
+This module uses the concept of Virtual TCAM (Ternary Content-Addressable
+Memory) flow table to model OpenFlow hardware. To provide a more realistic
+switch model, specially with respect to flow table search time, this module
+considers that in real OpenFlow implementations, packet classification can use
+sophisticated search algorithms, such as the HyperSplit [Qi2010]_. As most of
+theses algorithms classifies the packet based on binary search trees, this
+module estimates the pipeline average time to:
+
+.. math::
+  K * log_2 (n) 
+
+where *K* is the ``ns3::OFSwitch13NetDevice::TCAMDelay`` attribute set to the
+time for a TCAM operation in a NetFPGA hardware, and *n* is the current number
+of entries in the flow tables.
 
 OpenFlow channel
 ################
@@ -152,40 +223,15 @@ switch, using either CSMA or point-to-point links. Using standard |ns3|
 channels and devices, it is possible to provide realistic connections with
 delay and error models.
 
-Multiple output queues
-######################
-
-An OpenFlow switch provides limited Quality-of-Service support through a simple
-queuing mechanism. One or more queues can attach to a port and be used to map
-flow entries on it. Flow entries mapped to a specific queue will be treated
-according to that queue's configuration (e.g. min rate). Note that queue
-configuration takes place outside the OpenFlow protocol. 
-
-The ``OFSwitch13Queue`` class implements a common queue interface, extending
-the ``ns3::Queue`` class to allow compatibility with the ``CsmaNetDevice`` used
-in ``OFSwitch13Port`` objects. In this way, it is possible to replace the
-standard ``CsmaNetDevice::TxQueue`` attribute by this modified
-``OFSwitch13Queue`` object, as indicated in the
-:ref:`fig-ofswitch13-netdevice`. Internally, the ``OFSwitch13Queue`` can hold a
-collection of ``ns3::Queue`` objects, identified by an unique id. Packets sent
-to the ``OFSwitch13Queue`` are expected to carry the ``ns3::QueueTag``, which
-is used to identify which internal queue will hold the packet. The internal
-scheduling algorithms decides from which queue get the packets during dequeue
-procedures (currently, only a priority queue scheduling is available). A
-default internal ``DropTailQueue`` object with id 0 is created at constructor,
-and can not be removed.
-
-
 Scope and Limitations
 =====================
 
-What can the model do?  What can it not do?  Please use this section to
-describe the scope and limitations of the model.
-
-problem with byte tags.
-
-problem packet print?
-
+This module is intended for simulating OpenFlow networks, considering the main
+features available in OpenFlow version 1.3. The module provides a complete
+OpenFlow switch device, and a simple OpenFlow learning controller. The switch
+is fully functional, while the learning controller is intended to allow basic
+usage and examples. However, users can write more sophisticated controllers,
+exploiting the real benefits offered by SDN paradigm.
 
 Some OpenFlow 1.3 features are not yet supported by this module:
 
@@ -213,7 +259,6 @@ Some OpenFlow 1.3 features are not yet supported by this module:
   the switch’s local networking stack and its management stack, is not
   implemented.
 
-
 References
 ==========
 
@@ -223,18 +268,24 @@ References
 #. The reference [Chaves2015]_  is related to the integration between OpenFlow
    and LTE technologies. The |ns3| simulator, enhanced with the ``OFSwitch13``
    module, is used as the performance evaluation tool. This is the first
-   published work including simulationm results obtained with the
-   ``OFSwitch13`` module.
+   published work including simulation results obtained with the ``OFSwitch13``
+   module.
 
-.. [Fernandes2014]  Eder. L. Fernandes, Christian E. Rothenberg. `"OpenFlow 1.3 Software Switch"
+.. [Fernandes2014]  Eder. L. Fernandes, and Christian E. Rothenberg. `"OpenFlow 1.3 Software Switch"
    <https://dl.dropboxusercontent.com/u/15183439/pubs/sbrc14-ferramentas-ofsoftswitch13.pdf>`_.
-   In: Salão de Ferramentas do XXXII Simpósio Brasileiro de Redes de Computadores, 2014.
+   In: Salão de Ferramentas do XXXII Simpósio Brasileiro de Redes de Computadores (SBRC), 2014.
+
+.. [Risso2006] Fulvio Risso and Mario Baldi. `"Netpdl: An extensible xml-based language 
+   for packet header description" <http://dx.doi.org/10.1016/j.comnet.2005.05.029>`_.
+   Computer Networks, 50(5):688–706, 2006.
+
+.. [Qi2010] Yaxuan Qi, Jeffrey Fong, Weirong Jiang, Bo Xu, Jun Li, and Viktor Prasanna. 
+   `"Multi-dimensional Packet Classification on FPGA: 100 Gbps and Beyond" 
+   <http://dx.doi.org/10.1109/FPT.2010.5681492>`_.
+   In: IEEE International Conference on Field-Programmable Technology (FPT), 2010.
 
 .. [Chaves2015] Luciano J. Chaves, Vítor M. Eichemberger, Islene C. Garcia, and Edmundo R. M. Madeira. 
    `"Integrating OpenFlow to LTE: some issues toward Software-Defined Mobile Networks" 
    <http://ieeexplore.ieee.org/xpl/articleDetails.jsp?reload=true&arnumber=7266498>`_. 
-   In: 7th IFIP International Conference on New Technologies, Mobility and Security, 2015.
-
-
-
+   In: 7th IFIP International Conference on New Technologies, Mobility and Security (NTMS), 2015.
 
