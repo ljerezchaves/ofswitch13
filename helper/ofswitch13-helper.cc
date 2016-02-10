@@ -57,14 +57,14 @@ OFSwitch13Helper::GetTypeId (void)
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Helper> ()
     .AddAttribute ("ChannelType",
-                   "The configuration used to create the Openflow channel",
+                   "The configuration used to create the OpenFlow channel",
                    EnumValue (OFSwitch13Helper::SINGLECSMA),
                    MakeEnumAccessor (&OFSwitch13Helper::SetChannelType),
                    MakeEnumChecker (OFSwitch13Helper::SINGLECSMA, "SingleCsma",
                                     OFSwitch13Helper::DEDICATEDCSMA, "DedicatedCsma",
                                     OFSwitch13Helper::DEDICATEDP2P, "DedicatedP2p"))
     .AddAttribute ("ChannelDataRate",
-                   "The data rate to be used for the CSMA OpenFlow channel.",
+                   "The data rate to be used for the OpenFlow channel.",
                    DataRateValue (DataRate ("10Gb/s")),
                    MakeDataRateAccessor (&OFSwitch13Helper::SetChannelDataRate),
                    MakeDataRateChecker ())

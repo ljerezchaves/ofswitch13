@@ -155,7 +155,7 @@ protected:
 
   /**
    * \name OpenFlow message handlers
-   * Handlers used by ReceiveFromSwitch to proccess each type of OpenFlow
+   * Handlers used by ReceiveFromSwitch to process each type of OpenFlow
    * message received from the switch. Some handler methods can not be
    * overwritten by derived class (echo request/reply), as they must behave as
    * already implemented. In constrast, packetIn must be implementd by the
@@ -165,7 +165,7 @@ protected:
    * can reimplement them as they wish.
    *
    * For HandleMultipartReply, note that there are several types of multipart
-   * replies. Derived controlleres can filter by the type they wish.
+   * replies. Derived controllers can filter by the type they wish.
    *
    * \attention Handlers \em MUST free received msg when everything is ok.
    * \param msg The OpenFlow received message.

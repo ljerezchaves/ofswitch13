@@ -3,7 +3,7 @@ Module Description
 
 .. include:: replace.txt
 .. highlight:: cpp
-  
+
 .. heading hierarchy:
    ------------- Chapter
    ************* Section (#.#)
@@ -66,20 +66,29 @@ both an OpenFlow 1.3 switch device and an OpenFlow 1.3 controller interface.
   also brings an ``OFSwitch13LearningController`` that implements the logic for
   a "learning bridge" algorithm (see 802.1D), instructing OpenFlow switches to
   forward incoming unicast frames from one port to the single correct output
-  port whenever possible (see ``ns3::BridgeNetDevice``). 
+  port whenever possible (similar to the ``ns3::BridgeNetDevice``).
 
 * The **OpenFlow 1.3 Switch device**, namely ``OFSwitch13NetDevice``, can be
   used to interconnect |ns3| nodes over standard devices and channels. The
-  ``OFSwitch13NetDevice`` takes a collection of OpenFlow Ports
-  (``OFSwtich13Port``), which are used to interconnect the
+  ``OFSwitch13NetDevice`` takes a collection of OpenFlow ports, namely
+  ``OFSwtich13Port``, which are used to interconnect the
   ``OFSwitch13NetDevice`` to the |ns3| underlying ``CsmaNetDevice``, as
-  indicated in the :ref:`fig-ofswitch13-netdevice`. The ``OFSwitch13NetDevice``
-  acts as the intermediary between the ports, receiving a packet from one port
-  and forwarding it to another. Input packets are sent to the
-  ``ofsoftswitch13`` library for internal OpenFlow pipeline processing before
-  being forwarded to the correct output port(s). OpenFlow messages received
-  from the ``OFSwitch13Controller`` are also sent to the library for internal
-  pipeline configuration. 
+  indicated in Figure :ref:`fig-ofswitch13-netdevice`. The
+  ``OFSwitch13NetDevice`` acts as the intermediary between the ports, receiving
+  a packet from one port and forwarding it to another. Input packets are sent
+  to the ``ofsoftswitch13`` library for internal OpenFlow pipeline processing
+  before being forwarded to the correct output port(s). OpenFlow messages
+  received from the ``OFSwitch13Controller`` are also sent to the library for
+  internal datapath configuration.
+
+  This module depends on a new ``OpenFlowRx`` trace source in the
+  ``CsmaNetDevice``. This trace source is fired for packets successfully
+  received by the ``CsmaNetDevice`` immediately before being forwarded up to
+  higher layers. This is a promiscuous trace, but in contrast to a promiscuous
+  protocol handler, the packet sent to this trace source also includes the
+  Ethernet header, which is necessary by OpenFlow pipeline processing. This new
+  trace source is the only required modification to the |ns3| source code for
+  ``OFSwitch13`` usage.
 
 .. _fig-ofswitch13-netdevice:
 
@@ -99,18 +108,18 @@ resulting in the `OpenFlow 1.3 Software Switch for ns-3
 modify the original switch datapath implementation, which is currently
 maintained in the original repository and regularly synced to the modified one.
 The ``ns3lib`` branch includes some callbacks, compiler directives and minor
-changes in struct declarations to allow integration with the ``OFSwitch13``
+changes in structure declarations to allow integration with the ``OFSwitch13``
 module for the |ns3|.
 
 Figure :ref:`fig-ofsoftswitch13-library`, adapted from [Fernandes2014]_, shows
 the library architecture and highlights the |ns3| integration points. The
 library provides the complete OpenFlow switch datapath, including the
-input/output ports, the ``NetBee`` parser and link, which uses the *Netpdl*
+input/output ports, the ``NetBee`` parser and link that uses the *NetPDL*
 xml-based language for packet header description [Risso2006]_, the flow-table
 pipeline for matching, the group table, and the meter table. On the controller
 side, the ``dpctl`` utility is also available for converting text commands to
 OpenFlow messages. The library also provides the ``OFLib``, used for
-converting OpenFlow messages to and from OpenFlow 1.3 wire format. 
+converting OpenFlow messages to and from OpenFlow 1.3 wire format.
 
 .. _fig-ofsoftswitch13-library:
 
@@ -129,23 +138,21 @@ time-related functions, ensuring time consistency between the library and the
 simulator.
 
 The module relies heavily on callbacks, which are used by the library to notify
-the simulator about packet internal events like packet drop by meter band,
-packet modifications by pipeline instructions, packet cloned by group actions,
-and buffered packets sent to controller. As this integration involves
-callbacks and overridden functions, and considering that the library code is
-written in C, the module uses a global map to save pointers to all
-``OFSwitch13NetDevices`` objects in the simulation, allowing faster object
-retrieve by datapath id.
+the simulator about internal events like packet drop by meter band, packet
+modifications by pipeline instructions, packet cloned by group actions, and
+buffered packets sent to controller. As this integration involves callbacks and
+overridden functions, and considering that the library code is written in C,
+the module uses a global map to save pointers to all ``OFSwitch13NetDevices``
+objects in the simulation, allowing faster object retrieve by datapath id.
 
 Packet conversion
 #################
 
 One of the major performance drawbacks of this module is the packet conversion
-between the internal ``ns3::Packet`` representation and the serialized
-representation of the actual data in the packet in the library (see
-``ns3::OFSwitch13Interface`` for conversion functions). This becomes even worse
-when the packet content is empty, as |ns3| provides optimized internal
-representation of empty packets.
+between the internal ``ns3::Packet`` representation and the serialized packet
+representation in the library (see ``ns3::OFSwitch13Interface`` class for
+conversion functions). This becomes even worse when the packet content is
+empty, as |ns3| provides optimized internal representation of empty packets.
 
 To improve the performance, when a packet is sent to the OpenFlow pipeline for
 library processing, the module keep track of its original ``ns3::Packet`` using
@@ -153,11 +160,12 @@ the ``PipelinePacket`` structure. When the packet is processed by the pipeline
 with no content changes, the module forwards the original ``ns3::Packet`` to
 the specified output port. When the packet content is changed in the pipeline,
 the module creates a new ``ns3::Packet`` with the modified content and copy all
-packet and byte tags from the original packet to the new one. This approach
-is more expensive than the previous one, but is far more simple than
-identifying which changes were performed in the packet to modify the original
-``ns3::Packet``. *In the case of byte tags, the tags in the new packet will
-cover the entire packet, regardless of the byte range in original packet.*
+packet and byte tags from the original packet to the new one. This approach is
+more expensive than the previous one, but is far more simple than identifying
+which changes were performed in the packet by the library to modify the
+original ``ns3::Packet``. *Note that in the case of byte tags, the tags in the
+new packet will cover the entire packet, regardless of the byte range in
+original packet.*
 
 Multiple output queues
 ######################
@@ -166,7 +174,7 @@ An OpenFlow switch provides limited Quality-of-Service support through a simple
 queuing mechanism. One or more queues can attach to a port and be used to map
 flow entries on it. Flow entries mapped to a specific queue will be treated
 according to that queue's configuration (e.g. min rate). Note that queue
-configuration takes place outside the OpenFlow protocol. 
+configuration takes place outside the OpenFlow protocol.
 
 The ``OFSwitch13Queue`` class implements a common queue interface, extending
 the ``ns3::Queue`` class to allow compatibility with the ``CsmaNetDevice`` used
@@ -201,7 +209,7 @@ theses algorithms classifies the packet based on binary search trees, this
 module estimates the pipeline average time to:
 
 .. math::
-  K * log_2 (n) 
+  K * log_2 (n)
 
 where *K* is the ``ns3::OFSwitch13NetDevice::TCAMDelay`` attribute set to the
 time for a TCAM operation in a NetFPGA hardware, and *n* is the current number
@@ -216,12 +224,11 @@ manages the switch, receives events from the switch, and sends packets out the
 switch. In this module, the OpenFlow controller manages the OpenFlow switches
 remotely over a separate dedicated network (out-of-band controller connection).
 
-The ``OFSwitch13Helper`` can create an OpenFlow channel using a single shared
-``CsmaChannel``, interconnecting the controller to all switches. It is also
-possible to create individual connections between the controller and each
-switch, using either CSMA or point-to-point links. Using standard |ns3|
-channels and devices, it is possible to provide realistic connections with
-delay and error models.
+|ns3| users can create an OpenFlow channel using a single shared channel,
+interconnecting the controller to all switches. It is also possible to create
+individual connections between the controller and each switch, using dedicated
+links. Using standard |ns3| channels and devices, it is possible to provide
+realistic connections with delay and error models.
 
 Scope and Limitations
 =====================
@@ -251,7 +258,7 @@ Some OpenFlow 1.3 features are not yet supported by this module:
   controller may communicate through a TLS connection to provide authentication
   and encryption of the connection. However, as there is no straightforward TSL
   support on |ns3|, the OpenFlow channel is implemented over a plain TCP
-  connection, without encryption. 
+  connection, without encryption.
 
 * **In-band control**:  In the current implementation, the OpenFlow controller
   manages the OpenFlow switches remotely over a separate dedicated network
@@ -263,7 +270,7 @@ References
 ==========
 
 #. The reference [Fernandes2014]_ (in portuguese) describes the details on the
-   ``ofsoftswitch13`` software switch implementation. 
+   ``ofsoftswitch13`` software switch implementation.
 
 #. The reference [Chaves2015]_  is related to the integration between OpenFlow
    and LTE technologies. The |ns3| simulator, enhanced with the ``OFSwitch13``
@@ -275,17 +282,17 @@ References
    <https://dl.dropboxusercontent.com/u/15183439/pubs/sbrc14-ferramentas-ofsoftswitch13.pdf>`_.
    In: Salão de Ferramentas do XXXII Simpósio Brasileiro de Redes de Computadores (SBRC), 2014.
 
-.. [Risso2006] Fulvio Risso and Mario Baldi. `"Netpdl: An extensible xml-based language 
+.. [Risso2006] Fulvio Risso and Mario Baldi. `"Netpdl: An extensible xml-based language
    for packet header description" <http://dx.doi.org/10.1016/j.comnet.2005.05.029>`_.
    Computer Networks, 50(5):688–706, 2006.
 
-.. [Qi2010] Yaxuan Qi, Jeffrey Fong, Weirong Jiang, Bo Xu, Jun Li, and Viktor Prasanna. 
-   `"Multi-dimensional Packet Classification on FPGA: 100 Gbps and Beyond" 
+.. [Qi2010] Yaxuan Qi, Jeffrey Fong, Weirong Jiang, Bo Xu, Jun Li, and Viktor Prasanna.
+   `"Multi-dimensional Packet Classification on FPGA: 100 Gbps and Beyond"
    <http://dx.doi.org/10.1109/FPT.2010.5681492>`_.
    In: IEEE International Conference on Field-Programmable Technology (FPT), 2010.
 
-.. [Chaves2015] Luciano J. Chaves, Vítor M. Eichemberger, Islene C. Garcia, and Edmundo R. M. Madeira. 
-   `"Integrating OpenFlow to LTE: some issues toward Software-Defined Mobile Networks" 
-   <http://ieeexplore.ieee.org/xpl/articleDetails.jsp?reload=true&arnumber=7266498>`_. 
+.. [Chaves2015] Luciano J. Chaves, Vítor M. Eichemberger, Islene C. Garcia, and Edmundo R. M. Madeira.
+   `"Integrating OpenFlow to LTE: some issues toward Software-Defined Mobile Networks"
+   <http://ieeexplore.ieee.org/xpl/articleDetails.jsp?reload=true&arnumber=7266498>`_.
    In: 7th IFIP International Conference on New Technologies, Mobility and Security (NTMS), 2015.
 
