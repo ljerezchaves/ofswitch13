@@ -35,6 +35,11 @@ class Tag;
 class QueueTag : public Tag
 {
 public:
+  
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
   virtual TypeId GetInstanceTypeId (void) const;
 

@@ -314,7 +314,7 @@ private:
   /**
    * Notify this device of a packet cloned by the OpenFlow pipeline.
    * \param pkt The original ofsoftswitch13 packet.
-   * \param clone The cloned ofsoftswitch13 packet.
+   * \param cloned The cloned ofsoftswitch13 packet.
    */
   void NotifyPacketCloned (struct packet *pkt, struct packet *cloned);
 
@@ -420,19 +420,30 @@ private:
     /** Invalidate packet metatada.*/
     void Invalidate (void);
 
-    /** \return true when valid packet metadata. */
+    /**
+     * Check for valid packet metadata.
+     * \return true when valid packet metadata. 
+     */
     bool IsValid (void) const;
 
-    /** Notify a new copy for this packet, with a new unique ID. */
+    /** 
+     * Notify a new copy for this packet, with a new unique ID. 
+     * \param id The ns-3 packet id.
+     */
     void NewCopy (uint64_t id);
 
     /**
      * Delete an existing copy for this packet.
+     * \param id The ns-3 packet id.
      * \return false when the packet metadata becomes invalid.
      */
     bool DelCopy (uint64_t id);
 
-    /** \return true when the id is associated with this packet */
+    /** 
+     * Check for packet id in the internal list of IDs for this packet.
+     * \param id The ns-3 packet id.
+     * \return true when the id is associated with this packet 
+     */
     bool HasId (uint64_t id);
 
 private:

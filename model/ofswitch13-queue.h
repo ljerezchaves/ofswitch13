@@ -90,7 +90,6 @@ public:
 
   /**
    * Add a new internal queue to this OpenFlow queue.
-   * \param queueId The queue ID.
    * \param queue The queue pointer.
    * \return The queue id for the new queue.
    */
