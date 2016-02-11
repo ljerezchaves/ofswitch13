@@ -3,7 +3,7 @@ Including the references to the OFSwitch13 module into doc config files.
 
 diff -Naur a/doc/doxygen.conf b/doc/doxygen.conf
 --- a/doc/doxygen.conf	2015-09-23 16:28:41.000000000 -0300
-+++ b/doc/doxygen.conf	2016-02-05 00:53:13.000000000 -0200
++++ b/doc/doxygen.conf	2016-02-10 23:54:14.000000000 -0200
 @@ -884,6 +884,7 @@
                           src/network/examples \
                           src/nix-vector-routing/examples \
@@ -14,7 +14,7 @@ diff -Naur a/doc/doxygen.conf b/doc/doxygen.conf
                           src/propagation/examples \
 diff -Naur a/doc/main.h b/doc/main.h
 --- a/doc/main.h	2015-09-23 16:28:41.000000000 -0300
-+++ b/doc/main.h	2016-02-05 00:43:27.000000000 -0200
++++ b/doc/main.h	2016-02-10 23:59:21.000000000 -0200
 @@ -47,6 +47,7 @@
   *     - nix-vector-routing
   *     - ns3tcp
@@ -25,23 +25,59 @@ diff -Naur a/doc/main.h b/doc/main.h
   *     - point-to-point
 diff -Naur a/doc/models/Makefile b/doc/models/Makefile
 --- a/doc/models/Makefile	2015-09-29 00:17:55.000000000 -0300
-+++ b/doc/models/Makefile	2016-02-05 00:46:21.000000000 -0200
-@@ -64,6 +64,7 @@
++++ b/doc/models/Makefile	2016-02-10 23:56:10.000000000 -0200
+@@ -64,6 +64,10 @@
  	$(SRC)/internet/doc/codel.rst \
  	$(SRC)/mobility/doc/mobility.rst \
  	$(SRC)/olsr/doc/olsr.rst \
-+	$(SRC)/ofswitch13/doc/ofswitch13.rst \
++	$(SRC)/ofswitch13/doc/source/ofswitch13.rst \
++	$(SRC)/ofswitch13/doc/source/ofswitch13-description.rst \
++	$(SRC)/ofswitch13/doc/source/ofswitch13-usage.rst \
++	$(SRC)/ofswitch13/doc/source/ofswitch13-validation.rst \
  	$(SRC)/openflow/doc/openflow-switch.rst \
  	$(SRC)/point-to-point/doc/point-to-point.rst \
  	$(SRC)/wifi/doc/source/wifi.rst \
+@@ -255,6 +259,10 @@
+ 	$(SRC)/netanim/doc/figures/RoutingTables.pdf \
+ 	$(SRC)/netanim/doc/figures/PacketTimeline.png \
+ 	$(SRC)/netanim/doc/figures/PacketTimeline.pdf \
++	$(SRC)/ofswitch13/doc/source/figures/ofswitch13-module.eps \
++	$(SRC)/ofswitch13/doc/source/figures/ofswitch13-netdevice.eps \
++	$(SRC)/ofswitch13/doc/source/figures/ofswitch13-queue.eps \
++	$(SRC)/ofswitch13/doc/source/figures/ofsoftswitch13-library.eps \
+ 	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.png \
+ 	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.pdf \
+ 	$(SRC)/spectrum/doc/spectrum-analyzer-example.eps \
+@@ -350,6 +358,10 @@
+ 	$(FIGURES)/lr-wpan-primitives.eps \
+ 	$(FIGURES)/lr-wpan-data-example.eps \
+ 	$(FIGURES)/lr-wpan-arch.eps \
++	$(FIGURES)/ofswitch13-module.eps \
++	$(FIGURES)/ofswitch13-netdevice.eps \
++	$(FIGURES)/ofswitch13-queue.eps \
++	$(FIGURES)/ofsoftswitch13-library.eps \
+ 	$(FIGURES)/802-15-4-ber.eps \
+ 	$(FIGURES)/802-15-4-per-sens.eps \
+ 	$(FIGURES)/802-15-4-psr-distance.eps 
+@@ -405,6 +417,10 @@
+ $(FIGURES)/spectrum-tv-rand-geo-points.pdf_width = 8cm
+ $(FIGURES)/lr-wpan-primitives.pdf_width = 3in
+ $(FIGURES)/lr-wpan-arch.pdf_width = 2in
++$(FIGURES)/ofswitch13-module.pdf_width = 10cm
++$(FIGURES)/ofswitch13-netdevice.pdf_width = 8cm
++$(FIGURES)/ofswitch13-queue.pdf_width = 8cm
++$(FIGURES)/ofsoftswitch13-library.pdf_width = 14cm
+ 
+ IMAGES_PNG = ${IMAGES_EPS:.eps=.png}
+ IMAGES_PDF = ${IMAGES_EPS:.eps=.pdf}
 diff -Naur a/doc/models/source/index.rst b/doc/models/source/index.rst
 --- a/doc/models/source/index.rst	2015-09-23 16:28:41.000000000 -0300
-+++ b/doc/models/source/index.rst	2016-02-05 00:48:26.000000000 -0200
-@@ -40,6 +40,7 @@
++++ b/doc/models/source/index.rst	2016-02-05 16:05:46.000000000 -0200
+@@ -39,6 +39,7 @@
+    distributed
     mobility
     network
-    olsr
 +   ofswitch13
+    olsr
     openflow-switch
     point-to-point
-    propagation
