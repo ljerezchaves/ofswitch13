@@ -4,6 +4,19 @@ OFSwithc13 release notes
 
 This file contains OFSwitch13 release notes (most recent releases first).  
 
+Release 2.0.1 (February 16, 2016)
+=================================
+
+- Updating the documentation with more details on the differences between this
+  module and the existing ns-3 one.
+
+- Including patches for already tested ns-3 versions (3.22, 3.23 and 3.24.1).
+
+- Including this release notes file.
+
+- This code is compatible with ofsoftswitch13 library, release v2.0.x.
+
+
 Release 2.0.0 (February 15, 2016)
 =================================
 
