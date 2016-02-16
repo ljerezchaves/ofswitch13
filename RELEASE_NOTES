@@ -1,0 +1,14 @@
++++++++++++++++++++++++++++++++++++++
+OFSwithc13 release notes
++++++++++++++++++++++++++++++++++++++
+
+This file contains OFSwitch13 release notes (most recent releases first).  
+
+Release 2.0.0 (February 15, 2016)
+=================================
+
+- First public release of the OFSwitch13 module, including source code and
+  documentation.
+
+- This code is compatible with ofsoftswitch13 library, release v2.0.x.
+
