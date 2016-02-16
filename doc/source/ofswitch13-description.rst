@@ -86,9 +86,7 @@ both an OpenFlow 1.3 switch device and an OpenFlow 1.3 controller interface.
   received by the ``CsmaNetDevice`` immediately before being forwarded up to
   higher layers. This is a promiscuous trace, but in contrast to a promiscuous
   protocol handler, the packet sent to this trace source also includes the
-  Ethernet header, which is necessary by OpenFlow pipeline processing. This new
-  trace source is the only required modification to the |ns3| source code for
-  ``OFSwitch13`` usage.
+  Ethernet header, which is necessary by OpenFlow pipeline processing.
 
 .. _fig-ofswitch13-netdevice:
 
@@ -237,10 +235,21 @@ This module is intended for simulating OpenFlow networks, considering the main
 features available in OpenFlow version 1.3. The module provides a complete
 OpenFlow switch device, and a simple OpenFlow learning controller. The switch
 is fully functional, while the learning controller is intended to allow basic
-usage and examples. However, users can write more sophisticated controllers,
-exploiting the real benefits offered by SDN paradigm.
+usage and examples.  Users can write more sophisticated controllers extending
+the available interface, exploiting the real benefits offered by SDN
+paradigm.
 
-Some OpenFlow 1.3 features are not yet supported by this module:
+Considering that the OpenFlow messages traversing the OpenFlow channel follows
+the standard wire format, it is possible to use the |ns3| ``TapBridge`` module
+to integrate an external OpenFlow 1.3 controller, running on the local system,
+to the simulated environment. However, note that this feature has not been
+tested and validated yet.
+
+One of the limitations of the module is related to platform support. This
+module is currently supported only for GNU/Linux platforms, as the code relies
+on an external library linked to the simulator that *must* be compiled with
+GCC. Besides, some OpenFlow 1.3 features are not yet supported by this
+module:
 
 * **Auxiliary connections**: In the current implementation, only a single
   (main) connection between the switch and the controller is available.
@@ -263,8 +272,95 @@ Some OpenFlow 1.3 features are not yet supported by this module:
 * **In-band control**:  In the current implementation, the OpenFlow controller
   manages the OpenFlow switches remotely over a separate dedicated network
   (out-of-band controller connection), as the LOCAL switch port, representing
-  the switch’s local networking stack and its management stack, is not
+  the switch's local networking stack and its management stack, is not
   implemented.
+
+|ns3| OpenFlow comparison
+=========================
+
+Note that ``OFSwitch13`` is not an extension of the available |ns3| OpenFlow
+module. They share some design principles, like the use of an external software
+library linked to the simulator, the virtual TCAM, and the aggregation of
+``CsmaNetDevices`` into the OpenFlow switch device to work as OpenFlow ports.
+However, this is a complete new code, and can be used to simulate a larger
+number of scenarios in comparison to the available implementation.
+
+One difference between the |ns3| OpenFlow model and the ``OFSwitch13`` is the
+introduction of the OpenFlow channel, using |ns3| devices and channels to
+provide the communication between the controller and the switches. This allow
+the user to collect PCAP traces for this control channel, simplifying the
+analysis of OpenFlow messages. This also allows the use of the |ns3|
+``TapBridge`` module to integrate a local external OpenFlow 1.3 controller to
+the simulated environment. *Please, note that the integration with external
+controller has not been tested and validated yet.*
+
+In respect to the controller, the module provides a more flexible interface.
+Instead of dealing with the internal library structures, the user can use
+simplified ``dpctl`` commands to build the OpenFlow messages. Only for
+processing the messages received by the controller from the switch that will be
+necessary to explore a little bit on some library functions to extract the
+desired information from the internal structures.
+
+In respect to the OpenFlow protocol implementation, the ``OFSwitch13``
+implementation brings a number of improved features from version 1.3 in
+comparison to the available |ns3| model. Some of the most important features
+are:
+
+* **Multiple tables**: Prior versions of the OpenFlow specification did expose
+  to the controller the abstraction of a single table. OpenFlow 1.1 introduces
+  a more flexible pipeline with multiple tables. Packets are processed through
+  the pipeline, they are matched and processed in the first table, and may be
+  matched and processed in other tables.
+
+* **Groups**: The new group abstraction enables OpenFlow to represent a set of
+  ports as a single entity for forwarding packets. Different types of groups
+  are provided to represent different abstractions such as multicasting or
+  multipathing. Each group is composed of a set group buckets, each group
+  bucket contains the set of actions to be applied before forwarding to the
+  port. Groups buckets can also forward to other groups, enabling groups to be
+  chained together.
+
+* **Virtual ports**: Prior versions of the OpenFlow specification assumed that
+  all the ports of the OpenFlow switch were physical ports. This version of the
+  specification adds support for virtual ports, which can represent complex
+  forwarding abstractions such as LAGs or tunnels.
+
+* **Extensible match support**: Prior versions of the OpenFlow specification
+  used a static fixed length structure to specify ``ofp_match``, which prevents
+  flexible expression of matches and prevents inclusion of new match fields.
+  The ``ofp_match`` has been changed to a TLV structure, called OpenFlow
+  Extensible Match (OXM), which dramatically increases flexibility.
+
+* **IPv6 support**: Basic support for IPv6 match and header rewrite has been
+  added, via the Flexible match support.
+
+* **Per flow meters**: Per-flow meters can be attached to flow entries and can
+  measure and control the rate of packets. One of the main applications of
+  per-flow meters is to rate limit packets sent to the controller.
+
+For |ns3| OpenFlow users that want to port existing code to the new
+``OFSwitch13`` module, check the :ref:`port-coding` section.
+
+Code compatibility
+==================
+
+The only required modification to the |ns3| source code for ``OFSwitch13``
+integration is the inclusion of a new ``OpenFlowRx`` trace source in the
+``CsmaNetDevice``. This trace source is fired for packets successfully received
+by the ``CsmaNetDevice`` immediately before being forwarded up to higher
+layers. This is a promiscuous trace, but in contrast to a promiscuous protocol
+handler, the packet sent to this trace source also includes the Ethernet
+header, which is necessary by OpenFlow pipeline processing.  This
+``OFSwitch13`` module brings the patches for including this trace source into
+recent |ns3| versions (since 3.22). The patches are available under ``utils``
+directory. Note the existence of a *csma* patch for the trace source inclusion,
+and an optional *doc* patch that can be used for including the ``OFSwitch13``
+when compiling Doxygen and Sphinx documentation. For older versions, users can
+apply the *csma* patch and, if necessary, manually resolve the conflicts.
+
+For code compatibility between the ``OFSwitch13`` module and the
+``ofsoftswitch13`` library, check for the match between the module and the
+library release versions.
 
 References
 ==========

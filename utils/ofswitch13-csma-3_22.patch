@@ -1,17 +1,9 @@
-# HG changeset patch
-# User Luciano J Chaves <luciano@lrc.ic.unicamp.br>
 Including a new TraceSource in CsmaNetDevice to integrate with OpenFlow 1.3
 
-This trace source fired for packets successfully received by the device
-immediately before being forwarded up to higher layers (at the L2/L3
-transition). This is a promiscuous trace, but in constrast a promiscuous
-protocol handler, the packet sent to this trace source also includes the
-Ethernet header, which is necessary by OpenFlow pipeline processing. 
-
-diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
---- a/src/csma/model/csma-net-device.cc
-+++ b/src/csma/model/csma-net-device.cc
-@@ -109,6 +109,12 @@
+diff -uprN a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
+--- a/src/csma/model/csma-net-device.cc	2016-02-16 15:17:04.000000000 -0200
++++ b/src/csma/model/csma-net-device.cc	2016-02-16 15:18:57.000000000 -0200
+@@ -108,6 +108,12 @@ CsmaNetDevice::GetTypeId (void)
                       "This is a promiscuous trace,",
                       MakeTraceSourceAccessor (&CsmaNetDevice::m_macPromiscRxTrace),
                       "ns3::Packet::TracedCallback")
@@ -24,7 +16,7 @@ diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.
      .AddTraceSource ("MacRx", 
                       "A packet has been received by this device, "
                       "has been passed up from the physical layer "
-@@ -805,6 +805,13 @@
+@@ -804,6 +810,13 @@ CsmaNetDevice::Receive (Ptr<Packet> pack
      }
  
    //
@@ -38,10 +30,10 @@ diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.
    // If this packet is not destined for some other host, it must be for us
    // as either a broadcast, multicast or unicast.  We need to hit the mac
    // packet received trace hook and forward the packet up the stack.
-diff --git a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
---- a/src/csma/model/csma-net-device.h
-+++ b/src/csma/model/csma-net-device.h
-@@ -565,6 +565,18 @@
+diff -uprN a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
+--- a/src/csma/model/csma-net-device.h	2016-02-16 15:02:06.000000000 -0200
++++ b/src/csma/model/csma-net-device.h	2016-02-16 15:18:57.000000000 -0200
+@@ -558,6 +558,18 @@ private:
    TracedCallback<Ptr<const Packet> > m_macPromiscRxTrace;
  
    /**
