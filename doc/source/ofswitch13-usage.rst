@@ -22,7 +22,8 @@ simulator.
 Currently, the user must download and compile the code manually. Follow the
 instructions below to compile and link the |ns3| simulator to the
 ``ofsoftswitch13`` library. *These instructions have been tested on Ubuntu
-14.04.3 LTS. Other distributions or versions may require different steps.*
+14.04.3 LTS. Other distributions or versions may require different steps,
+specially regarding library compilation.*
 
 Compiling the library
 #####################
@@ -40,14 +41,14 @@ First, it is necessary to compile the `ofsoftswitch13` as a static library. The
 (http://www.nbee.org), which is used to parse the network packets. So we need
 to compile and install them in the proper order.
 
-Download the most recent `NetBee` version and unpack the source code:
+Download the `NetBee` and unpack the source code:
 
 .. code-block:: bash
 
   $ wget https://bitbucket.org/ljerezchaves/ofswitch13-module/downloads/nbeesrc.zip
   $ unzip nbeesrc.zip
 
-Create the build system and compile de library:
+Create the build system and compile the library:
 
 .. code-block:: bash
 
@@ -65,14 +66,14 @@ linker run-time bindings, and copy the include files:
   $ sudo cp -R ../include/* /usr/include/
 
 We are done with the ``NetBee`` library. Now, let's proceed with the
-``ofsoftswitch13`` code. Clone the repository and update to the ``ns3lib``
-branch:
+``ofsoftswitch13`` code. Clone the repository and update to proper (preferably
+latest) release tag at the ``ns3lib`` branch (here, we are using v2.0.x):
 
 .. code-block:: bash
 
   $ git clone https://github.com/ljerezchaves/ofsoftswitch13
   $ cd ofsoftswitch13
-  $ git checkout ns3lib
+  $ git checkout v2.0.x
 
 Configure and build the library (don't forget to add the ``--enable-ns3-lib``
 during configuration process):
@@ -90,35 +91,42 @@ Linking the library to the simulator
 ####################################
 
 It's time to download a recent (preferably stable) |ns3| code into your
-machine. Here, we are going to use the mercurial repository for ns-3.24.
+machine (here, we are going to use the mercurial repository for ns-3.24.1):
 
 .. code-block:: bash
 
   $ hg clone http://code.nsnam.org/ns-3.24
+  $ cd ns-3.24
+  $ hg update ns-3.24.1
 
 Before configuring and compiling the simulator, download the ``OFSwitch13``
 code from the module repository and place it inside a new ``/src/ofswitch13``
-folder:
+folder. Update the code to the latest stable version (here, we are using
+2.0.1):
 
 .. code-block:: bash
 
-  $ cd ns-3.24/src
-  $ hg clone https://ljerezchaves@bitbucket.org/ljerezchaves/ofswitch13-module ofswitch13
+  $ hg clone https://bitbucket.org/ljerezchaves/ofswitch13-module src/ofswitch13
+  $ cd src/ofswitch13
+  $ hg update 2.0.1
+  $ cd ../../
 
-Also, you need to path the |ns3| code with the patches available under the
-``ofswitch13/utils`` directory:
+Also, you need to patch the |ns3| code with the appropriated patches available
+under the ``ofswitch13/utils`` directory (use the patches for the correct |ns3|
+version):
 
 .. code-block:: bash
 
-  $ cd ../
-  $ patch -p1 < src/ofswitch13/utils/ofswitch13-csma.patch
-  $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc.patch
+  $ patch -p1 < src/ofswitch13/utils/ofswitch13-csma-3_24_1.patch
+  $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_24_1.patch
 
-The ``ofswitch13-csma.patch`` creates a simple new ``TraceSource`` at
+The ``ofswitch13-csma-3_24_1.patch`` creates a simple new ``TraceSource`` at
 ``CsmaNetDevice``, allowing OpenFlow switch to get raw L2 packets from this
-device. The optional ``ofswitch13-doc.patch`` instructs the simulator to
-include the module in the |ns3| model library and source code API
-documentation.
+device. This is the only required change in the |ns3| code to allow
+``OFSwitch13`` usage. The ``ofswitch13-doc-3_24_1.patch`` is optional. It
+instructs the simulator to include the module in the |ns3| model library and
+source code API documentation, which can be helpful to compile the
+documentation using Doxygen and Sphinx.
 
 Now, you can configure the |ns3| including the ``--with-ofswitch13`` option to
 show the simulator where it can find the ``ofsoftswitch13`` main directory:
@@ -308,8 +316,105 @@ ports and for the OpenFlow channel. It is also possible to enable the internal
 ``EnableDatapathLogs()`` helper function for all devices, or the
 ``SetLibLogLevel()`` device function for individual device logging.
 
+For using ASCII traces it is necessary to manually include the
+``ns3::PacketMetadata::Enable ()`` at the beginning of the program, before any
+packets are sent.
+
+.. _port-coding:
+
+Porting |ns3| OpenFlow code
+===========================
+
+For |ns3| OpenFlow users that want to port existing code to the new
+``OFSwitch13`` module, keep in mind that this is not an extension of the
+available implementation. For simulation scenarios using the existing |ns3|
+OpenFlow module configured with the ``ns3::OpenFlowSwitchHelper`` helper and
+using the ``ns3::ofi::LearningController``, it is possible to port the code to
+the ``OFSwitch13`` with little effort. The following code, based on the
+``openflow-switch.cc`` example, is used for demonstration:
+
+.. code-block:: cpp
+
+  // Including module headers
+  #include "ns3/openflow-module.h"
+
+  // Connecting the terminals to the switchNode using CSMA devices and channels.
+  // CsmaNetDevices created at the switchNode are in the switchDevices container.
+  // ...
+
+  // Create the OpenFlow helper
+  OpenFlowSwitchHelper ofHelper;
+
+  // Create the learning controller app
+  Ptr<ns3::ofi::LearningController> controller;
+  controller = CreateObject<ns3::ofi::LearningController> ();
+  if (!timeout.IsZero ())
+    {
+      controller->SetAttribute ("ExpirationTime", TimeValue (timeout));
+    }
+
+  // Install the switch device, ports and set the controller
+  ofHelper.Install (switchNode, switchDevices, controller);
+
+  // Other configurations: TCP/IP stack, apps, monitors, etc.
+  // ...
+
+This is the "core" OpenFlow configuration part. Here, the user is creating an
+``ns3::ofi::LearningController`` object instance to be used as the controller.
+It also set the internal attribute ``ExpirationTime`` that is used for cache
+timeout. Then, the helper is used to install the OpenFlow switch device into
+the ``switchNode`` node. The CSMA devices from ``switchDevices`` container are
+installed as OpenFlow ports, and the ``controller`` object is set as the
+OpenFlow controller for the network. The following code implements the same
+logic in the ``OFSwitch13`` module:
+
+.. code-block:: cpp
+
+  // Including module headers
+  #include "ns3/ofswitch13-module.h"
+
+  // Connecting the terminals to the switchNode using CSMA devices and channels.
+  // CsmaNetDevices created at the switchNode are in the switchDevices container.
+  // ...
+
+  // Create the OpenFlow 1.3 helper
+  Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
+
+  // Create the controller node and install the learning controller app into it
+  Ptr<Node> controllerNode = CreateObject<Node> ();
+  of13Helper->InstallDefaultController (controllerNode);
+
+  // Install the switch device and ports.
+  of13Helper->InstallSwitch (switchNode, switchDevices);
+
+  // Other configurations: TCP/IP stack, apps, monitors, etc.
+  // ...
+
+  // Arbitrary simulation duration (can be changed for any value)
+  Simulator::Stop (Seconds (10));
+
+Note that we need a new node for the controller. The
+``InstallDefaultController()`` function will create the learning application
+object instance and will install it in the ``controllerNode``. Then, the
+``InstallSwitch()`` function will install the OpenFlow device into
+``switchNode``, configure the CSMA devices from ``switchDevices`` container as
+OpenFlow ports, and configure the connection between the switch and the
+controller. Note that the ``OFSwitch13LearningController`` doesn't provide the
+``ExpirationTime`` attribute. Don't forget to include the ``Simulator::Stop()``
+command to schedule the time delay until the Simulator should stop, otherwise
+the simulation will never end.
+
+For users who have implemented new controllers in the |ns3| OpenFlow module,
+extending the ``ns3::ofi::Controller`` class, are encouraged to explore the
+Doxygen documentation for the ``OFSwitch13Controller`` base class. In a
+nutshell, the ``ReceiveFromSwitch()`` function is replaced by the internal
+handlers, used to process each type of OpenFlow message received from the
+switch. See the :ref:`extending-controller` section for more details.
+
 Advanced Usage
 ==============
+
+.. _extending-controller:
 
 Extending the controller
 ########################
@@ -328,7 +433,7 @@ as already implemented. In contrast, ``HandlePacketIn()`` *must be implementd
 by the derived controller*, to proper handle packets sent from switch to
 controller. The current implementation of other virtual methods does nothing:
 just free the received message and returns 0. Derived controllers can
-reimplement them as they wish. Note that handlers *must* free received messages
+override them as they wish. Note that handlers *must* free received messages
 (msg) when everything is fine. For ``HandleMultipartReply()`` implementation,
 note that there are several types of multipart replies. Derived controllers can
 filter by the type they wish.
@@ -354,8 +459,8 @@ and change other configurations.
 Check the `utility documentation
 <https://github.com/CPqD/ofsoftswitch13/wiki/Dpctl-Documentation>`_ for details
 on how to create the commands. Note that the documentation is intended for
-terminal usage in unix systems, which is a little different from the usage in
-the ``DpctlCommand()`` function. For this module, consider on the command and
+terminal usage in Unix systems, which is a little different from the usage in
+the ``DpctlCommand()`` function. For this module, consider only the command and
 the arguments.
 
 External controller
@@ -407,4 +512,8 @@ Troubleshooting
   the ``SetAddressBase()``. Note that the current implementation don't support
   multiple controller, so each switch must be associated with a single
   controller.
+
+* For using ASCII traces it is necessary to manually include the
+  ``ns3::PacketMetadata::Enable ()`` at the beginning of the program, before
+  any packets are sent.
 
