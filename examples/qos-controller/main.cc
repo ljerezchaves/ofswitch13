@@ -20,25 +20,25 @@
 
 /**
  *   Servers                 OpenFlow controllers                Clients
- *  +-------+             +-------+       +-------+             +-------+ 
+ *  +-------+             +-------+       +-------+             +-------+
  *  | Srv 0 |=======+   +=| Ctr 0 |=+     | Ctr 1 |=+   +=======| Cli 0 |
  *  +-------+       |   | +-------+ |     +-------+ |   |       +-------+
  *                  |   |           |               |   |
- *                +-------+       +-------+       +-------+     +-------+ 
+ *                +-------+       +-------+       +-------+     +-------+
  *                | Swt 0 |#######| Swt 1 |=======| Swt 2 |=====| Cli 1 |
  *                +-------+       +-------+       +-------+     +-------+
  *                  |         OpenFlow switches         |          ...
- *  +-------+       |                                   |       +-------+    
+ *  +-------+       |                                   |       +-------+
  *  | Srv 1 |=======+                                   +=======| Cli N |
  *  +-------+                                                   +-------+
- * 
+ *
  *  Swt 0 --> Border switch
  *  Swt 1 --> Aggregation switch
  *  Swt 2 --> Client switch
- *  
+ *
  *  Ctr 0 --> QoS controller
  *  Ctr 1 --> Learning controller
- * 
+ *
  *  ====  --> 100 Mbps CSMA links
  *  ####  --> 2 x 10 Mbps CSMA links
  *
@@ -78,7 +78,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("clientNodes", "Number of client nodes", numNodes);
   cmd.AddValue ("simulationTime", "Simulation time", simTime);
   cmd.Parse (argc, argv);
-      
+
   if (verbose)
     {
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
@@ -88,7 +88,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("QosController", LOG_LEVEL_ALL);
     }
-  
+
   // Discard the firt MAC address for border switch
   Mac48Address::Allocate ();
 
@@ -99,7 +99,7 @@ main (int argc, char *argv[])
   controllerNodes.Create (2);
   clientNodes.Create (numNodes);
 
-  // Create device containers 
+  // Create device containers
   NetDeviceContainer serverDevices, clientDevices;
   NetDeviceContainer switch0Ports, switch1Ports, switch2Ports;
   NetDeviceContainer link;
@@ -107,7 +107,7 @@ main (int argc, char *argv[])
   // Create two connections between switch 0 and switch 1, with narrowband connection
   CsmaHelper csmaHelper;
   csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("10Mbps")));
-  
+
   link = csmaHelper.Install (NodeContainer (switchNodes.Get (0), switchNodes.Get (1)));
   switch0Ports.Add (link.Get (0));
   switch1Ports.Add (link.Get (1));
@@ -197,7 +197,7 @@ main (int argc, char *argv[])
   ApplicationContainer::Iterator appIt;
   for (appIt = senderApps.Begin (); appIt != senderApps.End (); ++appIt)
     {
-      (*appIt)->SetStartTime (Seconds (randomStart->GetValue ())); 
+      (*appIt)->SetStartTime (Seconds (randomStart->GetValue ()));
     }
 
   // Enable datapath logs
@@ -225,9 +225,9 @@ main (int argc, char *argv[])
   // Dump total of received bytes by sink applications
   Ptr<PacketSink> sink1 = DynamicCast<PacketSink> (sinkApps.Get (0));
   Ptr<PacketSink> sink2 = DynamicCast<PacketSink> (sinkApps.Get (1));
-  std::cout << "Bytes received by server 1: " << sink1->GetTotalRx () << " (" 
+  std::cout << "Bytes received by server 1: " << sink1->GetTotalRx () << " ("
             << (8. * sink1->GetTotalRx ()) / 1000000 / simTime << " Mbps)" << std::endl;
-  std::cout << "Bytes received by server 2: " << sink2->GetTotalRx () << " (" 
+  std::cout << "Bytes received by server 2: " << sink2->GetTotalRx () << " ("
             << (8. * sink2->GetTotalRx ()) / 1000000 / simTime << " Mbps)" << std::endl;
 }
 

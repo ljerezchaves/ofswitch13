@@ -162,7 +162,7 @@ QosController::ConfigureBorderSwitch (SwitchInfo swtch)
       // Configure Group #3 for aggregating links 1 and 2
       std::ostringstream groupCommand;
       groupCommand << "group-mod cmd=add,type=sel,group=3 "
-                   << "weight=1,port=any,group=any " << setFieldExternal.str () << ",output=1 " 
+                   << "weight=1,port=any,group=any " << setFieldExternal.str () << ",output=1 "
                    << "weight=1,port=any,group=any " << setFieldExternal.str () << ",output=2";
       DpctlCommand (swtch, groupCommand.str ());
     }
@@ -174,7 +174,7 @@ QosController::ConfigureBorderSwitch (SwitchInfo swtch)
                    << "weight=0,port=any,group=any " << setFieldExternal.str () << ",output=1";
       DpctlCommand (swtch, groupCommand.str ());
     }
- 
+
   // Groups #1 and #2 are used for redirecting traffic to internal servers (ports 3 and 4)
   DpctlCommand (swtch, "group-mod cmd=add,type=ind,group=1 weight=0,port=any,group=any "
                 "set_field=ip_dst:10.1.1.2,set_field=eth_dst:00:00:00:00:00:08,output=3");
@@ -186,7 +186,7 @@ QosController::ConfigureBorderSwitch (SwitchInfo swtch)
                 "ip_proto=6,ip_dst=10.1.1.1,eth_dst=00:00:00:00:00:01 apply:output=ctrl");
   DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=500 in_port=2,eth_type=0x0800,"
                 "ip_proto=6,ip_dst=10.1.1.1,eth_dst=00:00:00:00:00:01 apply:output=ctrl");
-  
+
   // TCP packets from servers are redirected to the external network through group 3
   DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=700 "
                 "in_port=3,eth_type=0x0800,ip_proto=6 apply:group=3");
@@ -212,11 +212,11 @@ QosController::ConfigureAggregationSwitch (SwitchInfo swtch)
       DpctlCommand (swtch, "group-mod cmd=add,type=ind,group=1 "
                     "weight=0,port=any,group=any output=1");
     }
-  
+
   // Packets from ports 1 and 2 are redirecte to port 3
   DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=500 in_port=1 write:output=3");
   DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=500 in_port=2 write:output=3");
-  
+
   // Packets from port 3 are redirected to group 1
   DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=500 in_port=3 write:group=1");
 }
@@ -240,7 +240,7 @@ QosController::HandleArpPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint
       uint32_t inPort;
       tlv = oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
       memcpy (&inPort, tlv->value, OXM_LENGTH (OXM_OF_IN_PORT));
-  
+
       // Get source and  target IP address
       Ipv4Address srcIp, dstIp;
       srcIp = ExtractIpv4Address (OXM_OF_ARP_SPA, (ofl_match*)msg->match);
@@ -263,7 +263,7 @@ QosController::HandleArpPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint
       action->header.type = OFPAT_OUTPUT;
       action->port = OFPP_IN_PORT;
       action->max_len = 0;
-      
+
       // Send the ARP reply within an OpenFlow PacketOut message
       ofl_msg_packet_out reply;
       reply.header.type = OFPT_PACKET_OUT;
@@ -294,10 +294,10 @@ QosController::HandleConnectionRequest (ofl_msg_packet_in *msg, SwitchInfo swtch
 
   static uint32_t connectionCounter = 0;
   connectionCounter++;
-  
+
   ofl_match_tlv *tlv;
   Ipv4Address serverAddr = Ipv4Address::ConvertFrom (m_serverIpAddress);
-  
+
   // Get input port
   uint32_t inPort;
   tlv = oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
@@ -316,9 +316,9 @@ QosController::HandleConnectionRequest (ofl_msg_packet_in *msg, SwitchInfo swtch
   memcpy (&dstPort, tlv->value, OXM_LENGTH (OXM_OF_TCP_DST));
 
   // Check for valid connection request
-  NS_ASSERT_MSG (dstIp.IsEqual (serverAddr) && dstPort == m_serverTcpPort, 
+  NS_ASSERT_MSG (dstIp.IsEqual (serverAddr) && dstPort == m_serverTcpPort,
                  "Invalid IP address / MAC port.");
-  
+
   // Select an internal server to handle this connection
   uint16_t serverNumber = 1 + (connectionCounter % 2);
   NS_LOG_INFO ("Connection redirected to server " << serverNumber);
@@ -327,19 +327,22 @@ QosController::HandleConnectionRequest (ofl_msg_packet_in *msg, SwitchInfo swtch
   if (m_meterEnable)
     {
       std::ostringstream meterCmd;
-      meterCmd << "meter-mod cmd=add,flags=1,meter=" << connectionCounter 
+      meterCmd << "meter-mod cmd=add,flags=1,meter=" << connectionCounter
                << " drop:rate=" << m_meterRate.GetBitRate () / 1000;
       DpctlCommand (swtch, meterCmd.str ());
     }
-  
+
   // Install the flow entry for this TCP connection
   std::ostringstream flowCmd;
   flowCmd << "flow-mod cmd=add,table=0,prio=1000 eth_type=0x0800,ip_proto=6"
-          << ",ip_src=" << srcIp 
+          << ",ip_src=" << srcIp
           << "ip_dst=" << m_serverIpAddress
           << ",tcp_dst=" << m_serverTcpPort
           << ",tcp_src=" << srcPort;
-  if (m_meterEnable) flowCmd << " meter:" << connectionCounter;
+  if (m_meterEnable)
+    {
+      flowCmd << " meter:" << connectionCounter;
+    }
   flowCmd << " write:group=" << serverNumber;
   DpctlCommand (swtch, flowCmd.str ());
 
