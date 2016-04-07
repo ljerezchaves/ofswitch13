@@ -88,7 +88,7 @@ OFSwitch13Port::GetTypeId (void)
 }
 
 OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
-                                Ptr<OFSwitch13NetDevice> openflowDev)
+                                Ptr<OFSwitch13Device> openflowDev)
   : m_swPort (0),
     m_csmaDev (csmaDev),
     m_openflowDev (openflowDev)

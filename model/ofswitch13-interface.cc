@@ -105,15 +105,15 @@ time_msec (void)
 int
 send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
 {
-  return OFSwitch13NetDevice::SendOpenflowBufferToRemote (buffer, remote);
+  return OFSwitch13Device::SendOpenflowBufferToRemote (buffer, remote);
 }
 
 void
 dp_actions_output_port (struct packet *pkt, uint32_t out_port,
                         uint32_t out_queue, uint16_t max_len, uint64_t cookie)
 {
-  OFSwitch13NetDevice::DpActionsOutputPort (pkt, out_port, out_queue,
-                                            max_len, cookie);
+  OFSwitch13Device::DpActionsOutputPort (pkt, out_port, out_queue, max_len,
+                                         cookie);
 }
 
 void

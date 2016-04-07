@@ -81,7 +81,7 @@ uint32_t port_speed (uint32_t conf);
 namespace ns3 {
 namespace ofs {
 
-class OFSwitch13NetDevice;
+class OFSwitch13Device;
 class OFSwitch13Controller;
 
 /**

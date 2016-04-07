@@ -30,7 +30,7 @@
 
 namespace ns3 {
 
-class OFSwitch13NetDevice;
+class OFSwitch13Device;
 class OFSwitch13Controller;
 
 /**
@@ -40,7 +40,7 @@ class OFSwitch13Controller;
 struct SwitchInfo
 {
   Ipv4Address ipv4;                 //!< Switch IPv4 address
-  Ptr<OFSwitch13NetDevice> netdev;  //!< OpenFlow NetDevice
+  Ptr<OFSwitch13Device> swDev;      //!< Switch OpenFlow device
   Ptr<Node> node;                   //!< Switch node
   Ptr<OFSwitch13Controller> ctrl;   //!< Controller application
   Ptr<Socket> socket;               //!< TCP socket connected to controller
@@ -84,10 +84,10 @@ public:
 
   /**
    * Look for registered switch metadata from OpenFlow device.
-   * \param dev The OpenFlow NetDevice.
+   * \param dev The OpenFlow device.
    * \return The switch metadata information.
    */
-  SwitchInfo GetSwitchMetadata (Ptr<const OFSwitch13NetDevice> dev);
+  SwitchInfo GetSwitchMetadata (Ptr<const OFSwitch13Device> dev);
 
   /**
    * \brief Execute a dpctl command to interact with the switch.
@@ -99,11 +99,11 @@ public:
 
   /**
    * \brief Execute a dpctl command to interact with the switch.
-   * \param swtch The target switch device
+   * \param dev The OpenFlow device.
    * \param textCmd The dpctl command to create the message.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int DpctlCommand (Ptr<const OFSwitch13NetDevice> swtch,
+  int DpctlCommand (Ptr<const OFSwitch13Device> dev,
                     const std::string textCmd);
 
   /**
@@ -284,7 +284,7 @@ private:
   typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
 
   /** Multimap saving pair <pointer to device / dpctl command str> */
-  typedef std::multimap<Ptr<OFSwitch13NetDevice>, std::string> DevCmdMap_t;
+  typedef std::multimap<Ptr<OFSwitch13Device>, std::string> DevCmdMap_t;
 
   uint32_t      m_xid;              //!< Global transaction idx
   uint16_t      m_port;             //!< Local controller tcp port

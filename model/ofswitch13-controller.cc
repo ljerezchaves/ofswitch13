@@ -111,14 +111,14 @@ OFSwitch13Controller::RegisterSwitchMetadata (SwitchInfo swInfo)
 }
 
 SwitchInfo
-OFSwitch13Controller::GetSwitchMetadata (Ptr<const OFSwitch13NetDevice> dev)
+OFSwitch13Controller::GetSwitchMetadata (Ptr<const OFSwitch13Device> dev)
 {
   NS_LOG_FUNCTION (dev);
 
   SwitchsMap_t::iterator it;
   for (it = m_switchesMap.begin (); it != m_switchesMap.end (); it++)
     {
-      if (it->second.netdev == dev)
+      if (it->second.swDev == dev)
         {
           return it->second;
         }
@@ -160,10 +160,10 @@ OFSwitch13Controller::DpctlCommand (SwitchInfo swtch,
 }
 
 int
-OFSwitch13Controller::DpctlCommand (Ptr<const OFSwitch13NetDevice> swtch,
+OFSwitch13Controller::DpctlCommand (Ptr<const OFSwitch13Device> dev,
                                     const std::string textCmd)
 {
-  return DpctlCommand (GetSwitchMetadata (swtch), textCmd);
+  return DpctlCommand (GetSwitchMetadata (dev), textCmd);
 }
 
 void
@@ -624,7 +624,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
 
   // Executing any scheduled commands for this switch
   std::pair <DevCmdMap_t::iterator, DevCmdMap_t::iterator> ret;
-  ret = m_schedCommands.equal_range (swInfo->netdev);
+  ret = m_schedCommands.equal_range (swInfo->swDev);
   for (DevCmdMap_t::iterator it = ret.first; it != ret.second; it++)
     {
       DpctlCommand (*swInfo, it->second);
@@ -651,9 +651,8 @@ void
 OFSwitch13Controller::ScheduleCommand (SwitchInfo swtch,
                                        const std::string textCmd)
 {
-  NS_ASSERT (swtch.netdev);
-  std::pair<Ptr<OFSwitch13NetDevice>,std::string> entry (swtch.netdev,
-                                                         textCmd);
+  NS_ASSERT (swtch.swDev);
+  std::pair<Ptr<OFSwitch13Device>,std::string> entry (swtch.swDev, textCmd);
   m_schedCommands.insert (entry);
 }
 
