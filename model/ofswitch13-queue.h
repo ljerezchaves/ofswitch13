@@ -128,7 +128,7 @@ private:
   typedef std::vector<Ptr<Queue> > QueueList_t;
 
   sw_port*              m_swPort;     //!< ofsoftswitch13 struct sw_port
-  QueueList_t           m_queues;     //!< Sorted list of available queues 
+  QueueList_t           m_queues;     //!< Sorted list of available queues
   static const uint16_t m_maxQueues;  //!< Maximum number of queues
   Scheduling            m_scheduling; //!< Output scheduling strategy
 };

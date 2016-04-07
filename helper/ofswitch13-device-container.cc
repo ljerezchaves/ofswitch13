@@ -28,7 +28,7 @@ OFSwitch13DeviceContainer::OFSwitch13DeviceContainer ()
 }
 
 OFSwitch13DeviceContainer::OFSwitch13DeviceContainer (
-    Ptr<OFSwitch13Device> dev)
+  Ptr<OFSwitch13Device> dev)
 {
   m_devices.push_back (dev);
 }
@@ -40,37 +40,37 @@ OFSwitch13DeviceContainer::OFSwitch13DeviceContainer (std::string devName)
 }
 
 OFSwitch13DeviceContainer::OFSwitch13DeviceContainer (
-    const OFSwitch13DeviceContainer &a, const OFSwitch13DeviceContainer &b)
+  const OFSwitch13DeviceContainer &a, const OFSwitch13DeviceContainer &b)
 {
   *this = a;
   Add (b);
 }
 
-OFSwitch13DeviceContainer::Iterator 
+OFSwitch13DeviceContainer::Iterator
 OFSwitch13DeviceContainer::Begin (void) const
 {
   return m_devices.begin ();
 }
 
-OFSwitch13DeviceContainer::Iterator 
+OFSwitch13DeviceContainer::Iterator
 OFSwitch13DeviceContainer::End (void) const
 {
   return m_devices.end ();
 }
 
-uint32_t 
+uint32_t
 OFSwitch13DeviceContainer::GetN (void) const
 {
   return m_devices.size ();
 }
 
-Ptr<OFSwitch13Device> 
+Ptr<OFSwitch13Device>
 OFSwitch13DeviceContainer::Get (uint32_t i) const
 {
   return m_devices [i];
 }
 
-void 
+void
 OFSwitch13DeviceContainer::Add (OFSwitch13DeviceContainer other)
 {
   for (Iterator i = other.Begin (); i != other.End (); i++)
@@ -79,13 +79,13 @@ OFSwitch13DeviceContainer::Add (OFSwitch13DeviceContainer other)
     }
 }
 
-void 
+void
 OFSwitch13DeviceContainer::Add (Ptr<OFSwitch13Device> device)
 {
   m_devices.push_back (device);
 }
 
-void 
+void
 OFSwitch13DeviceContainer::Add (std::string deviceName)
 {
   Ptr<OFSwitch13Device> device = Names::Find<OFSwitch13Device> (deviceName);

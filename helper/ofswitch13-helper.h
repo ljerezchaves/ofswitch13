@@ -24,7 +24,7 @@
 #include "ns3/ofswitch13-interface.h"
 #include "ns3/ofswitch13-controller.h"
 #include "ns3/ofswitch13-device.h"
-#include "ns3/net-device-container.h"
+#include "ns3/ofswitch13-device-container.h"
 #include "ns3/ipv4-interface-container.h"
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipv4-address-helper.h"
@@ -136,7 +136,8 @@ public:
    * \param swNodes The nodes to install the device in
    * \returns A container holding the OFSwitch13Device devices.
    */
-  NetDeviceContainer InstallSwitchesWithoutPorts (NodeContainer swNodes);
+  OFSwitch13DeviceContainer InstallSwitchesWithoutPorts (
+    NodeContainer swNodes);
 
   /**
    * This method creates a new ns3::OFSwitch13LearningController application
@@ -161,7 +162,8 @@ public:
    * \param ports Container of NetDevices to add as switch ports
    * \returns A container holding the OFSwitch13Device devices.
    */
-  NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
+  OFSwitch13DeviceContainer InstallSwitch (
+    Ptr<Node> swNode, NetDeviceContainer ports);
 
   /**
    * This method installs the given ns3::OFSwitch13Controller application into
@@ -173,8 +175,8 @@ public:
    * \param controller The controller application to install into cNode
    * \returns The controller application (same as input)
    */
-  Ptr<OFSwitch13Controller>
-  InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
+  Ptr<OFSwitch13Controller> InstallControllerApp (
+    Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
 
   /**
    * This method prepares the cNode so it can connect to an external OpenFlow
@@ -206,12 +208,12 @@ public:
 
 protected:
   ObjectFactory             m_devFactory;       //!< OpenFlow device factory
-  NetDeviceContainer        m_devices;          //!< OpenFlow devices
-  NetDeviceContainer        m_ctrlDevs;         //!< Controller to switch devices
-  InternetStackHelper       m_internet;         //!< Helper for installing TCP/IP
-  Ipv4AddressHelper         m_ipv4helper;       //!< Helper for assigning IP
-  CsmaHelper                m_csmaHelper;       //!< Helper for switches csma connection
-  PointToPointHelper        m_p2pHelper;        //!< Helper for switches p2p connection
+  OFSwitch13DeviceContainer m_devices;          //!< OpenFlow devices
+  NetDeviceContainer        m_ctrlDevs;         //!< Controller devices
+  InternetStackHelper       m_internet;         //!< Helper for TCP/IP
+  Ipv4AddressHelper         m_ipv4helper;       //!< Helper for IP address
+  CsmaHelper                m_csmaHelper;       //!< Helper for csma connection
+  PointToPointHelper        m_p2pHelper;        //!< Helper for p2p connection
   Ptr<CsmaChannel>          m_csmaChannel;      //!< Common controller channel
   Ptr<Node>                 m_ctrlNode;         //!< Controller node
   Ptr<OFSwitch13Controller> m_ctrlApp;          //!< Controller application

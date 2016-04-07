@@ -39,8 +39,8 @@ class OFSwitch13Port;
  * An OpenFlow 1.3 device that switches multiple CSMA segments via OpenFlow
  * protocol. It takes a collection of ports, each one associated with a ns-3
  * underlying CsmaNetDevice. The device acts as the intermediary between the
- * ports, receiving a packet from one port and forwarding it to another. 
- * 
+ * ports, receiving a packet from one port and forwarding it to another.
+ *
  * The OpenFlow switch datapath implementation (flow tables, group table, and
  * meter table) is provided by the ofsoftswitch13 library. For this reason,
  * packets entering the switch are sent to the library for OpenFlow pipeline
@@ -48,7 +48,7 @@ class OFSwitch13Port;
  * messages received from the controller are also sent to the library for
  * datapath configuration.
  */
-class OFSwitch13Device : public NetDevice
+class OFSwitch13Device : public Object
 {
 public:
   /**
@@ -128,36 +128,6 @@ public:
    * \return The queue pointer.
    */
   Ptr<OFSwitch13Queue> GetOutputQueue (uint32_t portNo);
-
-  // Inherited from NetDevice base class
-  virtual void SetIfIndex (const uint32_t index);
-  virtual uint32_t GetIfIndex (void) const;
-  virtual Ptr<Channel> GetChannel (void) const;
-  virtual void SetAddress (Address address);
-  virtual Address GetAddress (void) const;
-  virtual bool SetMtu (const uint16_t mtu);
-  virtual uint16_t GetMtu (void) const;
-  virtual bool IsLinkUp (void) const;
-  virtual void AddLinkChangeCallback (Callback<void> callback);
-  virtual bool IsBroadcast (void) const;
-  virtual Address GetBroadcast (void) const;
-  virtual bool IsMulticast (void) const;
-  virtual Address GetMulticast (Ipv4Address multicastGroup) const;
-  virtual Address GetMulticast (Ipv6Address addr) const;
-  virtual bool IsPointToPoint (void) const;
-  virtual bool IsBridge (void) const;
-  virtual bool Send (Ptr<Packet> packet, const Address& dest,
-                     uint16_t protocolNumber);
-  virtual bool SendFrom (Ptr<Packet> packet, const Address& source,
-                         const Address& dest, uint16_t protocolNumber);
-  virtual Ptr<Node> GetNode (void) const;
-  virtual void SetNode (Ptr<Node> node);
-  virtual bool NeedsArp (void) const;
-  virtual void SetReceiveCallback (NetDevice::ReceiveCallback cb);
-  virtual void SetPromiscReceiveCallback (
-    NetDevice::PromiscReceiveCallback cb);
-  virtual bool SupportsSendFrom () const;
-  // Inherited from NetDevice base class
 
   /**
    * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
@@ -429,12 +399,12 @@ private:
 
     /**
      * Check for valid packet metadata.
-     * \return true when valid packet metadata. 
+     * \return true when valid packet metadata.
      */
     bool IsValid (void) const;
 
-    /** 
-     * Notify a new copy for this packet, with a new unique ID. 
+    /**
+     * Notify a new copy for this packet, with a new unique ID.
      * \param id The ns-3 packet id.
      */
     void NewCopy (uint64_t id);
@@ -446,10 +416,10 @@ private:
      */
     bool DelCopy (uint64_t id);
 
-    /** 
+    /**
      * Check for packet id in the internal list of IDs for this packet.
      * \param id The ns-3 packet id.
-     * \return true when the id is associated with this packet 
+     * \return true when the id is associated with this packet
      */
     bool HasId (uint64_t id);
 
@@ -469,10 +439,8 @@ private:
   typedef std::map<uint64_t, Ptr<Packet> > IdPacketMap_t;
 
   uint64_t        m_dpId;         //!< This datapath id.
-  Ptr<Node>       m_node;         //!< Node this device is installed on.
   Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller.
   Address         m_ctrlAddr;     //!< Controller Address.
-  uint32_t        m_ifIndex;      //!< Device Interface Index.
   Time            m_timeout;      //!< Datapath timeout interval.
   Time            m_lastTimeout;  //!< Datapath last timeout.
   Time            m_tcamDelay;    //!< Flow Table TCAM lookup delay.
@@ -483,7 +451,7 @@ private:
   PortList_t      m_ports;        //!< List of switch ports.
   IdPacketMap_t   m_pktsBuffer;   //!< Packets saved in switch buffer.
 
-  static uint64_t m_globalDpId;   //!< Global counter of datapath IDs
+  static uint64_t m_globalDpId;   //!< Global counter for datapath IDs
   static uint64_t m_globalPktId;  //!< Global counter for packets IDs
 
   /**

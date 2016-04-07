@@ -164,8 +164,7 @@ OFSwitch13Helper::EnableDatapathLogs (std::string level)
   Ptr<OFSwitch13Device> openFlowDev;
   for (size_t i = 0; i < m_devices.GetN (); i++)
     {
-      openFlowDev = DynamicCast<OFSwitch13Device> (m_devices.Get (i));
-      openFlowDev->SetLibLogLevel (level);
+      m_devices.Get (i)->SetLibLogLevel (level);
     }
 }
 
@@ -194,12 +193,12 @@ OFSwitch13Helper::SetAddressBase (Ipv4Address network, Ipv4Mask mask,
     }
 }
 
-NetDeviceContainer
+OFSwitch13DeviceContainer
 OFSwitch13Helper::InstallSwitchesWithoutPorts (NodeContainer swNodes)
 {
   NS_LOG_FUNCTION (this);
 
-  NetDeviceContainer openFlowDevices;
+  OFSwitch13DeviceContainer openFlowDevices;
   NodeContainer::Iterator it;
   for (it = swNodes.Begin (); it != swNodes.End (); it++)
     {
@@ -214,11 +213,11 @@ OFSwitch13Helper::InstallDefaultController (Ptr<Node> cNode)
 {
   NS_LOG_FUNCTION (this);
 
-  return InstallControllerApp (cNode, 
+  return InstallControllerApp (cNode,
                                CreateObject<OFSwitch13LearningController> ());
 }
 
-NetDeviceContainer
+OFSwitch13DeviceContainer
 OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {
   NS_LOG_FUNCTION (this);
@@ -227,7 +226,7 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 
   Ptr<OFSwitch13Device> openFlowDev =
     m_devFactory.Create<OFSwitch13Device> ();
-  swNode->AddDevice (openFlowDev);
+  swNode->AggregateObject (openFlowDev);
   m_devices.Add (openFlowDev);
 
   for (NetDeviceContainer::Iterator i = ports.Begin (); i != ports.End (); ++i)
@@ -292,7 +291,7 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
   openFlowDev->SetAttribute ("ControllerAddr", AddressValue (ctrlAddr));
   openFlowDev->StartControllerConnection ();
 
-  return NetDeviceContainer (openFlowDev);
+  return OFSwitch13DeviceContainer (openFlowDev);
 }
 
 Ptr<OFSwitch13Controller>

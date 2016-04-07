@@ -40,7 +40,7 @@ TypeId
 OFSwitch13Device::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Device")
-    .SetParent<NetDevice> ()
+    .SetParent<Object> ()
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Device> ()
     .AddAttribute ("DatapathId",
@@ -96,10 +96,8 @@ OFSwitch13Device::OFSwitch13Device ()
   NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
 
   m_dpId = ++m_globalDpId;
-  m_node = 0;
   m_ctrlSocket = 0;
   m_ctrlAddr = Address ();
-  m_ifIndex = 0;
   m_datapath = DatapathNew ();
   OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
   Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout, this,
@@ -219,7 +217,7 @@ OFSwitch13Device::StartControllerConnection ()
   if (!m_ctrlSocket)
     {
       int error = 0;
-      m_ctrlSocket = Socket::CreateSocket (GetNode (),
+      m_ctrlSocket = Socket::CreateSocket (GetObject<Node> (),
                                            TcpSocketFactory::GetTypeId ());
       m_ctrlSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
 
@@ -253,184 +251,6 @@ OFSwitch13Device::GetOutputQueue (uint32_t portNo)
 {
   NS_LOG_FUNCTION (this << portNo);
   return GetOFSwitch13Port (portNo)->GetOutputQueue ();
-}
-
-// Inherited from NetDevice base class
-void
-OFSwitch13Device::SetIfIndex (const uint32_t index)
-{
-  NS_LOG_FUNCTION (this);
-  m_ifIndex = index;
-}
-
-uint32_t
-OFSwitch13Device::GetIfIndex (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_ifIndex;
-}
-
-Ptr<Channel>
-OFSwitch13Device::GetChannel (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return 0;
-}
-
-// This is a OpenFlow device, so we really don't need any kind of address
-// information. We simply ignore it.
-void
-OFSwitch13Device::SetAddress (Address address)
-{
-  NS_LOG_FUNCTION (this);
-}
-
-Address
-OFSwitch13Device::GetAddress (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return Address ();
-}
-
-// No need to keep mtu, as we can query the port device for it.
-bool
-OFSwitch13Device::SetMtu (const uint16_t mtu)
-{
-  NS_LOG_FUNCTION (this);
-  return true;
-}
-
-uint16_t
-OFSwitch13Device::GetMtu (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return 0xffff;
-}
-
-bool
-OFSwitch13Device::IsLinkUp (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return true;
-}
-
-void
-OFSwitch13Device::AddLinkChangeCallback (Callback<void> callback)
-{
-}
-
-bool
-OFSwitch13Device::IsBroadcast (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-Address
-OFSwitch13Device::GetBroadcast (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return Mac48Address ("ff:ff:ff:ff:ff:ff");
-}
-
-bool
-OFSwitch13Device::IsMulticast (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-Address
-OFSwitch13Device::GetMulticast (Ipv4Address multicastGroup) const
-{
-  NS_LOG_FUNCTION (this << multicastGroup);
-  Mac48Address multicast = Mac48Address::GetMulticast (multicastGroup);
-  return multicast;
-}
-
-Address
-OFSwitch13Device::GetMulticast (Ipv6Address addr) const
-{
-  NS_LOG_FUNCTION (this << addr);
-  return Mac48Address::GetMulticast (addr);
-}
-
-bool
-OFSwitch13Device::IsPointToPoint (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-bool
-OFSwitch13Device::IsBridge (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-// This is a OpenFlow device, so we don't send packets from here. Instead, we
-// use port netdevices to do this.
-bool
-OFSwitch13Device::Send (Ptr<Packet> packet, const Address& dest,
-                        uint16_t protocolNumber)
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-bool
-OFSwitch13Device::SendFrom (Ptr<Packet> packet, const Address& src,
-                            const Address& dest, uint16_t protocolNumber)
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-Ptr<Node>
-OFSwitch13Device::GetNode (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_node;
-}
-
-void
-OFSwitch13Device::SetNode (Ptr<Node> node)
-{
-  NS_LOG_FUNCTION (this);
-  m_node = node;
-}
-
-bool
-OFSwitch13Device::NeedsArp (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-// This is a OpenFlow device, so we don't expect packets addressed to this
-// node. So, there is no need for receive callbacks. Install a new device on
-// this node to send/receive packets to/from it (and don't add this device as
-// switch port). This is the principle for communication between switch and
-// controller.
-void
-OFSwitch13Device::SetReceiveCallback (NetDevice::ReceiveCallback cb)
-{
-  NS_LOG_FUNCTION (this);
-}
-
-void
-OFSwitch13Device::SetPromiscReceiveCallback (
-  NetDevice::PromiscReceiveCallback cb)
-{
-  NS_LOG_FUNCTION (this);
-}
-
-bool
-OFSwitch13Device::SupportsSendFrom () const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
 }
 
 // ofsoftswitch13 overriding and callback functions.
@@ -541,7 +361,7 @@ OFSwitch13Device::MeterDropCallback (struct packet *pkt)
 
 void
 OFSwitch13Device::PacketCloneCallback (struct packet *pkt,
-                                          struct packet *clone)
+                                       struct packet *clone)
 {
   Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pkt->dp->id);
   dev->NotifyPacketCloned (pkt, clone);
@@ -577,7 +397,6 @@ OFSwitch13Device::DoDispose ()
 
   OFSwitch13Device::UnregisterDatapath (m_dpId);
 
-  m_node = 0;
   m_ctrlSocket = 0;
   PortList_t::iterator it;
   for (it = m_ports.begin (); it != m_ports.end (); it++)
@@ -593,7 +412,7 @@ OFSwitch13Device::DoDispose ()
   meter_table_destroy (m_datapath->meters);
   free (m_datapath);
 
-  NetDevice::DoDispose ();
+  Object::DoDispose ();
 }
 
 datapath*
