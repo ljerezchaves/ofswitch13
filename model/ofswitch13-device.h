@@ -90,7 +90,7 @@ public:
   void ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo);
 
   /**
-   * \return Number of switch ports attached to this switch.
+   * \return Number of ports attached to this switch.
    */
   uint32_t GetNSwitchPorts (void) const;
 
@@ -117,7 +117,7 @@ public:
   void SetLibLogLevel (std::string log);
 
   /**
-   * Starts the TCP connection between switch and controller.
+   * Starts the TCP connection between this switch and the controller.
    */
   void StartControllerConnection ();
 
@@ -132,9 +132,10 @@ public:
   /**
    * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
    * from udatapath/datapath.c. Sends the given OFLib buffer message to the
-   * controller associated with remote connection structure. This function
-   * relies on the global map that stores OpenFlow devices to call the method
-   * on the correct object.
+   * controller associated with remote connection structure.
+   * \internal
+   * This function relies on the global map that stores OpenFlow devices to
+   * call the method on the correct object.
    * \param buffer The message buffer to send.
    * \param ctrl The controller connection information.
    * \return 0 if everything's ok, error number otherwise.
@@ -206,6 +207,7 @@ public:
   BufferRetrieveCallback (struct packet *pkt);
 
 private:
+  // Inherited from Object
   virtual void DoDispose (void);
 
   /**
@@ -381,6 +383,7 @@ private:
    */
   struct PipelinePacket
   {
+public:
     /** Default (empty) constructor. */
     PipelinePacket ();
 
