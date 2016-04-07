@@ -29,7 +29,7 @@ namespace ns3 {
 
 /**
  * \ingroup ofswitch13
- * \brief holds a vector of ns3::OFSwitch13Device pointers
+ * \brief Holds a vector of ns3::OFSwitch13Device pointers
  *
  * Typically OpenFlow Devices are aggregated to nodes using the
  * OFSwitch13Helper. The helper InstallSwitch* methods takes a NodeContainer
