@@ -35,7 +35,7 @@ class OFSwitch13Controller;
 
 /**
  * \ingroup ofswitch13
- * \brief Switch metadata used by controller
+ * \brief Switch metadata saved by the controller interface.
  */
 struct SwitchInfo
 {
@@ -51,7 +51,13 @@ struct SwitchInfo
 
 /**
  * \ingroup ofswitch13
- * \brief OpenFlow 1.3 controller base class for OFSwitch13NetDevice devices.
+ * \brief OpenFlow 1.3 controller base class that can handle a collection of
+ * OpenFlow switches and provides the basic functionalities for controller
+ * implementation. For constructing OpenFlow configuration messages and sending
+ * them to the switches, this class uses the DpctlCommand function, which
+ * relies on command-line syntax from the dpctl utility. For OpenFlow messages
+ * coming from the switches, this class provides a collection of internal
+ * handlers to deal with the different types of messages.
  */
 class OFSwitch13Controller : public Application
 {
@@ -156,16 +162,15 @@ protected:
   /**
    * \name OpenFlow message handlers
    * Handlers used by ReceiveFromSwitch to process each type of OpenFlow
-   * message received from the switch. Some handler methods can not be
-   * overwritten by derived class (echo request/reply), as they must behave as
-   * already implemented. In constrast, packetIn must be implementd by the
-   * derived controller, to proper handle packets sent from switch to
-   * controller. The current implementation of other virtual methods does
-   * nothing: just free the received message and returns 0. Derived controllers
-   * can reimplement them as they wish.
+   * message received from the switch. Echo request and reply handlers can not
+   * be overwritten by derived class, as they must behave as already
+   * implemented. The current implementation of other virtual handler methods
+   * does nothing: just free the received message and returns 0. Derived
+   * controllers can override them as they wish to implement the desired
+   * control logic.
    *
-   * For HandleMultipartReply, note that there are several types of multipart
-   * replies. Derived controllers can filter by the type they wish.
+   * Note that for HandleMultipartReply there are several types of multipart
+   * messages. Derived controllers can filter by the type they wish.
    *
    * \attention Handlers \em MUST free received msg when everything is ok.
    * \param msg The OpenFlow received message.
@@ -181,7 +186,7 @@ protected:
   HandleEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
 
   virtual ofl_err
-  HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid) = 0;
+  HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid);
 
   virtual ofl_err
   HandleError (ofl_msg_error *msg, SwitchInfo swtch, uint32_t xid);
@@ -216,7 +221,7 @@ protected:
                              SwitchInfo swtch, uint32_t xid);
   //\}
 
-  /** Echo request metadata used by controller. */
+  /** Echo request metadata used by controller interface. */
   struct EchoInfo
   {
     bool waiting;                 //!< True when waiting for reply

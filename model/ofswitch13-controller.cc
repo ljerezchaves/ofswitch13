@@ -339,6 +339,14 @@ OFSwitch13Controller::HandleEchoReply (ofl_msg_echo *msg, SwitchInfo swtch,
   return 0;
 }
 
+ofl_err
+OFSwitch13Controller::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
+                                      uint32_t xid)
+{
+  NS_LOG_FUNCTION (swtch.ipv4 << xid);
+  ofl_msg_free ((ofl_msg_header*)msg, NULL /*exp*/);
+  return 0;
+}
 
 ofl_err
 OFSwitch13Controller::HandleError (ofl_msg_error *msg, SwitchInfo swtch,
