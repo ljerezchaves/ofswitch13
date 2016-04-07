@@ -107,7 +107,7 @@ main (int argc, char *argv[])
   tapBridge.Install (controllerNode, ctrlDev);
 
   // Then install the switches (now they will start a connection to controller)
-  NetDeviceContainer of13Device;
+  OFSwitch13DeviceContainer of13Device;
   of13Device = of13Helper->InstallSwitch (of13SwitchNode, of13SwitchPorts);
 
   // Installing the tcp/ip stack onto hosts

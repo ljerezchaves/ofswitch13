@@ -156,7 +156,7 @@ main (int argc, char *argv[])
   ofLearningHelper->InstallControllerApp (controllerNodes.Get (1), learningCtrl);
 
   // Install OpenFlow switches 0 and 1 with border controller
-  NetDeviceContainer ofSwitchDevices;
+  OFSwitch13DeviceContainer ofSwitchDevices;
   ofSwitchDevices.Add (ofQosHelper->InstallSwitch (switchNodes.Get (0), switch0Ports));
   ofSwitchDevices.Add (ofQosHelper->InstallSwitch (switchNodes.Get (1), switch1Ports));
 

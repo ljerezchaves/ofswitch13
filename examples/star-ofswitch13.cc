@@ -94,7 +94,7 @@ main (int argc, char *argv[])
   Ptr<Node> of13ControllerNode = CreateObject<Node> ();
   Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
   Ptr<OFSwitch13LearningController> learningCtrl = DynamicCast<OFSwitch13LearningController> (of13Helper->InstallDefaultController (of13ControllerNode));
-  NetDeviceContainer of13SwitchDevice;
+  OFSwitch13DeviceContainer of13SwitchDevice;
   of13SwitchDevice = of13Helper->InstallSwitch (of13SwitchNode, of13SwitchPorts);
 
   // Installing the tcp/ip stack into hosts
