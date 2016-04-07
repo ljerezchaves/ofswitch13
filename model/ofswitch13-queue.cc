@@ -46,7 +46,7 @@ OFSwitch13Queue::GetTypeId (void)
     .SetParent<Queue> ()
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Queue> ()
-    .AddAttribute ("QueueList", 
+    .AddAttribute ("QueueList",
                    "The list of internal queues associated to this port queue.",
                    ObjectVectorValue (),
                    MakeObjectVectorAccessor (&OFSwitch13Queue::m_queues),
@@ -145,7 +145,7 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
 
   // Inserting the ns3::Queue object into queue list.
   m_queues.push_back (queue);
-  
+
   return queueId;
 }
 

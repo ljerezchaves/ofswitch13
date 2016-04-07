@@ -20,7 +20,7 @@
 #define OFSWITCH13_LEARNING_CONTROLLER_H
 
 #include "ofswitch13-interface.h"
-#include "ofswitch13-net-device.h"
+#include "ofswitch13-device.h"
 #include "ofswitch13-controller.h"
 
 namespace ns3 {

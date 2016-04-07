@@ -60,7 +60,7 @@ main (int argc, char *argv[])
     {
       LogComponentEnable ("DualCtrlOFSwitch13", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13NetDevice", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
@@ -139,7 +139,7 @@ main (int argc, char *argv[])
   internetIpIfaces = ipv4switches.Assign (hostDevices);
 
   // Send TCP traffic from host 0 to 3
-  Ipv4Address h3Addr = internetIpIfaces.GetAddress (3); 
+  Ipv4Address h3Addr = internetIpIfaces.GetAddress (3);
   BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (h3Addr, 8080));
   senderHelper.SetAttribute ("MaxBytes", UintegerValue (0));
   ApplicationContainer senderApp  = senderHelper.Install (hosts.Get (0));

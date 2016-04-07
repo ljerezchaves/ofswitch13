@@ -31,14 +31,14 @@
 
 namespace ns3 {
 
-class OFSwitch13NetDevice;
+class OFSwitch13Device;
 
 /**
  * \ingroup ofswitch13
  *
- * A OpenFlow switch port, interconnecting the ns-3 underlying CsmaNetDevice to
- * the OpenFlow OFSwitch13NetDevice. It handles the ofsoftswitch13 internal
- * sw_port structure.
+ * A OpenFlow switch port, interconnecting the underlying CsmaNetDevice to the
+ * OpenFlow device through the OpenFlow trace source at CsmaNetDevice class.
+ * This class handles the ofsoftswitch13 internal sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
  * \attention Each underlying CsmaNetDevice used as port must only be assigned
  * a Mac Address. Adding an Ipv4 or Ipv6 layer to it will cause an error.
@@ -67,13 +67,13 @@ public:
    * \see ofsoftswitch new_port () at udatapath/dp_ports.c
    * \param dp The datapath.
    * \param csmaDev The underlying CsmaNetDevice.
-   * \param openflowDev The OpenFlow NetDevice.
+   * \param openflowDev The OpenFlow device.
    */
   OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
-                  Ptr<OFSwitch13NetDevice> openflowDev);
+                  Ptr<OFSwitch13Device> openflowDev);
 
   /**
-   * Update the port state field based on netdevice status, and notify the
+   * Update the port state field based on CsmaNetDevice status, and notify the
    * controller when changes occurs.
    * \return true if the state of the port has changed, false otherwise.
    */
@@ -103,7 +103,7 @@ protected:
 private:
   /**
    * Create the bitmaps of OFPPF_* describing port features, based on
-   * ns3::NetDevice.
+   * ns3::CsmaNetDevice.
    * \see ofsoftswitch netdev_get_features () at lib/netdev.c
    * \return Port features bitmap.
    */
@@ -129,7 +129,7 @@ private:
   sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port
   Ptr<CsmaNetDevice>        m_csmaDev;      //!< Underlying CsmaNetDevice
   Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue
-  Ptr<OFSwitch13NetDevice>  m_openflowDev;  //!< OpenFlow NetDevice
+  Ptr<OFSwitch13Device>     m_openflowDev;  //!< OpenFlow device
 };
 
 } // namespace ns3
