@@ -22,7 +22,7 @@
   if (m_dpId) { std::clog << "[dp " << m_dpId << "] "; }
 
 #include "ns3/object-vector.h"
-#include "ofswitch13-net-device.h"
+#include "ofswitch13-device.h"
 #include "ofswitch13-interface.h"
 
 namespace ns3 {

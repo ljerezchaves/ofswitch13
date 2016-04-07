@@ -21,7 +21,6 @@
 #include <wordexp.h>
 #include "ns3/uinteger.h"
 #include "ofswitch13-controller.h"
-#include "ofswitch13-net-device.h"
 
 namespace ns3 {
 

@@ -19,7 +19,7 @@
  */
 
 #include "ofswitch13-interface.h"
-#include "ofswitch13-net-device.h"
+#include "ofswitch13-device.h"
 #include "ofswitch13-controller.h"
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");

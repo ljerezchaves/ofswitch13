@@ -25,7 +25,7 @@
 #include "ns3/socket.h"
 #include "ns3/tcp-socket-factory.h"
 #include "ofswitch13-interface.h"
-#include "ofswitch13-net-device.h"
+#include "ofswitch13-device.h"
 #include <string>
 
 namespace ns3 {

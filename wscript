@@ -65,7 +65,7 @@ def build(bld):
     module.source = [
         'model/ofswitch13-interface.cc',
         'model/ofswitch13-port.cc',
-        'model/ofswitch13-net-device.cc',
+        'model/ofswitch13-device.cc',
         'model/ofswitch13-controller.cc',
         'model/ofswitch13-learning-controller.cc',
         'model/ofswitch13-queue.cc',
@@ -86,7 +86,7 @@ def build(bld):
     headers.source = [
         'model/ofswitch13-interface.h',
         'model/ofswitch13-port.h',
-        'model/ofswitch13-net-device.h',
+        'model/ofswitch13-device.h',
         'model/ofswitch13-controller.h',
         'model/ofswitch13-learning-controller.h',
         'model/ofswitch13-queue.h',
