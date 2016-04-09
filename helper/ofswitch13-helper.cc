@@ -228,6 +228,7 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
     m_devFactory.Create<OFSwitch13Device> ();
   swNode->AggregateObject (openFlowDev);
   m_devices.Add (openFlowDev);
+  m_internet.Install (swNode);
 
   for (NetDeviceContainer::Iterator i = ports.Begin (); i != ports.End (); ++i)
     {
@@ -237,7 +238,6 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 
   Address ctrlAddr;
   Ipv4InterfaceContainer swIface;
-  m_internet.Install (swNode);
   switch (m_channelType)
     {
     case OFSwitch13Helper::SINGLECSMA:
@@ -281,9 +281,9 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 
   // Register switch metadata and start switch <--> controller connection
   SwitchInfo swInfo;
-  swInfo.ipv4   = swIface.GetAddress (0);
+  swInfo.ipv4 = swIface.GetAddress (0);
   swInfo.swDev = openFlowDev;
-  swInfo.node   = swNode;
+  swInfo.node = swNode;
   if (m_ctrlApp)
     {
       m_ctrlApp->RegisterSwitchMetadata (swInfo);
