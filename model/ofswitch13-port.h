@@ -110,14 +110,20 @@ private:
   uint32_t PortGetFeatures ();
 
   /**
-   * Called when a packet is received on this OpenFlow switch port. This
-   * method is a trace sink for the OpenFlowRx trace source at the underlying
-   * CsmaNetDevice. It will check port configuration, update counter and send
-   * the packet to the OpenFlow pipeline.
+   * Called when a packet is received on this OpenFlow switch port by the
+   * underlying CsmaNetDevice. It will check port configuration, update counter
+   * and send the packet to the OpenFlow pipeline.
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
+   * \param Underlying Csma network device
    * \param packet The received packet.
+   * \param protocol Next protocol header value.
+   * \param from Address of the correspondant.
+   * \param to Address of the destination.
+   * \param packetType Type of the packet.
    */
-  void Receive (Ptr<Packet> packet);
+  bool Receive (Ptr<NetDevice> device, Ptr<const Packet> packet, 
+                uint16_t protocol, const Address &from, const Address &to, 
+                NetDevice::PacketType packetType);
 
   /** Trace source fired when a packet arrives at this switch port. */
   TracedCallback<Ptr<const Packet> > m_rxTrace;
