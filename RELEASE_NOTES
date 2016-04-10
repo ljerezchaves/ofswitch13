@@ -20,6 +20,9 @@ Release 2.0.2 (April 10, 2016)
   semantics in the way that, for CsmaNetDevice configure as OpenFlow ports, the
   default receive callback is never invoked.
 
+- Creating a OFSwithc13DeviceContainer for handling CsmaNetDevices. Note the
+  change on InstallSwitch* methods on the OFSwitch13Helper.
+
 - Updating the documentation with a better module design description (including
   new figures) and the QosController description. Minor corrections along the
   entire text.
