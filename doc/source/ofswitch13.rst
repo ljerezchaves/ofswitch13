@@ -15,4 +15,3 @@ OpenFlow 1.3 Module (OFSwitch13)
 
     ofswitch13-description
     ofswitch13-usage
-    ofswitch13-validation
