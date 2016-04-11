@@ -24,7 +24,7 @@
 #include "ns3/ethernet-header.h"
 #include "ns3/ethernet-trailer.h"
 #include "ns3/pointer.h"
-#include "ofswitch13-net-device.h"
+#include "ofswitch13-device.h"
 #include "ofswitch13-port.h"
 
 namespace ns3 {
@@ -53,9 +53,9 @@ OFSwitch13Port::DoDispose ()
   m_csmaDev = 0;
   m_openflowDev = 0;
 
-  // Calling DoDispose on internal port, so it can use m_swPort pointer to free
+  // Calling Dispose on internal port, so it can use m_swPort pointer to free
   // internal strucutures first.
-  m_portQueue->DoDispose ();
+  m_portQueue->Dispose ();
   ofl_structs_free_port (m_swPort->conf);
   free (m_swPort->stats);
   m_swPort = 0;
@@ -88,7 +88,7 @@ OFSwitch13Port::GetTypeId (void)
 }
 
 OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
-                                Ptr<OFSwitch13NetDevice> openflowDev)
+                                Ptr<OFSwitch13Device> openflowDev)
   : m_swPort (0),
     m_csmaDev (csmaDev),
     m_openflowDev (openflowDev)
@@ -147,9 +147,9 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   msg.desc = m_swPort->conf;
   dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
 
-  // Register a trace sink at OFSwitch13Port to get packets from CsmaNetDevice.
-  csmaDev->TraceConnectWithoutContext (
-    "OpenFlowRx", MakeCallback (&OFSwitch13Port::Receive, this));
+  // Register the receive callback to get packets from CsmaNetDevice.
+  csmaDev->SetOpenFlowReceiveCallback (
+    MakeCallback (&OFSwitch13Port::Receive, this));
 }
 
 uint32_t
@@ -245,8 +245,10 @@ OFSwitch13Port::PortGetFeatures ()
   return feat;
 }
 
-void
-OFSwitch13Port::Receive (Ptr<Packet> packet)
+bool 
+OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
+                         uint16_t protocol, const Address &from,
+                         const Address &to, NetDevice::PacketType packetType)
 {
   NS_LOG_FUNCTION (this << packet);
 
@@ -254,7 +256,7 @@ OFSwitch13Port::Receive (Ptr<Packet> packet)
   if (m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
     {
       NS_LOG_WARN ("This port is down or inoperating. Discarding packet");
-      return;
+      return false;
     }
 
   // Update port stats
@@ -263,7 +265,8 @@ OFSwitch13Port::Receive (Ptr<Packet> packet)
 
   // Fire RX trace source and send the packet to OpenFlow pipeline
   m_rxTrace (packet);
-  m_openflowDev->ReceiveFromSwitchPort (packet, m_portNo);
+  m_openflowDev->ReceiveFromSwitchPort (packet->Copy (), m_portNo);
+  return true;
 }
 
 bool

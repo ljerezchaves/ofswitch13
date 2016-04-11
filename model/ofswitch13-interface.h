@@ -22,12 +22,11 @@
  * \defgroup ofswitch13 OpenFlow 1.3 softswitch
  *
  * This section documents the API of the ns-3 OpenFlow 1.3 compatible switch
- * and controller. This module follows the OpenFlow 1.3 switch specification
- * <https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf>.
- * It depends on the CPqD ofsoftswitch13 <https://github.com/ljerezchaves/ofsoftswitch13>
- * software switch compiled as a library (use ./configure --enable-ns3-lib).
- *
- * \attention Currently, not all OpenFlow 1.3 features are supported.
+ * and controller interface. It follows the OpenFlow 1.3 switch specification
+ * <https://www.opennetworking.org/sdn-resources/technical-library>.
+ * It depends on the CPqD ofsoftswitch13 software switch available at
+ * <https://github.com/ljerezchaves/ofsoftswitch13>, compiled as a library.
+ * Check the manual for tutorials on how to compile and use this module.
  */
 #ifndef OFSWITCH13_INTERFACE_H
 #define OFSWITCH13_INTERFACE_H
@@ -82,7 +81,7 @@ uint32_t port_speed (uint32_t conf);
 namespace ns3 {
 namespace ofs {
 
-class OFSwitch13NetDevice;
+class OFSwitch13Device;
 class OFSwitch13Controller;
 
 /**

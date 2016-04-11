@@ -1,7 +1,7 @@
 diff --git a/doc/doxygen.conf b/doc/doxygen.conf
 --- a/doc/doxygen.conf
 +++ b/doc/doxygen.conf
-@@ -873,6 +873,7 @@
+@@ -884,6 +884,7 @@
                           src/network/examples \
                           src/nix-vector-routing/examples \
                           src/olsr/examples \
@@ -23,8 +23,8 @@ diff --git a/doc/main.h b/doc/main.h
 diff --git a/doc/models/Makefile b/doc/models/Makefile
 --- a/doc/models/Makefile
 +++ b/doc/models/Makefile
-@@ -60,6 +60,10 @@
- 	$(SRC)/internet/doc/codel.rst \
+@@ -65,6 +65,10 @@
+ 	$(SRC)/internet-apps/doc/internet-apps.rst \
  	$(SRC)/mobility/doc/mobility.rst \
  	$(SRC)/olsr/doc/olsr.rst \
 +	$(SRC)/ofswitch13/doc/source/ofswitch13.rst \
@@ -33,8 +33,8 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
 +	$(SRC)/ofswitch13/doc/source/ofswitch13-validation.rst \
  	$(SRC)/openflow/doc/openflow-switch.rst \
  	$(SRC)/point-to-point/doc/point-to-point.rst \
- 	$(SRC)/wifi/doc/wifi.rst \
-@@ -247,6 +251,12 @@
+ 	$(SRC)/wifi/doc/source/wifi.rst \
+@@ -263,6 +267,12 @@
  	$(SRC)/netanim/doc/figures/RoutingTables.pdf \
  	$(SRC)/netanim/doc/figures/PacketTimeline.png \
  	$(SRC)/netanim/doc/figures/PacketTimeline.pdf \
@@ -47,7 +47,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.png \
  	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.pdf \
  	$(SRC)/spectrum/doc/spectrum-analyzer-example.eps \
-@@ -342,6 +352,12 @@
+@@ -362,6 +372,12 @@
  	$(FIGURES)/lr-wpan-primitives.eps \
  	$(FIGURES)/lr-wpan-data-example.eps \
  	$(FIGURES)/lr-wpan-arch.eps \
@@ -59,8 +59,8 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
 +	$(FIGURES)/ofswitch13-switch.eps \
  	$(FIGURES)/802-15-4-ber.eps \
  	$(FIGURES)/802-15-4-per-sens.eps \
- 	$(FIGURES)/802-15-4-psr-distance.eps 
-@@ -397,6 +413,12 @@
+ 	$(FIGURES)/802-15-4-psr-distance.eps \
+@@ -419,6 +435,12 @@
  $(FIGURES)/spectrum-tv-rand-geo-points.pdf_width = 8cm
  $(FIGURES)/lr-wpan-primitives.pdf_width = 3in
  $(FIGURES)/lr-wpan-arch.pdf_width = 2in
@@ -70,13 +70,13 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
 +$(FIGURES)/ofswitch13-qos-topology.pdf_width = 12cm
 +$(FIGURES)/ofswitch13-queue.pdf_width = 10cm
 +$(FIGURES)/ofswitch13-switch.pdf_width = 10cm
+ $(FIGURES)/clear-channel.pdf_width = 12cm
+ $(FIGURES)/nist-frame-success-rate.pdf_width = 12cm
  
- IMAGES_PNG = ${IMAGES_EPS:.eps=.png}
- IMAGES_PDF = ${IMAGES_EPS:.eps=.pdf}
 diff --git a/doc/models/source/index.rst b/doc/models/source/index.rst
 --- a/doc/models/source/index.rst
 +++ b/doc/models/source/index.rst
-@@ -39,6 +39,7 @@
+@@ -40,6 +40,7 @@
     distributed
     mobility
     network

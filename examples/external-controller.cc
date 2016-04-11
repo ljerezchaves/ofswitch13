@@ -61,7 +61,7 @@ main (int argc, char *argv[])
     {
       LogComponentEnable ("ExtCtrlOFSwitch13", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13NetDevice", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
@@ -107,7 +107,7 @@ main (int argc, char *argv[])
   tapBridge.Install (controllerNode, ctrlDev);
 
   // Then install the switches (now they will start a connection to controller)
-  NetDeviceContainer of13Device;
+  OFSwitch13DeviceContainer of13Device;
   of13Device = of13Helper->InstallSwitch (of13SwitchNode, of13SwitchPorts);
 
   // Installing the tcp/ip stack onto hosts

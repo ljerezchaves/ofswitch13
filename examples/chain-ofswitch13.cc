@@ -61,7 +61,7 @@ main (int argc, char *argv[])
     {
       LogComponentEnable ("ChainOFSwitch13", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13NetDevice", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
@@ -119,7 +119,7 @@ main (int argc, char *argv[])
   Ptr<OFSwitch13LearningController> learningCtrl = DynamicCast<OFSwitch13LearningController> (of13ControllerApp);
 
   // Install OpenFlow device in every switch
-  NetDeviceContainer of13SwitchDevices;
+  OFSwitch13DeviceContainer of13SwitchDevices;
   for (size_t i = 0; i < nSwitches; i++)
     {
       of13SwitchDevices = of13Helper->InstallSwitch (of13SwitchNodes.Get (i), of13SwitchPorts [i]);

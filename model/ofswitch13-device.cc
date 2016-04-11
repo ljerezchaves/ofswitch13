@@ -22,54 +22,54 @@
   if (m_dpId) { std::clog << "[dp " << m_dpId << "] "; }
 
 #include "ns3/object-vector.h"
-#include "ofswitch13-net-device.h"
+#include "ofswitch13-device.h"
 #include "ofswitch13-interface.h"
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13NetDevice");
-NS_OBJECT_ENSURE_REGISTERED (OFSwitch13NetDevice);
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13Device");
+NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Device);
 
-// Initializing OFSwitch13NetDevice static members
-uint64_t OFSwitch13NetDevice::m_globalDpId = 0;
-uint64_t OFSwitch13NetDevice::m_globalPktId = 0;
-OFSwitch13NetDevice::DpIdDevMap_t OFSwitch13NetDevice::m_globalSwitchMap;
+// Initializing OFSwitch13Device static members
+uint64_t OFSwitch13Device::m_globalDpId = 0;
+uint64_t OFSwitch13Device::m_globalPktId = 0;
+OFSwitch13Device::DpIdDevMap_t OFSwitch13Device::m_globalSwitchMap;
 
 /********** Public methods **********/
 TypeId
-OFSwitch13NetDevice::GetTypeId (void)
+OFSwitch13Device::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::OFSwitch13NetDevice")
-    .SetParent<NetDevice> ()
+  static TypeId tid = TypeId ("ns3::OFSwitch13Device")
+    .SetParent<Object> ()
     .SetGroupName ("OFSwitch13")
-    .AddConstructor<OFSwitch13NetDevice> ()
+    .AddConstructor<OFSwitch13Device> ()
     .AddAttribute ("DatapathId",
                    "The unique identification of this OpenFlow switch.",
                    TypeId::ATTR_GET,
                    UintegerValue (0),
-                   MakeUintegerAccessor (&OFSwitch13NetDevice::m_dpId),
+                   MakeUintegerAccessor (&OFSwitch13Device::m_dpId),
                    MakeUintegerChecker<uint64_t> ())
-    .AddAttribute ("PortList", 
+    .AddAttribute ("PortList",
                    "The list of ports associated to this switch.",
                    ObjectVectorValue (),
-                   MakeObjectVectorAccessor (&OFSwitch13NetDevice::m_ports),
+                   MakeObjectVectorAccessor (&OFSwitch13Device::m_ports),
                    MakeObjectVectorChecker<OFSwitch13Port> ())
     .AddAttribute ("TCAMDelay",
                    "Average time to perform a TCAM operation in pipeline "
                    "(Default: standard TCAM on a NetFPGA).",
                    TimeValue (NanoSeconds (30)),
-                   MakeTimeAccessor (&OFSwitch13NetDevice::m_tcamDelay),
+                   MakeTimeAccessor (&OFSwitch13Device::m_tcamDelay),
                    MakeTimeChecker ())
     .AddAttribute ("DatapathTimeout",
                    "The interval between timeout operations on pipeline.",
                    TimeValue (MilliSeconds (100)),
-                   MakeTimeAccessor (&OFSwitch13NetDevice::m_timeout),
+                   MakeTimeAccessor (&OFSwitch13Device::m_timeout),
                    MakeTimeChecker ())
     .AddAttribute ("ControllerAddr",
                    "The controller InetSocketAddress.",
                    AddressValue (
                      InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
-                   MakeAddressAccessor (&OFSwitch13NetDevice::m_ctrlAddr),
+                   MakeAddressAccessor (&OFSwitch13Device::m_ctrlAddr),
                    MakeAddressChecker ())
     .AddAttribute ("LibLogLevel",
                    "Set the ofsoftswitch13 library logging level."
@@ -77,43 +77,40 @@ OFSwitch13NetDevice::GetTypeId (void)
                    "Use 'all' to maximum verbosity. "
                    "You can also use a custom ofsoftswitch13 verbosity level.",
                    StringValue ("none"),
-                   MakeStringAccessor (&OFSwitch13NetDevice::SetLibLogLevel),
+                   MakeStringAccessor (&OFSwitch13Device::SetLibLogLevel),
                    MakeStringChecker ())
 
     // Meter band packet drop trace source
     .AddTraceSource ("MeterDrop",
                      "Trace source indicating a packet dropped by meter band",
                      MakeTraceSourceAccessor (
-                       &OFSwitch13NetDevice::m_meterDropTrace),
+                       &OFSwitch13Device::m_meterDropTrace),
                      "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
 
-OFSwitch13NetDevice::OFSwitch13NetDevice ()
+OFSwitch13Device::OFSwitch13Device ()
 {
   NS_LOG_FUNCTION (this);
   NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
 
   m_dpId = ++m_globalDpId;
-  m_node = 0;
   m_ctrlSocket = 0;
   m_ctrlAddr = Address ();
-  m_ifIndex = 0;
   m_datapath = DatapathNew ();
-  OFSwitch13NetDevice::RegisterDatapath (m_dpId,
-                                         Ptr<OFSwitch13NetDevice> (this));
-  Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout,
-                       this, m_datapath);
+  OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
+  Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout, this,
+                       m_datapath);
 }
 
-OFSwitch13NetDevice::~OFSwitch13NetDevice ()
+OFSwitch13Device::~OFSwitch13Device ()
 {
   NS_LOG_FUNCTION (this);
 }
 
 Ptr<OFSwitch13Port>
-OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
+OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
 {
   NS_LOG_FUNCTION (this << portDevice);
   NS_LOG_INFO ("Adding port addr " << portDevice->GetAddress ());
@@ -137,34 +134,33 @@ OFSwitch13NetDevice::AddSwitchPort (Ptr<NetDevice> portDevice)
   // Save port in port list (assert port no and vector index)
   m_ports.push_back (ofPort);
   NS_ASSERT (m_ports.size () == ofPort->GetPortNo ());
-  
+
   return ofPort;
 }
 
 void
-OFSwitch13NetDevice::ReceiveFromSwitchPort (Ptr<Packet> packet,
-                                            uint32_t portNo)
+OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo)
 {
   NS_LOG_FUNCTION (this << packet);
 
-  Simulator::Schedule (m_pipeDelay, &OFSwitch13NetDevice::SendToPipeline,
-                       this, packet, portNo);
+  Simulator::Schedule (m_pipeDelay, &OFSwitch13Device::SendToPipeline, this,
+                       packet, portNo);
 }
 
 uint32_t
-OFSwitch13NetDevice::GetNSwitchPorts (void) const
+OFSwitch13Device::GetNSwitchPorts (void) const
 {
   return m_datapath->ports_num;
 }
 
 uint64_t
-OFSwitch13NetDevice::GetDatapathId (void) const
+OFSwitch13Device::GetDatapathId (void) const
 {
   return m_dpId;
 }
 
 uint32_t
-OFSwitch13NetDevice::GetNumberFlowEntries (void) const
+OFSwitch13Device::GetNumberFlowEntries (void) const
 {
   NS_LOG_FUNCTION (this);
   NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
@@ -178,7 +174,7 @@ OFSwitch13NetDevice::GetNumberFlowEntries (void) const
 }
 
 uint32_t
-OFSwitch13NetDevice::GetNumberFlowEntries (size_t tid) const
+OFSwitch13Device::GetNumberFlowEntries (size_t tid) const
 {
   NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
 
@@ -192,7 +188,7 @@ OFSwitch13NetDevice::GetNumberFlowEntries (size_t tid) const
 }
 
 void
-OFSwitch13NetDevice::SetLibLogLevel (std::string log)
+OFSwitch13Device::SetLibLogLevel (std::string log)
 {
   NS_LOG_FUNCTION (this << log);
 
@@ -212,7 +208,7 @@ OFSwitch13NetDevice::SetLibLogLevel (std::string log)
 }
 
 void
-OFSwitch13NetDevice::StartControllerConnection ()
+OFSwitch13Device::StartControllerConnection ()
 {
   NS_LOG_FUNCTION (this);
   NS_ASSERT (!m_ctrlAddr.IsInvalid ());
@@ -221,7 +217,7 @@ OFSwitch13NetDevice::StartControllerConnection ()
   if (!m_ctrlSocket)
     {
       int error = 0;
-      m_ctrlSocket = Socket::CreateSocket (GetNode (),
+      m_ctrlSocket = Socket::CreateSocket (GetObject<Node> (),
                                            TcpSocketFactory::GetTypeId ());
       m_ctrlSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
 
@@ -241,8 +237,8 @@ OFSwitch13NetDevice::StartControllerConnection ()
         }
 
       m_ctrlSocket->SetConnectCallback (
-        MakeCallback (&OFSwitch13NetDevice::SocketCtrlSucceeded, this),
-        MakeCallback (&OFSwitch13NetDevice::SocketCtrlFailed, this));
+        MakeCallback (&OFSwitch13Device::SocketCtrlSucceeded, this),
+        MakeCallback (&OFSwitch13Device::SocketCtrlFailed, this));
 
       return;
     }
@@ -251,196 +247,17 @@ OFSwitch13NetDevice::StartControllerConnection ()
 }
 
 Ptr<OFSwitch13Queue>
-OFSwitch13NetDevice::GetOutputQueue (uint32_t portNo)
+OFSwitch13Device::GetOutputQueue (uint32_t portNo)
 {
   NS_LOG_FUNCTION (this << portNo);
   return GetOFSwitch13Port (portNo)->GetOutputQueue ();
 }
 
-// Inherited from NetDevice base class
-void
-OFSwitch13NetDevice::SetIfIndex (const uint32_t index)
-{
-  NS_LOG_FUNCTION (this);
-  m_ifIndex = index;
-}
-
-uint32_t
-OFSwitch13NetDevice::GetIfIndex (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_ifIndex;
-}
-
-Ptr<Channel>
-OFSwitch13NetDevice::GetChannel (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return 0;
-}
-
-// This is a OpenFlow device, so we really don't need any kind of address
-// information. We simply ignore it.
-void
-OFSwitch13NetDevice::SetAddress (Address address)
-{
-  NS_LOG_FUNCTION (this);
-}
-
-Address
-OFSwitch13NetDevice::GetAddress (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return Address ();
-}
-
-// No need to keep mtu, as we can query the port device for it.
-bool
-OFSwitch13NetDevice::SetMtu (const uint16_t mtu)
-{
-  NS_LOG_FUNCTION (this);
-  return true;
-}
-
-uint16_t
-OFSwitch13NetDevice::GetMtu (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return 0xffff;
-}
-
-bool
-OFSwitch13NetDevice::IsLinkUp (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return true;
-}
-
-void
-OFSwitch13NetDevice::AddLinkChangeCallback (Callback<void> callback)
-{
-}
-
-bool
-OFSwitch13NetDevice::IsBroadcast (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-Address
-OFSwitch13NetDevice::GetBroadcast (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return Mac48Address ("ff:ff:ff:ff:ff:ff");
-}
-
-bool
-OFSwitch13NetDevice::IsMulticast (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-Address
-OFSwitch13NetDevice::GetMulticast (Ipv4Address multicastGroup) const
-{
-  NS_LOG_FUNCTION (this << multicastGroup);
-  Mac48Address multicast = Mac48Address::GetMulticast (multicastGroup);
-  return multicast;
-}
-
-Address
-OFSwitch13NetDevice::GetMulticast (Ipv6Address addr) const
-{
-  NS_LOG_FUNCTION (this << addr);
-  return Mac48Address::GetMulticast (addr);
-}
-
-bool
-OFSwitch13NetDevice::IsPointToPoint (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-bool
-OFSwitch13NetDevice::IsBridge (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-// This is a OpenFlow device, so we don't send packets from here. Instead, we
-// use port netdevices to do this.
-bool
-OFSwitch13NetDevice::Send (Ptr<Packet> packet, const Address& dest,
-                           uint16_t protocolNumber)
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-bool
-OFSwitch13NetDevice::SendFrom (Ptr<Packet> packet, const Address& src,
-                               const Address& dest, uint16_t protocolNumber)
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-Ptr<Node>
-OFSwitch13NetDevice::GetNode (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_node;
-}
-
-void
-OFSwitch13NetDevice::SetNode (Ptr<Node> node)
-{
-  NS_LOG_FUNCTION (this);
-  m_node = node;
-}
-
-bool
-OFSwitch13NetDevice::NeedsArp (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
-// This is a OpenFlow device, so we don't expect packets addressed to this
-// node. So, there is no need for receive callbacks. Install a new device on
-// this node to send/receive packets to/from it (and don't add this device as
-// switch port). This is the principle for communication between switch and
-// controller.
-void
-OFSwitch13NetDevice::SetReceiveCallback (NetDevice::ReceiveCallback cb)
-{
-  NS_LOG_FUNCTION (this);
-}
-
-void
-OFSwitch13NetDevice::SetPromiscReceiveCallback (
-  NetDevice::PromiscReceiveCallback cb)
-{
-  NS_LOG_FUNCTION (this);
-}
-
-bool
-OFSwitch13NetDevice::SupportsSendFrom () const
-{
-  NS_LOG_FUNCTION (this);
-  return false;
-}
-
 // ofsoftswitch13 overriding and callback functions.
 int
-OFSwitch13NetDevice::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl)
+OFSwitch13Device::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl)
 {
-  Ptr<OFSwitch13NetDevice> dev =
-    OFSwitch13NetDevice::GetDatapathDevice (ctrl->dp->id);
+  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (ctrl->dp->id);
 
   // FIXME No support for multiple controllers / auxiliary connections by now.
   // So, just ignoring remote information and sending to our single socket.
@@ -449,12 +266,11 @@ OFSwitch13NetDevice::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl)
 }
 
 void
-OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
-                                          uint32_t outQueue, uint16_t maxLen,
-                                          uint64_t cookie)
+OFSwitch13Device::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
+                                       uint32_t outQueue, uint16_t maxLen,
+                                       uint64_t cookie)
 {
-  Ptr<OFSwitch13NetDevice> dev =
-    OFSwitch13NetDevice::GetDatapathDevice (pkt->dp->id);
+  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pkt->dp->id);
 
   switch (outPort)
     {
@@ -530,64 +346,57 @@ OFSwitch13NetDevice::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
 }
 
 void
-OFSwitch13NetDevice::MeterCreatedCallback (struct meter_entry *entry)
+OFSwitch13Device::MeterCreatedCallback (struct meter_entry *entry)
 {
-  Ptr<OFSwitch13NetDevice> dev =
-    OFSwitch13NetDevice::GetDatapathDevice (entry->dp->id);
+  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (entry->dp->id);
   dev->NotifyMeterEntryCreated (entry);
 }
 
 void
-OFSwitch13NetDevice::MeterDropCallback (struct packet *pkt)
+OFSwitch13Device::MeterDropCallback (struct packet *pkt)
 {
-  Ptr<OFSwitch13NetDevice> dev =
-    OFSwitch13NetDevice::GetDatapathDevice (pkt->dp->id);
+  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pkt->dp->id);
   dev->NotifyPacketDropped (pkt);
 }
 
 void
-OFSwitch13NetDevice::PacketCloneCallback (struct packet *pkt,
-                                          struct packet *clone)
+OFSwitch13Device::PacketCloneCallback (struct packet *pkt,
+                                       struct packet *clone)
 {
-  Ptr<OFSwitch13NetDevice> dev =
-    OFSwitch13NetDevice::GetDatapathDevice (pkt->dp->id);
+  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pkt->dp->id);
   dev->NotifyPacketCloned (pkt, clone);
 }
 
 void
-OFSwitch13NetDevice::PacketDestroyCallback (struct packet *pkt)
+OFSwitch13Device::PacketDestroyCallback (struct packet *pkt)
 {
-  Ptr<OFSwitch13NetDevice> dev =
-    OFSwitch13NetDevice::GetDatapathDevice (pkt->dp->id);
+  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pkt->dp->id);
   dev->NotifyPacketDestroyed (pkt);
 }
 
 void
-OFSwitch13NetDevice::BufferSaveCallback (struct packet *pkt, time_t timeout)
+OFSwitch13Device::BufferSaveCallback (struct packet *pkt, time_t timeout)
 {
-  Ptr<OFSwitch13NetDevice> dev =
-    OFSwitch13NetDevice::GetDatapathDevice (pkt->dp->id);
+  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pkt->dp->id);
   dev->BufferPacketSave (pkt->ns3_uid, timeout);
 }
 
 void
-OFSwitch13NetDevice::BufferRetrieveCallback (struct packet *pkt)
+OFSwitch13Device::BufferRetrieveCallback (struct packet *pkt)
 {
-  Ptr<OFSwitch13NetDevice> dev =
-    OFSwitch13NetDevice::GetDatapathDevice (pkt->dp->id);
+  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pkt->dp->id);
   dev->BufferPacketRetrieve (pkt->ns3_uid);
 }
 
 
 /********** Private methods **********/
 void
-OFSwitch13NetDevice::DoDispose ()
+OFSwitch13Device::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  OFSwitch13NetDevice::UnregisterDatapath (m_dpId);
+  OFSwitch13Device::UnregisterDatapath (m_dpId);
 
-  m_node = 0;
   m_ctrlSocket = 0;
   PortList_t::iterator it;
   for (it = m_ports.begin (); it != m_ports.end (); it++)
@@ -603,11 +412,11 @@ OFSwitch13NetDevice::DoDispose ()
   meter_table_destroy (m_datapath->meters);
   free (m_datapath);
 
-  NetDevice::DoDispose ();
+  Object::DoDispose ();
 }
 
 datapath*
-OFSwitch13NetDevice::DatapathNew ()
+OFSwitch13Device::DatapathNew ()
 {
   NS_LOG_FUNCTION (this);
 
@@ -654,18 +463,18 @@ OFSwitch13NetDevice::DatapathNew ()
   dp->config.miss_send_len = OFP_DEFAULT_MISS_SEND_LEN; // 128 bytes
 
   // ofsoftswitch13 callbacks
-  dp->pkt_clone_cb = &OFSwitch13NetDevice::PacketCloneCallback;
-  dp->pkt_destroy_cb = &OFSwitch13NetDevice::PacketDestroyCallback;
-  dp->buff_save_cb = &OFSwitch13NetDevice::BufferSaveCallback;
-  dp->buff_retrieve_cb = &OFSwitch13NetDevice::BufferRetrieveCallback;
-  dp->meter_drop_cb = &OFSwitch13NetDevice::MeterDropCallback;
-  dp->meter_created_cb = &OFSwitch13NetDevice::MeterCreatedCallback;
+  dp->pkt_clone_cb = &OFSwitch13Device::PacketCloneCallback;
+  dp->pkt_destroy_cb = &OFSwitch13Device::PacketDestroyCallback;
+  dp->buff_save_cb = &OFSwitch13Device::BufferSaveCallback;
+  dp->buff_retrieve_cb = &OFSwitch13Device::BufferRetrieveCallback;
+  dp->meter_drop_cb = &OFSwitch13Device::MeterDropCallback;
+  dp->meter_created_cb = &OFSwitch13Device::MeterCreatedCallback;
 
   return dp;
 }
 
 void
-OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
+OFSwitch13Device::DatapathTimeout (datapath* dp)
 {
   NS_LOG_FUNCTION (this);
 
@@ -694,23 +503,23 @@ OFSwitch13NetDevice::DatapathTimeout (datapath* dp)
 
   dp->last_timeout = time_now ();
   m_lastTimeout = Simulator::Now ();
-  Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::DatapathTimeout,
-                       this, dp);
+  Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout, this,
+                       dp);
 }
 
 Ptr<OFSwitch13Port>
-OFSwitch13NetDevice::GetOFSwitch13Port (uint32_t no)
+OFSwitch13Device::GetOFSwitch13Port (uint32_t no)
 {
   NS_LOG_FUNCTION (this << no);
-  
+
   // Assert port no (starts at 1)
   NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Port is out of range.");
   return m_ports.at (no - 1);
 }
 
 bool
-OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
-                                       uint32_t queueNo)
+OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
+                                    uint32_t queueNo)
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid << portNo);
 
@@ -740,7 +549,7 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
           // original packet.
           NS_LOG_DEBUG ("Packet modified by OpenFlow switch.");
           packet = ofs::PacketFromBuffer (pkt->buffer);
-          OFSwitch13NetDevice::CopyTags (m_pktPipe.GetPacket (), packet);
+          OFSwitch13Device::CopyTags (m_pktPipe.GetPacket (), packet);
         }
       else
         {
@@ -760,7 +569,7 @@ OFSwitch13NetDevice::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
 }
 
 void
-OFSwitch13NetDevice::SendToPipeline (Ptr<Packet> packet, uint32_t portNo)
+OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo)
 {
   NS_LOG_FUNCTION (this << packet);
   NS_ASSERT_MSG (!m_pktPipe.IsValid (), "Another packet in pipeline.");
@@ -773,7 +582,7 @@ OFSwitch13NetDevice::SendToPipeline (Ptr<Packet> packet, uint32_t portNo)
   struct packet *pkt = packet_create (m_datapath, portNo, buffer, false);
 
   // Save the ns-3 packet
-  pkt->ns3_uid = OFSwitch13NetDevice::GetNewPacketId ();
+  pkt->ns3_uid = OFSwitch13Device::GetNewPacketId ();
   m_pktPipe.SetPacket (pkt->ns3_uid, packet);
 
   // Send packet to ofsoftswitch13 pipeline
@@ -781,7 +590,7 @@ OFSwitch13NetDevice::SendToPipeline (Ptr<Packet> packet, uint32_t portNo)
 }
 
 int
-OFSwitch13NetDevice::SendToController (Ptr<Packet> packet)
+OFSwitch13Device::SendToController (Ptr<Packet> packet)
 {
   if (!m_ctrlSocket)
     {
@@ -793,7 +602,7 @@ OFSwitch13NetDevice::SendToController (Ptr<Packet> packet)
   if (m_ctrlSocket->GetTxAvailable () < packet->GetSize ())
     {
       NS_LOG_ERROR ("Unavailable space to send OpenFlow message now.");
-      Simulator::Schedule (m_timeout, &OFSwitch13NetDevice::SendToController,
+      Simulator::Schedule (m_timeout, &OFSwitch13Device::SendToController,
                            this, packet);
     }
 
@@ -806,7 +615,7 @@ OFSwitch13NetDevice::SendToController (Ptr<Packet> packet)
 }
 
 void
-OFSwitch13NetDevice::ReceiveFromController (Ptr<Socket> socket)
+OFSwitch13Device::ReceiveFromController (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
 
@@ -911,13 +720,13 @@ OFSwitch13NetDevice::ReceiveFromController (Ptr<Socket> socket)
 }
 
 void
-OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
+OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
 
   NS_LOG_LOGIC ("Controller accepted connection request!");
   socket->SetRecvCallback (
-    MakeCallback (&OFSwitch13NetDevice::ReceiveFromController, this));
+    MakeCallback (&OFSwitch13Device::ReceiveFromController, this));
 
   // Save connection information to remotes list in datapath
   remote_create (m_datapath, 0, 0);
@@ -929,14 +738,14 @@ OFSwitch13NetDevice::SocketCtrlSucceeded (Ptr<Socket> socket)
 }
 
 void
-OFSwitch13NetDevice::SocketCtrlFailed (Ptr<Socket> socket)
+OFSwitch13Device::SocketCtrlFailed (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
   NS_LOG_ERROR ("Controller did not accepted connection request!");
 }
 
 void
-OFSwitch13NetDevice::NotifyMeterEntryCreated (struct meter_entry *entry)
+OFSwitch13Device::NotifyMeterEntryCreated (struct meter_entry *entry)
 {
   NS_LOG_FUNCTION (this << entry->config->meter_id);
 
@@ -951,19 +760,17 @@ OFSwitch13NetDevice::NotifyMeterEntryCreated (struct meter_entry *entry)
 }
 
 void
-OFSwitch13NetDevice::NotifyPacketCloned (struct packet *pkt,
-                                         struct packet *cloned)
+OFSwitch13Device::NotifyPacketCloned (struct packet *pkt, struct packet *clone)
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid);
 
-
   // Assigning a new unique ID for this cloned packet.
-  cloned->ns3_uid = OFSwitch13NetDevice::GetNewPacketId ();
-  m_pktPipe.NewCopy (cloned->ns3_uid);
+  clone->ns3_uid = OFSwitch13Device::GetNewPacketId ();
+  m_pktPipe.NewCopy (clone->ns3_uid);
 }
 
 void
-OFSwitch13NetDevice::NotifyPacketDestroyed (struct packet *pkt)
+OFSwitch13Device::NotifyPacketDestroyed (struct packet *pkt)
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid);
 
@@ -989,7 +796,7 @@ OFSwitch13NetDevice::NotifyPacketDestroyed (struct packet *pkt)
 }
 
 void
-OFSwitch13NetDevice::NotifyPacketDropped (struct packet *pkt)
+OFSwitch13Device::NotifyPacketDropped (struct packet *pkt)
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid);
 
@@ -1001,7 +808,7 @@ OFSwitch13NetDevice::NotifyPacketDropped (struct packet *pkt)
 }
 
 void
-OFSwitch13NetDevice::BufferPacketSave (uint64_t packetId, time_t timeout)
+OFSwitch13Device::BufferPacketSave (uint64_t packetId, time_t timeout)
 {
   NS_LOG_FUNCTION (this << packetId);
 
@@ -1022,12 +829,11 @@ OFSwitch13NetDevice::BufferPacketSave (uint64_t packetId, time_t timeout)
   // resolution is expressed in seconds, let's double it to avoid rounding
   // conflicts.
   Simulator::Schedule (Time::FromInteger (2 * timeout, Time::S),
-                       &OFSwitch13NetDevice::BufferPacketDelete,
-                       this, packetId);
+                       &OFSwitch13Device::BufferPacketDelete, this, packetId);
 }
 
 void
-OFSwitch13NetDevice::BufferPacketRetrieve (uint64_t packetId)
+OFSwitch13Device::BufferPacketRetrieve (uint64_t packetId)
 {
   NS_LOG_FUNCTION (this << packetId);
 
@@ -1041,7 +847,7 @@ OFSwitch13NetDevice::BufferPacketRetrieve (uint64_t packetId)
 }
 
 void
-OFSwitch13NetDevice::BufferPacketDelete (uint64_t packetId)
+OFSwitch13Device::BufferPacketDelete (uint64_t packetId)
 {
   NS_LOG_FUNCTION (this << packetId);
 
@@ -1054,14 +860,13 @@ OFSwitch13NetDevice::BufferPacketDelete (uint64_t packetId)
 }
 
 uint64_t
-OFSwitch13NetDevice::GetNewPacketId ()
+OFSwitch13Device::GetNewPacketId ()
 {
   return ++m_globalPktId;
 }
 
 bool
-OFSwitch13NetDevice::CopyTags (Ptr<const Packet> srcPkt,
-                               Ptr<const Packet> dstPkt)
+OFSwitch13Device::CopyTags (Ptr<const Packet> srcPkt, Ptr<const Packet> dstPkt)
 {
   // Copy packet tags
   PacketTagIterator pktIt = srcPkt->GetPacketTagIterator ();
@@ -1091,12 +896,11 @@ OFSwitch13NetDevice::CopyTags (Ptr<const Packet> srcPkt,
 }
 
 void
-OFSwitch13NetDevice::RegisterDatapath (uint64_t id,
-                                       Ptr<OFSwitch13NetDevice> dev)
+OFSwitch13Device::RegisterDatapath (uint64_t id, Ptr<OFSwitch13Device> dev)
 {
-  std::pair<uint64_t, Ptr<OFSwitch13NetDevice> > entry (id, dev);
+  std::pair<uint64_t, Ptr<OFSwitch13Device> > entry (id, dev);
   std::pair<DpIdDevMap_t::iterator, bool> ret;
-  ret = OFSwitch13NetDevice::m_globalSwitchMap.insert (entry);
+  ret = OFSwitch13Device::m_globalSwitchMap.insert (entry);
   if (ret.second == false)
     {
       NS_FATAL_ERROR ("Error inserting datapath device into global map.");
@@ -1104,13 +908,13 @@ OFSwitch13NetDevice::RegisterDatapath (uint64_t id,
 }
 
 void
-OFSwitch13NetDevice::UnregisterDatapath (uint64_t id)
+OFSwitch13Device::UnregisterDatapath (uint64_t id)
 {
   DpIdDevMap_t::iterator it;
-  it = OFSwitch13NetDevice::m_globalSwitchMap.find (id);
-  if (it != OFSwitch13NetDevice::m_globalSwitchMap.end ())
+  it = OFSwitch13Device::m_globalSwitchMap.find (id);
+  if (it != OFSwitch13Device::m_globalSwitchMap.end ())
     {
-      OFSwitch13NetDevice::m_globalSwitchMap.erase (it);
+      OFSwitch13Device::m_globalSwitchMap.erase (it);
     }
   else
     {
@@ -1118,12 +922,12 @@ OFSwitch13NetDevice::UnregisterDatapath (uint64_t id)
     }
 }
 
-Ptr<OFSwitch13NetDevice>
-OFSwitch13NetDevice::GetDatapathDevice (uint64_t id)
+Ptr<OFSwitch13Device>
+OFSwitch13Device::GetDevice (uint64_t id)
 {
   DpIdDevMap_t::iterator it;
-  it = OFSwitch13NetDevice::m_globalSwitchMap.find (id);
-  if (it != OFSwitch13NetDevice::m_globalSwitchMap.end ())
+  it = OFSwitch13Device::m_globalSwitchMap.find (id);
+  if (it != OFSwitch13Device::m_globalSwitchMap.end ())
     {
       return it->second;
     }
@@ -1134,15 +938,14 @@ OFSwitch13NetDevice::GetDatapathDevice (uint64_t id)
     }
 }
 
-OFSwitch13NetDevice::PipelinePacket::PipelinePacket ()
+OFSwitch13Device::PipelinePacket::PipelinePacket ()
   : m_valid (false),
     m_packet (0)
 {
 }
 
 void
-OFSwitch13NetDevice::PipelinePacket::SetPacket (uint64_t id,
-                                                Ptr<Packet> packet)
+OFSwitch13Device::PipelinePacket::SetPacket (uint64_t id, Ptr<Packet> packet)
 {
   NS_ASSERT_MSG (id && packet, "Invalid packet metadata values.");
   m_valid = true;
@@ -1151,14 +954,14 @@ OFSwitch13NetDevice::PipelinePacket::SetPacket (uint64_t id,
 }
 
 Ptr<Packet>
-OFSwitch13NetDevice::PipelinePacket::GetPacket (void) const
+OFSwitch13Device::PipelinePacket::GetPacket (void) const
 {
   NS_ASSERT_MSG (IsValid (), "Invalid packet metadata.");
   return m_packet;
 }
 
 void
-OFSwitch13NetDevice::PipelinePacket::Invalidate (void)
+OFSwitch13Device::PipelinePacket::Invalidate (void)
 {
   m_valid = false;
   m_packet = 0;
@@ -1166,20 +969,20 @@ OFSwitch13NetDevice::PipelinePacket::Invalidate (void)
 }
 
 bool
-OFSwitch13NetDevice::PipelinePacket::IsValid (void) const
+OFSwitch13Device::PipelinePacket::IsValid (void) const
 {
   return m_valid;
 }
 
 void
-OFSwitch13NetDevice::PipelinePacket::NewCopy (uint64_t id)
+OFSwitch13Device::PipelinePacket::NewCopy (uint64_t id)
 {
   NS_ASSERT_MSG (m_valid, "Invalid packet metadata.");
   m_ids.push_back (id);
 }
 
 bool
-OFSwitch13NetDevice::PipelinePacket::DelCopy (uint64_t id)
+OFSwitch13Device::PipelinePacket::DelCopy (uint64_t id)
 {
   NS_ASSERT_MSG (m_valid, "Invalid packet metadata.");
 
@@ -1200,7 +1003,7 @@ OFSwitch13NetDevice::PipelinePacket::DelCopy (uint64_t id)
 }
 
 bool
-OFSwitch13NetDevice::PipelinePacket::HasId (uint64_t id)
+OFSwitch13Device::PipelinePacket::HasId (uint64_t id)
 {
   NS_ASSERT_MSG (m_valid, "Invalid packet metadata.");
 

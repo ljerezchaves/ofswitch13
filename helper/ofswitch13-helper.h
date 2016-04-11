@@ -1,5 +1,7 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
+ * Copyright (c) 2015 University of Campinas (Unicamp)
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -21,8 +23,8 @@
 
 #include "ns3/ofswitch13-interface.h"
 #include "ns3/ofswitch13-controller.h"
-#include "ns3/ofswitch13-net-device.h"
-#include "ns3/net-device-container.h"
+#include "ns3/ofswitch13-device.h"
+#include "ns3/ofswitch13-device-container.h"
 #include "ns3/ipv4-interface-container.h"
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipv4-address-helper.h"
@@ -79,8 +81,7 @@ public:
   virtual void DoDispose ();
 
   /**
-   * Set an attribute on each ns3::OFSwitch13NetDevice created by
-   * this helper.
+   * Set an attribute on each ns3::OFSwitch13Device created by this helper.
    *
    * \param n1 the name of the attribute to set
    * \param v1 the value of the attribute to set
@@ -124,7 +125,7 @@ public:
                        Ipv4Address base = "0.0.0.1");
 
   /**
-   * This method creates and install a ns3::OFSwitch13NetDevice at each node in
+   * This method creates and aggregate a ns3::OFSwitch13Device at each node in
    * swNodes container. It also installs the TCP/IP stack into each node, and
    * connects them to the controller. Finally, if the controller has been
    * already set, it starts the switch <--> controller connection.
@@ -133,9 +134,10 @@ public:
    * forget to add ports do them later, or they will do nothing.
    *
    * \param swNodes The nodes to install the device in
-   * \returns A container holding the OFSwitch13NetDevice net devices.
+   * \returns A container holding the OFSwitch13Device devices.
    */
-  NetDeviceContainer InstallSwitchesWithoutPorts (NodeContainer swNodes);
+  OFSwitch13DeviceContainer InstallSwitchesWithoutPorts (
+    NodeContainer swNodes);
 
   /**
    * This method creates a new ns3::OFSwitch13LearningController application
@@ -150,7 +152,7 @@ public:
   Ptr<OFSwitch13Controller> InstallDefaultController (Ptr<Node> cNode);
 
   /**
-   * This method creates a ns3::OFSwitch13NetDevice, adds the device to the
+   * This method creates a ns3::OFSwitch13Device, aggregates it to the
    * swNode, and attaches the given NetDevices as ports of the switch. It also
    * installs the TCP/IP stack into swNode, and connects it to the controller.
    * Finally, if the controller has been already set, start the switch <-->
@@ -158,9 +160,10 @@ public:
    *
    * \param swNode The node to install the device in
    * \param ports Container of NetDevices to add as switch ports
-   * \returns A container holding the OFSwitch13NetDevice net device.
+   * \returns A container holding the OFSwitch13Device devices.
    */
-  NetDeviceContainer InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
+  OFSwitch13DeviceContainer InstallSwitch (
+    Ptr<Node> swNode, NetDeviceContainer ports);
 
   /**
    * This method installs the given ns3::OFSwitch13Controller application into
@@ -172,8 +175,8 @@ public:
    * \param controller The controller application to install into cNode
    * \returns The controller application (same as input)
    */
-  Ptr<OFSwitch13Controller> InstallControllerApp (Ptr<Node> cNode,
-                                                  Ptr<OFSwitch13Controller> controller);
+  Ptr<OFSwitch13Controller> InstallControllerApp (
+    Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
 
   /**
    * This method prepares the cNode so it can connect to an external OpenFlow
@@ -204,13 +207,13 @@ public:
   void EnableOpenFlowAscii (std::string prefix = "ofchannel");
 
 protected:
-  ObjectFactory             m_ndevFactory;      //!< OpenFlow NetDevice factory
-  NetDeviceContainer        m_devices;          //!< OFSwitch13NetDevices
-  NetDeviceContainer        m_ctrlDevs;         //!< Controller to switch devices
-  InternetStackHelper       m_internet;         //!< Helper for installing TCP/IP
-  Ipv4AddressHelper         m_ipv4helper;       //!< Helper for assigning IP
-  CsmaHelper                m_csmaHelper;       //!< Helper for switches csma connection
-  PointToPointHelper        m_p2pHelper;        //!< Helper for switches p2p connection
+  ObjectFactory             m_devFactory;       //!< OpenFlow device factory
+  OFSwitch13DeviceContainer m_devices;          //!< OpenFlow devices
+  NetDeviceContainer        m_ctrlDevs;         //!< Controller devices
+  InternetStackHelper       m_internet;         //!< Helper for TCP/IP
+  Ipv4AddressHelper         m_ipv4helper;       //!< Helper for IP address
+  CsmaHelper                m_csmaHelper;       //!< Helper for csma connection
+  PointToPointHelper        m_p2pHelper;        //!< Helper for p2p connection
   Ptr<CsmaChannel>          m_csmaChannel;      //!< Common controller channel
   Ptr<Node>                 m_ctrlNode;         //!< Controller node
   Ptr<OFSwitch13Controller> m_ctrlApp;          //!< Controller application

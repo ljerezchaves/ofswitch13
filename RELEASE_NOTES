@@ -2,7 +2,37 @@
 OFSwithc13 release notes
 +++++++++++++++++++++++++++++++++++++
 
-This file contains OFSwitch13 release notes (most recent releases first).  
+This file contains OFSwitch13 release notes (most recent releases first).
+
+Release 2.0.2 (April 11, 2016)
+==============================
+
+- Including the QosController example.
+
+- The OpenFlow device is not an NetDevice child anymore. This was done to avoid
+  misleading interpretation and configuration problems with further ns-3
+  versions. The OFSwitch13NetDevice class was renamed to OFSwitch13Device to
+  better reflect this change.
+
+- Replacing the CsmaNetDevice OpenFlow trace source, used by prior versions to
+  get packets from the CsmaNetDevice port, by a new CsmaNetDevice OpenFlow
+  receive callback. This new callback avoid problems with internal receive
+  semantics in the way that, for CsmaNetDevice configure as OpenFlow ports, the
+  default receive callback is never invoked.
+
+- Creating a OFSwithc13DeviceContainer for handling CsmaNetDevices. Note the
+  change on InstallSwitch* methods on the OFSwitch13Helper.
+
+- By default, 8 priority queues are created for each OFSwitch13Queue and are
+  available for use.
+
+- Updating the documentation with a better module design description (including
+  new figures) and the QosController description. Minor corrections along the
+  entire text.
+
+- This code is compatible with ofsoftswitch13 library, release v2.0.x and ns-3
+  versions 3.22, 3.23 and 3.24.1, and 3.25 (including patches for ns-3.25).
+
 
 Release 2.0.1 (February 16, 2016)
 =================================
@@ -14,7 +44,8 @@ Release 2.0.1 (February 16, 2016)
 
 - Including this release notes file.
 
-- This code is compatible with ofsoftswitch13 library, release v2.0.x.
+- This code is compatible with ofsoftswitch13 library, release v2.0.x and ns-3
+  versions 3.22, 3.23 and 3.24.1.
 
 
 Release 2.0.0 (February 15, 2016)
@@ -23,5 +54,6 @@ Release 2.0.0 (February 15, 2016)
 - First public release of the OFSwitch13 module, including source code and
   documentation.
 
-- This code is compatible with ofsoftswitch13 library, release v2.0.x.
+- This code is compatible with ofsoftswitch13 library, release v2.0.x and ns-3
+  versions 3.22, 3.23 and 3.24.1.
 

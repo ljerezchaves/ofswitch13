@@ -53,7 +53,6 @@ OFSwitch13LearningController::DoDispose ()
 {
   m_learnedInfo.clear ();
   OFSwitch13Controller::DoDispose ();
-  Application::DoDispose ();
 }
 
 ofl_err
@@ -64,7 +63,7 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg,
 
   static int prio = 100;
   uint32_t outPort = OFPP_FLOOD;
-  uint64_t dpId = swtch.netdev->GetDatapathId ();
+  uint64_t dpId = swtch.swDev->GetDatapathId ();
   enum ofp_packet_in_reason reason = msg->reason;
 
   char *m =
@@ -195,7 +194,7 @@ OFSwitch13LearningController::HandleFlowRemoved (
   NS_LOG_FUNCTION (swtch.ipv4 << xid);
   NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");
 
-  uint64_t dpId = swtch.netdev->GetDatapathId ();
+  uint64_t dpId = swtch.swDev->GetDatapathId ();
   DatapathMap_t::iterator it = m_learnedInfo.find (dpId);
   if (it != m_learnedInfo.end ())
     {
@@ -233,7 +232,7 @@ OFSwitch13LearningController::ConnectionStarted (SwitchInfo swtch)
 
   // Create an empty L2SwitchingTable and insert it into m_learnedInfo
   L2Table_t l2Table;
-  uint64_t dpId = swtch.netdev->GetDatapathId ();
+  uint64_t dpId = swtch.swDev->GetDatapathId ();
 
   std::pair <DatapathMap_t::iterator, bool> ret;
   ret =  m_learnedInfo.insert (std::pair<uint64_t, L2Table_t> (dpId, l2Table));

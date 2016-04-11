@@ -25,22 +25,22 @@
 #include "ns3/socket.h"
 #include "ns3/tcp-socket-factory.h"
 #include "ofswitch13-interface.h"
-#include "ofswitch13-net-device.h"
+#include "ofswitch13-device.h"
 #include <string>
 
 namespace ns3 {
 
-class OFSwitch13NetDevice;
+class OFSwitch13Device;
 class OFSwitch13Controller;
 
 /**
  * \ingroup ofswitch13
- * \brief Switch metadata used by controller
+ * \brief Switch metadata saved by the controller interface.
  */
 struct SwitchInfo
 {
   Ipv4Address ipv4;                 //!< Switch IPv4 address
-  Ptr<OFSwitch13NetDevice> netdev;  //!< OpenFlow NetDevice
+  Ptr<OFSwitch13Device> swDev;      //!< Switch OpenFlow device
   Ptr<Node> node;                   //!< Switch node
   Ptr<OFSwitch13Controller> ctrl;   //!< Controller application
   Ptr<Socket> socket;               //!< TCP socket connected to controller
@@ -51,7 +51,13 @@ struct SwitchInfo
 
 /**
  * \ingroup ofswitch13
- * \brief OpenFlow 1.3 controller base class for OFSwitch13NetDevice devices.
+ * \brief OpenFlow 1.3 controller base class that can handle a collection of
+ * OpenFlow switches and provides the basic functionalities for controller
+ * implementation. For constructing OpenFlow configuration messages and sending
+ * them to the switches, this class uses the DpctlCommand function, which
+ * relies on command-line syntax from the dpctl utility. For OpenFlow messages
+ * coming from the switches, this class provides a collection of internal
+ * handlers to deal with the different types of messages.
  */
 class OFSwitch13Controller : public Application
 {
@@ -78,10 +84,10 @@ public:
 
   /**
    * Look for registered switch metadata from OpenFlow device.
-   * \param dev The OpenFlow NetDevice.
+   * \param dev The OpenFlow device.
    * \return The switch metadata information.
    */
-  SwitchInfo GetSwitchMetadata (Ptr<const OFSwitch13NetDevice> dev);
+  SwitchInfo GetSwitchMetadata (Ptr<const OFSwitch13Device> dev);
 
   /**
    * \brief Execute a dpctl command to interact with the switch.
@@ -93,11 +99,11 @@ public:
 
   /**
    * \brief Execute a dpctl command to interact with the switch.
-   * \param swtch The target switch device
+   * \param dev The OpenFlow device.
    * \param textCmd The dpctl command to create the message.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int DpctlCommand (Ptr<const OFSwitch13NetDevice> swtch,
+  int DpctlCommand (Ptr<const OFSwitch13Device> dev,
                     const std::string textCmd);
 
   /**
@@ -156,16 +162,15 @@ protected:
   /**
    * \name OpenFlow message handlers
    * Handlers used by ReceiveFromSwitch to process each type of OpenFlow
-   * message received from the switch. Some handler methods can not be
-   * overwritten by derived class (echo request/reply), as they must behave as
-   * already implemented. In constrast, packetIn must be implementd by the
-   * derived controller, to proper handle packets sent from switch to
-   * controller. The current implementation of other virtual methods does
-   * nothing: just free the received message and returns 0. Derived controllers
-   * can reimplement them as they wish.
+   * message received from the switch. Echo request and reply handlers can not
+   * be overwritten by derived class, as they must behave as already
+   * implemented. The current implementation of other virtual handler methods
+   * does nothing: just free the received message and returns 0. Derived
+   * controllers can override them as they wish to implement the desired
+   * control logic.
    *
-   * For HandleMultipartReply, note that there are several types of multipart
-   * replies. Derived controllers can filter by the type they wish.
+   * Note that for HandleMultipartReply there are several types of multipart
+   * messages. Derived controllers can filter by the type they wish.
    *
    * \attention Handlers \em MUST free received msg when everything is ok.
    * \param msg The OpenFlow received message.
@@ -181,7 +186,7 @@ protected:
   HandleEchoReply (ofl_msg_echo *msg, SwitchInfo swtch, uint32_t xid);
 
   virtual ofl_err
-  HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid) = 0;
+  HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid);
 
   virtual ofl_err
   HandleError (ofl_msg_error *msg, SwitchInfo swtch, uint32_t xid);
@@ -216,7 +221,7 @@ protected:
                              SwitchInfo swtch, uint32_t xid);
   //\}
 
-  /** Echo request metadata used by controller. */
+  /** Echo request metadata used by controller interface. */
   struct EchoInfo
   {
     bool waiting;                 //!< True when waiting for reply
@@ -279,7 +284,7 @@ private:
   typedef std::map<uint32_t, EchoInfo> EchoMsgMap_t;
 
   /** Multimap saving pair <pointer to device / dpctl command str> */
-  typedef std::multimap<Ptr<OFSwitch13NetDevice>, std::string> DevCmdMap_t;
+  typedef std::multimap<Ptr<OFSwitch13Device>, std::string> DevCmdMap_t;
 
   uint32_t      m_xid;              //!< Global transaction idx
   uint16_t      m_port;             //!< Local controller tcp port

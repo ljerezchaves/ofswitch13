@@ -4,6 +4,13 @@ import os
 from waflib import Logs, Options
 from waflib.Errors import WafError
 
+def check_325_prior_version(version):
+    base = (3, 25)
+    try:
+        comp = tuple(map(int, (version.split("."))))
+        return comp < base
+    except:
+        return False
 
 def options(opt):
     opt.add_option('--with-ofswitch13',
@@ -22,21 +29,20 @@ def configure(conf):
     if os.path.isdir(Options.options.with_ofswitch13):
             conf.msg("Checking for OpenFlow 1.3 location", ("%s (given)" % Options.options.with_ofswitch13))
             conf.env.WITH_OFSWITCH13 = os.path.abspath(Options.options.with_ofswitch13)
-        
+
     if not conf.env.WITH_OFSWITCH13:
         conf.msg("Checking for OpenFlow 1.3 location", False)
         conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 Integration", False,
                                      "OpenFlow 1.3 given location not found (see option --with-ofswitch13)")
         conf.env.MODULES_NOT_BUILT.append('ofswitch13')
-        return 
-
+        return
 
     # Checking for libraries and configuring paths
     conf.env.DL = conf.check(mandatory=True, lib='dl', define_name='DL', uselib_store='DL')
     conf.env.NBEE = conf.check(mandatory=True, lib='nbee', define_name='NBEE', uselib_store='NBEE')
     conf.env.OFSWITCH13 = conf.check(mandatory=True, lib='ns3ofswitch13', use='NBEE',
             libpath=os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'udatapath')))
-     
+
     conf.env.DEFINES_OFSWITCH13 = ['NS3_OFSWITCH13']
     conf.env.INCLUDES_OFSWITCH13 = [
             os.path.abspath(conf.env['WITH_OFSWITCH13']),
@@ -48,13 +54,19 @@ def configure(conf):
             os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'udatapath'))];
     conf.env.LIB_OFSWITCH13 = ['dl', 'nbee', 'ns3ofswitch13']
     conf.env.LIBPATH_OFSWITCH13 = [os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'udatapath'))]
-   
+
+    if check_325_prior_version(conf.env.VERSION):
+        conf.msg ("Checking for ns-3 version prior than 3.25", "yes")
+        conf.env.DEFINES_OFSWITCH13.append ('NS3_OFSWITCH13_PRIOR_325')
+    else:
+        conf.msg ("Checking for ns-3 version prior than 3.25", "no")
+
     conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 Integration",
             conf.env.OFSWITCH13, "ns3ofswitch13 library not found")
-    
+
     if not conf.env.OFSWITCH13:
         conf.env.MODULES_NOT_BUILT.append('ofswitch13')
-   
+
 
 def build(bld):
     # Don't do anything for this module if ofswitch13's not enabled.
@@ -65,12 +77,13 @@ def build(bld):
     module.source = [
         'model/ofswitch13-interface.cc',
         'model/ofswitch13-port.cc',
-        'model/ofswitch13-net-device.cc',
+        'model/ofswitch13-device.cc',
         'model/ofswitch13-controller.cc',
         'model/ofswitch13-learning-controller.cc',
         'model/ofswitch13-queue.cc',
         'model/queue-tag.cc',
-        'helper/ofswitch13-helper.cc'
+        'helper/ofswitch13-helper.cc',
+        'helper/ofswitch13-device-container.cc'
         ]
     module.use.extend('OFSWITCH13'.split())
 
@@ -86,12 +99,13 @@ def build(bld):
     headers.source = [
         'model/ofswitch13-interface.h',
         'model/ofswitch13-port.h',
-        'model/ofswitch13-net-device.h',
+        'model/ofswitch13-device.h',
         'model/ofswitch13-controller.h',
         'model/ofswitch13-learning-controller.h',
         'model/ofswitch13-queue.h',
         'model/queue-tag.h',
-        'helper/ofswitch13-helper.h'
+        'helper/ofswitch13-helper.h',
+        'helper/ofswitch13-device-container.h'
         ]
 
     if bld.env['ENABLE_EXAMPLES']:
