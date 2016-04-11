@@ -53,7 +53,6 @@ OFSwitch13LearningController::DoDispose ()
 {
   m_learnedInfo.clear ();
   OFSwitch13Controller::DoDispose ();
-  Application::DoDispose ();
 }
 
 ofl_err
