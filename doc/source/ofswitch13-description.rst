@@ -364,10 +364,10 @@ versions, users can apply the *csma* patch and, if necessary, manually resolve
 the conflicts.
 
 The ``OFSwitch13`` module versions 2.0.0, 2.0.1 and 2.0.2 (latest) have been
-tested with |ns3| versions 2.22, 2.23 and 2.24.1. They are fully compatible
-with ``ofsoftswitch13`` library release 2.0.x. It is strongly recommended to
-use the latest module version for better results. Please, avoid the use
-``OFSwitch13`` versions prior to 2.0.0, which cannot be considerable as
+tested with |ns3| versions 3.22, 3.23, 3.24.1, and 3.25. They are fully
+compatible with ``ofsoftswitch13`` library release 2.0.x. It is strongly
+recommended to use the latest module version for better results. Please, avoid
+the use ``OFSwitch13`` versions prior to 2.0.0, which cannot be considerable as
 stable.
 
 References
