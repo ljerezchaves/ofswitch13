@@ -1,0 +1,86 @@
+diff --git a/doc/doxygen.conf b/doc/doxygen.conf
+--- a/doc/doxygen.conf
++++ b/doc/doxygen.conf
+@@ -884,6 +884,7 @@
+                          src/network/examples \
+                          src/nix-vector-routing/examples \
+                          src/olsr/examples \
++                         src/ofswitch13/examples \
+                          src/openflow/examples \
+                          src/point-to-point/examples \
+                          src/propagation/examples \
+diff --git a/doc/main.h b/doc/main.h
+--- a/doc/main.h
++++ b/doc/main.h
+@@ -47,6 +47,7 @@
+  *     - nix-vector-routing
+  *     - ns3tcp
+  *     - ns3wifi
++ *     - ofswitch13
+  *     - olsr
+  *     - openflow
+  *     - point-to-point
+diff --git a/doc/models/Makefile b/doc/models/Makefile
+--- a/doc/models/Makefile
++++ b/doc/models/Makefile
+@@ -65,6 +65,10 @@
+ 	$(SRC)/internet-apps/doc/internet-apps.rst \
+ 	$(SRC)/mobility/doc/mobility.rst \
+ 	$(SRC)/olsr/doc/olsr.rst \
++	$(SRC)/ofswitch13/doc/source/ofswitch13.rst \
++	$(SRC)/ofswitch13/doc/source/ofswitch13-description.rst \
++	$(SRC)/ofswitch13/doc/source/ofswitch13-usage.rst \
++	$(SRC)/ofswitch13/doc/source/ofswitch13-validation.rst \
+ 	$(SRC)/openflow/doc/openflow-switch.rst \
+ 	$(SRC)/point-to-point/doc/point-to-point.rst \
+ 	$(SRC)/wifi/doc/source/wifi.rst \
+@@ -263,6 +267,12 @@
+ 	$(SRC)/netanim/doc/figures/RoutingTables.pdf \
+ 	$(SRC)/netanim/doc/figures/PacketTimeline.png \
+ 	$(SRC)/netanim/doc/figures/PacketTimeline.pdf \
++	$(SRC)/ofswitch13/doc/source/figures/ofswitch13-controller.eps \
++	$(SRC)/ofswitch13/doc/source/figures/ofswitch13-library.eps \
++	$(SRC)/ofswitch13/doc/source/figures/ofswitch13-module.eps \
++	$(SRC)/ofswitch13/doc/source/figures/ofswitch13-qos-topology.eps \
++	$(SRC)/ofswitch13/doc/source/figures/ofswitch13-queue.eps \
++	$(SRC)/ofswitch13/doc/source/figures/ofswitch13-switch.eps \
+ 	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.png \
+ 	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.pdf \
+ 	$(SRC)/spectrum/doc/spectrum-analyzer-example.eps \
+@@ -362,6 +372,12 @@
+ 	$(FIGURES)/lr-wpan-primitives.eps \
+ 	$(FIGURES)/lr-wpan-data-example.eps \
+ 	$(FIGURES)/lr-wpan-arch.eps \
++	$(FIGURES)/ofswitch13-controller.eps \
++	$(FIGURES)/ofswitch13-library.eps \
++	$(FIGURES)/ofswitch13-module.eps \
++	$(FIGURES)/ofswitch13-qos-topology.eps \
++	$(FIGURES)/ofswitch13-queue.eps \
++	$(FIGURES)/ofswitch13-switch.eps \
+ 	$(FIGURES)/802-15-4-ber.eps \
+ 	$(FIGURES)/802-15-4-per-sens.eps \
+ 	$(FIGURES)/802-15-4-psr-distance.eps \
+@@ -419,6 +435,12 @@
+ $(FIGURES)/spectrum-tv-rand-geo-points.pdf_width = 8cm
+ $(FIGURES)/lr-wpan-primitives.pdf_width = 3in
+ $(FIGURES)/lr-wpan-arch.pdf_width = 2in
++$(FIGURES)/ofswitch13-controller.pdf_width = 10cm
++$(FIGURES)/ofswitch13-library.pdf_width = 14cm
++$(FIGURES)/ofswitch13-module.pdf_width = 14cm
++$(FIGURES)/ofswitch13-qos-topology.pdf_width = 12cm
++$(FIGURES)/ofswitch13-queue.pdf_width = 10cm
++$(FIGURES)/ofswitch13-switch.pdf_width = 10cm
+ $(FIGURES)/clear-channel.pdf_width = 12cm
+ $(FIGURES)/nist-frame-success-rate.pdf_width = 12cm
+ 
+diff --git a/doc/models/source/index.rst b/doc/models/source/index.rst
+--- a/doc/models/source/index.rst
++++ b/doc/models/source/index.rst
+@@ -40,6 +40,7 @@
+    distributed
+    mobility
+    network
++   ofswitch13
+    olsr
+    openflow-switch
+    point-to-point

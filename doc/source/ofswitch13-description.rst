@@ -31,11 +31,11 @@ the network, the controller application interface can be extended to implement
 any desired control logic. The communication between the controller and the
 switch is realized over standard |ns3| protocol stack, devices and channels.
 The module also relies on the external external `OpenFlow 1.3 Software Switch
-for ns-3 <https://github.com/ljerezchaves/ofsoftswitch13>`_  compiled as a
-library, a.k.a.  ``ofsoftswitch13`` library, that provides the switch datapath
+for ns-3 <https://github.com/ljerezchaves/ofsoftswitch13>`_ compiled as a
+library, a.k.a. ``ofsoftswitch13`` library, that provides the switch datapath
 implementation, the code for converting OpenFlow messages to and from wire
 format, and the ``dpctl`` utility tool for configuring the switch from the
-command line.  The source code for the ``OFSwitch13`` module lives in the
+command line. The source code for the ``OFSwitch13`` module lives in the
 directory ``src/ofswitch13``.
 
 .. _fig-ofswitch13-module:
@@ -75,7 +75,7 @@ A packet enters the switch device through a new OpenFlow receive callback in
 the ``CsmaNetDevice`` that is invoked for packets successfully received by the
 device. This is a promiscuous receive callback, but in contrast to a
 promiscuous protocol handler, the packet sent to this callback includes the
-Ethernet header, which is necessary by OpenFlow pipeline processing.  This is
+Ethernet header, which is necessary by OpenFlow pipeline processing. This is
 the only required modification to the |ns3| source code for ``OFSwitch13``
 usage.
 
@@ -98,21 +98,23 @@ entries in the flow tables.
 Packets coming back from the library for output action are sent to the
 specialized ``OFSwitch13Queue`` provided by the module. An OpenFlow switch
 provides limited QoS support by means of a simple queuing mechanism, where one
-or more queues can attach to a port and be used to map flow entries on it. Flow
-entries mapped to a specific queue will be treated according to that queue's
-configuration. The ``OFSwitch13Queue`` class implements the common queue
-interface, extending the ``Queue`` class to allow compatibility with the
+or more queues can attach to a port and be used to map flow entries on it.
+Flow entries mapped to a specific queue will be treated according to that
+queue's configuration. The ``OFSwitch13Queue`` class implements the common
+queue interface, extending the ``Queue`` class to allow compatibility with the
 ``CsmaNetDevice`` used within ``OFSwitch13Port`` objects. In this way, it is
 possible to replace the standard ``CsmaNetDevice::TxQueue`` attribute by this
 modified ``OFSwitch13Queue`` object. Figure :ref:`fig-ofswitch13-queue` shows
-its internal structure.  It can hold a collection of other queues, each one
-identified by a unique ID.  Packets sent to the OpenFlow queue for transmission
+its internal structure. It can hold a collection of other queues, each one
+identified by a unique ID. Packets sent to the OpenFlow queue for transmission
 by the ``CsmaNetDevice`` are expected to carry the ``QueueTag``, which is used
 to identify the internal queue that will hold the packet. Then, the output
 scheduling algorithm decides from which queue to get packets during dequeue
-procedures (currently, only a priority queue scheduling is available). A
-default internal ``DropTailQueue`` object with id 0 is created at constructor,
-and can not be removed.
+procedures. Currently, only a priority scheduling algorithm is available for
+use (with lowest priority id set to 0). By default, the maximum number of
+queues allowed per port (8) are created at constructor, and can not be removed.
+These queues are of the type ``DropTailQueue``, operating in packet mode with
+maximum number of packets set to 1000.
 
 .. _fig-ofswitch13-queue:
 
@@ -143,9 +145,9 @@ configurations.
 
 For OpenFlow messages coming from the switches, the controller interface
 provides a collection of internal handlers to deal with the different types of
-messages.  Some handlers can not be modified by derived class, as they must
-behave as already implemented. Other handlers can be overridden by derived
-controllers to implement the desired control logic. 
+messages. Some handlers can not be modified by derived class, as they must
+behave as already implemented. Other handlers can be overridden to implement
+the desired control logic. 
 
 The ``OFSwitch13`` module brings the ``OFSwitch13LearningController`` class
 that implements the controller interface to work as a "learning bridge
@@ -185,15 +187,15 @@ resulting in the `OpenFlow 1.3 Software Switch for ns-3
 <https://github.com/ljerezchaves/ofsoftswitch13>`_ library. The code does not
 modify the original switch datapath implementation, which is currently
 maintained in the original repository and regularly synced to the modified
-one.  The ``ns3lib`` branch includes some callbacks, compiler directives and
+one. The ``ns3lib`` branch includes some callbacks, compiler directives and
 minor changes in structure declarations to allow the integration between the
 module and the |ns3|.
 
 Figure :ref:`fig-ofswitch13-library`, adapted from [Fernandes2014]_, shows the
-library architecture and highlights the |ns3| integration points.  The library
+library architecture and highlights the |ns3| integration points. The library
 provides the complete OpenFlow switch datapath implementation, including input
 and output ports, the flow-table pipeline for packet matching, the group table,
-and the meter table.  It also provides the ``OFLib`` library that is used for
+and the meter table. It also provides the ``OFLib`` library that is used for
 converting internal messages to and from OpenFlow 1.3 wire format, and the
 ``dpctl`` utility for converting text commands into internal messages. The
 ``NetBee`` library is used for packet decoding and parsing, based on the
@@ -222,7 +224,7 @@ to all ``OFSwitch13Devices`` objects in the simulation, allowing faster
 object retrieve by datapath IP.
 
 One potential performance drawback is the conversion between the |ns3| packet
-representation and the serialized packet buffer used by the library.  This is
+representation and the serialized packet buffer used by the library. This is
 even more critical for empty packets, as |ns3| provides optimized internal
 representation for them. To improve the performance, when a packet is sent to
 the library for pipeline processing, the module keeps track of its original
@@ -244,7 +246,7 @@ This module is intended for simulating OpenFlow networks, considering the main
 features available in OpenFlow version 1.3. The module provides a complete
 OpenFlow switch device, and a simple OpenFlow learning controller. The switch
 is fully functional, while the learning controller is intended to allow basic
-usage and examples.  Users can write more sophisticated controllers extending
+usage and examples. Users can write more sophisticated controllers extending
 the available interface and exploiting the real benefits offered by SDN
 paradigm.
 
@@ -260,7 +262,7 @@ on an external library linked to the simulator that *must* be compiled with
 GCC. Besides, some OpenFlow 1.3 features are not yet supported by this
 module:
 
-* **Auxiliary connections**:  Only a single connection between the
+* **Auxiliary connections**: Only a single connection between the
   switch and the controller is available. According to the OpenFlow
   specifications, auxiliary connections could be created by the switch and are
   helpful to improve the switch processing performance and exploit the
@@ -362,10 +364,10 @@ versions, users can apply the *csma* patch and, if necessary, manually resolve
 the conflicts.
 
 The ``OFSwitch13`` module versions 2.0.0, 2.0.1 and 2.0.2 (latest) have been
-tested with |ns3| versions 2.22, 2.23 and 2.24.1. They are fully compatible
-with ``ofsoftswitch13`` library release 2.0.x. It is strongly recommended to
-use the latest module version for better results. Please, avoid the use
-``OFSwitch13`` versions prior to 2.0.0, which cannot be considerable as
+tested with |ns3| versions 3.22, 3.23, 3.24.1, and 3.25. They are fully
+compatible with ``ofsoftswitch13`` library release 2.0.x. It is strongly
+recommended to use the latest module version for better results. Please, avoid
+the use ``OFSwitch13`` versions prior to 2.0.0, which cannot be considerable as
 stable.
 
 References
@@ -385,7 +387,7 @@ References
    published work including simulation results obtained with the ``OFSwitch13``
    module.
 
-.. [Fernandes2014]  Eder. L. Fernandes, and Christian E. Rothenberg. `"OpenFlow 1.3 Software Switch"
+.. [Fernandes2014] Eder. L. Fernandes, and Christian E. Rothenberg. `"OpenFlow 1.3 Software Switch"
    <https://dl.dropboxusercontent.com/u/15183439/pubs/sbrc14-ferramentas-ofsoftswitch13.pdf>`_.
    In: Salão de Ferramentas do XXXII Simpósio Brasileiro de Redes de Computadores (SBRC), 2014.
 

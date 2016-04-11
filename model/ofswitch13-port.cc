@@ -53,9 +53,9 @@ OFSwitch13Port::DoDispose ()
   m_csmaDev = 0;
   m_openflowDev = 0;
 
-  // Calling DoDispose on internal port, so it can use m_swPort pointer to free
+  // Calling Dispose on internal port, so it can use m_swPort pointer to free
   // internal strucutures first.
-  m_portQueue->DoDispose ();
+  m_portQueue->Dispose ();
   ofl_structs_free_port (m_swPort->conf);
   free (m_swPort->stats);
   m_swPort = 0;

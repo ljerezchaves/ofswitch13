@@ -31,43 +31,39 @@ namespace ns3 {
 /**
  * \ingroup ofswitch13
  *
- * \brief The OpenFlow 1.3 queue interface for simple QoS management.
- * An OpenFlow switch provides limited Quality-of-Service support (QoS) through
- * a simple queuing mechanism. One (or more) queues can attach to a port and be
+ * \brief The OpenFlow 1.3 queue interface for simple QoS management. An
+ * OpenFlow switch provides limited Quality-of-Service support (QoS) through a
+ * simple queuing mechanism. One (or more) queues can attach to a port and be
  * used to map flow entries on it. Flow entries mapped to a specific queue will
- * be treated according to that queue's configuration (e.g. min rate). Queue
- * configuration takes place outside the OpenFlow protocol. This class
- * implements a common queue interface, extending the ns3::Queue class to allow
- * compatibility with the CsmaNetDevice used in OFSwitch13Port. Internally, it
- * can hold a collection of queues, indentified by an unique id. The
- * ns3::QueueTag is used to identify which internal queue will hold the packet,
- * and the internal schedulling algorithms decides from which queue get the
- * packets to send over the wire. The default internal DropTailQueue with id 0
- * is created at constructor, and can not be removed.
+ * be treated according to that queue's configuration. Queue configuration
+ * takes place outside the OpenFlow protocol. This class implements the common
+ * queue interface, extending the ns3::Queue class to allow compatibility
+ * with the CsmaNetDevice used in OFSwitch13Port. Internally, it can hold a
+ * collection of other queues, indentified by an unique id. The ns3::QueueTag
+ * is used to identify which internal queue will hold the packet, and the
+ * internal schedulling algorithms decides from which queue get the packets
+ * to send over the wire.
  */
 class OFSwitch13Queue : public Queue
 {
 public:
   /**
-   * The output queue scheduling algorithm, used to decide from which queue
-   * the dequeue discipline will select.
+   * The output scheduling algorithm, used to select the internal queue for
+   * Peek and Dequeue operations.
    */
   enum Scheduling
   {
-    PRIO = 0    //!< Priority queuing
+    PRIO = 0    //!< Priority schedulling
   };
 
   /**
    * \brief Get the type ID.
-   * \return the object TypeId
+   * \return the object TypeId.
    */
   static TypeId GetTypeId (void);
 
   OFSwitch13Queue ();           //!< Default constructor
   virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
-
-  /** Destructor implementation */
-  virtual void DoDispose ();
 
   /**
    * Complete constructor, including the pointer to the ofsoftswitch13 internal
@@ -88,6 +84,25 @@ public:
    */
   uint16_t GetNQueues (void) const;
 
+protected:
+  /** Destructor implementation */
+  virtual void DoDispose ();
+
+  // Inherited from ObjectBase
+  virtual void NotifyConstructionCompleted (void);
+
+private:
+  // Inherited from Queue
+#ifdef NS3_OFSWITCH13_PRIOR_325
+  virtual bool DoEnqueue (Ptr<Packet> p);
+  virtual Ptr<Packet> DoDequeue (void);
+  virtual Ptr<const Packet> DoPeek (void) const;
+#else
+  virtual bool DoEnqueue (Ptr<QueueItem> item);
+  virtual Ptr<QueueItem> DoDequeue (void);
+  virtual Ptr<const QueueItem> DoPeek (void) const;
+#endif
+
   /**
    * Add a new internal queue to this OpenFlow queue.
    * \param queue The queue pointer.
@@ -105,15 +120,9 @@ public:
    */
   Ptr<Queue> GetQueue (uint32_t queueId) const;
 
-private:
-  // Inherited from Queue
-  virtual bool DoEnqueue (Ptr<Packet> p);
-  virtual Ptr<Packet> DoDequeue (void);
-  virtual Ptr<const Packet> DoPeek (void) const;
-
   /**
-   * Return the queue id that will be used by DoPeek and DoDequeue functions.
-   * Currently, we performs round-robing scheduling among available queues.
+   * Return the queue id that will be used by DoPeek and DoDequeue functions
+   * based on selected scheduling output algorithm.
    * \internal
    * This function has to keep consistence in its queue decision despite
    * arbitrary calls from peek and dequeue functions. When a peek operation is
