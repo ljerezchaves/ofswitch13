@@ -5,7 +5,7 @@ from waflib import Logs, Options
 from waflib.Errors import WafError
 
 def check_325_prior_version(version):
-    base = (3, 26)
+    base = (3, 25)
     try:
         comp = tuple(map(int, (version.split("."))))
         return comp < base
@@ -57,7 +57,7 @@ def configure(conf):
 
     if check_325_prior_version(conf.env.VERSION):
         conf.msg ("Checking for ns-3 version prior than 3.25", "yes")
-        conf.env.DEFINES_OFSWITCH13.append ('NS3_OFSWITCH13_PRIOR_325’)
+        conf.env.DEFINES_OFSWITCH13.append ('NS3_OFSWITCH13_PRIOR_325')
     else:
         conf.msg ("Checking for ns-3 version prior than 3.25", "no")
 
