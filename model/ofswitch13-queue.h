@@ -93,9 +93,15 @@ protected:
 
 private:
   // Inherited from Queue
+#ifdef NS3_OFSWITCH13_PRIOR_325
   virtual bool DoEnqueue (Ptr<Packet> p);
   virtual Ptr<Packet> DoDequeue (void);
   virtual Ptr<const Packet> DoPeek (void) const;
+#else
+  virtual bool DoEnqueue (Ptr<QueueItem> item);
+  virtual Ptr<QueueItem> DoDequeue (void);
+  virtual Ptr<const QueueItem> DoPeek (void) const;
+#endif
 
   /**
    * Add a new internal queue to this OpenFlow queue.

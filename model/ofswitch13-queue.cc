@@ -116,7 +116,16 @@ void
 OFSwitch13Queue::NotifyConstructionCompleted (void)
 {
   NS_LOG_FUNCTION (this);
- 
+
+#ifndef NS3_OFSWITCH13_PRIOR_325
+  // Configure this queue for operating in packet mode with an 'infinite'
+  // buffer. Internal queues will check for the the available space during
+  // enqueue operation.
+  SetAttribute ("Mode", EnumValue (Queue::QUEUE_MODE_PACKETS));
+  uint32_t max = std::numeric_limits<uint32_t>::max ();
+  SetAttribute ("MaxPackets", UintegerValue (max));
+#endif
+
   // Setting default internal queue configuration
   ObjectFactory queueFactory;
   queueFactory.SetTypeId (DropTailQueue::GetTypeId ());
@@ -133,10 +142,18 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
   Queue::NotifyConstructionCompleted ();
 }
 
+#ifdef NS3_OFSWITCH13_PRIOR_325
 bool
 OFSwitch13Queue::DoEnqueue (Ptr<Packet> p)
 {
   NS_LOG_FUNCTION (this << p);
+#else
+bool
+OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
+{
+  NS_LOG_FUNCTION (this << item);
+  Ptr<Packet> p = item->GetPacket ();
+#endif
 
   sw_queue* swQueue;
   QueueTag queueNoTag;
@@ -149,7 +166,12 @@ OFSwitch13Queue::DoEnqueue (Ptr<Packet> p)
 
   swQueue = dp_ports_lookup_queue (m_swPort, queueNo);
   NS_ASSERT_MSG (swQueue, "Invalid queue id.");
-  if (GetQueue (queueNo)->Enqueue (p))
+#ifdef NS3_OFSWITCH13_PRIOR_325
+  bool retval = GetQueue (queueNo)->Enqueue (p);
+#else
+  bool retval = GetQueue (queueNo)->Enqueue (item);
+#endif
+  if (retval)
     {
       swQueue->stats->tx_packets++;
       swQueue->stats->tx_bytes += p->GetSize ();
@@ -164,8 +186,13 @@ OFSwitch13Queue::DoEnqueue (Ptr<Packet> p)
     }
 }
 
+#ifdef NS3_OFSWITCH13_PRIOR_325
 Ptr<Packet>
 OFSwitch13Queue::DoDequeue (void)
+#else
+Ptr<QueueItem>
+OFSwitch13Queue::DoDequeue (void)
+#endif
 {
   NS_LOG_FUNCTION (this);
 
@@ -174,8 +201,13 @@ OFSwitch13Queue::DoDequeue (void)
   return GetQueue (qId)->Dequeue ();
 }
 
+#ifdef NS3_OFSWITCH13_PRIOR_325
 Ptr<const Packet>
 OFSwitch13Queue::DoPeek (void) const
+#else
+Ptr<const QueueItem>
+OFSwitch13Queue::DoPeek (void) const
+#endif
 {
   NS_LOG_FUNCTION (this);
 
@@ -213,7 +245,7 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
 
   // Inserting the ns3::Queue object into queue list.
   m_queues.push_back (queue);
-  NS_LOG_DEBUG ("New queue with " << queueId);
+  NS_LOG_DEBUG ("New queue with id " << queueId);
 
   return queueId;
 }
