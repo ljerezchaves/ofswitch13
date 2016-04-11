@@ -110,10 +110,11 @@ identified by a unique ID. Packets sent to the OpenFlow queue for transmission
 by the ``CsmaNetDevice`` are expected to carry the ``QueueTag``, which is used
 to identify the internal queue that will hold the packet. Then, the output
 scheduling algorithm decides from which queue to get packets during dequeue
-procedures. Currently, only a priority queue scheduling is available (lowest
-priority id is 0) By default, 8 ``DropTailQueue`` objects with id from 0 to 7
-are created at constructor, and can not be removed. (This is the maximum number
-of queues allowed per port).
+procedures. Currently, only a priority scheduling algorithm is available for
+use (with lowest priority id set to 0). By default, the maximum number of
+queues allowed per port (8) are created at constructor, and can not be removed.
+These queues are of the type ``DropTailQueue``, operating in packet mode with
+maximum number of packets set to 1000.
 
 .. _fig-ofswitch13-queue:
 
@@ -145,8 +146,8 @@ configurations.
 For OpenFlow messages coming from the switches, the controller interface
 provides a collection of internal handlers to deal with the different types of
 messages. Some handlers can not be modified by derived class, as they must
-behave as already implemented. Other handlers can be overridden by derived
-controllers to implement the desired control logic. 
+behave as already implemented. Other handlers can be overridden to implement
+the desired control logic. 
 
 The ``OFSwitch13`` module brings the ``OFSwitch13LearningController`` class
 that implements the controller interface to work as a "learning bridge
