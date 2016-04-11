@@ -31,7 +31,7 @@ Release 2.0.2 (April 11, 2016)
   entire text.
 
 - This code is compatible with ofsoftswitch13 library, release v2.0.x and ns-3
-  versions 3.22, 3.23 and 3.24.1.
+  versions 3.22, 3.23 and 3.24.1, and 3.25 (including patches for ns-3.25).
 
 
 Release 2.0.1 (February 16, 2016)
