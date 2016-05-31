@@ -22,8 +22,8 @@ simulator.
 Currently, the user must download and compile the code manually. Follow the
 instructions below to compile and link the |ns3| simulator to the
 ``ofsoftswitch13`` library. *These instructions have been tested on Ubuntu
-14.04.3 LTS. Other distributions or versions may require different steps,
-specially regarding library compilation.*
+14.04.3 LTS and 16.04 LTS. Other distributions or versions may require
+different steps, specially regarding library compilation.*
 
 Compiling the library
 #####################
