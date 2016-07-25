@@ -50,6 +50,8 @@
 #include <ns3/internet-module.h>
 #include <ns3/applications-module.h>
 #include <ns3/ofswitch13-module.h>
+#include <ns3/netanim-module.h>
+#include <ns3/mobility-module.h>
 #include "qos-controller.h"
 
 using namespace ns3;
@@ -58,8 +60,7 @@ int
 main (int argc, char *argv[])
 {
   // Configure dedicated connections between controller and switches
-  Config::SetDefault ("ns3::OFSwitch13Helper::ChannelType",
-                      EnumValue (OFSwitch13Helper::DEDICATEDCSMA));
+  Config::SetDefault ("ns3::OFSwitch13Helper::ChannelType", EnumValue (OFSwitch13Helper::DEDICATEDCSMA));
 
   // Increase TCP MSS for larger packets
   Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1400));
@@ -73,10 +74,10 @@ main (int argc, char *argv[])
   uint16_t simTime = 101;
 
   CommandLine cmd;
-  cmd.AddValue ("verbose", "Verbose log if true", verbose);
-  cmd.AddValue ("trace", "Trace files if true", trace);
-  cmd.AddValue ("clientNodes", "Number of client nodes", numNodes);
-  cmd.AddValue ("simulationTime", "Simulation time", simTime);
+  cmd.AddValue ("verbose",        "Verbose log if true",      verbose);
+  cmd.AddValue ("trace",          "Pcap trace files if true", trace);
+  cmd.AddValue ("clientNodes",    "Number of client nodes",   numNodes);
+  cmd.AddValue ("simulationTime", "Simulation time",          simTime);
   cmd.Parse (argc, argv);
 
   if (verbose)
@@ -93,11 +94,31 @@ main (int argc, char *argv[])
   Mac48Address::Allocate ();
 
   // Create the server, client, switch and controller nodes
-  NodeContainer serverNodes, clientNodes, switchNodes, controllerNodes;
+  NodeContainer serverNodes, switchNodes, controllerNodes, clientNodes;
   serverNodes.Create (2);
   switchNodes.Create (3);
   controllerNodes.Create (2);
   clientNodes.Create (numNodes);
+
+  // Setting node positions
+  MobilityHelper mobilityHelper;
+  mobilityHelper.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  
+  Ptr<ListPositionAllocator> listPosAllocator;
+  listPosAllocator = CreateObject<ListPositionAllocator> ();
+  listPosAllocator->Add (Vector (50, 50, 0));     // Server 0
+  listPosAllocator->Add (Vector (50, 125, 0));    // Server 1
+  listPosAllocator->Add (Vector (100, 100, 0));   // Border switch
+  listPosAllocator->Add (Vector (150, 100, 0));   // Aggregation switch
+  listPosAllocator->Add (Vector (200, 100, 0));   // Client switch
+  listPosAllocator->Add (Vector (125, 75, 0));    // QoS controller
+  listPosAllocator->Add (Vector (200, 75, 0));    // Learning controller
+  for (size_t i = 0; i < numNodes; i++)
+    {
+      listPosAllocator->Add (Vector (250, 50 + 25 * i, 0)); // Clients
+    }
+  mobilityHelper.SetPositionAllocator (listPosAllocator);
+  mobilityHelper.Install (NodeContainer (serverNodes, switchNodes, controllerNodes, clientNodes));
 
   // Create device containers
   NetDeviceContainer serverDevices, clientDevices;
@@ -212,9 +233,56 @@ main (int argc, char *argv[])
     {
       ofLearningHelper->EnableOpenFlowPcap ();
       ofQosHelper->EnableOpenFlowPcap ();
-      csmaHelper.EnablePcap ("ofswitch", switchNodes, true);
-      csmaHelper.EnablePcap ("server", serverDevices);
-      csmaHelper.EnablePcap ("client", clientDevices);
+      csmaHelper.EnablePcap ("qosctrl-ofswitch", switchNodes, true);
+      csmaHelper.EnablePcap ("qosctrl-server", serverDevices);
+      csmaHelper.EnablePcap ("qosctrl-client", clientDevices);
+    }
+
+  // Annimation interface 
+  AnimationInterface anim ("qosctrl-netanim.xml");
+  anim.SetStartTime (Seconds (0));
+  anim.SetStopTime (Seconds (4));
+
+  // Node descriptions
+  anim.UpdateNodeDescription (0, "Server 0");
+  anim.UpdateNodeDescription (1, "Server 1");
+  anim.UpdateNodeDescription (2, "Border switch");
+  anim.UpdateNodeDescription (3, "Aggregation switch");
+  anim.UpdateNodeDescription (4, "Client switch");
+  anim.UpdateNodeDescription (5, "QoS controller");
+  anim.UpdateNodeDescription (6, "Learning controller");
+  for (size_t i = 0; i < numNodes; i++)
+    {
+      std::ostringstream desc;
+      desc << "Client " << i; 
+      anim.UpdateNodeDescription (7 + i, desc.str ());
+    }
+
+  // Animation icon images and size
+  char cwd [1024];
+  if (getcwd (cwd, sizeof (cwd)) != NULL)
+    {
+      std::string path = std::string (cwd) + "/src/ofswitch13/examples/qos-controller/images/";
+      uint32_t serverImg = anim.AddResource (path + "server.png");
+      uint32_t switchImg = anim.AddResource (path + "switch.png");
+      uint32_t controllerImg = anim.AddResource (path + "controller.png");
+      uint32_t clientImg = anim.AddResource (path + "client.png");
+
+      anim.UpdateNodeImage (0, serverImg);
+      anim.UpdateNodeImage (1, serverImg);
+      anim.UpdateNodeImage (2, switchImg);
+      anim.UpdateNodeImage (3, switchImg);
+      anim.UpdateNodeImage (4, switchImg);
+      anim.UpdateNodeImage (5, controllerImg);
+      anim.UpdateNodeImage (6, controllerImg);
+      anim.UpdateNodeImage (7, clientImg);
+      anim.UpdateNodeImage (8, clientImg);
+      anim.UpdateNodeImage (9, clientImg);
+      anim.UpdateNodeImage (10, clientImg);
+      for (size_t i = 0; i < numNodes + 7U; i++)
+        {
+          anim.UpdateNodeSize (i, 10, 10);
+        }
     }
 
   // Run the simulation for simTime seconds
