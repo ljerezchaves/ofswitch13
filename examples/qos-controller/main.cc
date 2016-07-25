@@ -103,7 +103,7 @@ main (int argc, char *argv[])
   // Setting node positions
   MobilityHelper mobilityHelper;
   mobilityHelper.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  
+
   Ptr<ListPositionAllocator> listPosAllocator;
   listPosAllocator = CreateObject<ListPositionAllocator> ();
   listPosAllocator->Add (Vector (50, 50, 0));     // Server 0
@@ -238,7 +238,7 @@ main (int argc, char *argv[])
       csmaHelper.EnablePcap ("qosctrl-client", clientDevices);
     }
 
-  // Annimation interface 
+  // Annimation interface
   AnimationInterface anim ("qosctrl-netanim.xml");
   anim.SetStartTime (Seconds (0));
   anim.SetStopTime (Seconds (4));
@@ -254,7 +254,7 @@ main (int argc, char *argv[])
   for (size_t i = 0; i < numNodes; i++)
     {
       std::ostringstream desc;
-      desc << "Client " << i; 
+      desc << "Client " << i;
       anim.UpdateNodeDescription (7 + i, desc.str ());
     }
 
@@ -275,10 +275,10 @@ main (int argc, char *argv[])
       anim.UpdateNodeImage (4, switchImg);
       anim.UpdateNodeImage (5, controllerImg);
       anim.UpdateNodeImage (6, controllerImg);
-      anim.UpdateNodeImage (7, clientImg);
-      anim.UpdateNodeImage (8, clientImg);
-      anim.UpdateNodeImage (9, clientImg);
-      anim.UpdateNodeImage (10, clientImg);
+      for (size_t i = 0; i < numNodes; i++)
+        {
+          anim.UpdateNodeImage (i + 7, clientImg);
+        }
       for (size_t i = 0; i < numNodes + 7U; i++)
         {
           anim.UpdateNodeSize (i, 10, 10);
