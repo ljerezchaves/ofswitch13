@@ -117,9 +117,11 @@ public:
   void SetLibLogLevel (std::string log);
 
   /**
-   * Starts the TCP connection between this switch and the controller.
+   * Starts the TCP connection between this switch and the target controller
+   * indicated by the address parameter.
+   * \param ctrlAddr The controller address used to open the connection.
    */
-  void StartControllerConnection ();
+  void StartControllerConnection (Address ctrlAddr);
 
   /**
    * Get a pointer to the collection of output queues at a specific port on
@@ -451,7 +453,6 @@ private:
   // buffer that will be used by ReceiveFromController to handle incoming
   // bytes. Maybe include a pointer to the remote structure?
   Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller.  
-  Address         m_ctrlAddr;     //!< Controller Address.
 
   Time            m_timeout;      //!< Datapath timeout interval.
   Time            m_lastTimeout;  //!< Datapath last timeout.

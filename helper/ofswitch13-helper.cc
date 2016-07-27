@@ -289,8 +289,7 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
     {
       m_ctrlApp->RegisterSwitchMetadata (swInfo);
     }
-  openFlowDev->SetAttribute ("ControllerAddr", AddressValue (ctrlAddr));
-  openFlowDev->StartControllerConnection ();
+  openFlowDev->StartControllerConnection (ctrlAddr);
 
   return OFSwitch13DeviceContainer (openFlowDev);
 }

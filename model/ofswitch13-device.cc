@@ -65,14 +65,6 @@ OFSwitch13Device::GetTypeId (void)
                    TimeValue (MilliSeconds (100)),
                    MakeTimeAccessor (&OFSwitch13Device::m_timeout),
                    MakeTimeChecker ())
-    // FIXME: We can have more than one controller...
-    // We may need to handle a list of addresses.
-    .AddAttribute ("ControllerAddr",
-                   "The controller InetSocketAddress.",
-                   AddressValue (
-                     InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
-                   MakeAddressAccessor (&OFSwitch13Device::m_ctrlAddr),
-                   MakeAddressChecker ())
     .AddAttribute ("LibLogLevel",
                    "Set the ofsoftswitch13 library logging level."
                    "Use 'none' to turn logging off. "
@@ -99,7 +91,6 @@ OFSwitch13Device::OFSwitch13Device ()
 
   m_dpId = ++m_globalDpId;
   m_ctrlSocket = 0;
-  m_ctrlAddr = Address ();
   m_datapath = DatapathNew ();
   OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
   Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout, this,
@@ -210,10 +201,10 @@ OFSwitch13Device::SetLibLogLevel (std::string log)
 }
 
 void
-OFSwitch13Device::StartControllerConnection ()
+OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
 {
   NS_LOG_FUNCTION (this);
-  NS_ASSERT (!m_ctrlAddr.IsInvalid ());
+  NS_ASSERT (!ctrlAddr.IsInvalid ());
 
   // FIXME: We may have a list of controllers, so we must start a connection
   // with all of them.
@@ -233,7 +224,7 @@ OFSwitch13Device::StartControllerConnection ()
         }
 
       error =
-        m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom (m_ctrlAddr));
+        m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom (ctrlAddr));
       if (error)
         {
           NS_LOG_ERROR ("Error connecting socket " << error);
