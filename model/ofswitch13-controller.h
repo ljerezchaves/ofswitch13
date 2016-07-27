@@ -47,6 +47,9 @@ struct SwitchInfo
   uint16_t port;                    //!< Socket port
 
   InetSocketAddress GetInet ();     //!< Get Inet address conversion
+
+  // FIXME: Include some type of information about controller role over switch,
+  // to enable support for multiple controllers.
 };
 
 /**

@@ -606,6 +606,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
     MakeCallback (&OFSwitch13Controller::SocketRead, this));
 
   // Update other switch information
+  // FIXME: Maybe save information about controller role?
   swInfo->ctrl = this;
   swInfo->socket = socket;
   swInfo->port = InetSocketAddress::ConvertFrom (from).GetPort ();
@@ -622,6 +623,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
   SendBarrierRequest (*swInfo);
 
   // Executing any scheduled commands for this switch
+  // FIXME: Check for controller role before executing the commands?
   std::pair <DevCmdMap_t::iterator, DevCmdMap_t::iterator> ret;
   ret = m_schedCommands.equal_range (swInfo->swDev);
   for (DevCmdMap_t::iterator it = ret.first; it != ret.second; it++)

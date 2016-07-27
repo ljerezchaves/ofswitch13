@@ -279,6 +279,7 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
       }
     }
 
+  // FIXME We need to handle multiple controllers here
   // Register switch metadata and start switch <--> controller connection
   SwitchInfo swInfo;
   swInfo.ipv4 = swIface.GetAddress (0);
@@ -298,6 +299,8 @@ Ptr<OFSwitch13Controller>
 OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode,
                                         Ptr<OFSwitch13Controller> controller)
 {
+  // FIXME We need to handle multiple controllers here. This helper must be
+  // able to install more than a single controller on the network.
   NS_LOG_FUNCTION (this);
   NS_ASSERT_MSG (!m_ctrlApp, "The controller is already installed.");
   NS_LOG_DEBUG ("Installing OpenFlow controller on node " << cNode->GetId ());

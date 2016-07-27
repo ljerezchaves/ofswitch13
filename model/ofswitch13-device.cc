@@ -65,6 +65,8 @@ OFSwitch13Device::GetTypeId (void)
                    TimeValue (MilliSeconds (100)),
                    MakeTimeAccessor (&OFSwitch13Device::m_timeout),
                    MakeTimeChecker ())
+    // FIXME: We can have more than one controller...
+    // We may need to handle a list of addresses.
     .AddAttribute ("ControllerAddr",
                    "The controller InetSocketAddress.",
                    AddressValue (
@@ -213,6 +215,8 @@ OFSwitch13Device::StartControllerConnection ()
   NS_LOG_FUNCTION (this);
   NS_ASSERT (!m_ctrlAddr.IsInvalid ());
 
+  // FIXME: We may have a list of controllers, so we must start a connection
+  // with all of them.
   // Start a TCP connection to the controller
   if (!m_ctrlSocket)
     {
@@ -261,6 +265,8 @@ OFSwitch13Device::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl)
 
   // FIXME No support for multiple controllers / auxiliary connections by now.
   // So, just ignoring remote information and sending to our single socket.
+  // We must need to retrieve the controller information to send the message to
+  // proper socekt.
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
   return dev->SendToController (packet);
 }
@@ -592,6 +598,7 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo)
 int
 OFSwitch13Device::SendToController (Ptr<Packet> packet)
 {
+  // FIXME: We have more than a single controller socket. Get the proper one.
   if (!m_ctrlSocket)
     {
       NS_LOG_WARN ("No controller connection. Discarding message... ");
@@ -618,6 +625,12 @@ void
 OFSwitch13Device::ReceiveFromController (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
+
+  // FIXME: Now we have more than one socket that is used for communation
+  // between this OpenFlow switch device and controllers. So we need to handle
+  // the processing of receiving messages from sockets in an independent way.
+  // Each socket must have its own buffer for receiving bytes and extracting
+  // OpenFlow messages. Check for the remote structure.
 
   static Ptr<Packet> pendingPacket = 0;
   static uint32_t pendingBytes = 0;
@@ -670,6 +683,8 @@ OFSwitch13Device::ReceiveFromController (Ptr<Socket> socket)
           // FIXME No support for multiple controllers by now.
           // Gets the remote structure for this controller connection.
           // As we currently support a single controller, it must be the first.
+          // FIXME: Maybe the remote pointer must be saved in the future
+          // controller remote structure that we are about to create.
           struct sender ctrl;
           ctrl.remote = CONTAINER_OF (list_front (&m_datapath->remotes),
                                       remote, node);
@@ -728,12 +743,18 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
   socket->SetRecvCallback (
     MakeCallback (&OFSwitch13Device::ReceiveFromController, this));
 
+  // FIXME: Not sure if we need to save controller information anywhere else.
+  // Save it in the remote controller structure that will simplify the process
+  // of finding it later.
   // Save connection information to remotes list in datapath
   remote_create (m_datapath, 0, 0);
 
   // Send Hello message
   ofl_msg_header msg;
   msg.type = OFPT_HELLO;
+ 
+  // FIXME: Maybe we should get the proper *sender* information (last
+  // parameter) to send the hello message only for the correct controller.
   dp_send_message (m_datapath, &msg, 0);
 }
 

@@ -251,6 +251,9 @@ private:
    */
   void SendToPipeline (Ptr<Packet> packet, uint32_t portNo);
 
+  // FIXME: This function must include information to which socket to send the
+  // message. This is necessary as we are handling several connections to
+  // controllers. 
   /**
    * Send a packet to the controller node.
    * \see SendOpenflowBufferToRemote ().
@@ -430,7 +433,7 @@ private:
     bool                  m_valid;  //!< Valid flag.
     Ptr<Packet>           m_packet; //!< Packet pointer.
     std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
-  };
+  }; // Struct PipelinePacket
 
   /** Structure to save the list of ports in this datapath. */
   typedef std::vector<Ptr<OFSwitch13Port> > PortList_t;
@@ -442,8 +445,14 @@ private:
   typedef std::map<uint64_t, Ptr<Packet> > IdPacketMap_t;
 
   uint64_t        m_dpId;         //!< This datapath id.
-  Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller.
+  
+  // FIXME: We need to handle a collection of sockets to controllers. The best
+  // option here is to create an structure to save information and also the
+  // buffer that will be used by ReceiveFromController to handle incoming
+  // bytes. Maybe include a pointer to the remote structure?
+  Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller.  
   Address         m_ctrlAddr;     //!< Controller Address.
+
   Time            m_timeout;      //!< Datapath timeout interval.
   Time            m_lastTimeout;  //!< Datapath last timeout.
   Time            m_tcamDelay;    //!< Flow Table TCAM lookup delay.
