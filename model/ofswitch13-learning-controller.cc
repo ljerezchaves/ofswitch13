@@ -57,13 +57,14 @@ OFSwitch13LearningController::DoDispose ()
 
 ofl_err
 OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg,
-                                              SwitchInfo swtch, uint32_t xid)
+                                              Ptr<SwitchInfo> swtch,
+                                              uint32_t xid)
 {
-  NS_LOG_FUNCTION (swtch.ipv4 << xid);
+  NS_LOG_FUNCTION (this << swtch << xid);
 
   static int prio = 100;
   uint32_t outPort = OFPP_FLOOD;
-  uint64_t dpId = swtch.swDev->GetDatapathId ();
+  uint64_t dpId = swtch->GetDpId ();
   enum ofp_packet_in_reason reason = msg->reason;
 
   char *m =
@@ -174,7 +175,7 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg,
       reply.actions_num = 1;
       reply.actions = (ofl_action_header**)&a;
 
-      SendToSwitch (&swtch, (ofl_msg_header*)&reply, xid);
+      SendToSwitch (swtch, (ofl_msg_header*)&reply, xid);
       free (a);
     }
   else
@@ -189,12 +190,12 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg,
 
 ofl_err
 OFSwitch13LearningController::HandleFlowRemoved (
-  ofl_msg_flow_removed *msg, SwitchInfo swtch, uint32_t xid)
+  ofl_msg_flow_removed *msg, Ptr<SwitchInfo> swtch, uint32_t xid)
 {
-  NS_LOG_FUNCTION (swtch.ipv4 << xid);
+  NS_LOG_FUNCTION (this << swtch << xid);
   NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");
 
-  uint64_t dpId = swtch.swDev->GetDatapathId ();
+  uint64_t dpId = swtch->GetDpId ();
   DatapathMap_t::iterator it = m_learnedInfo.find (dpId);
   if (it != m_learnedInfo.end ())
     {
@@ -218,9 +219,9 @@ OFSwitch13LearningController::HandleFlowRemoved (
 
 /********** Private methods **********/
 void
-OFSwitch13LearningController::ConnectionStarted (SwitchInfo swtch)
+OFSwitch13LearningController::ConnectionStarted (Ptr<SwitchInfo> swtch)
 {
-  NS_LOG_FUNCTION (this << swtch.ipv4);
+  NS_LOG_FUNCTION (this << swtch);
 
   // After a successfull handshake, let's install the table-miss entry
   DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl");
@@ -232,7 +233,7 @@ OFSwitch13LearningController::ConnectionStarted (SwitchInfo swtch)
 
   // Create an empty L2SwitchingTable and insert it into m_learnedInfo
   L2Table_t l2Table;
-  uint64_t dpId = swtch.swDev->GetDatapathId ();
+  uint64_t dpId = swtch->GetDpId ();
 
   std::pair <DatapathMap_t::iterator, bool> ret;
   ret =  m_learnedInfo.insert (std::pair<uint64_t, L2Table_t> (dpId, l2Table));

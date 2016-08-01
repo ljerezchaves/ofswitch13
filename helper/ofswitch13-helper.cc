@@ -280,15 +280,7 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
     }
 
   // FIXME We need to handle multiple controllers here
-  // Register switch metadata and start switch <--> controller connection
-  SwitchInfo swInfo;
-  swInfo.ipv4 = swIface.GetAddress (0);
-  swInfo.swDev = openFlowDev;
-  swInfo.node = swNode;
-  if (m_ctrlApp)
-    {
-      m_ctrlApp->RegisterSwitchMetadata (swInfo);
-    }
+  // Start the switch <--> controller connection
   openFlowDev->StartControllerConnection (ctrlAddr);
 
   return OFSwitch13DeviceContainer (openFlowDev);

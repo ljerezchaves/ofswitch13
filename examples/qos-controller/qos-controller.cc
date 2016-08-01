@@ -83,10 +83,10 @@ QosController::GetTypeId (void)
 }
 
 ofl_err
-QosController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
+QosController::HandlePacketIn (ofl_msg_packet_in *msg, Ptr<SwitchInfo> swtch,
                                uint32_t xid)
 {
-  NS_LOG_FUNCTION (swtch.ipv4 << xid);
+  NS_LOG_FUNCTION (this << swtch << xid);
 
   char *message =
     ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, 0);
@@ -119,26 +119,26 @@ QosController::HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
 }
 
 void
-QosController::ConnectionStarted (SwitchInfo swtch)
+QosController::ConnectionStarted (Ptr<SwitchInfo> swtch)
 {
-  NS_LOG_FUNCTION (this << swtch.ipv4);
+  NS_LOG_FUNCTION (this << swtch);
 
   // This function is called after a successfully handshake between controller
   // and each switch. Let's check the switch for proper configuration.
-  if (swtch.ipv4.IsEqual (Ipv4Address ("10.100.150.1")))
+  if (swtch->GetIpv4 ().IsEqual (Ipv4Address ("10.100.150.1")))
     {
       ConfigureBorderSwitch (swtch);
     }
-  else if (swtch.ipv4.IsEqual (Ipv4Address ("10.100.150.5")))
+  else if (swtch->GetIpv4 ().IsEqual (Ipv4Address ("10.100.150.5")))
     {
       ConfigureAggregationSwitch (swtch);
     }
 }
 
 void
-QosController::ConfigureBorderSwitch (SwitchInfo swtch)
+QosController::ConfigureBorderSwitch (Ptr<SwitchInfo> swtch)
 {
-  NS_LOG_FUNCTION (this << swtch.ipv4);
+  NS_LOG_FUNCTION (this << swtch);
 
   // For packet-in messages, send only the first 128 bytes to the controller
   DpctlCommand (swtch, "set-config miss=128");
@@ -189,9 +189,9 @@ QosController::ConfigureBorderSwitch (SwitchInfo swtch)
 }
 
 void
-QosController::ConfigureAggregationSwitch (SwitchInfo swtch)
+QosController::ConfigureAggregationSwitch (Ptr<SwitchInfo> swtch)
 {
-  NS_LOG_FUNCTION (this << swtch.ipv4);
+  NS_LOG_FUNCTION (this << swtch);
 
   if (m_linkAggregation)
     {
@@ -219,10 +219,10 @@ QosController::ConfigureAggregationSwitch (SwitchInfo swtch)
 }
 
 ofl_err
-QosController::HandleArpPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
-                                  uint32_t xid)
+QosController::HandleArpPacketIn (ofl_msg_packet_in *msg,
+                                  Ptr<SwitchInfo> swtch, uint32_t xid)
 {
-  NS_LOG_FUNCTION (this << swtch.ipv4 << xid);
+  NS_LOG_FUNCTION (this << swtch << xid);
 
   ofl_match_tlv *tlv;
   Ipv4Address serverIp = Ipv4Address::ConvertFrom (m_serverIpAddress);
@@ -289,7 +289,7 @@ QosController::HandleArpPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
       reply.actions_num = 1;
       reply.actions = (ofl_action_header**)&action;
 
-      SendToSwitch (&swtch, (ofl_msg_header*)&reply, xid);
+      SendToSwitch (swtch, (ofl_msg_header*)&reply, xid);
       free (action);
     }
 
@@ -300,9 +300,9 @@ QosController::HandleArpPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
 
 ofl_err
 QosController::HandleConnectionRequest (ofl_msg_packet_in *msg,
-                                        SwitchInfo swtch, uint32_t xid)
+                                        Ptr<SwitchInfo> swtch, uint32_t xid)
 {
-  NS_LOG_FUNCTION (this << swtch.ipv4 << xid);
+  NS_LOG_FUNCTION (this << swtch << xid);
 
   static uint32_t connectionCounter = 0;
   connectionCounter++;
@@ -356,7 +356,7 @@ QosController::HandleConnectionRequest (ofl_msg_packet_in *msg,
   arpRequest.actions_num = 1;
   arpRequest.actions = (ofl_action_header**)&arpAction;
 
-  SendToSwitch (&swtch, (ofl_msg_header*)&arpRequest, 0);
+  SendToSwitch (swtch, (ofl_msg_header*)&arpRequest, 0);
   free (arpAction);
 
   // Check for valid service connection request
@@ -377,7 +377,6 @@ QosController::HandleConnectionRequest (ofl_msg_packet_in *msg,
       DpctlCommand (swtch, meterCmd.str ());
     }
 
-  // FIXME Instalar o par de tradução para entrada/saida de trafego
   // Install the flow entry for this TCP connection
   std::ostringstream flowCmd;
   flowCmd << "flow-mod cmd=add,table=0,prio=1000 eth_type=0x0800,ip_proto=6"
@@ -414,7 +413,7 @@ QosController::HandleConnectionRequest (ofl_msg_packet_in *msg,
       reply.data = msg->data;
     }
 
-  SendToSwitch (&swtch, (ofl_msg_header*)&reply, xid);
+  SendToSwitch (swtch, (ofl_msg_header*)&reply, xid);
   free (action);
 
   // All handlers must free the message when everything is ok

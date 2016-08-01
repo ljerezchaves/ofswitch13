@@ -205,8 +205,9 @@ OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
   NS_LOG_FUNCTION (this);
   NS_ASSERT (!ctrlAddr.IsInvalid ());
 
-  // Loop over controllers looking to assert that there is no connection
-  // associated to this address
+  // Loop over controllers to assert that there is no active connection
+  // associated to this controller address.
+  // FIXME No support for auxiliary connections.
   CtrlList_t::iterator it;
   for (it = m_controllers.begin (); it != m_controllers.end (); it++)
     {
@@ -260,8 +261,8 @@ int
 OFSwitch13Device::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *remote)
 {
   Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (remote->dp->id);
-  
-  // FIXME No support for auxiliary connections. 
+
+  // FIXME No support for auxiliary connections.
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
   Ptr<RemoteController> controller = dev->GetRemoteController (remote);
   return dev->SendToController (packet, controller);
