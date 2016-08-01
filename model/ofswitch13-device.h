@@ -220,11 +220,10 @@ private:
     /** Default (empty) constructor. */
     RemoteController ();
 
-    Ptr<Socket>     m_socket;         //!< TCP socket to controller.
-    Address         m_address;        //!< Controller address.
-    Ptr<Packet>     m_pendingPacket;  //!< Buffer for receiving bytes.
-    uint32_t        m_pendingBytes;   //!< Pending bytes for complete message.
-    struct remote*  m_remote;         //!< ofsoftswitch13 remote structure.
+    Ptr<Socket>       m_socket;         //!< TCP socket to controller.
+    Ptr<SocketReader> m_reader;         //!< Socket reader.
+    Address           m_address;        //!< Controller address.
+    struct remote*    m_remote;         //!< ofsoftswitch13 remote structure.
   }; // Class RemoteController
 
   /**
@@ -233,8 +232,8 @@ private:
    * This structure keeps track of packets under OpenFlow pipeline, including
    * the ID for each packet copy (notified by the clone callback). Note that
    * only one packet can be in pipeline at a time, but the packet can have
-   * multiple internal copies (which one will receive an unique packet ID), and
-   * can also be saved into buffer for later usage.
+   * multiple internal copies (each one will receive an unique packet ID), and
+   * can also be saved into buffer for latter usage.
    */
   struct PipelinePacket
   {
@@ -345,11 +344,12 @@ private:
                         Ptr<OFSwitch13Device::RemoteController> controller);
 
   /**
-   * Socket callback to receive a openflow packet from controller.
+   * SocketReader callback to receive an OpenFlow packet from controller.
    * \see remote_rconn_run () at udatapath/datapath.c.
-   * \param socket The TCP socket.
+   * \param packet The packet with the OpenFlow message.
+   * \param from The packet sender address.
    */
-  void ReceiveFromController (Ptr<Socket> socket);
+  void ReceiveFromController (Ptr<Packet> packet, Address from);
 
   /**
    * Socket callback fired when a TCP connection to controller succeed.
@@ -418,6 +418,13 @@ private:
    */
   Ptr<OFSwitch13Device::RemoteController>
   GetRemoteController (Ptr<Socket> socket);
+
+  /**
+   * Get the remote controller for this address.
+   * \param address The socket address.
+   */
+  Ptr<OFSwitch13Device::RemoteController>
+  GetRemoteController (Address address);
 
   /**
    * Get the remote controller for this ofsoftswitch13 remote pointer.

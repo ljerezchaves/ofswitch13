@@ -25,6 +25,75 @@
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 
 namespace ns3 {
+
+SocketReader::SocketReader (Ptr<Socket> socket)
+  : m_socket (socket),
+    m_pendingPacket (0),
+    m_pendingBytes (0)
+{
+  NS_LOG_FUNCTION (this);
+
+  // Set the reader callback
+  socket->SetRecvCallback (MakeCallback (&SocketReader::Read, this));
+}
+
+void
+SocketReader::SetReceiveCallback (MessageCallback cb)
+{
+  NS_LOG_FUNCTION (this);
+  m_receivedMsg = cb;
+}
+
+void
+SocketReader::Read (Ptr<Socket> socket)
+{
+  NS_LOG_FUNCTION (this << socket);
+  Address from;
+
+  do
+    {
+      if (!m_pendingBytes)
+        {
+          // Starting with a new OpenFlow message.
+          // At least 8 bytes (OpenFlow header) must be available.
+          uint32_t rxBytesAvailable = socket->GetRxAvailable ();
+          if (rxBytesAvailable < 8)
+            {
+              return; // Wait for more bytes.
+            }
+
+          // Receive the OpenFlow header and get the OpenFlow message size
+          ofp_header header;
+          m_pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
+          m_pendingPacket->CopyData ((uint8_t*)&header, sizeof (ofp_header));
+          m_pendingBytes = ntohs (header.length) - sizeof (ofp_header);
+        }
+
+      // Receive the remaining OpenFlow message
+      if (m_pendingBytes)
+        {
+          if (socket->GetRxAvailable () < m_pendingBytes)
+            {
+              // We need to wait for more bytes
+              return;
+            }
+          m_pendingPacket->AddAtEnd (socket->Recv (m_pendingBytes, 0));
+        }
+
+      // Now we have a complete (single) OpenFlow message.
+      // Let's fire the callback before trying to read the next message.
+      if (!m_receivedMsg.IsNull ())
+        {
+          m_receivedMsg (m_pendingPacket, from);
+        }
+
+      // Repeat until socket buffer gets empty
+      m_pendingPacket = 0;
+      m_pendingBytes = 0;
+    }
+  while (socket->GetRxAvailable ());
+}
+
 namespace ofs {
 
 ofpbuf*
