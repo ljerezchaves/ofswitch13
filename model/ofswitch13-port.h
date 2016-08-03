@@ -121,8 +121,8 @@ private:
    * \param to Address of the destination.
    * \param packetType Type of the packet.
    */
-  bool Receive (Ptr<NetDevice> device, Ptr<const Packet> packet, 
-                uint16_t protocol, const Address &from, const Address &to, 
+  bool Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
+                uint16_t protocol, const Address &from, const Address &to,
                 NetDevice::PacketType packetType);
 
   /** Trace source fired when a packet arrives at this switch port. */

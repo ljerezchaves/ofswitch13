@@ -83,8 +83,8 @@ QosController::GetTypeId (void)
 }
 
 ofl_err
-QosController::HandlePacketIn (ofl_msg_packet_in *msg, Ptr<SwitchInfo> swtch,
-                               uint32_t xid)
+QosController::HandlePacketIn (ofl_msg_packet_in *msg,
+                               Ptr<RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -119,7 +119,7 @@ QosController::HandlePacketIn (ofl_msg_packet_in *msg, Ptr<SwitchInfo> swtch,
 }
 
 void
-QosController::ConnectionStarted (Ptr<SwitchInfo> swtch)
+QosController::HandshakeSuccessful (Ptr<RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 
@@ -136,22 +136,22 @@ QosController::ConnectionStarted (Ptr<SwitchInfo> swtch)
 }
 
 void
-QosController::ConfigureBorderSwitch (Ptr<SwitchInfo> swtch)
+QosController::ConfigureBorderSwitch (Ptr<RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 
   // For packet-in messages, send only the first 128 bytes to the controller
-  DpctlCommand (swtch, "set-config miss=128");
+  DpctlExecute (swtch, "set-config miss=128");
 
   // Redirect ARP requests to the controller
-  DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=20 "
+  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=20 "
                 "eth_type=0x0806,arp_op=1 apply:output=ctrl");
 
   // Using group #3 for rewriting headers and forwarding packets to clients
   if (m_linkAggregation)
     {
       // Configure Group #3 for aggregating links 1 and 2
-      DpctlCommand (swtch, "group-mod cmd=add,type=sel,group=3 "
+      DpctlExecute (swtch, "group-mod cmd=add,type=sel,group=3 "
                     "weight=1,port=any,group=any set_field=ip_src:10.1.1.1"
                     ",set_field=eth_src:00:00:00:00:00:01,output=1 "
                     "weight=1,port=any,group=any set_field=ip_src:10.1.1.1"
@@ -160,67 +160,67 @@ QosController::ConfigureBorderSwitch (Ptr<SwitchInfo> swtch)
   else
     {
       // Configure Group #3 for sending packets only over link 1
-      DpctlCommand (swtch, "group-mod cmd=add,type=ind,group=3 "
+      DpctlExecute (swtch, "group-mod cmd=add,type=ind,group=3 "
                     "weight=0,port=any,group=any set_field=ip_src:10.1.1.1"
                     ",set_field=eth_src:00:00:00:00:00:01,output=1");
     }
 
   // Groups #1 and #2 send traffic to internal servers (ports 3 and 4)
-  DpctlCommand (swtch, "group-mod cmd=add,type=ind,group=1 "
+  DpctlExecute (swtch, "group-mod cmd=add,type=ind,group=1 "
                 "weight=0,port=any,group=any set_field=ip_dst:10.1.1.2,"
                 "set_field=eth_dst:00:00:00:00:00:08,output=3");
-  DpctlCommand (swtch, "group-mod cmd=add,type=ind,group=2 "
+  DpctlExecute (swtch, "group-mod cmd=add,type=ind,group=2 "
                 "weight=0,port=any,group=any set_field=ip_dst:10.1.1.3,"
                 "set_field=eth_dst:00:00:00:00:00:0a,output=4");
 
   // Incoming TCP connections (ports 1 and 2) are sent to the controller
-  DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=500 "
+  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=500 "
                 "in_port=1,eth_type=0x0800,ip_proto=6,ip_dst=10.1.1.1,"
                 "eth_dst=00:00:00:00:00:01 apply:output=ctrl");
-  DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=500 "
+  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=500 "
                 "in_port=2,eth_type=0x0800,ip_proto=6,ip_dst=10.1.1.1,"
                 "eth_dst=00:00:00:00:00:01 apply:output=ctrl");
 
   // TCP packets from servers are sent to the external network through group 3
-  DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=700 "
+  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=700 "
                 "in_port=3,eth_type=0x0800,ip_proto=6 apply:group=3");
-  DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=700 "
+  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=700 "
                 "in_port=4,eth_type=0x0800,ip_proto=6 apply:group=3");
 }
 
 void
-QosController::ConfigureAggregationSwitch (Ptr<SwitchInfo> swtch)
+QosController::ConfigureAggregationSwitch (Ptr<RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 
   if (m_linkAggregation)
     {
       // Configure Group #1 for aggregating links 1 and 2
-      DpctlCommand (swtch, "group-mod cmd=add,type=sel,group=1 "
+      DpctlExecute (swtch, "group-mod cmd=add,type=sel,group=1 "
                     "weight=1,port=any,group=any output=1 "
                     "weight=1,port=any,group=any output=2");
     }
   else
     {
       // Configure Group #1 for sending packets only over link 1
-      DpctlCommand (swtch, "group-mod cmd=add,type=ind,group=1 "
+      DpctlExecute (swtch, "group-mod cmd=add,type=ind,group=1 "
                     "weight=0,port=any,group=any output=1");
     }
 
   // Packets from input ports 1 and 2 are redirecte to port 3
-  DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=500 "
-                       "in_port=1 write:output=3");
-  DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=500 "
-                       "in_port=2 write:output=3");
+  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=500 "
+                "in_port=1 write:output=3");
+  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=500 "
+                "in_port=2 write:output=3");
 
   // Packets from input port 3 are redirected to group 1
-  DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=500 "
-                       "in_port=3 write:group=1");
+  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=500 "
+                "in_port=3 write:group=1");
 }
 
 ofl_err
 QosController::HandleArpPacketIn (ofl_msg_packet_in *msg,
-                                  Ptr<SwitchInfo> swtch, uint32_t xid)
+                                  Ptr<RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -300,7 +300,7 @@ QosController::HandleArpPacketIn (ofl_msg_packet_in *msg,
 
 ofl_err
 QosController::HandleConnectionRequest (ofl_msg_packet_in *msg,
-                                        Ptr<SwitchInfo> swtch, uint32_t xid)
+                                        Ptr<RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -374,7 +374,7 @@ QosController::HandleConnectionRequest (ofl_msg_packet_in *msg,
       std::ostringstream meterCmd;
       meterCmd << "meter-mod cmd=add,flags=1,meter=" << connectionCounter
                << " drop:rate=" << m_meterRate.GetBitRate () / 1000;
-      DpctlCommand (swtch, meterCmd.str ());
+      DpctlExecute (swtch, meterCmd.str ());
     }
 
   // Install the flow entry for this TCP connection
@@ -389,7 +389,7 @@ QosController::HandleConnectionRequest (ofl_msg_packet_in *msg,
       flowCmd << " meter:" << connectionCounter;
     }
   flowCmd << " write:group=" << serverNumber;
-  DpctlCommand (swtch, flowCmd.str ());
+  DpctlExecute (swtch, flowCmd.str ());
 
   // Create group action with server number
   ofl_action_group *action =

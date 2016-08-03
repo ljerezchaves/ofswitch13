@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Author: Vítor M. Eichemberger <vitor.marge@gmail.com>
+ * Author: Vitor M. Eichemberger <vitor.marge@gmail.com>
  *
  */
 
@@ -108,9 +108,9 @@ Ofswitch13TestCase2::DoRun (void)
   internetIpIfaces = ipv4switches.Assign (hostDevices);
 
   // Send TCP traffic from host 0 to 3
-  Ipv4Address h3Addr = internetIpIfaces.GetAddress (3); 
+  Ipv4Address h3Addr = internetIpIfaces.GetAddress (3);
   BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (h3Addr, 8080));
-  senderHelper.SetAttribute ("MaxBytes", UintegerValue(1024));
+  senderHelper.SetAttribute ("MaxBytes", UintegerValue (1024));
   ApplicationContainer senderApp  = senderHelper.Install (hosts.Get (0));
   senderApp.Start (Seconds (1));
   PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 8080));

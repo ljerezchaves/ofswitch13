@@ -57,7 +57,7 @@ OFSwitch13LearningController::DoDispose ()
 
 ofl_err
 OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg,
-                                              Ptr<SwitchInfo> swtch,
+                                              Ptr<RemoteSwitch> swtch,
                                               uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
@@ -136,7 +136,7 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg,
                   cmd << "flow-mod cmd=add,table=0,idle=10,flags=0x0001"
                       << ",prio=" << ++prio << " eth_dst=" << src48
                       << " apply:output=" << inPort;
-                  DpctlCommand (swtch, cmd.str ());
+                  DpctlExecute (swtch, cmd.str ());
                 }
             }
           else
@@ -189,8 +189,9 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg,
 }
 
 ofl_err
-OFSwitch13LearningController::HandleFlowRemoved (
-  ofl_msg_flow_removed *msg, Ptr<SwitchInfo> swtch, uint32_t xid)
+OFSwitch13LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg,
+                                                 Ptr<RemoteSwitch> swtch,
+                                                 uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
   NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");
@@ -219,17 +220,15 @@ OFSwitch13LearningController::HandleFlowRemoved (
 
 /********** Private methods **********/
 void
-OFSwitch13LearningController::ConnectionStarted (Ptr<SwitchInfo> swtch)
+OFSwitch13LearningController::HandshakeSuccessful (Ptr<RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 
   // After a successfull handshake, let's install the table-miss entry
-  DpctlCommand (swtch, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl");
+  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl");
 
   // Configure te switch to buffer packets and send only the first 128 bytes
-  std::ostringstream cmd;
-  cmd << "set-config miss=128";
-  DpctlCommand (swtch, cmd.str ());
+  DpctlExecute (swtch, "set-config miss=128");
 
   // Create an empty L2SwitchingTable and insert it into m_learnedInfo
   L2Table_t l2Table;

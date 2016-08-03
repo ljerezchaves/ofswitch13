@@ -205,6 +205,8 @@ OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
   NS_LOG_FUNCTION (this);
 
   NS_ASSERT (!ctrlAddr.IsInvalid ());
+  NS_ASSERT_MSG (InetSocketAddress::IsMatchingType (ctrlAddr),
+                 "Invalid address type (only IPv4 supported by now).");
   NS_ASSERT_MSG (!GetRemoteController (ctrlAddr),
                  "Controller address already in use.");
 
@@ -233,10 +235,10 @@ OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
     MakeCallback (&OFSwitch13Device::SocketCtrlFailed, this));
 
   // Create a RemoteController object for this controller and save it
-  Ptr<RemoteController> controller = Create<RemoteController> ();
-  controller->m_address = ctrlAddr;
-  controller->m_socket = ctrlSocket;
-  m_controllers.push_back (controller);
+  Ptr<RemoteController> remoteCtrl = Create<RemoteController> ();
+  remoteCtrl->m_address = ctrlAddr;
+  remoteCtrl->m_socket = ctrlSocket;
+  m_controllers.push_back (remoteCtrl);
 }
 
 Ptr<OFSwitch13Queue>
@@ -251,11 +253,9 @@ int
 OFSwitch13Device::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *remote)
 {
   Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (remote->dp->id);
-
-  // FIXME No support for auxiliary connections.
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
-  Ptr<RemoteController> controller = dev->GetRemoteController (remote);
-  return dev->SendToController (packet, controller);
+  Ptr<RemoteController> remoteCtrl = dev->GetRemoteController (remote);
+  return dev->SendToController (packet, remoteCtrl);
 }
 
 void
@@ -585,23 +585,24 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo)
 
 int
 OFSwitch13Device::SendToController (Ptr<Packet> packet,
-                                    Ptr<RemoteController> controller)
+                                    Ptr<RemoteController> remoteCtrl)
 {
-  if (!controller->m_socket)
+  if (!remoteCtrl->m_socket)
     {
       NS_LOG_WARN ("No controller connection. Discarding message... ");
       return -1;
     }
 
+  // FIXME: No support for auxiliary connections.
   // Check for available space in TCP buffer before sending the packet
-  if (controller->m_socket->GetTxAvailable () < packet->GetSize ())
+  if (remoteCtrl->m_socket->GetTxAvailable () < packet->GetSize ())
     {
       NS_LOG_ERROR ("Unavailable space to send OpenFlow message now.");
       Simulator::Schedule (m_timeout, &OFSwitch13Device::SendToController,
-                           this, packet, controller);
+                           this, packet, remoteCtrl);
     }
 
-  uint32_t bytes = controller->m_socket->Send (packet);
+  uint32_t bytes = remoteCtrl->m_socket->Send (packet);
   if (bytes != packet->GetSize ())
     {
       NS_LOG_WARN ("There was an error sending the message!");
@@ -614,9 +615,6 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
 {
   NS_LOG_FUNCTION (this << packet << from);
 
-  NS_ASSERT_MSG (InetSocketAddress::IsMatchingType (from),
-                 "Invalid address type (only IPv4 supported by now).");
-
   NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
                 "s the OpenFlow switch " << GetDatapathId () <<
                 " received " << packet->GetSize () <<
@@ -625,11 +623,11 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
   ofl_msg_header *msg;
   ofl_err error;
 
-  Ptr<RemoteController> ctrl = GetRemoteController (from);
-  NS_ASSERT_MSG (ctrl, "Error returning controller for this address.");
+  Ptr<RemoteController> remoteCtrl = GetRemoteController (from);
+  NS_ASSERT_MSG (remoteCtrl, "Error returning controller for this address.");
 
   struct sender senderCtrl;
-  senderCtrl.remote = ctrl->m_remote;
+  senderCtrl.remote = remoteCtrl->m_remote;
   senderCtrl.conn_id = 0; // FIXME No support for auxiliary connections
 
   // Get the OpenFlow buffer, unpack the message and send to handler
@@ -640,7 +638,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
   if (!error)
     {
       char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
-      NS_LOG_DEBUG ("Rx from ctrl: " << msg_str);
+      NS_LOG_DEBUG ("Rx from controller: " << msg_str);
       free (msg_str);
 
       error = handle_control_msg (m_datapath, msg, &senderCtrl);
@@ -656,7 +654,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
     }
   if (error)
     {
-      NS_LOG_ERROR ("Error processing OpenFlow msg from controller.");
+      NS_LOG_ERROR ("Error processing OpenFlow message from controller.");
 
       // Notify the controller
       ofl_msg_error err;
@@ -677,16 +675,16 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
 
   NS_LOG_LOGIC ("Controller accepted connection request!");
 
-  Ptr<RemoteController> controller = GetRemoteController (socket);
-  controller->m_remote = remote_create (m_datapath, 0, 0);
+  Ptr<RemoteController> remoteCtrl = GetRemoteController (socket);
+  remoteCtrl->m_remote = remote_create (m_datapath, 0, 0);
 
   // As we have more than one socket that is used for communication between
   // this OpenFlow switch device and controllers, we need to handle the
   // processing of receiving messages from sockets in an independent way. So,
   // each socket has its own socket reader for receiving bytes and extracting
   // OpenFlow messages.
-  controller->m_reader = Create<SocketReader> (socket);
-  controller->m_reader->SetReceiveCallback (
+  remoteCtrl->m_reader = Create<SocketReader> (socket);
+  remoteCtrl->m_reader->SetReceiveCallback (
     MakeCallback (&OFSwitch13Device::ReceiveFromController, this));
 
   // Send the OpenFlow Hello message
@@ -694,7 +692,7 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
   msg.type = OFPT_HELLO;
 
   struct sender senderCtrl;
-  senderCtrl.remote = controller->m_remote;
+  senderCtrl.remote = remoteCtrl->m_remote;
   senderCtrl.conn_id = 0; // FIXME No support for auxiliary connections.
   dp_send_message (m_datapath, &msg, &senderCtrl);
 }
@@ -710,8 +708,8 @@ OFSwitch13Device::SocketCtrlFailed (Ptr<Socket> socket)
   CtrlList_t::iterator it;
   for (it = m_controllers.begin (); it != m_controllers.end (); it++)
     {
-      Ptr<RemoteController> ctrl = *it;
-      if (ctrl->m_socket == socket)
+      Ptr<RemoteController> remoteCtrl = *it;
+      if (remoteCtrl->m_socket == socket)
         {
           m_controllers.erase (it);
           return;
@@ -867,14 +865,14 @@ OFSwitch13Device::GetRemoteController (Address address)
 }
 
 Ptr<OFSwitch13Device::RemoteController>
-OFSwitch13Device::GetRemoteController (struct remote *ctrl)
+OFSwitch13Device::GetRemoteController (struct remote *remote)
 {
-  NS_LOG_FUNCTION (this << ctrl);
+  NS_LOG_FUNCTION (this << remote);
 
   CtrlList_t::iterator it;
   for (it = m_controllers.begin (); it != m_controllers.end (); it++)
     {
-      if ((*it)->m_remote == ctrl)
+      if ((*it)->m_remote == remote)
         {
           return *it;
         }

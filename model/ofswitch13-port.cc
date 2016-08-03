@@ -245,7 +245,7 @@ OFSwitch13Port::PortGetFeatures ()
   return feat;
 }
 
-bool 
+bool
 OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
                          uint16_t protocol, const Address &from,
                          const Address &to, NetDevice::PacketType packetType)

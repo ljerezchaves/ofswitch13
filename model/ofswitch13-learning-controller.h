@@ -53,8 +53,8 @@ public:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandlePacketIn (ofl_msg_packet_in *msg, Ptr<SwitchInfo> swtch,
-                          uint32_t xid);
+  ofl_err HandlePacketIn (ofl_msg_packet_in *msg,
+                          Ptr<RemoteSwitch> swtch, uint32_t xid);
 
   /**
    * Handle flow removed messages sent from switch to this controller. Look for
@@ -65,12 +65,12 @@ public:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, Ptr<SwitchInfo> swtch,
-                             uint32_t xid);
+  ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg,
+                             Ptr<RemoteSwitch> swtch, uint32_t xid);
 
 protected:
   // Inherited from OFSwitch13Controller
-  void ConnectionStarted (Ptr<SwitchInfo> swtch);
+  void HandshakeSuccessful (Ptr<RemoteSwitch> swtch);
 
 private:
   /** Map saving <IPv4 address / MAC address> */

@@ -135,12 +135,12 @@ main (int argc, char *argv[])
     "DataRate", DataRateValue (DataRate ("10Mbps")));
 
   link = csmaHelper.Install (
-    NodeContainer (switchNodes.Get (0), switchNodes.Get (1)));
+      NodeContainer (switchNodes.Get (0), switchNodes.Get (1)));
   switch0Ports.Add (link.Get (0));
   switch1Ports.Add (link.Get (1));
 
   link = csmaHelper.Install (
-    NodeContainer (switchNodes.Get (0), switchNodes.Get (1)));
+      NodeContainer (switchNodes.Get (0), switchNodes.Get (1)));
   switch0Ports.Add (link.Get (0));
   switch1Ports.Add (link.Get (1));
 
@@ -150,18 +150,18 @@ main (int argc, char *argv[])
 
   // Connect switch 1 to switch 2
   link = csmaHelper.Install (
-    NodeContainer (switchNodes.Get (1), switchNodes.Get (2)));
+      NodeContainer (switchNodes.Get (1), switchNodes.Get (2)));
   switch1Ports.Add (link.Get (0));
   switch2Ports.Add (link.Get (1));
 
   // Connect server 0 and 1 to switch 0
   link = csmaHelper.Install (
-    NodeContainer (serverNodes.Get (0), switchNodes.Get (0)));
+      NodeContainer (serverNodes.Get (0), switchNodes.Get (0)));
   serverDevices.Add (link.Get (0));
   switch0Ports.Add (link.Get (1));
 
   link = csmaHelper.Install (
-    NodeContainer (serverNodes.Get (1), switchNodes.Get (0)));
+      NodeContainer (serverNodes.Get (1), switchNodes.Get (0)));
   serverDevices.Add (link.Get (0));
   switch0Ports.Add (link.Get (1));
 
@@ -169,7 +169,7 @@ main (int argc, char *argv[])
   for (size_t i = 0; i < numClients; i++)
     {
       link = csmaHelper.Install (
-        NodeContainer (clientNodes.Get (i), switchNodes.Get (2)));
+          NodeContainer (clientNodes.Get (i), switchNodes.Get (2)));
       clientDevices.Add (link.Get (0));
       switch2Ports.Add (link.Get (1));
     }
@@ -222,13 +222,13 @@ main (int argc, char *argv[])
 
   // Installing a sink application at server nodes
   PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory",
-    InetSocketAddress (Ipv4Address::GetAny (), 9));
+                               InetSocketAddress (Ipv4Address::GetAny (), 9));
   ApplicationContainer sinkApps = sinkHelper.Install (serverNodes);
   sinkApps.Start (Seconds (0));
 
   // Installing a sender application at client nodes
   BulkSendHelper senderHelper ("ns3::TcpSocketFactory",
-    InetSocketAddress (serverAddr, 9));
+                               InetSocketAddress (serverAddr, 9));
   ApplicationContainer senderApps = senderHelper.Install (clientNodes);
 
   // Get random start times

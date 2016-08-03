@@ -216,13 +216,13 @@ protected:
   CsmaHelper                m_csmaHelper;       //!< Helper for csma connection
   PointToPointHelper        m_p2pHelper;        //!< Helper for p2p connection
   Ptr<CsmaChannel>          m_csmaChannel;      //!< Common controller channel
-  
+
   // FIXME: We must be able to install and configure more than a single
   // controller on the network, so we need a collection of controllers here
   Ptr<Node>                 m_ctrlNode;         //!< Controller node
   Ptr<OFSwitch13Controller> m_ctrlApp;          //!< Controller application
   Address                   m_ctrlAddr;         //!< Controller address
-  
+
   uint16_t                  m_ctrlPort;         //!< Controller port
   ChannelType               m_channelType;      //!< Channel type
   DataRate                  m_channelDataRate;  //!< Channel link data rate

@@ -46,25 +46,25 @@ public:
   static TypeId GetTypeId (void);
 
   // Inherited from OFSwitch13Controller
-  ofl_err HandlePacketIn (ofl_msg_packet_in *msg, Ptr<SwitchInfo> swtch,
-                          uint32_t xid);
+  ofl_err HandlePacketIn (ofl_msg_packet_in *msg,
+                          Ptr<RemoteSwitch> swtch, uint32_t xid);
 
 protected:
   // Inherited from OFSwitch13Controller
-  void ConnectionStarted (Ptr<SwitchInfo> swtch);
+  void HandshakeSuccessful (Ptr<RemoteSwitch> swtch);
 
 private:
   /**
    * Configure the border switch.
    * \param swtch The switch information.
    */
-  void ConfigureBorderSwitch (Ptr<SwitchInfo> swtch);
+  void ConfigureBorderSwitch (Ptr<RemoteSwitch> swtch);
 
   /**
    * Configure the aggregation switch.
    * \param swtch The switch information.
    */
-  void ConfigureAggregationSwitch (Ptr<SwitchInfo> swtch);
+  void ConfigureAggregationSwitch (Ptr<RemoteSwitch> swtch);
 
   /**
    * Handle ARP request messages.
@@ -73,8 +73,8 @@ private:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandleArpPacketIn (ofl_msg_packet_in *msg, Ptr<SwitchInfo> swtch,
-                             uint32_t xid);
+  ofl_err HandleArpPacketIn (ofl_msg_packet_in *msg,
+                             Ptr<RemoteSwitch> swtch, uint32_t xid);
 
   /**
    * Handle TCP connection request
@@ -84,7 +84,7 @@ private:
    * \return 0 if everything's ok, otherwise an error number.
    */
   ofl_err HandleConnectionRequest (ofl_msg_packet_in *msg,
-                                   Ptr<SwitchInfo> swtch, uint32_t xid);
+                                   Ptr<RemoteSwitch> swtch, uint32_t xid);
 
   /**
    * Extract an IPv4 address from packet match.
