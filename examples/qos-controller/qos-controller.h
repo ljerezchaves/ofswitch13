@@ -21,8 +21,6 @@
 #ifndef QOS_CONTROLLER_H
 #define QOS_CONTROLLER_H
 
-#include <ns3/network-module.h>
-#include <ns3/internet-module.h>
 #include <ns3/ofswitch13-module.h>
 
 using namespace ns3;

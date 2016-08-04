@@ -122,9 +122,6 @@ private:
 
 namespace ofs {
 
-class OFSwitch13Device;
-class OFSwitch13Controller;
-
 /**
  * TracedCallback signature for sending packets from CsmaNetDevice to OpenFlow
  * pipeline.

@@ -19,6 +19,8 @@
  */
 
 #include "qos-controller.h"
+#include <ns3/network-module.h>
+#include <ns3/internet-module.h>
 
 NS_LOG_COMPONENT_DEFINE ("QosController");
 NS_OBJECT_ENSURE_REGISTERED (QosController);

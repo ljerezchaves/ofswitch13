@@ -20,6 +20,7 @@
 
 #include <wordexp.h>
 #include "ns3/uinteger.h"
+#include "ns3/tcp-socket-factory.h"
 #include "ofswitch13-controller.h"
 
 namespace ns3 {
