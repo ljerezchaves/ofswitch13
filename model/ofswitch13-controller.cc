@@ -104,6 +104,7 @@ OFSwitch13Controller::DpctlExecute (uint64_t dpId, const std::string textCmd)
   NS_LOG_FUNCTION (this << textCmd);
 
   Ptr<RemoteSwitch> swtch = GetRemoteSwitch (dpId);
+  NS_ASSERT_MSG (swtch, "Can't execute command for an unregistered switch.");
   return DpctlExecute (swtch, textCmd);
 }
 
@@ -111,6 +112,9 @@ int
 OFSwitch13Controller::DpctlSchedule (uint64_t dpId, const std::string textCmd)
 {
   NS_LOG_FUNCTION (this << textCmd);
+
+  Ptr<RemoteSwitch> swtch = GetRemoteSwitch (dpId);
+  NS_ASSERT_MSG (!swtch, "Can't schedule command for a registered switch.");
 
   std::pair <uint64_t, std::string> entry (dpId, textCmd);
   m_schedCommands.insert (entry);
@@ -196,7 +200,7 @@ OFSwitch13Controller::GetRemoteSwitch (uint64_t dpId)
           return swtch;
         }
     }
-  NS_FATAL_ERROR ("Couldn't find the remote switch for this datapath ID.");
+  return 0;
 }
 
 Ptr<OFSwitch13Controller::RemoteSwitch>
