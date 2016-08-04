@@ -275,11 +275,6 @@ OFSwitch13Device
   pipeline. At each internal, the device checks if any flow in any table is
   timed out and update port status.
 
-* ``ControllerAddr``: The controller ``InetSocketAddress``, used for TCP
-  communication between the switch and controller. The default IP 10.100.150.1
-  is the one assigned by the helper when installing the controller application.
-  For custom installations, change the address accordingly.
-
 * ``LibLogLevel``: Set the ``ofsoftswitch13`` library logging level. Use *none*
   to turn logging off, or use *all* to maximum verbosity. You can also use a
   custom ``ofsoftswitch13`` verbosity argument.
@@ -422,15 +417,22 @@ Advanced Usage
 For constructing OpenFlow messages and send to the switches, the controller
 relies on the ``dpctl`` utility to simplify the process. This is a management
 utility that enable some control over the OpenFlow switch. With this tool it is
-possible to add flows to the flow table, query for switch features and status,
-and change other configurations.
+possible to add flows to the flow table, query for switch features and
+status, and change other configurations. The ``DpctlExecute()`` function can be
+used by derived controllers to convert a variety of ``dpctl`` commands into
+OpenFlow messages and send it to the target switch. There's also the
+``DpctlSchedule()`` variant, which can be used to schedule commands to be
+executed just after the handshake procedure between the controller and the
+switch (this can be useful for scheduling commands during the topology
+creation, before the simulation start).
 
 Check the `utility documentation
 <https://github.com/CPqD/ofsoftswitch13/wiki/Dpctl-Documentation>`_ for details
 on how to create the commands. Note that the documentation is intended for
 terminal usage in Unix systems, which is a little different from the usage in
-the ``DpctlCommand()`` function. For this module, ignore the options and switch
-reference, and consider only the command and the arguments.
+the ``DpctlExecute()`` function. For this module, ignore the options and switch
+reference, and consider only the command and the arguments. You will find some
+examples on this syntax at :ref:`qos-controller` source code.
 
 .. _extending-controller:
 
@@ -438,22 +440,17 @@ Extending the controller
 ########################
 
 The ``OFSwitch13Controller`` base class provides the basic interface for
-controller implementation. For sending OpenFlow messages to the switches, there
-are functions for *barrier request* and *echo request* messages.  Furthermore,
-the ``DpctlCommand()`` function can be used by derived controllers to convert a
-variety of ``dpctl`` commands into OpenFlow messages and send it to the target
-switch.
-
-The controller uses OpenFlow message handlers to process different OpenFlow
-message received from the switches. Some handler methods can not be modified by
-derived class (like echo request and reply), as they must behave as already
-implemented. Other handlers can be overridden by derived controllers to proper
-handle packets sent from switch to controller and implement the desired control
-logic. The current implementation of these virtual handler methods does
-nothing: just free the received message and returns 0. Note that handlers
-*must* free received messages (msg) when everything is fine. For
-``HandleMultipartReply()`` implementation, note that there are several types of
-multipart replies that can be filtered.
+controller implementation. For sending OpenFlow messages to the switches,
+preferably use the ``dpctl`` commands. The controller also uses OpenFlow
+message handlers to process different OpenFlow message received from the
+switches. Some handler methods can not be modified by derived class, as they
+must behave as already implemented. Other handlers can be overridden by derived
+controllers to proper handle packets sent from switch to controller and
+implement the desired control logic. The current implementation of these
+virtual handler methods does nothing: just free the received message and
+returns 0. Note that handlers *must* free received messages (msg) when
+everything is fine. For ``HandleMultipartReply()`` implementation, note that
+there are several types of multipart replies that can be filtered.
 
 In the ``OFSwitch13LearningController`` implementation, the
 ``HandlePacketIn()`` function is used to handle packet-in messages sent from
@@ -469,11 +466,11 @@ section. Several ``dpctl`` commands are used to configure the switches based on
 network topology and desired control logic, while the ``HandlePacketIn()`` is
 used to filter packets sent to the controller by the switch. Note that the
 ``ofsoftswitch13`` function ``oxm_match_lookup()`` is used across the code to
-extract match information from the message received by the controller. For
-ARP messages, ``HandleArpPacketIn()`` exemplifies how to create a new packet at
-the controller and send to the network over a packet-out message. Developers
-are encouraged to study the library internal structures to better understand
-the handlers' implementation.
+extract match information from the message received by the controller. For ARP
+messages, ``HandleArpPacketIn()`` exemplifies how to create a new packet at the
+controller and send to the network over a packet-out message. Developers are
+encouraged to study the library internal structures to better understand the
+handlers' implementation and also how to build an OpenFlow message manually.
 
 External controller
 ###################

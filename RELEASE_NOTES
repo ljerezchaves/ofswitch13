@@ -4,6 +4,30 @@ OFSwithc13 release notes
 
 This file contains OFSwitch13 release notes (most recent releases first).
 
+Release XXXXX (August XX, 2016)
+==============================
+
+- Removing the need of registering the switch at the controller before the
+  connection start.
+
+- Removing from the OpenFlow device the controller address attribute. It now
+  must be indicated by the helper as a parameter to StartControllerConnection.
+
+- Create the SocketReader class to read OpenFlow messages from TCP sockets in
+  safe way.
+
+- Creating the RemoteController and RemoteSwitch classes, which can be used to
+  independently store information of several remote connections, allowing the
+  implementation of multiple controller functionality.
+
+- Refactoring the OFSwitch13Controller class:
+  * Splitting the DpctlCommand into execute and schedule versions;
+  * Removing dependence from OFSwitch13Device class;
+  * Renaming ConnectionStarted to HandshakeSuccessful to reflect semantic;
+  * Implementing the handshake procedure;
+  * Implementing barrier reply, hello and features reply handlers.
+
+
 Release 2.0.2 (April 11, 2016)
 ==============================
 

@@ -268,10 +268,10 @@ module:
   helpful to improve the switch processing performance and exploit the
   parallelism of most switch implementations.
 
-* **Multiple controllers**: Each switch can only be managed by a
-  single controller. According to the OpenFlow specifications, having multiple
-  controllers would improve reliability as the switch can continue to operate
-  if one controller or controller connection fails.
+* **Multiple controllers**: (*Work in progress*) Each switch can only be
+  managed by a single controller. According to the OpenFlow specifications,
+  having multiple controllers would improve reliability as the switch can
+  continue to operate if one controller or controller connection fails.
 
 * **OpenFlow channel encryption**: The switch and controller may
   communicate through a TLS connection to provide authentication and
@@ -367,8 +367,8 @@ The ``OFSwitch13`` module versions 2.0.0, 2.0.1 and 2.0.2 (latest) have been
 tested with |ns3| versions 3.22, 3.23, 3.24.1, and 3.25. They are fully
 compatible with ``ofsoftswitch13`` library release 2.0.x. It is strongly
 recommended to use the latest module version for better results. Please, avoid
-the use ``OFSwitch13`` versions prior to 2.0.0, which cannot be considerable as
-stable.
+the use ``OFSwitch13`` versions prior to 2.0.0, which are not considerable as
+stable versions.
 
 References
 ==========
