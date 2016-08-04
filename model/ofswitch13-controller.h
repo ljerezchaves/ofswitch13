@@ -105,7 +105,7 @@ protected:
      * Complete constructor, with the switch IP.
      * \param ip The switch IP.
      */
-    EchoInfo (Ptr<RemoteSwitch> swtch);
+    EchoInfo (Ptr<const RemoteSwitch> swtch);
 
     /**
      * Compute the echo RTT time.
@@ -114,10 +114,10 @@ protected:
     Time GetRtt (void) const;
 
   private:
-    bool              m_waiting;    //!< True when waiting for reply.
-    Time              m_send;       //!< Send time.
-    Time              m_recv;       //!< Received time.
-    Ptr<RemoteSwitch> m_swtch;      //!< Remote switch.
+    bool                    m_waiting;    //!< True when waiting for reply.
+    Time                    m_send;       //!< Send time.
+    Time                    m_recv;       //!< Received time.
+    Ptr<const RemoteSwitch> m_swtch;      //!< Remote switch.
   };
 
   /**
@@ -133,11 +133,11 @@ protected:
      * Complete constructor, with the switch IP.
      * \param ip The switch IP.
      */
-    BarrierInfo (Ptr<RemoteSwitch> swtch);
+    BarrierInfo (Ptr<const RemoteSwitch> swtch);
 
   private:
-    bool              m_waiting;    //!< True when waiting for reply.
-    Ptr<RemoteSwitch> m_swtch;      //!< Remote switch.
+    bool                    m_waiting;    //!< True when waiting for reply.
+    Ptr<const RemoteSwitch> m_swtch;      //!< Remote switch.
   };
 
 public:
@@ -161,7 +161,7 @@ public:
    * \param textCmd The dpctl command to execute.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int DpctlExecute (Ptr<RemoteSwitch> swtch, const std::string textCmd);
+  int DpctlExecute (Ptr<const RemoteSwitch> swtch, const std::string textCmd);
 
   /**
    * Execute a dpctl command to interact with the remote switch.
@@ -208,21 +208,14 @@ protected:
    * messages to the switch.
    * \param swtch The remote switch.
    */
-  virtual void HandshakeSuccessful (Ptr<RemoteSwitch> swtch);
+  virtual void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
 
   /**
    * Get the remote switch for this OpenFlow datapath ID.
    * \param dpId The OpenFlow datapath ID.
    * \return The remote switch.
    */
-  Ptr<RemoteSwitch> GetRemoteSwitch (uint64_t dpId);
-
-  /**
-   * Get the remote switch for this address.
-   * \param address The socket address.
-   * \return The remote switch.
-   */
-  Ptr<RemoteSwitch> GetRemoteSwitch (Address address);
+  Ptr<const RemoteSwitch> GetRemoteSwitch (uint64_t dpId) const;
 
   /**
    * Send a OFLib message to a registered switch.
@@ -231,7 +224,7 @@ protected:
    * \param xid The transaction id to use.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendToSwitch (Ptr<RemoteSwitch> swtch, ofl_msg_header *msg,
+  int SendToSwitch (Ptr<const RemoteSwitch> swtch, ofl_msg_header *msg,
                     uint32_t xid = 0);
 
   /**
@@ -240,7 +233,7 @@ protected:
    * \param payloadSize The ammount of dummy bytes in echo message.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendEchoRequest (Ptr<RemoteSwitch> swtch, size_t payloadSize = 0);
+  int SendEchoRequest (Ptr<const RemoteSwitch> swtch, size_t payloadSize = 0);
 
   /**
    * Send a barrier request message to switch, and wait for a non-blocking
@@ -250,7 +243,7 @@ protected:
    * \param swtch The remote switch to receive the message.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendBarrierRequest (Ptr<RemoteSwitch> swtch);
+  int SendBarrierRequest (Ptr<const RemoteSwitch> swtch);
 
   /**
    * \name OpenFlow message handlers
@@ -271,61 +264,50 @@ protected:
    * \return 0 if everything's ok, otherwise an error number.
    */
   //\{
-  ofl_err
-  HandleEchoRequest (ofl_msg_echo *msg,
-                     Ptr<RemoteSwitch> swtch, uint32_t xid);
+  ofl_err HandleEchoRequest (
+    ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
-  ofl_err
-  HandleEchoReply (ofl_msg_echo *msg,
-                   Ptr<RemoteSwitch> swtch, uint32_t xid);
+  ofl_err HandleEchoReply (
+    ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
-  ofl_err
-  HandleBarrierReply (ofl_msg_header *msg,
-                      Ptr<RemoteSwitch> swtch, uint32_t xid);
+  ofl_err HandleBarrierReply (
+    ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
-  ofl_err
-  HandleHello (ofl_msg_header *msg,
-               Ptr<RemoteSwitch> swtch, uint32_t xid);
+  ofl_err HandleHello (
+    ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
-  ofl_err
-  HandleFeaturesReply (ofl_msg_features_reply *msg,
-                       Ptr<RemoteSwitch> swtch, uint32_t xid);
+  ofl_err HandleFeaturesReply (
+    ofl_msg_features_reply *msg, Ptr<RemoteSwitch> swtch, uint32_t xid);
 
-  virtual ofl_err
-  HandlePacketIn (ofl_msg_packet_in *msg,
-                  Ptr<RemoteSwitch> swtch, uint32_t xid);
+  virtual ofl_err HandlePacketIn (
+    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
-  virtual ofl_err
-  HandleError (ofl_msg_error *msg,
-               Ptr<RemoteSwitch> swtch, uint32_t xid);
+  virtual ofl_err HandleError (
+    ofl_msg_error *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
-  virtual ofl_err
-  HandleGetConfigReply (ofl_msg_get_config_reply *msg,
-                        Ptr<RemoteSwitch> swtch, uint32_t xid);
+  virtual ofl_err HandleGetConfigReply (
+    ofl_msg_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
-  virtual ofl_err
-  HandleFlowRemoved (ofl_msg_flow_removed *msg,
-                     Ptr<RemoteSwitch> swtch, uint32_t xid);
+  virtual ofl_err HandleFlowRemoved (
+    ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
-  virtual ofl_err
-  HandlePortStatus (ofl_msg_port_status *msg,
-                    Ptr<RemoteSwitch> swtch, uint32_t xid);
+  virtual ofl_err HandlePortStatus (
+    ofl_msg_port_status *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
-  virtual ofl_err
-  HandleAsyncReply (ofl_msg_async_config *msg,
-                    Ptr<RemoteSwitch> swtch, uint32_t xid);
+  virtual ofl_err HandleAsyncReply (
+    ofl_msg_async_config *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
-  virtual ofl_err
-  HandleMultipartReply (ofl_msg_multipart_reply_header *msg,
-                        Ptr<RemoteSwitch> swtch, uint32_t xid);
+  virtual ofl_err HandleMultipartReply (
+    ofl_msg_multipart_reply_header *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
-  virtual ofl_err
-  HandleRoleReply (ofl_msg_role_request *msg,
-                   Ptr<RemoteSwitch> swtch, uint32_t xid);
+  virtual ofl_err HandleRoleReply (
+    ofl_msg_role_request *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
-  virtual ofl_err
-  HandleQueueGetConfigReply (ofl_msg_queue_get_config_reply *msg,
-                             Ptr<RemoteSwitch> swtch, uint32_t xid);
+  virtual ofl_err HandleQueueGetConfigReply (
+    ofl_msg_queue_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
   //\}
 
 private:
@@ -346,6 +328,13 @@ private:
    * \param from The packet sender address.
    */
   void ReceiveFromSwitch (Ptr<Packet> packet, Address from);
+
+  /**
+   * Get the remote switch for this address.
+   * \param address The socket address.
+   * \return The remote switch.
+   */
+  Ptr<RemoteSwitch> GetRemoteSwitch (Address address);
 
   /**
    * \name Socket callbacks

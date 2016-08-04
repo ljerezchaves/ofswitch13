@@ -71,7 +71,7 @@ OFSwitch13Controller::DoDispose ()
 }
 
 int
-OFSwitch13Controller::DpctlExecute (Ptr<RemoteSwitch> swtch,
+OFSwitch13Controller::DpctlExecute (Ptr<const RemoteSwitch> swtch,
                                     const std::string textCmd)
 {
   NS_LOG_FUNCTION (this << textCmd);
@@ -103,7 +103,7 @@ OFSwitch13Controller::DpctlExecute (uint64_t dpId, const std::string textCmd)
 {
   NS_LOG_FUNCTION (this << textCmd);
 
-  Ptr<RemoteSwitch> swtch = GetRemoteSwitch (dpId);
+  Ptr<const RemoteSwitch> swtch = GetRemoteSwitch (dpId);
   NS_ASSERT_MSG (swtch, "Can't execute command for an unregistered switch.");
   return DpctlExecute (swtch, textCmd);
 }
@@ -113,7 +113,7 @@ OFSwitch13Controller::DpctlSchedule (uint64_t dpId, const std::string textCmd)
 {
   NS_LOG_FUNCTION (this << textCmd);
 
-  Ptr<RemoteSwitch> swtch = GetRemoteSwitch (dpId);
+  Ptr<const RemoteSwitch> swtch = GetRemoteSwitch (dpId);
   NS_ASSERT_MSG (!swtch, "Can't schedule command for a registered switch.");
 
   std::pair <uint64_t, std::string> entry (dpId, textCmd);
@@ -126,7 +126,7 @@ OFSwitch13Controller::DpctlSendAndPrint (vconn *vconn, ofl_msg_header *msg)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
-  Ptr<RemoteSwitch> swtch ((RemoteSwitch*)vconn, true);
+  Ptr<const RemoteSwitch> swtch ((RemoteSwitch*)vconn, true);
   swtch->m_ctrlApp->SendToSwitch (swtch, msg, 0);
 }
 
@@ -181,20 +181,20 @@ OFSwitch13Controller::GetNextXid ()
 }
 
 void
-OFSwitch13Controller::HandshakeSuccessful (Ptr<RemoteSwitch> swtch)
+OFSwitch13Controller::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 }
 
-Ptr<OFSwitch13Controller::RemoteSwitch>
-OFSwitch13Controller::GetRemoteSwitch (uint64_t dpId)
+Ptr<const OFSwitch13Controller::RemoteSwitch>
+OFSwitch13Controller::GetRemoteSwitch (uint64_t dpId) const
 {
   NS_LOG_FUNCTION (this << dpId);
 
-  SwitchsMap_t::iterator it;
+  SwitchsMap_t::const_iterator it;
   for (it = m_switchesMap.begin (); it != m_switchesMap.end (); it++)
     {
-      Ptr<RemoteSwitch> swtch = it->second;
+      Ptr<const RemoteSwitch> swtch = it->second;
       if (swtch->m_dpId == dpId)
         {
           return swtch;
@@ -203,21 +203,8 @@ OFSwitch13Controller::GetRemoteSwitch (uint64_t dpId)
   return 0;
 }
 
-Ptr<OFSwitch13Controller::RemoteSwitch>
-OFSwitch13Controller::GetRemoteSwitch (Address address)
-{
-  NS_LOG_FUNCTION (this << address);
-
-  SwitchsMap_t::iterator it = m_switchesMap.find (address);
-  if (it != m_switchesMap.end ())
-    {
-      return it->second;
-    }
-  NS_FATAL_ERROR ("Couldn't find the remote switch for this address.");
-}
-
 int
-OFSwitch13Controller::SendToSwitch (Ptr<RemoteSwitch> swtch,
+OFSwitch13Controller::SendToSwitch (Ptr<const RemoteSwitch> swtch,
                                     ofl_msg_header *msg, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch);
@@ -242,7 +229,7 @@ OFSwitch13Controller::SendToSwitch (Ptr<RemoteSwitch> swtch,
 }
 
 int
-OFSwitch13Controller::SendEchoRequest (Ptr<RemoteSwitch> swtch,
+OFSwitch13Controller::SendEchoRequest (Ptr<const RemoteSwitch> swtch,
                                        size_t payloadSize)
 {
   NS_LOG_FUNCTION (this << swtch);
@@ -282,7 +269,7 @@ OFSwitch13Controller::SendEchoRequest (Ptr<RemoteSwitch> swtch,
 }
 
 int
-OFSwitch13Controller::SendBarrierRequest (Ptr<RemoteSwitch> swtch)
+OFSwitch13Controller::SendBarrierRequest (Ptr<const RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 
@@ -306,8 +293,8 @@ OFSwitch13Controller::SendBarrierRequest (Ptr<RemoteSwitch> swtch)
 
 // --- BEGIN: Handlers functions -------
 ofl_err
-OFSwitch13Controller::HandleEchoRequest (ofl_msg_echo *msg,
-                                         Ptr<RemoteSwitch> swtch, uint32_t xid)
+OFSwitch13Controller::HandleEchoRequest (
+  ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -322,8 +309,8 @@ OFSwitch13Controller::HandleEchoRequest (ofl_msg_echo *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleEchoReply (ofl_msg_echo *msg,
-                                       Ptr<RemoteSwitch> swtch, uint32_t xid)
+OFSwitch13Controller::HandleEchoReply (
+  ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -347,9 +334,8 @@ OFSwitch13Controller::HandleEchoReply (ofl_msg_echo *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleBarrierReply (ofl_msg_header *msg,
-                                          Ptr<RemoteSwitch> swtch,
-                                          uint32_t xid)
+OFSwitch13Controller::HandleBarrierReply (
+  ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -370,8 +356,8 @@ OFSwitch13Controller::HandleBarrierReply (ofl_msg_header *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleHello (ofl_msg_header *msg,
-                                   Ptr<RemoteSwitch> swtch, uint32_t xid)
+OFSwitch13Controller::HandleHello (
+  ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -388,9 +374,8 @@ OFSwitch13Controller::HandleHello (ofl_msg_header *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleFeaturesReply (ofl_msg_features_reply *msg,
-                                           Ptr<RemoteSwitch> swtch,
-                                           uint32_t xid)
+OFSwitch13Controller::HandleFeaturesReply (
+  ofl_msg_features_reply *msg, Ptr<RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -418,8 +403,8 @@ OFSwitch13Controller::HandleFeaturesReply (ofl_msg_features_reply *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandlePacketIn (ofl_msg_packet_in *msg,
-                                      Ptr<RemoteSwitch> swtch, uint32_t xid)
+OFSwitch13Controller::HandlePacketIn (
+  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
   ofl_msg_free ((ofl_msg_header*)msg, 0);
@@ -427,8 +412,8 @@ OFSwitch13Controller::HandlePacketIn (ofl_msg_packet_in *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleError (ofl_msg_error *msg, Ptr<RemoteSwitch> swtch,
-                                   uint32_t xid)
+OFSwitch13Controller::HandleError (
+  ofl_msg_error *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -442,9 +427,8 @@ OFSwitch13Controller::HandleError (ofl_msg_error *msg, Ptr<RemoteSwitch> swtch,
 }
 
 ofl_err
-OFSwitch13Controller::HandleGetConfigReply (ofl_msg_get_config_reply *msg,
-                                            Ptr<RemoteSwitch> swtch,
-                                            uint32_t xid)
+OFSwitch13Controller::HandleGetConfigReply (
+  ofl_msg_get_config_reply *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
   ofl_msg_free ((ofl_msg_header*)msg, 0);
@@ -452,8 +436,8 @@ OFSwitch13Controller::HandleGetConfigReply (ofl_msg_get_config_reply *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleFlowRemoved (ofl_msg_flow_removed *msg,
-                                         Ptr<RemoteSwitch> swtch, uint32_t xid)
+OFSwitch13Controller::HandleFlowRemoved (
+  ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
   ofl_msg_free_flow_removed (msg, true, 0);
@@ -461,8 +445,8 @@ OFSwitch13Controller::HandleFlowRemoved (ofl_msg_flow_removed *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandlePortStatus (ofl_msg_port_status *msg,
-                                        Ptr<RemoteSwitch> swtch, uint32_t xid)
+OFSwitch13Controller::HandlePortStatus (
+  ofl_msg_port_status *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
   ofl_msg_free ((ofl_msg_header*)msg, 0);
@@ -470,8 +454,8 @@ OFSwitch13Controller::HandlePortStatus (ofl_msg_port_status *msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleAsyncReply (ofl_msg_async_config *msg,
-                                        Ptr<RemoteSwitch> swtch, uint32_t xid)
+OFSwitch13Controller::HandleAsyncReply (
+  ofl_msg_async_config *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
   ofl_msg_free ((ofl_msg_header*)msg, 0);
@@ -480,7 +464,8 @@ OFSwitch13Controller::HandleAsyncReply (ofl_msg_async_config *msg,
 
 ofl_err
 OFSwitch13Controller::HandleMultipartReply (
-  ofl_msg_multipart_reply_header *msg, Ptr<RemoteSwitch> swtch,  uint32_t xid)
+  ofl_msg_multipart_reply_header *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
   ofl_msg_free ((ofl_msg_header*)msg, 0);
@@ -488,8 +473,8 @@ OFSwitch13Controller::HandleMultipartReply (
 }
 
 ofl_err
-OFSwitch13Controller::HandleRoleReply (ofl_msg_role_request *msg,
-                                       Ptr<RemoteSwitch> swtch, uint32_t xid)
+OFSwitch13Controller::HandleRoleReply (
+  ofl_msg_role_request *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
   ofl_msg_free ((ofl_msg_header*)msg, 0);
@@ -498,7 +483,8 @@ OFSwitch13Controller::HandleRoleReply (ofl_msg_role_request *msg,
 
 ofl_err
 OFSwitch13Controller::HandleQueueGetConfigReply (
-  ofl_msg_queue_get_config_reply *msg, Ptr<RemoteSwitch> swtch, uint32_t xid)
+  ofl_msg_queue_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
   ofl_msg_free ((ofl_msg_header*)msg, 0);
@@ -508,8 +494,8 @@ OFSwitch13Controller::HandleQueueGetConfigReply (
 
 /********** Private methods **********/
 int
-OFSwitch13Controller::HandleSwitchMsg (ofl_msg_header *msg,
-                                       Ptr<RemoteSwitch> swtch, uint32_t xid)
+OFSwitch13Controller::HandleSwitchMsg (
+  ofl_msg_header *msg, Ptr<RemoteSwitch> swtch, uint32_t xid)
 {
   // Dispatches control messages to appropriate handler functions.
   switch (msg->type)
@@ -609,6 +595,19 @@ OFSwitch13Controller::ReceiveFromSwitch (Ptr<Packet> packet, Address from)
   ofpbuf_delete (buffer);
 }
 
+Ptr<OFSwitch13Controller::RemoteSwitch>
+OFSwitch13Controller::GetRemoteSwitch (Address address)
+{
+  NS_LOG_FUNCTION (this << address);
+
+  SwitchsMap_t::const_iterator it = m_switchesMap.find (address);
+  if (it != m_switchesMap.end ())
+    {
+      return it->second;
+    }
+  NS_FATAL_ERROR ("Couldn't find the remote switch for this address.");
+}
+
 bool
 OFSwitch13Controller::SocketRequest (Ptr<Socket> socket, const Address& from)
 {
@@ -699,7 +698,7 @@ OFSwitch13Controller::RemoteSwitch::GetDpId (void) const
   return m_dpId;
 }
 
-OFSwitch13Controller::EchoInfo::EchoInfo (Ptr<RemoteSwitch> swtch)
+OFSwitch13Controller::EchoInfo::EchoInfo (Ptr<const RemoteSwitch> swtch)
   : m_waiting (true),
     m_send (Simulator::Now ()),
     m_swtch (swtch)
@@ -719,7 +718,7 @@ OFSwitch13Controller::EchoInfo::GetRtt (void) const
     }
 }
 
-OFSwitch13Controller::BarrierInfo::BarrierInfo (Ptr<RemoteSwitch> swtch)
+OFSwitch13Controller::BarrierInfo::BarrierInfo (Ptr<const RemoteSwitch> swtch)
   : m_waiting (true),
     m_swtch (swtch)
 {

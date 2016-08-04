@@ -56,9 +56,8 @@ OFSwitch13LearningController::DoDispose ()
 }
 
 ofl_err
-OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg,
-                                              Ptr<RemoteSwitch> swtch,
-                                              uint32_t xid)
+OFSwitch13LearningController::HandlePacketIn (
+  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -189,9 +188,8 @@ OFSwitch13LearningController::HandlePacketIn (ofl_msg_packet_in *msg,
 }
 
 ofl_err
-OFSwitch13LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg,
-                                                 Ptr<RemoteSwitch> swtch,
-                                                 uint32_t xid)
+OFSwitch13LearningController::HandleFlowRemoved (
+  ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
   NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");
@@ -220,7 +218,8 @@ OFSwitch13LearningController::HandleFlowRemoved (ofl_msg_flow_removed *msg,
 
 /********** Private methods **********/
 void
-OFSwitch13LearningController::HandshakeSuccessful (Ptr<RemoteSwitch> swtch)
+OFSwitch13LearningController::HandshakeSuccessful (
+  Ptr<const RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 

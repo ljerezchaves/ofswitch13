@@ -85,8 +85,8 @@ QosController::GetTypeId (void)
 }
 
 ofl_err
-QosController::HandlePacketIn (ofl_msg_packet_in *msg,
-                               Ptr<RemoteSwitch> swtch, uint32_t xid)
+QosController::HandlePacketIn (
+  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -121,7 +121,7 @@ QosController::HandlePacketIn (ofl_msg_packet_in *msg,
 }
 
 void
-QosController::HandshakeSuccessful (Ptr<RemoteSwitch> swtch)
+QosController::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 
@@ -138,7 +138,7 @@ QosController::HandshakeSuccessful (Ptr<RemoteSwitch> swtch)
 }
 
 void
-QosController::ConfigureBorderSwitch (Ptr<RemoteSwitch> swtch)
+QosController::ConfigureBorderSwitch (Ptr<const RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 
@@ -191,7 +191,7 @@ QosController::ConfigureBorderSwitch (Ptr<RemoteSwitch> swtch)
 }
 
 void
-QosController::ConfigureAggregationSwitch (Ptr<RemoteSwitch> swtch)
+QosController::ConfigureAggregationSwitch (Ptr<const RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 
@@ -221,8 +221,8 @@ QosController::ConfigureAggregationSwitch (Ptr<RemoteSwitch> swtch)
 }
 
 ofl_err
-QosController::HandleArpPacketIn (ofl_msg_packet_in *msg,
-                                  Ptr<RemoteSwitch> swtch, uint32_t xid)
+QosController::HandleArpPacketIn (
+  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -301,8 +301,8 @@ QosController::HandleArpPacketIn (ofl_msg_packet_in *msg,
 }
 
 ofl_err
-QosController::HandleConnectionRequest (ofl_msg_packet_in *msg,
-                                        Ptr<RemoteSwitch> swtch, uint32_t xid)
+QosController::HandleConnectionRequest (
+  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
