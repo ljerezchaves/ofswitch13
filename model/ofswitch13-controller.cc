@@ -140,7 +140,7 @@ OFSwitch13Controller::StartApplication ()
   if (!m_serverSocket)
     {
       m_serverSocket =
-        Socket::CreateSocket (GetNode (),TcpSocketFactory::GetTypeId ());
+        Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
       m_serverSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
       m_serverSocket->Bind (InetSocketAddress (Ipv4Address::GetAny (),
                                                m_port));
