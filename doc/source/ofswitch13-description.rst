@@ -164,9 +164,9 @@ switch, receives events from the switch, and sends packets out the switch. In
 the ``OFSwitch13`` module, the controller interface can manage the switch
 devices remotely over a separate dedicated network (out-of-band controller
 connection). It is possible to use standard |ns3| protocol stack, channels and
-devices to create an OpenFlow channel using a single shared channel or
-individual connections between the controller interface and each switch device.
-This model provides realistic control plane connections, including
+devices to create the OpenFlow channel connections using a single shared
+channel or individual links between the controller interface and each switch
+device. This model provides realistic control plane connections, including
 communication delay and, optionally, error models. It also simplifies the
 OpenFlow protocol analysis, as the |ns3| tracing subsystem can be used for
 outputting PCAP files to be read by third-party software.

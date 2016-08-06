@@ -36,10 +36,8 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Helper);
 class OFSwitch13Controller;
 
 OFSwitch13Helper::OFSwitch13Helper ()
-  : m_csmaChannel (0),
-    m_ctrlNode (0),
-    m_ctrlApp (0),
-    m_ctrlPort (6653)
+  : m_blocked (false),
+    m_csmaChannel (0)
 {
   NS_LOG_FUNCTION (this);
 
@@ -79,8 +77,6 @@ void
 OFSwitch13Helper::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
-  m_ctrlNode = 0;
-  m_ctrlApp = 0;
   m_csmaChannel = 0;
 }
 
@@ -161,10 +157,63 @@ OFSwitch13Helper::SetChannelDataRate (DataRate datarate)
 void
 OFSwitch13Helper::EnableDatapathLogs (std::string level)
 {
-  Ptr<OFSwitch13Device> openFlowDev;
-  for (size_t i = 0; i < m_devices.GetN (); i++)
+  NS_LOG_FUNCTION (this << level);
+
+  OFSwitch13DeviceContainer::Iterator it;
+  for (it = m_openFlowDevs.Begin (); it != m_openFlowDevs.End (); it++)
     {
-      m_devices.Get (i)->SetLibLogLevel (level);
+      (*it)->SetLibLogLevel (level);
+    }
+}
+
+void
+OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix)
+{
+  NS_LOG_FUNCTION (this << prefix);
+
+  switch (m_channelType)
+    {
+    case OFSwitch13Helper::SINGLECSMA:
+    case OFSwitch13Helper::DEDICATEDCSMA:
+      {
+        m_csmaHelper.EnablePcap (prefix, m_controlDevs, true);
+        break;
+      }
+    case OFSwitch13Helper::DEDICATEDP2P:
+      {
+        m_p2pHelper.EnablePcap (prefix, m_controlDevs, true);
+        break;
+      }
+    default:
+      {
+        NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
+      }
+    }
+}
+
+void
+OFSwitch13Helper::EnableOpenFlowAscii (std::string prefix)
+{
+  NS_LOG_FUNCTION (this << prefix);
+
+  AsciiTraceHelper ascii;
+  switch (m_channelType)
+    {
+    case OFSwitch13Helper::SINGLECSMA:
+    case OFSwitch13Helper::DEDICATEDCSMA:
+      {
+        m_csmaHelper.EnableAsciiAll (ascii.CreateFileStream (prefix + ".txt"));
+        break;
+      }
+    case OFSwitch13Helper::DEDICATEDP2P:
+      {
+        m_p2pHelper.EnableAsciiAll (ascii.CreateFileStream (prefix + ".txt"));
+        break;
+      }
+    default:
+      {
+        NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
+      }
     }
 }
 
@@ -172,6 +221,8 @@ void
 OFSwitch13Helper::SetAddressBase (Ipv4Address network, Ipv4Mask mask,
                                   Ipv4Address base)
 {
+  NS_LOG_FUNCTION (this << network << mask << base);
+
   switch (m_channelType)
     {
     case OFSwitch13Helper::SINGLECSMA:
@@ -194,18 +245,60 @@ OFSwitch13Helper::SetAddressBase (Ipv4Address network, Ipv4Mask mask,
 }
 
 OFSwitch13DeviceContainer
+OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
+{
+  NS_LOG_FUNCTION (this << swNode);
+  NS_LOG_DEBUG ("Installing OpenFlow device on node " << swNode->GetId ());
+  NS_ASSERT_MSG (!m_blocked, "OpenFlow channels already configured.");
+
+  // Create and aggregate the OpenFlow device to the switch node
+  Ptr<OFSwitch13Device> openFlowDev = m_devFactory.Create<OFSwitch13Device> ();
+  swNode->AggregateObject (openFlowDev);
+  m_openFlowDevs.Add (openFlowDev);
+  m_switchNodes.Add (swNode);
+
+  // Add switch ports
+  NetDeviceContainer::Iterator it;
+  for (it = ports.Begin (); it != ports.End (); it++)
+    {
+      NS_LOG_INFO (" Adding switch port " << *it);
+      openFlowDev->AddSwitchPort (*it);
+    }
+
+  return OFSwitch13DeviceContainer (openFlowDev);
+}
+
+OFSwitch13DeviceContainer
 OFSwitch13Helper::InstallSwitchesWithoutPorts (NodeContainer swNodes)
 {
   NS_LOG_FUNCTION (this);
 
+  // Iterate over the container and add OpenFlow devices to switch nodes
   OFSwitch13DeviceContainer openFlowDevices;
   NodeContainer::Iterator it;
   for (it = swNodes.Begin (); it != swNodes.End (); it++)
     {
-      Ptr<Node> swNode = *it;
-      openFlowDevices.Add (InstallSwitch (swNode, NetDeviceContainer ()));
+      openFlowDevices.Add (InstallSwitch (*it, NetDeviceContainer ()));
     }
+
   return openFlowDevices;
+}
+
+Ptr<OFSwitch13Controller>
+OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode,
+                                        Ptr<OFSwitch13Controller> controller)
+{
+  NS_LOG_FUNCTION (this << cNode << controller);
+  NS_LOG_DEBUG ("Installing OpenFlow controller on node " << cNode->GetId ());
+  NS_ASSERT_MSG (!m_blocked, "OpenFlow channels already configured.");
+
+  // Install the controller App into controller node
+  controller->SetStartTime (Seconds (0));
+  cNode->AddApplication (controller);
+  m_controlApps.Add (controller);
+  m_controlNodes.Add (cNode);
+
+  return controller;
 }
 
 Ptr<OFSwitch13Controller>
@@ -213,158 +306,111 @@ OFSwitch13Helper::InstallDefaultController (Ptr<Node> cNode)
 {
   NS_LOG_FUNCTION (this);
 
-  return InstallControllerApp (cNode,
-                               CreateObject<OFSwitch13LearningController> ());
-}
-
-OFSwitch13DeviceContainer
-OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
-{
-  NS_LOG_FUNCTION (this);
-  NS_ASSERT_MSG (m_ctrlNode, "Install the controller before switch.");
-  NS_LOG_DEBUG ("Install OpenFlow switch device on node " << swNode->GetId ());
-
-  Ptr<OFSwitch13Device> openFlowDev =
-    m_devFactory.Create<OFSwitch13Device> ();
-  swNode->AggregateObject (openFlowDev);
-  m_devices.Add (openFlowDev);
-  m_internet.Install (swNode);
-
-  for (NetDeviceContainer::Iterator i = ports.Begin (); i != ports.End (); ++i)
-    {
-      NS_LOG_INFO (" Adding switch port " << *i);
-      openFlowDev->AddSwitchPort (*i);
-    }
-
-  Address ctrlAddr;
-  Ipv4InterfaceContainer swIface;
-  switch (m_channelType)
-    {
-    case OFSwitch13Helper::SINGLECSMA:
-      {
-        // Connecting the switch to common csma network
-        NetDeviceContainer swDev =
-          m_csmaHelper.Install (swNode, m_csmaChannel);
-        swIface = m_ipv4helper.Assign (swDev);
-        ctrlAddr = m_ctrlAddr;
-        break;
-      }
-    case OFSwitch13Helper::DEDICATEDCSMA:
-      {
-        // Create a dedicated csma link between switch and controller
-        NodeContainer pair;
-        pair.Add (swNode);
-        pair.Add (m_ctrlNode);
-
-        NetDeviceContainer swDev = m_csmaHelper.Install (pair);
-        swIface = m_ipv4helper.Assign (swDev);
-        m_ipv4helper.NewNetwork ();
-        m_ctrlDevs.Add (swDev.Get (1));
-        ctrlAddr = InetSocketAddress (swIface.GetAddress (1), m_ctrlPort);
-        break;
-      }
-    case OFSwitch13Helper::DEDICATEDP2P:
-      {
-        // Create a dedicated p2p link between switch and controller
-        NetDeviceContainer swDev = m_p2pHelper.Install (swNode, m_ctrlNode);
-        swIface = m_ipv4helper.Assign (swDev);
-        m_ipv4helper.NewNetwork ();
-        m_ctrlDevs.Add (swDev.Get (1));
-        ctrlAddr = InetSocketAddress (swIface.GetAddress (1), m_ctrlPort);
-        break;
-      }
-    default:
-      {
-        NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
-      }
-    }
-
-  // FIXME We need to handle multiple controllers here
-  // Start the switch <--> controller connection
-  openFlowDev->StartControllerConnection (ctrlAddr);
-
-  return OFSwitch13DeviceContainer (openFlowDev);
-}
-
-Ptr<OFSwitch13Controller>
-OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode,
-                                        Ptr<OFSwitch13Controller> controller)
-{
-  // FIXME We need to handle multiple controllers here. This helper must be
-  // able to install more than a single controller on the network.
-  NS_LOG_FUNCTION (this);
-  NS_ASSERT_MSG (!m_ctrlApp, "The controller is already installed.");
-  NS_LOG_DEBUG ("Installing OpenFlow controller on node " << cNode->GetId ());
-
-  // Install the controller App into controller node
-  m_ctrlApp = controller;
-  m_ctrlNode = cNode;
-  m_ctrlApp->SetStartTime (Seconds (0));
-  m_ctrlNode->AddApplication (m_ctrlApp);
-  m_internet.Install (m_ctrlNode);
-
-  // Get the controller port number
-  UintegerValue portValue;
-  m_ctrlApp->GetAttribute ("Port", portValue);
-  m_ctrlPort = portValue.Get ();
-
-  Ipv4InterfaceContainer ctrlIface;
-  switch (m_channelType)
-    {
-    case OFSwitch13Helper::SINGLECSMA:
-      {
-        // Connecting the controller to common csma network
-        m_ctrlDevs.Add (m_csmaHelper.Install (m_ctrlNode, m_csmaChannel));
-        ctrlIface = m_ipv4helper.Assign (m_ctrlDevs);
-        m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), m_ctrlPort);
-        break;
-      }
-    case OFSwitch13Helper::DEDICATEDCSMA:
-    case OFSwitch13Helper::DEDICATEDP2P:
-      {
-        // Nothing to do here.
-        break;
-      }
-    default:
-      {
-        NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
-      }
-    }
-  return m_ctrlApp;
+  // Install the learning controller into cNode
+  return InstallControllerApp (
+           cNode, CreateObject<OFSwitch13LearningController> ());
 }
 
 Ptr<NetDevice>
 OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
 {
   NS_LOG_FUNCTION (this << cNode);
-  NS_ASSERT_MSG (m_channelType == OFSwitch13Helper::SINGLECSMA,
-                 "External controller must use SINGLECSMA openflow channel");
-
-  // Connecting the controller node (TapBridge) to common csma network
-  m_ctrlNode = cNode;
-  m_internet.Install (m_ctrlNode);
-  m_ctrlDevs.Add (m_csmaHelper.Install (m_ctrlNode, m_csmaChannel));
-  Ipv4InterfaceContainer ctrlIface = m_ipv4helper.Assign (m_ctrlDevs);
-  m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), m_ctrlPort);
-
-  return m_ctrlDevs.Get (0);
+//   NS_ASSERT_MSG (m_channelType == OFSwitch13Helper::SINGLECSMA,
+//                  "External controller must use SINGLECSMA openflow channel");
+//
+//   // Connecting the controller node (TapBridge) to common csma network
+//   m_ctrlNode = cNode;
+//   m_internet.Install (m_ctrlNode);
+//   m_ctrlDevs.Add (m_csmaHelper.Install (m_ctrlNode, m_csmaChannel));
+//   Ipv4InterfaceContainer ctrlIface = m_ipv4helper.Assign (m_ctrlDevs);
+//   m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), m_ctrlPort);
+//
+//   return m_ctrlDevs.Get (0);
+  return 0;
 }
 
 void
-OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix)
+OFSwitch13Helper::CreateOpenFlowChannels (void)
 {
   NS_LOG_FUNCTION (this);
+  NS_ASSERT_MSG (!m_blocked, "OpenFlow channels already configured.");
+
+  // Block this helper to avoid further calls to install methods
+  m_blocked = true;
+
+  // Install the TCP/IP stack into controller and switche nodes
+  m_internet.Install (m_controlNodes);
+  m_internet.Install (m_switchNodes);
+
+  // Create and start the connections between switches and controllers
   switch (m_channelType)
     {
     case OFSwitch13Helper::SINGLECSMA:
-    case OFSwitch13Helper::DEDICATEDCSMA:
       {
-        m_csmaHelper.EnablePcap (prefix, m_ctrlDevs, true);
+        // Create a common channel for all switches and controllers
+        NS_LOG_INFO ("Attach all switches and controllers to the common "
+                     "single CSMA network.");
+        m_controlDevs = m_csmaHelper.Install (m_controlNodes, m_csmaChannel);
+        Ipv4InterfaceContainer controlAddrs =
+          m_ipv4helper.Assign (m_controlDevs);
+        NetDeviceContainer swDevs =
+          m_csmaHelper.Install (m_switchNodes, m_csmaChannel);
+        m_ipv4helper.Assign (swDevs);
+
+        // Start the connections between each controller and all switches.
+        UintegerValue portValue;
+        for (uint32_t ctIdx = 0; ctIdx < controlAddrs.GetN (); ctIdx++)
+          {
+            m_controlApps.Get (ctIdx)->GetAttribute ("Port", portValue);
+            InetSocketAddress addr (controlAddrs.GetAddress (ctIdx),
+                                    portValue.Get ());
+
+            OFSwitch13DeviceContainer::Iterator ofDev;
+            for (ofDev = m_openFlowDevs.Begin ();
+                 ofDev != m_openFlowDevs.End (); ofDev++)
+              {
+                NS_LOG_INFO ("Connect switch " << (*ofDev)->GetDatapathId () <<
+                             " to controller " << addr.GetIpv4 () <<
+                             " port " << addr.GetPort ());
+                Simulator::ScheduleNow (
+                  &OFSwitch13Device::StartControllerConnection, *ofDev, addr);
+              }
+          }
         break;
       }
+    case OFSwitch13Helper::DEDICATEDCSMA:
     case OFSwitch13Helper::DEDICATEDP2P:
       {
-        m_p2pHelper.EnablePcap (prefix, m_ctrlDevs, true);
+        // Create invididual channels for each pair switch/controller
+        UintegerValue portValue;
+        for (uint32_t swIdx = 0; swIdx < m_switchNodes.GetN (); swIdx++)
+          {
+            Ptr<Node> swNode = m_switchNodes.Get (swIdx);
+            Ptr<OFSwitch13Device> ofDev = m_openFlowDevs.Get (swIdx);
+
+            for (uint32_t ctIdx = 0; ctIdx < m_controlNodes.GetN (); ctIdx++)
+              {
+                Ptr<Node> ctNode = m_controlNodes.Get (ctIdx);
+                Ptr<Application> ctApp = m_controlApps.Get (ctIdx);
+
+                NetDeviceContainer pairDevs = Connect (swNode, ctNode);
+                m_controlDevs.Add (pairDevs.Get (1));
+                Ipv4InterfaceContainer pairIfaces =
+                  m_ipv4helper.Assign (pairDevs);
+
+                // Start this individual connection
+                m_controlApps.Get (ctIdx)->GetAttribute ("Port", portValue);
+                InetSocketAddress addr (pairIfaces.GetAddress (1),
+                                        portValue.Get ());
+
+                NS_LOG_INFO ("Connect switch " << ofDev->GetDatapathId () <<
+                             " to controller " << addr.GetIpv4 () <<
+                             " port " << addr.GetPort ());
+                Simulator::ScheduleNow (
+                  &OFSwitch13Device::StartControllerConnection, ofDev, addr);
+                m_ipv4helper.NewNetwork ();
+              }
+          }
         break;
       }
     default:
@@ -374,24 +420,23 @@ OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix)
     }
 }
 
-void
-OFSwitch13Helper::EnableOpenFlowAscii (std::string prefix)
+NetDeviceContainer
+OFSwitch13Helper::Connect (Ptr<Node> swtch, Ptr<Node> ctrl)
 {
-  NS_LOG_FUNCTION (this);
-  AsciiTraceHelper ascii;
+  NS_LOG_FUNCTION (this << swtch << ctrl);
+
+  NodeContainer pairNodes (swtch, ctrl);
   switch (m_channelType)
     {
-    case OFSwitch13Helper::SINGLECSMA:
     case OFSwitch13Helper::DEDICATEDCSMA:
       {
-        m_csmaHelper.EnableAsciiAll (ascii.CreateFileStream (prefix + ".txt"));
-        break;
+        return m_csmaHelper.Install (pairNodes);
       }
     case OFSwitch13Helper::DEDICATEDP2P:
       {
-        m_p2pHelper.EnableAsciiAll (ascii.CreateFileStream (prefix + ".txt"));
-        break;
+        return m_p2pHelper.Install (pairNodes);
       }
+    case OFSwitch13Helper::SINGLECSMA:
     default:
       {
         NS_FATAL_ERROR ("Invalid OpenflowChannelType.");

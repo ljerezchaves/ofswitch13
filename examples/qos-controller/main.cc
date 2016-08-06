@@ -181,9 +181,9 @@ main (int argc, char *argv[])
   ofQosHelper->InstallControllerApp (controllerNodes.Get (0), qosCtrl);
 
   // Configure OpenFlow learning controller for client switch (#2) into
-  // controller node 1. Note that for using two different controllers in the
-  // same simulation script it is necessary to change the addresse network used
-  // by the helper to configure the OpenFlow channels.
+  // controller node 1. Note that for using two different OpenFlow domains in
+  // the same simulation script it is necessary to change the addresse network
+  // used by the helper to configure the OpenFlow channels.
   Ptr<OFSwitch13Helper> ofLearningHelper = CreateObject<OFSwitch13Helper> ();
   ofLearningHelper->SetAddressBase ("10.100.151.0", "255.255.255.252");
   Ptr<OFSwitch13LearningController> learnCtrl =
@@ -196,12 +196,14 @@ main (int argc, char *argv[])
     ofQosHelper->InstallSwitch (switchNodes.Get (0), switch0Ports));
   ofSwitchDevices.Add (
     ofQosHelper->InstallSwitch (switchNodes.Get (1), switch1Ports));
+  ofQosHelper->CreateOpenFlowChannels ();
 
   // Install OpenFlow switches 2 with learning controller
   ofSwitchDevices.Add (
     ofLearningHelper->InstallSwitch (switchNodes.Get (2), switch2Ports));
+  ofLearningHelper->CreateOpenFlowChannels ();
 
-  // Install the tcp/ip stack into hosts
+  // Install the TCP/IP stack into hosts
   InternetStackHelper internet;
   internet.Install (serverNodes);
   internet.Install (clientNodes);

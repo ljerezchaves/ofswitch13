@@ -124,6 +124,7 @@ main (int argc, char *argv[])
     {
       of13SwitchDevices = of13Helper->InstallSwitch (of13SwitchNodes.Get (i), of13SwitchPorts [i]);
     }
+  of13Helper->CreateOpenFlowChannels ();
 
   // Installing the tcp/ip stack into hosts
   InternetStackHelper internet;

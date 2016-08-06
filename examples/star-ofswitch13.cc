@@ -96,6 +96,7 @@ main (int argc, char *argv[])
   Ptr<OFSwitch13LearningController> learningCtrl = DynamicCast<OFSwitch13LearningController> (of13Helper->InstallDefaultController (of13ControllerNode));
   OFSwitch13DeviceContainer of13SwitchDevice;
   of13SwitchDevice = of13Helper->InstallSwitch (of13SwitchNode, of13SwitchPorts);
+  of13Helper->CreateOpenFlowChannels ();
 
   // Installing the tcp/ip stack into hosts
   InternetStackHelper internet;

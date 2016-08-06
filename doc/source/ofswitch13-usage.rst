@@ -215,32 +215,43 @@ OFSwitch13Helper
 ################
 
 The single ``OFSwitch13helper`` follows the pattern usage of normal helpers.
-This helper can be used to create and configure an OpenFlow 1.3 network with a
-single controller and one or more switches.
+It can be used to create and configure an OpenFlow 1.3 network domain, composed
+of one or more OpenFlow switches connected to a single or multiple controllers.
+It is possible to create the connections between switches and controllers using
+a single shared out-of-band CSMA channel (default option), but users can change
+the ``ChannelType`` attribute to create individual connections between
+controllers and switches, using either out-of-band CSMA or point-to-point
+links. The use of standard |ns3| channels and devices provides realistic
+connections with delay and error models.
 
-With the ``ChannelType`` attribute, it is possible to create an OpenFlow
-channel using a single shared CSMA channel (default option), interconnecting
-the controller to all switches. It is also possible to create individual
-connections between the controller and each switch, using either CSMA or
-point-to-point links. For configuring a network with more than one controller,
-the ``SetAddressBase()`` can be used to set the network address, network mask
-and base address that are used for creating the OpenFlow channel. Using
-standard |ns3| channels and devices provide realistic connections with delay
-and error models.
+This helper was designed to configure a single OpenFlow network domain. All
+switches will be connected to all controllers on the same domain. If you want
+to configure separated OpenFlow domains on your network topology (with their
+individual switches and controllers) so you may need to use a different
+instance of this helper for each domain. Don't forget to use the
+``SetAddressBase()`` method to change the IP network address of the second
+helper instance onwards, in order to avoid IP conflicts.
 
 For configuring the controller, the ``InstallDefaultController()`` function
 creates a new learning controller application and install it into the
-controller node. It is possible to install a different controller through the
-``InstallControllerApp()`` function. For configuring the switches, the
-``InstallSwitch()`` function is used to create a ``OFSwitch13Device``, add the
-device to the switch node, and attach the given device container as switch
-ports of the switch. Theses ports are the ``CsmaNetDevices`` created during the
-connection between the nodes and the switches (connections previously defined
-by the user). It is possible to install the switch without ports, using the
-``InstallSwitchesWithoutPorts()`` function. In this case, users must add ports
-to the switch later, using the ``OFSwitch13Device::AddSwitchPort()``.  Note
-that in all cases, the controller *must* be installed by the helper before the
-switches.
+controller node. It is possible to install different controllers through the
+``InstallControllerApp()`` function. Note that this helper is prepared to
+handle controller nodes with a single controller application, so don't install
+more than a single controller application on the same node or the helper will
+crash. For configuring the switches, the ``InstallSwitch()`` function is used
+to create a ``OFSwitch13Device``, add the device to the switch node, and attach
+the given device container as switch ports of the switch. Theses ports are the
+``CsmaNetDevices`` created during the connection between the nodes and the
+switches (connections previously defined by the user). It is possible to
+install the switch without ports, using the ``InstallSwitchesWithoutPorts()``
+function. In this case, users must add ports to the switch later, using the
+``OFSwitch13Device::AddSwitchPort()``. 
+
+After installing the switches and controllers, it is mandatory to use the
+``CreateOpenFlowChannels()`` member function to effectively create and start
+the connections between switches and controllers. After calling this method,
+you'll not be allowed to install more switches nor controllers using this
+helper.
 
 The helper allows users to enable PCAP and ASCII traces for the OpenFlow
 channel through functions ``EnableOpenFlowPcap()`` and
