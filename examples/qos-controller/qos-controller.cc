@@ -127,11 +127,11 @@ QosController::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
 
   // This function is called after a successfully handshake between controller
   // and each switch. Let's check the switch for proper configuration.
-  if (swtch->GetIpv4 ().IsEqual (Ipv4Address ("10.100.150.1")))
+  if (swtch->GetDpId () == 1)
     {
       ConfigureBorderSwitch (swtch);
     }
-  else if (swtch->GetIpv4 ().IsEqual (Ipv4Address ("10.100.150.5")))
+  else if (swtch->GetDpId () == 2)
     {
       ConfigureAggregationSwitch (swtch);
     }
