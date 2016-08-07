@@ -7,6 +7,9 @@ This file contains OFSwitch13 release notes (most recent releases first).
 Release XXXXX (August XX, 2016)
 ==============================
 
+- Including support for multiple controllers on the same OpenFlow network
+  domain.
+
 - Removing the need of registering the switch at the controller before the
   connection start.
 
@@ -25,7 +28,17 @@ Release XXXXX (August XX, 2016)
   * Removing dependence from OFSwitch13Device class;
   * Renaming ConnectionStarted to HandshakeSuccessful to reflect semantic;
   * Implementing the handshake procedure;
-  * Implementing barrier reply, hello and features reply handlers.
+  * Implementing barrier reply, hello and features reply handlers;
+  * Using constant pointers to RemoteSwitch objects to avoid mistakes.
+
+- Refactoring the OFSwitch13Helper class:
+  * Supporting the configuration of OpenFlow networks domains with multiple
+    controllers;
+  * Removing the dependence of installing the controller before the switches;
+  * The new CreateOpenFlowChannels () member function was introduced to
+    effectively connect switches to controllers after installing switches
+    devices and controller applications into respective nodes (the use of this
+    function is mandatory).
 
 
 Release 2.0.2 (April 11, 2016)
