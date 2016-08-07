@@ -191,6 +191,7 @@ and install the switch and the controller using the ``OFSwitch13Helper``.
     Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
     of13Helper->InstallDefaultController (controllerNode);
     of13Helper->InstallSwitch (switchNode, switchPorts);
+    of13Helper->CreateOpenFlowChannels ();
 
     // Other configurations: TCP/IP stack, apps, monitors, etc.
     // ...
@@ -394,6 +395,9 @@ logic in the ``OFSwitch13`` module:
   // Install the switch device and ports.
   of13Helper->InstallSwitch (switchNode, switchDevices);
 
+  // Create the OpenFlow channel connections.
+  of13Helper->CreateOpenFlowChannels ();
+
   // Other configurations: TCP/IP stack, apps, monitors, etc.
   // ...
 
@@ -404,13 +408,13 @@ Note that the ``OFSwitch13`` module requires a new node to install the
 controller into it. The ``InstallDefaultController()`` function will create the
 learning application object instance and will install it in the
 ``controllerNode``. Then, the ``InstallSwitch()`` function will install the
-OpenFlow device into ``switchNode``, configure the CSMA devices from
-``switchDevices`` container as OpenFlow ports, and configure the connection
-between the switch and the controller. Note that the
-``OFSwitch13LearningController`` doesn't provide the ``ExpirationTime``
-attribute. Don't forget to include the ``Simulator::Stop()`` command to
-schedule the time delay until the Simulator should stop, otherwise the
-simulation will never end.
+OpenFlow device into ``switchNode`` and configure the CSMA devices from
+``switchDevices`` container as OpenFlow ports. Finally, the
+``CreateOpenFlowChannels()`` function will configure the connection between
+the switch and the controller. Note that the ``OFSwitch13LearningController``
+doesn't provide the ``ExpirationTime`` attribute. Don't forget to include the
+``Simulator::Stop()`` command to schedule the time delay until the Simulator
+should stop, otherwise the simulation will never end.
 
 For users who have implemented new controllers in the |ns3| OpenFlow module,
 extending the ``ns3::ofi::Controller`` class, are encouraged to explore the
@@ -628,15 +632,13 @@ Troubleshooting
   should stop.
 
 * Note that the Spanning Tree Protocol part of 802.1D is not implemented in the
-  ``OFSwitch13LearningController``. Therefore, you have to be careful not to
-  create bridging loops, or else the network will collapse.
+  ``OFSwitch13LearningController``. Therefore, you have to be careful to not
+  create loops, otherwise the network will collapse.
 
-* For simulating scenarios with more than one OpenFlow controller configured
-  with the ``OFSwtich13Helper``, use a different helper instance for each
-  controller, and don't forget to change the default controller address with
-  the ``SetAddressBase()``. Note that the current implementation don't support
-  multiple controller, so each switch must be associated with a single
-  controller.
+* For simulating scenarios with more than one OpenFlow network domain
+  configured  with the ``OFSwtich13Helper``, use a different helper instance
+  for each domain, and don't forget to change the network address with the
+  ``SetAddressBase()``.
 
 * For using ASCII traces it is necessary to manually include the
   ``ns3::PacketMetadata::Enable ()`` at the beginning of the program, before

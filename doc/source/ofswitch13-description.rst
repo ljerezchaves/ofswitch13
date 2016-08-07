@@ -244,17 +244,16 @@ Scope and Limitations
 
 This module is intended for simulating OpenFlow networks, considering the main
 features available in OpenFlow version 1.3. The module provides a complete
-OpenFlow switch device, and a simple OpenFlow learning controller. The switch
-is fully functional, while the learning controller is intended to allow basic
-usage and examples. Users can write more sophisticated controllers extending
-the available interface and exploiting the real benefits offered by SDN
-paradigm.
+OpenFlow switch device, and the OpenFlow controller interface. The switch is
+fully functional, while the learning controller is intended to allow basic
+usage. Users can write more sophisticated controllers extending the available
+interface and exploiting the real benefits offered by SDN paradigm.
 
 Considering that the OpenFlow messages traversing the OpenFlow channel follows
 the standard wire format, it is possible to use the |ns3| ``TapBridge`` module
-to integrate an external OpenFlow 1.3 controller, running on the local system,
-to the simulated environment. *Please, note that the integration with external
-controller has not been tested and validated yet.*
+to integrate an external OpenFlow 1.3 controller to the simulated environment.
+*Please, note that the integration with external controller has not been tested
+and validated yet.*
 
 One of the limitations of the module is related to platform support. This
 module is currently supported only for GNU/Linux platforms, as the code relies
@@ -267,11 +266,6 @@ module:
   specifications, auxiliary connections could be created by the switch and are
   helpful to improve the switch processing performance and exploit the
   parallelism of most switch implementations.
-
-* **Multiple controllers**: (*Work in progress*) Each switch can only be
-  managed by a single controller. According to the OpenFlow specifications,
-  having multiple controllers would improve reliability as the switch can
-  continue to operate if one controller or controller connection fails.
 
 * **OpenFlow channel encryption**: The switch and controller may
   communicate through a TLS connection to provide authentication and
@@ -340,7 +334,7 @@ are:
   Extensible Match (OXM), which dramatically increases flexibility.
 
 * **IPv6 support**: Basic support for IPv6 match and header rewrite has been
-  added, via the Flexible match support.
+  added, via the OXM match support.
 
 * **Per flow meters**: Per-flow meters can be attached to flow entries and can
   measure and control the rate of packets. One of the main applications of
