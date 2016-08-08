@@ -198,20 +198,6 @@ public:
   InstallDefaultController (Ptr<Node> cNode);
 
   /**
-   * This method prepares the cNode so it can connect to an external OpenFlow
-   * controller over TapBridge. It also installs the TCP/IP stack into cNode,
-   * and connects it to the csma network. Finally, start the switch <-->
-   * controller connection for all already registered switches.
-   *
-   * \attention It is expected that this method is used togheter with TabBridge
-   *            to provide an external OpenFlow controller.
-   *
-   * \param cNode The node to install the controller
-   * \returns The CsmaNetDevice to bind to TapBridge
-   */
-  Ptr<NetDevice> InstallExternalController (Ptr<Node> cNode);
-
-  /**
    * This method installs the TCP/IP stack into switches and controller nodes,
    * then creates and installs the devices and channels that will be used to
    * interconnect all switches to all controllers previously registered to this

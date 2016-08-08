@@ -311,24 +311,6 @@ OFSwitch13Helper::InstallDefaultController (Ptr<Node> cNode)
            cNode, CreateObject<OFSwitch13LearningController> ());
 }
 
-Ptr<NetDevice>
-OFSwitch13Helper::InstallExternalController (Ptr<Node> cNode)
-{
-  NS_LOG_FUNCTION (this << cNode);
-//   NS_ASSERT_MSG (m_channelType == OFSwitch13Helper::SINGLECSMA,
-//                  "External controller must use SINGLECSMA openflow channel");
-//
-//   // Connecting the controller node (TapBridge) to common csma network
-//   m_ctrlNode = cNode;
-//   m_internet.Install (m_ctrlNode);
-//   m_ctrlDevs.Add (m_csmaHelper.Install (m_ctrlNode, m_csmaChannel));
-//   Ipv4InterfaceContainer ctrlIface = m_ipv4helper.Assign (m_ctrlDevs);
-//   m_ctrlAddr = InetSocketAddress (ctrlIface.GetAddress (0), m_ctrlPort);
-//
-//   return m_ctrlDevs.Get (0);
-  return 0;
-}
-
 void
 OFSwitch13Helper::CreateOpenFlowChannels (void)
 {

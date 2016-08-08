@@ -483,16 +483,6 @@ controller and send to the network over a packet-out message. Developers are
 encouraged to study the library internal structures to better understand the
 handlers' implementation and also how to build an OpenFlow message manually.
 
-External controller
-###################
-
-Considering that the OpenFlow messages traversing the OpenFlow channel follows
-the standard wire format, it is possible to use the |ns3| ``TapBridge`` module
-to integrate an external OpenFlow 1.3 controller, running on the local system,
-to the simulated environment. The experimental ``external-controller.cc``
-example was designed to provide this integration. However, this example has not
-been tested and validated yet.
-
 Examples
 ========
 
@@ -514,11 +504,6 @@ Some simple examples for beginners are described below:
   attached to each one. The first pair of switches are managed by a first
   controller while the other pair are managed by a second controller. Traffic
   flows from host H0 to host H2.
-
-* **external-controller.cc**: (*experimental example*) A single switch
-  connected to a external controller over a ``TapBridge``. The default
-  configuration expects a controller on you local machine at port 6653. *This
-  example requires more tests and validation.*
 
 .. _qos-controller:
 
@@ -586,7 +571,7 @@ balancing is to provide a single Internet service from multiple servers,
 sometimes known as a server farm.
 
 In the proposed network topology, the OpenFlow QoS controller configures
-the border switch to listen for new requests on the IP}and port where
+the border switch to listen for new requests on the IP and port where
 external clients connect to access the servers. The switch forwards the new
 request to the controller, which will decide which of the internal servers
 must take care of this connection. Then, it install the match rules into border
@@ -618,7 +603,6 @@ limit each connection throughput to a predefined data rate threshold,
 installing meter rules at the border switch along with the load balancing flow
 entries (use the ``QosController::EnableMeter`` and ``MeterRate`` attributes to
 enable/disable this feature).
-
 
 Troubleshooting
 ===============
