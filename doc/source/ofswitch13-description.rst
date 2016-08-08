@@ -147,7 +147,7 @@ For OpenFlow messages coming from the switches, the controller interface
 provides a collection of internal handlers to deal with the different types of
 messages. Some handlers can not be modified by derived class, as they must
 behave as already implemented. Other handlers can be overridden to implement
-the desired control logic. 
+the desired control logic.
 
 The ``OFSwitch13`` module brings the ``OFSwitch13LearningController`` class
 that implements the controller interface to work as a "learning bridge
@@ -245,38 +245,30 @@ Scope and Limitations
 This module is intended for simulating OpenFlow networks, considering the main
 features available in OpenFlow version 1.3. The module provides a complete
 OpenFlow switch device, and the OpenFlow controller interface. The switch is
-fully functional, while the learning controller is intended to allow basic
-usage. Users can write more sophisticated controllers extending the available
-interface and exploiting the real benefits offered by SDN paradigm.
+fully functional, while the controller interface is intended to allow users to
+write more sophisticated controllers to exploit the real benefits offered by
+SDN paradigm. However, some features are not yet supported:
 
-Considering that the OpenFlow messages traversing the OpenFlow channel follows
-the standard wire format, it is possible to use the |ns3| ``TapBridge`` module
-to integrate an external OpenFlow 1.3 controller to the simulated environment.
-*Please, note that the integration with external controller has not been tested
-and validated yet.*
+* **Auxiliary connections**: Only a single connection between each switch and
+  controller is available. According to the OpenFlow specifications, auxiliary
+  connections could be created by the switch and are helpful to improve the
+  switch processing performance and exploit the parallelism of most switch
+  implementations.
 
-One of the limitations of the module is related to platform support. This
-module is currently supported only for GNU/Linux platforms, as the code relies
-on an external library linked to the simulator that *must* be compiled with
-GCC. Besides, some OpenFlow 1.3 features are not yet supported by this
-module:
+* **OpenFlow channel encryption**: The switch and controller may communicate
+  through a TLS connection to provide authentication and encryption of the
+  connection. However, as there is no straightforward TLS support on *ns-3*,
+  the OpenFlow channel is implemented over a plain TCP connection, without
+  encryption.
 
-* **Auxiliary connections**: Only a single connection between the
-  switch and the controller is available. According to the OpenFlow
-  specifications, auxiliary connections could be created by the switch and are
-  helpful to improve the switch processing performance and exploit the
-  parallelism of most switch implementations.
+* **In-band control**: The OpenFlow controller manages the switches remotely
+  over a separate dedicated network (out-of-band controller connection), as the
+  switch port representing the switch's local networking stack and its
+  management stack is not implemented.
 
-* **OpenFlow channel encryption**: The switch and controller may
-  communicate through a TLS connection to provide authentication and
-  encryption of the connection. However, as there is no straightforward
-  TLS support on *ns-3*, the OpenFlow channel is implemented over a
-  plain TCP connection, without encryption.
-
-* **In-band control**: The OpenFlow controller manages the switches
-  remotely over a separate dedicated network (out-of-band controller
-  connection), as the switch port representing the switch's local networking
-  stack and its management stack is not implemented.
+* **Platform supports**: This module is currently supported only for GNU/Linux
+  platforms, as the code relies on an external library linked to the simulator
+  that *must* be compiled with GCC.
 
 |ns3| OpenFlow comparison
 =========================
@@ -290,19 +282,16 @@ comparison to the available implementation.
 
 One difference between the |ns3| OpenFlow model and the ``OFSwitch13`` is the
 introduction of the OpenFlow channel, using |ns3| devices and channels to
-provide the control connection between the controller and the switches. It allows
-the user to collect PCAP traces for this control channel, simplifying the
-analysis of OpenFlow messages. It is also possible the use of the |ns3|
-``TapBridge`` module to integrate a local external OpenFlow 1.3 controller to
-the simulated environment. *Please, note that the integration with external
-controller has not been tested and validated yet.*
+provide the control connection between the controller and the switches. It
+allows the user to collect PCAP traces for this control channel, simplifying
+the analysis of OpenFlow messages.
 
 In respect to the controller, this module provides a more flexible interface.
 Instead of dealing with the internal library structures, the user can use
 simplified ``dpctl`` commands to build OpenFlow messages and send them to the
-switches. Only for processing OpenFlow messages received by the controller from
-the switches that will be necessary to handle internal library structures and
-functions to extract the desired information.
+switches. Only for processing OpenFlow messages received by the controller
+from the switches that will be necessary to handle internal library structures
+and functions to extract the desired information.
 
 In respect to the OpenFlow protocol implementation, the ``OFSwitch13`` module
 brings a number of improved features from version 1.3 in comparison to the
@@ -313,7 +302,7 @@ are:
   to the controller the abstraction of a single table. OpenFlow 1.1 introduces
   a more flexible pipeline with multiple tables. Packets are processed through
   the pipeline, they are matched and processed in the first table, and may be
-  matched and processed in other tables.
+  matched and processed in other subsequent tables.
 
 * **Groups**: The new group abstraction enables OpenFlow to represent a set of
   ports as a single entity for forwarding packets. Different types of groups
@@ -349,20 +338,17 @@ please, check the :ref:`port-coding` section for detailed instructions.
 The only required modification to the |ns3| source code for ``OFSwitch13``
 integration is the inclusion of the new OpenFlow receive callback in the
 ``CsmaNetDevice`` that is invoked for packets successfully received by the
-device. The module brings the patches for including this receive callback
-into recent |ns3| versions (since 3.22). The patches are available under
-``utils`` directory. Note the existence of a *csma* patch for the receive
-callback inclusion, and an optional *doc* patch that can be used for including
-the ``OFSwitch13`` when compiling Doxygen and Sphinx documentation. For older
-versions, users can apply the *csma* patch and, if necessary, manually resolve
-the conflicts.
+device. The module brings the patches for including this receive callback into
+recent |ns3| versions, available under ``src/ofswitch13/utils`` directory.
+Note the existence of a *csma* patch for the receive callback inclusion, and an
+optional *doc* patch that can be used for including the ``OFSwitch13`` when
+compiling Doxygen and Sphinx documentation. For older versions, users can apply
+the *csma* patch and, if necessary, manually resolve the conflicts.
 
 The ``OFSwitch13`` module versions 2.0.0, 2.0.1 and 2.0.2 (latest) have been
 tested with |ns3| versions 3.22, 3.23, 3.24.1, and 3.25. They are fully
 compatible with ``ofsoftswitch13`` library release 2.0.x. It is strongly
-recommended to use the latest module version for better results. Please, avoid
-the use ``OFSwitch13`` versions prior to 2.0.0, which are not considerable as
-stable versions.
+recommended to use the latest module version for better results.
 
 References
 ==========

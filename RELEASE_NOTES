@@ -17,7 +17,7 @@ Release XXXXX (August XX, 2016)
   must be indicated by the helper as a parameter to StartControllerConnection.
 
 - Create the SocketReader class to read OpenFlow messages from TCP sockets in
-  safe way.
+  safe and independently way.
 
 - Creating the RemoteController and RemoteSwitch classes, which can be used to
   independently store information of several remote connections, allowing the
@@ -31,9 +31,8 @@ Release XXXXX (August XX, 2016)
   * Implementing barrier reply, hello and features reply handlers;
   * Using constant pointers to RemoteSwitch objects to avoid mistakes.
 
-- Refactoring the OFSwitch13Helper class:
-  * Supporting the configuration of OpenFlow networks domains with multiple
-    controllers;
+- Refactoring the OFSwitch13Helper class to support the configuration of
+  OpenFlow networks domains with multiple controllers:
   * Removing the dependence of installing the controller before the switches;
   * The new CreateOpenFlowChannels () member function was introduced to
     effectively connect switches to controllers after installing switches
@@ -57,7 +56,7 @@ Release 2.0.2 (April 11, 2016)
   semantics in the way that, for CsmaNetDevice configure as OpenFlow ports, the
   default receive callback is never invoked.
 
-- Creating a OFSwithc13DeviceContainer for handling CsmaNetDevices. Note the
+- Creating a OFSwitch13DeviceContainer for handling CsmaNetDevices. Note the
   change on InstallSwitch* methods on the OFSwitch13Helper.
 
 - By default, 8 priority queues are created for each OFSwitch13Queue and are

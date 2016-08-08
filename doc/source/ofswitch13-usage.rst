@@ -120,8 +120,8 @@ version):
   $ patch -p1 < src/ofswitch13/utils/ofswitch13-csma-3_24_1.patch
   $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_24_1.patch
 
-The ``ofswitch13-csma-3_24_1.patch`` creates the new OpenFlow receive callback at
-``CsmaNetDevice``, allowing OpenFlow switch to get raw L2 packets from this
+The ``ofswitch13-csma-3_24_1.patch`` creates the new OpenFlow receive callback
+at ``CsmaNetDevice``, allowing OpenFlow switch to get raw L2 packets from this
 device. This is the only required change in the |ns3| code to allow
 ``OFSwitch13`` usage. The ``ofswitch13-doc-3_24_1.patch`` is optional. It
 instructs the simulator to include the module in the |ns3| model library and
@@ -246,7 +246,7 @@ the given device container as switch ports of the switch. Theses ports are the
 switches (connections previously defined by the user). It is possible to
 install the switch without ports, using the ``InstallSwitchesWithoutPorts()``
 function. In this case, users must add ports to the switch later, using the
-``OFSwitch13Device::AddSwitchPort()``. 
+``OFSwitch13Device::AddSwitchPort()``.
 
 After installing the switches and controllers, it is mandatory to use the
 ``CreateOpenFlowChannels()`` member function to effectively create and start
@@ -323,10 +323,6 @@ ports and for the OpenFlow channel. It is also possible to enable the internal
 ``ofsoftswitch13`` library ASCII logging mechanism, using the
 ``EnableDatapathLogs()`` helper function for all devices, or the
 ``SetLibLogLevel()`` device function for individual device logging.
-
-For using ASCII traces it is necessary to manually include the
-``ns3::PacketMetadata::Enable ()`` at the beginning of the program, before any
-packets are sent.
 
 .. _port-coding:
 
@@ -633,10 +629,11 @@ Troubleshooting
 
 * Note that the Spanning Tree Protocol part of 802.1D is not implemented in the
   ``OFSwitch13LearningController``. Therefore, you have to be careful to not
-  create loops, otherwise the network will collapse.
+  create loops on the connections between switches, otherwise the network will
+  collapse.
 
 * For simulating scenarios with more than one OpenFlow network domain
-  configured  with the ``OFSwtich13Helper``, use a different helper instance
+  configured with the ``OFSwtich13Helper``, use a different helper instance
   for each domain, and don't forget to change the network address with the
   ``SetAddressBase()``.
 
