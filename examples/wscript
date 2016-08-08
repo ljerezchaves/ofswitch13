@@ -1,18 +1,21 @@
 # -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 
 def build(bld):
-    obj = bld.create_ns3_program('star-ofswitch13', ['ofswitch13', 'csma', 'network', 'applications', 'internet', 'flow-monitor'])
+    if not bld.env['ENABLE_EXAMPLES']:
+        return;
+        
+    obj = bld.create_ns3_program('star-ofswitch13', ['ofswitch13', 'flow-monitor'])
     obj.source = 'star-ofswitch13.cc'
 
-    obj = bld.create_ns3_program('chain-ofswitch13', ['ofswitch13', 'csma', 'network', 'applications', 'internet', 'flow-monitor'])
+    obj = bld.create_ns3_program('chain-ofswitch13', ['ofswitch13', 'flow-monitor'])
     obj.source = 'chain-ofswitch13.cc'
 
-    obj = bld.create_ns3_program('dual-controller', ['ofswitch13', 'csma', 'network', 'applications', 'internet', 'flow-monitor'])
+    obj = bld.create_ns3_program('dual-controller', ['ofswitch13', 'flow-monitor'])
     obj.source = 'dual-controller.cc'
 
-    obj = bld.create_ns3_program('external-controller', ['ofswitch13', 'csma', 'network', 'applications', 'internet', 'tap-bridge'])
+    obj = bld.create_ns3_program('external-controller', ['ofswitch13', 'tap-bridge'])
     obj.source = 'external-controller.cc'
 
-    obj = bld.create_ns3_program('qos-controller', ['ofswitch13', 'csma', 'network', 'applications', 'internet'])
+    obj = bld.create_ns3_program('qos-controller', ['ofswitch13', 'netanim'])
     obj.source = ['qos-controller/main.cc', 'qos-controller/qos-controller.cc']
 
