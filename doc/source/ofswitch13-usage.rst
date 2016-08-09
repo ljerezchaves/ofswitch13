@@ -165,17 +165,17 @@ and install the switch and the controller using the ``OFSwitch13Helper``.
   int
   main (int argc, char *argv[])
   {
-    // Creating two host nodes
+    // Create two host nodes
     NodeContainer hosts;
     hosts.Create (2);
 
-    // Create a switch node
+    // Create the switch node
     Ptr<Node> switchNode = CreateObject<Node> ();
 
-    // Create a controller node
+    // Create the controller node
     Ptr<Node> controllerNode = CreateObject<Node> ();
 
-    // Using a CsmaHelper to connect the host nodes to the switch.
+    // Use the CsmaHelper to connect the host nodes to the switch.
     CsmaHelper csmaHelper;
     NetDeviceContainer hostDevices;
     NetDeviceContainer switchPorts;
@@ -205,7 +205,7 @@ and install the switch and the controller using the ``OFSwitch13Helper``.
 To run this code, users *must install* the TCP/IP stack into host nodes, assign
 IP addresses to host interfaces (don't add IP addresses to the devices that are
 used as OpenFlow port), and configure any traffic application. You can also
-check for the ``start-ofswitch13.cc`` example, which is very similar to this
+check for the ``first-ofswitch13.cc`` example, which is very similar to this
 code. For instructions on how to compile and run simulation programs, please
 refer to the |ns3| tutorial.
 
@@ -493,17 +493,17 @@ Straightforward examples
 
 Some simple examples for beginners are described below:
 
-* **chain-ofswitch13.cc**: Two hosts connected by a chain of N OpenFlow
-  switches with a single controller. Traffic flows from host H0 to H1 through
-  all switches.
+* **first-ofswitch13**: Two hosts connected to a single OpenFlow switch
+  managed by the default learning controller.
 
-* **start-ofswitch13.cc**: N hosts connected to a single switch with a single
-  controller. Traffic flows between two random hosts.
+* **single-domain-ofswitch13**: Two hosts connected through two OpenFlow
+  switches, both managed by the default learning controller.
 
-* **dual-controller.cc**: Four switches connected in line, with a single node
-  attached to each one. The first pair of switches are managed by a first
-  controller while the other pair are managed by a second controller. Traffic
-  flows from host H0 to host H2.
+* **multiple-domains-ofswitch13**: Two hosts connected through two OpenFlow
+  switch managed by different learning controllers.
+
+* **multiple-controllers-ofswitch13**: Two hosts connected through a single
+  OpenFlow switch managed simultaneously by to different controllers 
 
 .. _qos-controller:
 
