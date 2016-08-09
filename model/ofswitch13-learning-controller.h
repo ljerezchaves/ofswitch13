@@ -19,8 +19,6 @@
 #ifndef OFSWITCH13_LEARNING_CONTROLLER_H
 #define OFSWITCH13_LEARNING_CONTROLLER_H
 
-#include "ofswitch13-interface.h"
-#include "ofswitch13-device.h"
 #include "ofswitch13-controller.h"
 
 namespace ns3 {
@@ -53,8 +51,8 @@ public:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
-                          uint32_t xid);
+  ofl_err HandlePacketIn (ofl_msg_packet_in *msg,
+                          Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
   /**
    * Handle flow removed messages sent from switch to this controller. Look for
@@ -65,12 +63,12 @@ public:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandleFlowRemoved (ofl_msg_flow_removed *msg, SwitchInfo swtch,
-                             uint32_t xid);
+  ofl_err HandleFlowRemoved (
+    ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
 protected:
   // Inherited from OFSwitch13Controller
-  void ConnectionStarted (SwitchInfo swtch);
+  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
 
 private:
   /** Map saving <IPv4 address / MAC address> */

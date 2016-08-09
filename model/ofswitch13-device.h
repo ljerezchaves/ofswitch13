@@ -50,6 +50,87 @@ class OFSwitch13Port;
  */
 class OFSwitch13Device : public Object
 {
+private:
+  /**
+   * \ingroup ofswitch13
+   * Inner class to save information of a remote active controller connected to
+   * this OpenFlow switch.
+   */
+  class RemoteController : public SimpleRefCount<RemoteController>
+  {
+    friend class OFSwitch13Device;
+
+  public:
+    /** Default (empty) constructor. */
+    RemoteController ();
+
+  private:
+    Ptr<Socket>       m_socket;         //!< TCP socket to controller.
+    Ptr<SocketReader> m_reader;         //!< Socket reader.
+    Address           m_address;        //!< Controller address.
+    struct remote*    m_remote;         //!< ofsoftswitch13 remote structure.
+  }; // Class RemoteController
+
+  /**
+   * \ingroup ofswitch13
+   * Structure to save packet metadata while it is under OpenFlow pipeline.
+   * This structure keeps track of packets under OpenFlow pipeline, including
+   * the ID for each packet copy (notified by the clone callback). Note that
+   * only one packet can be in pipeline at a time, but the packet can have
+   * multiple internal copies (each one will receive an unique packet ID), and
+   * can also be saved into buffer for latter usage.
+   */
+  struct PipelinePacket
+  {
+  public:
+    /** Default (empty) constructor. */
+    PipelinePacket ();
+
+    /**
+     * Save packet metadata.
+     * \param id Packet unique ID.
+     * \param packet The packet pointer.
+     */
+    void SetPacket (uint64_t id, Ptr<Packet> packet);
+
+    /** \return The packet pointer. */
+    Ptr<Packet> GetPacket (void) const;
+
+    /** Invalidate packet metatada.*/
+    void Invalidate (void);
+
+    /**
+     * Check for valid packet metadata.
+     * \return true when valid packet metadata.
+     */
+    bool IsValid (void) const;
+
+    /**
+     * Notify a new copy for this packet, with a new unique ID.
+     * \param id The ns-3 packet id.
+     */
+    void NewCopy (uint64_t id);
+
+    /**
+     * Delete an existing copy for this packet.
+     * \param id The ns-3 packet id.
+     * \return false when the packet metadata becomes invalid.
+     */
+    bool DelCopy (uint64_t id);
+
+    /**
+     * Check for packet id in the internal list of IDs for this packet.
+     * \param id The ns-3 packet id.
+     * \return true when the id is associated with this packet
+     */
+    bool HasId (uint64_t id);
+
+  private:
+    bool                  m_valid;  //!< Valid flag.
+    Ptr<Packet>           m_packet; //!< Packet pointer.
+    std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
+  }; // Struct PipelinePacket
+
 public:
   /**
    * Register this type.
@@ -117,9 +198,11 @@ public:
   void SetLibLogLevel (std::string log);
 
   /**
-   * Starts the TCP connection between this switch and the controller.
+   * Starts the TCP connection between this switch and the target controller
+   * indicated by the address parameter.
+   * \param ctrlAddr The controller address used to open the connection.
    */
-  void StartControllerConnection ();
+  void StartControllerConnection (Address ctrlAddr);
 
   /**
    * Get a pointer to the collection of output queues at a specific port on
@@ -137,11 +220,11 @@ public:
    * This function relies on the global map that stores OpenFlow devices to
    * call the method on the correct object.
    * \param buffer The message buffer to send.
-   * \param ctrl The controller connection information.
+   * \param remote The remote controller connection information.
    * \return 0 if everything's ok, error number otherwise.
    */
   static int
-  SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl);
+  SendOpenflowBufferToRemote (ofpbuf *buffer, remote *remote);
 
   /**
    * Overriding ofsoftswitch13 dp_actions_output_port weak function from
@@ -258,16 +341,19 @@ private:
    * Use dp_send_message () instead, as it deals with multiple connections and
    * check async config.
    * \param packet The ns-3 packet to send.
+   * \param remoteCtrl The remote controller object to send the packet.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendToController (Ptr<Packet> packet);
+  int SendToController (Ptr<Packet> packet,
+                        Ptr<OFSwitch13Device::RemoteController> remoteCtrl);
 
   /**
-   * Socket callback to receive a openflow packet from controller.
+   * SocketReader callback to receive an OpenFlow packet from controller.
    * \see remote_rconn_run () at udatapath/datapath.c.
-   * \param socket The TCP socket.
+   * \param packet The packet with the OpenFlow message.
+   * \param from The packet sender address.
    */
-  void ReceiveFromController (Ptr<Socket> socket);
+  void ReceiveFromController (Ptr<Packet> packet, Address from);
 
   /**
    * Socket callback fired when a TCP connection to controller succeed.
@@ -331,6 +417,30 @@ private:
   void BufferPacketDelete (uint64_t packetId);
 
   /**
+   * Get the remote controller for this socket.
+   * \param socket The connection socket.
+   * \return The remote controller.
+   */
+  Ptr<OFSwitch13Device::RemoteController>
+  GetRemoteController (Ptr<Socket> socket);
+
+  /**
+   * Get the remote controller for this address.
+   * \param address The socket address.
+   * \return The remote controller.
+   */
+  Ptr<OFSwitch13Device::RemoteController>
+  GetRemoteController (Address address);
+
+  /**
+   * Get the remote controller for this ofsoftswitch13 remote pointer.
+   * \param remote The ofsoftswitch13 remote pointer.
+   * \return The remote controller.
+   */
+  Ptr<OFSwitch13Device::RemoteController>
+  GetRemoteController (struct remote *remote);
+
+  /**
    * Increase the global packet ID counter and return a new packet ID. This ID
    * is different from the internal ns3::Packet::GetUid (), as we need an
    * unique value even for fragmented or brodcast packets. Its usage is
@@ -372,68 +482,11 @@ private:
   /** Trace source fired when the OpenFlow meter band drops a packet */
   TracedCallback<Ptr<const Packet> > m_meterDropTrace;
 
-  /**
-   * \ingroup ofswitch13
-   * Structure to save packet metadata while it is under OpenFlow pipeline.
-   * This structure keeps track of packets under OpenFlow pipeline, including
-   * the ID for each packet copy (notified by the clone callback). Note that
-   * only one packet can be in pipeline at a time, but the packet can have
-   * multiple internal copies (which one will receive an unique packet ID), and
-   * can also be saved into buffer for later usage.
-   */
-  struct PipelinePacket
-  {
-public:
-    /** Default (empty) constructor. */
-    PipelinePacket ();
-
-    /**
-     * Save packet metadata.
-     * \param id Packet unique ID.
-     * \param packet The packet pointer.
-     */
-    void SetPacket (uint64_t id, Ptr<Packet> packet);
-
-    /** \return The packet pointer. */
-    Ptr<Packet> GetPacket (void) const;
-
-    /** Invalidate packet metatada.*/
-    void Invalidate (void);
-
-    /**
-     * Check for valid packet metadata.
-     * \return true when valid packet metadata.
-     */
-    bool IsValid (void) const;
-
-    /**
-     * Notify a new copy for this packet, with a new unique ID.
-     * \param id The ns-3 packet id.
-     */
-    void NewCopy (uint64_t id);
-
-    /**
-     * Delete an existing copy for this packet.
-     * \param id The ns-3 packet id.
-     * \return false when the packet metadata becomes invalid.
-     */
-    bool DelCopy (uint64_t id);
-
-    /**
-     * Check for packet id in the internal list of IDs for this packet.
-     * \param id The ns-3 packet id.
-     * \return true when the id is associated with this packet
-     */
-    bool HasId (uint64_t id);
-
-private:
-    bool                  m_valid;  //!< Valid flag.
-    Ptr<Packet>           m_packet; //!< Packet pointer.
-    std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
-  };
-
   /** Structure to save the list of ports in this datapath. */
   typedef std::vector<Ptr<OFSwitch13Port> > PortList_t;
+
+  /** Structure to save the list of active controllers. */
+  typedef std::vector<Ptr<OFSwitch13Device::RemoteController> > CtrlList_t;
 
   /** Structure to map datapath id to OpenFlow device. */
   typedef std::map<uint64_t, Ptr<OFSwitch13Device> > DpIdDevMap_t;
@@ -442,8 +495,6 @@ private:
   typedef std::map<uint64_t, Ptr<Packet> > IdPacketMap_t;
 
   uint64_t        m_dpId;         //!< This datapath id.
-  Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller.
-  Address         m_ctrlAddr;     //!< Controller Address.
   Time            m_timeout;      //!< Datapath timeout interval.
   Time            m_lastTimeout;  //!< Datapath last timeout.
   Time            m_tcamDelay;    //!< Flow Table TCAM lookup delay.
@@ -452,6 +503,7 @@ private:
   datapath*       m_datapath;     //!< The OpenFlow datapath.
   PipelinePacket  m_pktPipe;      //!< Packet under switch pipeline.
   PortList_t      m_ports;        //!< List of switch ports.
+  CtrlList_t      m_controllers;  //!< Collection of active controllers.
   IdPacketMap_t   m_pktsBuffer;   //!< Packets saved in switch buffer.
 
   static uint64_t m_globalDpId;   //!< Global counter for datapath IDs

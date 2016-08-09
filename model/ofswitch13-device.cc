@@ -23,7 +23,6 @@
 
 #include "ns3/object-vector.h"
 #include "ofswitch13-device.h"
-#include "ofswitch13-interface.h"
 
 namespace ns3 {
 
@@ -65,12 +64,6 @@ OFSwitch13Device::GetTypeId (void)
                    TimeValue (MilliSeconds (100)),
                    MakeTimeAccessor (&OFSwitch13Device::m_timeout),
                    MakeTimeChecker ())
-    .AddAttribute ("ControllerAddr",
-                   "The controller InetSocketAddress.",
-                   AddressValue (
-                     InetSocketAddress (Ipv4Address ("10.100.150.1"), 6653)),
-                   MakeAddressAccessor (&OFSwitch13Device::m_ctrlAddr),
-                   MakeAddressChecker ())
     .AddAttribute ("LibLogLevel",
                    "Set the ofsoftswitch13 library logging level."
                    "Use 'none' to turn logging off. "
@@ -96,8 +89,6 @@ OFSwitch13Device::OFSwitch13Device ()
   NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
 
   m_dpId = ++m_globalDpId;
-  m_ctrlSocket = 0;
-  m_ctrlAddr = Address ();
   m_datapath = DatapathNew ();
   OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
   Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout, this,
@@ -208,42 +199,45 @@ OFSwitch13Device::SetLibLogLevel (std::string log)
 }
 
 void
-OFSwitch13Device::StartControllerConnection ()
+OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
 {
   NS_LOG_FUNCTION (this);
-  NS_ASSERT (!m_ctrlAddr.IsInvalid ());
 
-  // Start a TCP connection to the controller
-  if (!m_ctrlSocket)
+  NS_ASSERT (!ctrlAddr.IsInvalid ());
+  NS_ASSERT_MSG (InetSocketAddress::IsMatchingType (ctrlAddr),
+                 "Invalid address type (only IPv4 supported by now).");
+  NS_ASSERT_MSG (!GetRemoteController (ctrlAddr),
+                 "Controller address already in use.");
+
+  // Start a TCP connection to this target controller
+  int error = 0;
+  Ptr<Socket> ctrlSocket =
+    Socket::CreateSocket (GetObject<Node> (), TcpSocketFactory::GetTypeId ());
+  ctrlSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
+
+  error = ctrlSocket->Bind ();
+  if (error)
     {
-      int error = 0;
-      m_ctrlSocket = Socket::CreateSocket (GetObject<Node> (),
-                                           TcpSocketFactory::GetTypeId ());
-      m_ctrlSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
-
-      error = m_ctrlSocket->Bind ();
-      if (error)
-        {
-          NS_LOG_ERROR ("Error binding socket " << error);
-          return;
-        }
-
-      error =
-        m_ctrlSocket->Connect (InetSocketAddress::ConvertFrom (m_ctrlAddr));
-      if (error)
-        {
-          NS_LOG_ERROR ("Error connecting socket " << error);
-          return;
-        }
-
-      m_ctrlSocket->SetConnectCallback (
-        MakeCallback (&OFSwitch13Device::SocketCtrlSucceeded, this),
-        MakeCallback (&OFSwitch13Device::SocketCtrlFailed, this));
-
+      NS_LOG_ERROR ("Error binding socket " << error);
       return;
     }
 
-  NS_LOG_ERROR ("Controller already set.");
+  error = ctrlSocket->Connect (InetSocketAddress::ConvertFrom (ctrlAddr));
+  if (error)
+    {
+      NS_LOG_ERROR ("Error connecting socket " << error);
+      return;
+    }
+
+  ctrlSocket->SetConnectCallback (
+    MakeCallback (&OFSwitch13Device::SocketCtrlSucceeded, this),
+    MakeCallback (&OFSwitch13Device::SocketCtrlFailed, this));
+
+  // Create a RemoteController object for this controller and save it
+  Ptr<RemoteController> remoteCtrl = Create<RemoteController> ();
+  remoteCtrl->m_address = ctrlAddr;
+  remoteCtrl->m_socket = ctrlSocket;
+  m_controllers.push_back (remoteCtrl);
 }
 
 Ptr<OFSwitch13Queue>
@@ -255,14 +249,12 @@ OFSwitch13Device::GetOutputQueue (uint32_t portNo)
 
 // ofsoftswitch13 overriding and callback functions.
 int
-OFSwitch13Device::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl)
+OFSwitch13Device::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *remote)
 {
-  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (ctrl->dp->id);
-
-  // FIXME No support for multiple controllers / auxiliary connections by now.
-  // So, just ignoring remote information and sending to our single socket.
+  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (remote->dp->id);
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
-  return dev->SendToController (packet);
+  Ptr<RemoteController> remoteCtrl = dev->GetRemoteController (remote);
+  return dev->SendToController (packet, remoteCtrl);
 }
 
 void
@@ -397,7 +389,6 @@ OFSwitch13Device::DoDispose ()
 
   OFSwitch13Device::UnregisterDatapath (m_dpId);
 
-  m_ctrlSocket = 0;
   PortList_t::iterator it;
   for (it = m_ports.begin (); it != m_ports.end (); it++)
     {
@@ -406,6 +397,8 @@ OFSwitch13Device::DoDispose ()
       *it = 0;
     }
   m_ports.clear ();
+  m_pktsBuffer.clear ();
+  m_controllers.clear ();
 
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
@@ -590,23 +583,25 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo)
 }
 
 int
-OFSwitch13Device::SendToController (Ptr<Packet> packet)
+OFSwitch13Device::SendToController (Ptr<Packet> packet,
+                                    Ptr<RemoteController> remoteCtrl)
 {
-  if (!m_ctrlSocket)
+  if (!remoteCtrl->m_socket)
     {
       NS_LOG_WARN ("No controller connection. Discarding message... ");
       return -1;
     }
 
+  // FIXME: No support for auxiliary connections.
   // Check for available space in TCP buffer before sending the packet
-  if (m_ctrlSocket->GetTxAvailable () < packet->GetSize ())
+  if (remoteCtrl->m_socket->GetTxAvailable () < packet->GetSize ())
     {
       NS_LOG_ERROR ("Unavailable space to send OpenFlow message now.");
       Simulator::Schedule (m_timeout, &OFSwitch13Device::SendToController,
-                           this, packet);
+                           this, packet, remoteCtrl);
     }
 
-  uint32_t bytes = m_ctrlSocket->Send (packet);
+  uint32_t bytes = remoteCtrl->m_socket->Send (packet);
   if (bytes != packet->GetSize ())
     {
       NS_LOG_WARN ("There was an error sending the message!");
@@ -615,108 +610,61 @@ OFSwitch13Device::SendToController (Ptr<Packet> packet)
 }
 
 void
-OFSwitch13Device::ReceiveFromController (Ptr<Socket> socket)
+OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
 {
-  NS_LOG_FUNCTION (this << socket);
+  NS_LOG_FUNCTION (this << packet << from);
 
-  static Ptr<Packet> pendingPacket = 0;
-  static uint32_t pendingBytes = 0;
-  static Address from;
+  NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
+                "s the OpenFlow switch " << GetDatapathId () <<
+                " received " << packet->GetSize () <<
+                " bytes from controller " << from);
 
-  do
+  ofl_msg_header *msg;
+  ofl_err error;
+
+  Ptr<RemoteController> remoteCtrl = GetRemoteController (from);
+  NS_ASSERT_MSG (remoteCtrl, "Error returning controller for this address.");
+
+  struct sender senderCtrl;
+  senderCtrl.remote = remoteCtrl->m_remote;
+  senderCtrl.conn_id = 0; // FIXME No support for auxiliary connections
+
+  // Get the OpenFlow buffer, unpack the message and send to handler
+  ofpbuf *buffer;
+  buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
+  error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
+                          &senderCtrl.xid, m_datapath->exp);
+  if (!error)
     {
-      if (!pendingBytes)
+      char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
+      NS_LOG_DEBUG ("Rx from controller: " << msg_str);
+      free (msg_str);
+
+      error = handle_control_msg (m_datapath, msg, &senderCtrl);
+      if (error)
         {
-          // Starting with a new OpenFlow message.
-          // At least 8 bytes (OpenFlow header) must be available.
-          uint32_t rxBytesAvailable = socket->GetRxAvailable ();
-          if (rxBytesAvailable < 8)
-            {
-              return; // Wait for more bytes.
-            }
-
-          // Receive the OpenFlow header and get the OpenFlow message size
-          ofp_header header;
-          pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
-          pendingPacket->CopyData ((uint8_t*)&header, sizeof (ofp_header));
-          pendingBytes = ntohs (header.length) - sizeof (ofp_header);
+          // NOTE: It is assumed that if a handler returns with error,
+          // it did not use any part of the control message, thus it
+          // can be freed up. If no error is returned however, the
+          // message must be freed inside the handler (because the
+          // handler might keep parts of the message)
+          ofl_msg_free (msg, m_datapath->exp);
         }
-
-      // Receive the remaining OpenFlow message
-      if (pendingBytes)
-        {
-          if (socket->GetRxAvailable () < pendingBytes)
-            {
-              // We need to wait for more bytes
-              return;
-            }
-          pendingPacket->AddAtEnd (socket->Recv (pendingBytes, 0));
-        }
-
-      if (InetSocketAddress::IsMatchingType (from))
-        {
-          Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
-          uint16_t port = InetSocketAddress::ConvertFrom (from).GetPort ();
-          NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
-                        "s the OpenFlow switch " << GetDatapathId () <<
-                        " received " << pendingPacket->GetSize () <<
-                        " bytes from controller " << ipv4 <<
-                        " socket " << socket <<
-                        " port " << port);
-
-          ofl_msg_header *msg;
-          ofl_err error;
-
-          // FIXME No support for multiple controllers by now.
-          // Gets the remote structure for this controller connection.
-          // As we currently support a single controller, it must be the first.
-          struct sender ctrl;
-          ctrl.remote = CONTAINER_OF (list_front (&m_datapath->remotes),
-                                      remote, node);
-          ctrl.conn_id = 0; // FIXME No support for auxiliary connections.
-
-          // Get the OpenFlow buffer, unpack the message and send to handler
-          ofpbuf *buffer = ofs::BufferFromPacket (pendingPacket,
-                                                  pendingPacket->GetSize ());
-          error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
-                                  &ctrl.xid, m_datapath->exp);
-          if (!error)
-            {
-              char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
-              NS_LOG_DEBUG ("Rx from ctrl: " << msg_str);
-              free (msg_str);
-
-              error = handle_control_msg (m_datapath, msg, &ctrl);
-              if (error)
-                {
-                  // NOTE: It is assumed that if a handler returns with error,
-                  // it did not use any part of the control message, thus it
-                  // can be freed up. If no error is returned however, the
-                  // message must be freed inside the handler (because the
-                  // handler might keep parts of the message)
-                  ofl_msg_free (msg, m_datapath->exp);
-                }
-            }
-          if (error)
-            {
-              NS_LOG_ERROR ("Error processing OpenFlow msg from controller.");
-              // Notify the controller
-              ofl_msg_error err;
-              err.header.type = OFPT_ERROR;
-              err.type = (ofp_error_type)ofl_error_type (error);
-              err.code = ofl_error_code (error);
-              err.data_length = buffer->size;
-              err.data = (uint8_t*)buffer->data;
-              dp_send_message (m_datapath, (ofl_msg_header*)&err, &ctrl);
-            }
-          ofpbuf_delete (buffer);
-        }
-      pendingPacket = 0;
-      pendingBytes = 0;
-
-      // Repeat until socket buffer gets empty
     }
-  while (socket->GetRxAvailable ());
+  if (error)
+    {
+      NS_LOG_ERROR ("Error processing OpenFlow message from controller.");
+
+      // Notify the controller
+      ofl_msg_error err;
+      err.header.type = OFPT_ERROR;
+      err.type = (ofp_error_type)ofl_error_type (error);
+      err.code = ofl_error_code (error);
+      err.data_length = buffer->size;
+      err.data = (uint8_t*)buffer->data;
+      dp_send_message (m_datapath, (ofl_msg_header*)&err, &senderCtrl);
+    }
+  ofpbuf_delete (buffer);
 }
 
 void
@@ -725,16 +673,27 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
   NS_LOG_FUNCTION (this << socket);
 
   NS_LOG_LOGIC ("Controller accepted connection request!");
-  socket->SetRecvCallback (
+
+  Ptr<RemoteController> remoteCtrl = GetRemoteController (socket);
+  remoteCtrl->m_remote = remote_create (m_datapath, 0, 0);
+
+  // As we have more than one socket that is used for communication between
+  // this OpenFlow switch device and controllers, we need to handle the
+  // processing of receiving messages from sockets in an independent way. So,
+  // each socket has its own socket reader for receiving bytes and extracting
+  // OpenFlow messages.
+  remoteCtrl->m_reader = Create<SocketReader> (socket);
+  remoteCtrl->m_reader->SetReceiveCallback (
     MakeCallback (&OFSwitch13Device::ReceiveFromController, this));
 
-  // Save connection information to remotes list in datapath
-  remote_create (m_datapath, 0, 0);
-
-  // Send Hello message
+  // Send the OpenFlow Hello message
   ofl_msg_header msg;
   msg.type = OFPT_HELLO;
-  dp_send_message (m_datapath, &msg, 0);
+
+  struct sender senderCtrl;
+  senderCtrl.remote = remoteCtrl->m_remote;
+  senderCtrl.conn_id = 0; // FIXME No support for auxiliary connections.
+  dp_send_message (m_datapath, &msg, &senderCtrl);
 }
 
 void
@@ -742,6 +701,19 @@ OFSwitch13Device::SocketCtrlFailed (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
   NS_LOG_ERROR ("Controller did not accepted connection request!");
+
+  // Loop over controllers looking for the one associated to this socket and
+  // remove it from the collection.
+  CtrlList_t::iterator it;
+  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+    {
+      Ptr<RemoteController> remoteCtrl = *it;
+      if (remoteCtrl->m_socket == socket)
+        {
+          m_controllers.erase (it);
+          return;
+        }
+    }
 }
 
 void
@@ -859,6 +831,54 @@ OFSwitch13Device::BufferPacketDelete (uint64_t packetId)
     }
 }
 
+Ptr<OFSwitch13Device::RemoteController>
+OFSwitch13Device::GetRemoteController (Ptr<Socket> socket)
+{
+  NS_LOG_FUNCTION (this << socket);
+
+  CtrlList_t::iterator it;
+  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+    {
+      if ((*it)->m_socket == socket)
+        {
+          return *it;
+        }
+    }
+  NS_FATAL_ERROR ("Error returning controller for this socket.");
+}
+
+Ptr<OFSwitch13Device::RemoteController>
+OFSwitch13Device::GetRemoteController (Address address)
+{
+  NS_LOG_FUNCTION (this << address);
+
+  CtrlList_t::iterator it;
+  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+    {
+      if ((*it)->m_address == address)
+        {
+          return *it;
+        }
+    }
+  return 0;
+}
+
+Ptr<OFSwitch13Device::RemoteController>
+OFSwitch13Device::GetRemoteController (struct remote *remote)
+{
+  NS_LOG_FUNCTION (this << remote);
+
+  CtrlList_t::iterator it;
+  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+    {
+      if ((*it)->m_remote == remote)
+        {
+          return *it;
+        }
+    }
+  NS_FATAL_ERROR ("Error returning controller for this remote pointer.");
+}
+
 uint64_t
 OFSwitch13Device::GetNewPacketId ()
 {
@@ -936,6 +956,14 @@ OFSwitch13Device::GetDevice (uint64_t id)
       NS_FATAL_ERROR ("Error retrieving datapath device from global map.");
       return 0;
     }
+}
+
+OFSwitch13Device::RemoteController::RemoteController ()
+  : m_socket (0),
+    m_reader (0),
+    m_remote (0)
+{
+  m_address = Address ();
 }
 
 OFSwitch13Device::PipelinePacket::PipelinePacket ()

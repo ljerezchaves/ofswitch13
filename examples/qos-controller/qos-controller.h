@@ -21,8 +21,6 @@
 #ifndef QOS_CONTROLLER_H
 #define QOS_CONTROLLER_H
 
-#include <ns3/network-module.h>
-#include <ns3/internet-module.h>
 #include <ns3/ofswitch13-module.h>
 
 using namespace ns3;
@@ -46,25 +44,25 @@ public:
   static TypeId GetTypeId (void);
 
   // Inherited from OFSwitch13Controller
-  ofl_err HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
-                          uint32_t xid);
+  ofl_err HandlePacketIn (
+    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
 protected:
   // Inherited from OFSwitch13Controller
-  void ConnectionStarted (SwitchInfo swtch);
+  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
 
 private:
   /**
    * Configure the border switch.
    * \param swtch The switch information.
    */
-  void ConfigureBorderSwitch (SwitchInfo swtch);
+  void ConfigureBorderSwitch (Ptr<const RemoteSwitch> swtch);
 
   /**
    * Configure the aggregation switch.
    * \param swtch The switch information.
    */
-  void ConfigureAggregationSwitch (SwitchInfo swtch);
+  void ConfigureAggregationSwitch (Ptr<const RemoteSwitch> swtch);
 
   /**
    * Handle ARP request messages.
@@ -73,8 +71,8 @@ private:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandleArpPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch,
-                             uint32_t xid);
+  ofl_err HandleArpPacketIn (
+    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
   /**
    * Handle TCP connection request
@@ -83,8 +81,8 @@ private:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandleConnectionRequest (ofl_msg_packet_in *msg, SwitchInfo swtch,
-                                   uint32_t xid);
+  ofl_err HandleConnectionRequest (
+    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
   /**
    * Extract an IPv4 address from packet match.
