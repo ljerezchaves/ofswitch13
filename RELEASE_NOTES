@@ -4,6 +4,12 @@ OFSwithc13 release notes
 
 This file contains OFSwitch13 release notes (most recent releases first).
 
+Release 2.0.3 (September 12, 2016)
+==============================
+
+- Bugfix: wrong variable type on priority output queue selection.
+
+
 Release 2.0.2 (April 11, 2016)
 ==============================
 
