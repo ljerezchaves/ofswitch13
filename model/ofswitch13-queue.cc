@@ -280,7 +280,7 @@ OFSwitch13Queue::GetOutputQueue (bool peekLock) const
     {
       // For priority queuing, select the higher-priority nonempty queue.
       // We use the queue id as priority indicator (lowest priority id is 0).
-      for (uint32_t i = GetNQueues () - 1; i >= 0; i--)
+      for (int32_t i = GetNQueues () - 1; i >= 0; i--)
         {
           // Check for nonempty queue
           if (GetQueue (i)->IsEmpty () == false)
