@@ -345,10 +345,10 @@ optional *doc* patch that can be used for including the ``OFSwitch13`` when
 compiling Doxygen and Sphinx documentation. For older versions, users can apply
 the *csma* patch and, if necessary, manually resolve the conflicts.
 
-The ``OFSwitch13`` module versions 2.0.0, 2.0.1 and 2.0.2 (latest) have been
-tested with |ns3| versions 3.22, 3.23, 3.24.1, and 3.25. They are fully
-compatible with ``ofsoftswitch13`` library release 2.0.x. It is strongly
-recommended to use the latest module version for better results.
+The ``OFSwitch13`` module versions 2.0.x have been tested with |ns3| versions
+3.22, 3.23, 3.24.1, and 3.25. They are fully compatible with ``ofsoftswitch13``
+library release 2.0.x. It is strongly recommended to use the latest module
+version for better results. 
 
 References
 ==========
