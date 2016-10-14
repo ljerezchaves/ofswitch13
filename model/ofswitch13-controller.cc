@@ -553,7 +553,7 @@ OFSwitch13Controller::HandleSwitchMsg (
 void
 OFSwitch13Controller::ReceiveFromSwitch (Ptr<Packet> packet, Address from)
 {
-  NS_LOG_FUNCTION (this << socket);
+  NS_LOG_FUNCTION (this << packet);
 
   NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
                 "s the OpenFlow controller " << this <<
