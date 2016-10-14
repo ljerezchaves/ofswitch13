@@ -338,17 +338,17 @@ please, check the :ref:`port-coding` section for detailed instructions.
 The only required modification to the |ns3| source code for ``OFSwitch13``
 integration is the inclusion of the new OpenFlow receive callback in the
 ``CsmaNetDevice`` that is invoked for packets successfully received by the
-device. The module brings the patches for including this receive callback into
-recent |ns3| versions, available under ``src/ofswitch13/utils`` directory.
-Note the existence of a *csma* patch for the receive callback inclusion, and an
+device. The module brings the patch for including this receive callback into
+|ns3| source code, available under ``src/ofswitch13/utils`` directory.  Note
+the existence of a *csma* patch for the receive callback inclusion, and an
 optional *doc* patch that can be used for including the ``OFSwitch13`` when
-compiling Doxygen and Sphinx documentation. For older versions, users can apply
-the *csma* patch and, if necessary, manually resolve the conflicts.
+compiling Doxygen and Sphinx documentation. For older versions, users can
+apply the *csma* patch and, if necessary, manually resolve the conflicts.
 
-The ``OFSwitch13`` module versions 2.0.x have been tested with |ns3| versions
-3.22, 3.23, 3.24.1, and 3.25. They are fully compatible with ``ofsoftswitch13``
-library release 2.0.x. It is strongly recommended to use the latest module
-version for better results. 
+Current ``OFSwitch13`` stable version have been tested with |ns3| versions 3.26
+and greater. For older |ns3| releases, it is possible to use ``OFSwitch13``
+versions 2.0.x. It is strongly recommended to use the latest module version for
+better results.
 
 References
 ==========

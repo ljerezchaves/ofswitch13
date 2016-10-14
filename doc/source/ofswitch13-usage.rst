@@ -22,8 +22,8 @@ simulator.
 Currently, the user must download and compile the code manually. Follow the
 instructions below to compile and link the |ns3| simulator to the
 ``ofsoftswitch13`` library. *These instructions have been tested on Ubuntu
-14.04.3 LTS and 16.04 LTS. Other distributions or versions may require
-different steps, specially regarding library compilation.*
+16.04 LTS. Other distributions or versions may require different steps,
+specially regarding library compilation.*
 
 Compiling the library
 #####################
@@ -67,13 +67,13 @@ linker run-time bindings, and copy the include files:
 
 We are done with the ``NetBee`` library. Now, let's proceed with the
 ``ofsoftswitch13`` code. Clone the repository and update to proper (preferably
-latest) release tag at the ``ns3lib`` branch (here, we are using v2.0.x):
+latest) release tag at the ``ns3lib`` branch (here, we are using v3.0.x):
 
 .. code-block:: bash
 
   $ git clone https://github.com/ljerezchaves/ofsoftswitch13
   $ cd ofsoftswitch13
-  $ git checkout v2.0.x
+  $ git checkout v3.0.x
 
 Configure and build the library (don't forget to add the ``--enable-ns3-lib``
 during configuration process):
@@ -91,24 +91,24 @@ Linking the library to the simulator
 ####################################
 
 It's time to download a recent (preferably stable) |ns3| code into your
-machine (here, we are going to use the mercurial repository for ns-3.24.1):
+machine (here, we are going to use the mercurial repository for ns-3.26):
 
 .. code-block:: bash
 
-  $ hg clone http://code.nsnam.org/ns-3.24
-  $ cd ns-3.24
-  $ hg update ns-3.24.1
+  $ hg clone http://code.nsnam.org/ns-3.26
+  $ cd ns-3.26
+  $ hg update ns-3.26
 
 Before configuring and compiling the simulator, download the ``OFSwitch13``
 code from the module repository and place it inside a new ``/src/ofswitch13``
 folder. Update the code to the latest stable version (here, we are using
-2.0.3):
+3.0.0):
 
 .. code-block:: bash
 
   $ hg clone https://bitbucket.org/ljerezchaves/ofswitch13-module src/ofswitch13
   $ cd src/ofswitch13
-  $ hg update 2.0.3
+  $ hg update 3.0.0
   $ cd ../../
 
 Also, you need to patch the |ns3| code with the appropriated patches available
@@ -117,13 +117,13 @@ version):
 
 .. code-block:: bash
 
-  $ patch -p1 < src/ofswitch13/utils/ofswitch13-csma-3_24_1.patch
-  $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_24_1.patch
+  $ patch -p1 < src/ofswitch13/utils/ofswitch13-csma-3_26.patch
+  $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_26.patch
 
-The ``ofswitch13-csma-3_24_1.patch`` creates the new OpenFlow receive callback
+The ``ofswitch13-csma-3_26.patch`` creates the new OpenFlow receive callback
 at ``CsmaNetDevice``, allowing OpenFlow switch to get raw L2 packets from this
 device. This is the only required change in the |ns3| code to allow
-``OFSwitch13`` usage. The ``ofswitch13-doc-3_24_1.patch`` is optional. It
+``OFSwitch13`` usage. The ``ofswitch13-doc-3_26.patch`` is optional. It
 instructs the simulator to include the module in the |ns3| model library and
 source code API documentation, which can be helpful to compile the
 documentation using Doxygen and Sphinx.
