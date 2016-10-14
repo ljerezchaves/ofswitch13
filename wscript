@@ -4,11 +4,11 @@ import os
 from waflib import Logs, Options
 from waflib.Errors import WafError
 
-def check_325_prior_version(version):
-    base = (3, 25)
+def check_version_compatibility(version):
+    base = (3, 26)
     try:
         comp = tuple(map(int, (version.split("."))))
-        return comp < base
+        return comp >= base
     except:
         return False
 
@@ -55,11 +55,12 @@ def configure(conf):
     conf.env.LIB_OFSWITCH13 = ['dl', 'nbee', 'ns3ofswitch13']
     conf.env.LIBPATH_OFSWITCH13 = [os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'udatapath'))]
 
-    if check_325_prior_version(conf.env.VERSION):
-        conf.msg ("Checking for ns-3 version prior than 3.25", "yes")
-        conf.env.DEFINES_OFSWITCH13.append ('NS3_OFSWITCH13_PRIOR_325')
-    else:
-        conf.msg ("Checking for ns-3 version prior than 3.25", "no")
+    if not check_version_compatibility(conf.env.VERSION):
+        conf.msg ("Checking for ns-3 version compatibility", False)
+        conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 Integration", False,
+                                     "Incompatible ns-3 version (must be 3.26 or greater)")
+        conf.env.MODULES_NOT_BUILT.append('ofswitch13')
+        return
 
     conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 Integration",
             conf.env.OFSWITCH13, "ns3ofswitch13 library not found")
