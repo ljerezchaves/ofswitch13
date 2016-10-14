@@ -97,7 +97,6 @@ machine (here, we are going to use the mercurial repository for ns-3.26):
 
   $ hg clone http://code.nsnam.org/ns-3.26
   $ cd ns-3.26
-  $ hg update ns-3.26
 
 Before configuring and compiling the simulator, download the ``OFSwitch13``
 code from the module repository and place it inside a new ``/src/ofswitch13``
