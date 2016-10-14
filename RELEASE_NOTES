@@ -47,6 +47,9 @@ Release 3.0.0 (Place the date here)
     devices and controller applications into respective nodes (the use of this
     function is mandatory).
 
+- This code is compatible with ofsoftswitch13 library, release v3.0.x and ns-3
+  version 3.26 (including patches).
+
 
 Release 2.0.3 (September 12, 2016)
 ==================================
