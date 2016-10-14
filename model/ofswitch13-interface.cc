@@ -77,7 +77,8 @@ SocketReader::Read (Ptr<Socket> socket)
               // We need to wait for more bytes
               return;
             }
-          m_pendingPacket->AddAtEnd (socket->Recv (m_pendingBytes, 0));
+          m_pendingPacket->AddAtEnd (socket->RecvFrom (m_pendingBytes, 0,
+                                                       from));
         }
 
       // Now we have a complete (single) OpenFlow message.
