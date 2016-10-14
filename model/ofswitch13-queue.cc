@@ -132,16 +132,15 @@ bool
 OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
 {
   NS_LOG_FUNCTION (this << item);
-  Ptr<Packet> p = item->GetPacket ();
 
   sw_queue* swQueue;
   QueueTag queueNoTag;
   uint32_t queueNo = 0;
-  if (p->RemovePacketTag (queueNoTag))
+  if (item->GetPacket ()->RemovePacketTag (queueNoTag))
     {
       queueNo = queueNoTag.GetQueueId ();
     }
-  NS_LOG_DEBUG ("Packet " << p << " to be enqueued in queue id " << queueNo);
+  NS_LOG_DEBUG ("Item " << item << " to be enqueued in queue id " << queueNo);
 
   swQueue = dp_ports_lookup_queue (m_swPort, queueNo);
   NS_ASSERT_MSG (swQueue, "Invalid queue id.");
@@ -150,7 +149,7 @@ OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
   if (retval)
     {
       swQueue->stats->tx_packets++;
-      swQueue->stats->tx_bytes += p->GetSize ();
+      swQueue->stats->tx_bytes += item->GetPacketSize ();
       return true;
     }
   else
