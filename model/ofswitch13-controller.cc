@@ -101,7 +101,7 @@ OFSwitch13Controller::DpctlExecute (Ptr<const RemoteSwitch> swtch,
 int
 OFSwitch13Controller::DpctlExecute (uint64_t dpId, const std::string textCmd)
 {
-  NS_LOG_FUNCTION (this << doIp << textCmd);
+  NS_LOG_FUNCTION (this << dpId << textCmd);
 
   Ptr<const RemoteSwitch> swtch = GetRemoteSwitch (dpId);
   NS_ASSERT_MSG (swtch, "Can't execute command for an unregistered switch.");
