@@ -36,12 +36,28 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Helper);
 class OFSwitch13Controller;
 
 OFSwitch13Helper::OFSwitch13Helper ()
-  : m_blocked (false),
-    m_csmaChannel (0)
+  : m_blocked (false)
 {
   NS_LOG_FUNCTION (this);
 
   m_devFactory.SetTypeId ("ns3::OFSwitch13Device");
+
+  // Creating the single shared CSMA channel, which will be used only if the
+  // SINGLECSMA channel type (default) is selected.
+  m_csmaChannel = CreateObject<CsmaChannel> ();
+
+  // To avoid IP datagram fragmentation, we are configuring the OpenFlow
+  // channel devices with a very large MTU value. The TCP sockets used to send
+  // packets to theses devices are also configured to use a large segment size
+  // at OFSwitch13Controller and OFSwitch13Device.
+  m_csmaHelper.SetDeviceAttribute ("Mtu", UintegerValue (9000));
+  m_p2pHelper.SetDeviceAttribute ("Mtu", UintegerValue (9000));
+
+  // Using large queues on devices to avoid loosing packets.
+  m_csmaHelper.SetQueue ("ns3::DropTailQueue",
+                         "MaxPackets", UintegerValue (65536));
+  m_p2pHelper.SetQueue ("ns3::DropTailQueue",
+                        "MaxPackets", UintegerValue (65536));
 }
 
 OFSwitch13Helper::~OFSwitch13Helper ()
@@ -97,19 +113,16 @@ OFSwitch13Helper::SetChannelType (ChannelType type)
     {
     case OFSwitch13Helper::SINGLECSMA:
       {
-        // We use a /24 subnet which can hold up to 254 addresses.
+        // For a shared CSMA channel we use a /24 subnet which can hold up to
+        // 254 IP addresses.
         SetAddressBase ("10.100.150.0", "255.255.255.0");
-
-        // Creating the common channel
-        m_csmaChannel = CreateObject<CsmaChannel> ();
-        m_csmaChannel->SetAttribute ("DataRate",
-                                     DataRateValue (m_channelDataRate));
         break;
       }
     case OFSwitch13Helper::DEDICATEDCSMA:
     case OFSwitch13Helper::DEDICATEDP2P:
       {
-        // We use a /30 subnet which can hold exactly two addresses.
+        // For dedicated channels we use a /30 subnet which can hold exactly
+        // 2 IP addresses.
         SetAddressBase ("10.100.150.0", "255.255.255.252");
         break;
       }
@@ -126,32 +139,15 @@ OFSwitch13Helper::SetChannelDataRate (DataRate datarate)
   NS_LOG_FUNCTION (this << datarate);
 
   m_channelDataRate = datarate;
-  switch (m_channelType)
-    {
-    case OFSwitch13Helper::SINGLECSMA:
-    case OFSwitch13Helper::DEDICATEDCSMA:
-      {
-        m_csmaHelper.SetChannelAttribute ("DataRate",
-                                          DataRateValue (m_channelDataRate));
-        m_csmaHelper.SetDeviceAttribute ("Mtu", UintegerValue (9000));
-        m_csmaHelper.SetQueue ("ns3::DropTailQueue",
-                               "MaxPackets", UintegerValue (65536));
-        break;
-      }
-    case OFSwitch13Helper::DEDICATEDP2P:
-      {
-        m_p2pHelper.SetDeviceAttribute ("DataRate",
-                                        DataRateValue (m_channelDataRate));
-        m_p2pHelper.SetDeviceAttribute ("Mtu", UintegerValue (9000));
-        m_p2pHelper.SetQueue ("ns3::DropTailQueue",
-                              "MaxPackets", UintegerValue (65536));
-        break;
-      }
-    default:
-      {
-        NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
-      }
-    }
+
+  // We are setting the data rate attribute for all channel types, regardless
+  // which one will be used.
+  m_csmaChannel->SetAttribute (
+    "DataRate", DataRateValue (m_channelDataRate));
+  m_csmaHelper.SetChannelAttribute (
+    "DataRate", DataRateValue (m_channelDataRate));
+  m_p2pHelper.SetDeviceAttribute (
+    "DataRate", DataRateValue (m_channelDataRate));
 }
 
 void
