@@ -101,21 +101,21 @@ OFSwitch13Device::~OFSwitch13Device ()
 }
 
 Ptr<OFSwitch13Port>
-OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
+OFSwitch13Device::AddPhysicalPort (Ptr<NetDevice> portDevice)
 {
   NS_LOG_FUNCTION (this << portDevice);
   NS_LOG_INFO ("Adding port addr " << portDevice->GetAddress ());
-
-  if (GetNSwitchPorts () >= DP_MAX_PORTS)
-    {
-      NS_LOG_ERROR ("No more ports allowed.");
-      return 0;
-    }
 
   Ptr<CsmaNetDevice> csmaPortDevice = portDevice->GetObject<CsmaNetDevice> ();
   if (!csmaPortDevice)
     {
       NS_FATAL_ERROR ("NetDevice must be of CsmaNetDevice type.");
+    }
+
+  if (GetNSwitchPorts () >= DP_MAX_PORTS)
+    {
+      NS_LOG_ERROR ("No more ports allowed.");
+      return 0;
     }
 
   // Create the OpenFlow port for this device
