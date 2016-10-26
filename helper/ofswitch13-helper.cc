@@ -265,7 +265,7 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 }
 
 OFSwitch13DeviceContainer
-OFSwitch13Helper::InstallSwitchesWithoutPorts (NodeContainer swNodes)
+OFSwitch13Helper::InstallSwitch (NodeContainer swNodes)
 {
   NS_LOG_FUNCTION (this);
 
@@ -274,15 +274,15 @@ OFSwitch13Helper::InstallSwitchesWithoutPorts (NodeContainer swNodes)
   NodeContainer::Iterator it;
   for (it = swNodes.Begin (); it != swNodes.End (); it++)
     {
-      openFlowDevices.Add (InstallSwitch (*it, NetDeviceContainer ()));
+      openFlowDevices.Add (InstallSwitch (*it));
     }
 
   return openFlowDevices;
 }
 
 Ptr<OFSwitch13Controller>
-OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode,
-                                        Ptr<OFSwitch13Controller> controller)
+OFSwitch13Helper::InstallController (Ptr<Node> cNode,
+                                     Ptr<OFSwitch13Controller> controller)
 {
   NS_LOG_FUNCTION (this << cNode << controller);
   NS_LOG_DEBUG ("Installing OpenFlow controller on node " << cNode->GetId ());
@@ -295,16 +295,6 @@ OFSwitch13Helper::InstallControllerApp (Ptr<Node> cNode,
   m_controlNodes.Add (cNode);
 
   return controller;
-}
-
-Ptr<OFSwitch13Controller>
-OFSwitch13Helper::InstallDefaultController (Ptr<Node> cNode)
-{
-  NS_LOG_FUNCTION (this);
-
-  // Install the learning controller into cNode
-  return InstallControllerApp (
-           cNode, CreateObject<OFSwitch13LearningController> ());
 }
 
 void

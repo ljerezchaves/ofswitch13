@@ -43,6 +43,7 @@ namespace ns3 {
 class Node;
 class AttributeValue;
 class OFSwitch13Controller;
+class OFSwitch13LearningController;
 
 /**
  * \ingroup ofswitch13
@@ -148,63 +149,53 @@ public:
    *        for IP address allocation.
    */
   void SetAddressBase (Ipv4Address network, Ipv4Mask mask,
-                       Ipv4Address base = "0.0.0.1");
+    Ipv4Address base = "0.0.0.1");
 
   /**
    * This method creates an OpenFlow device and aggregates it to the switch
-   * node. It also attaches the given devices as ports of the switch.
+   * node. It also attaches the given devices as physical ports on the switch.
+   * If no devices are given, the switch will be configured without ports. In
+   * this case, don't forget to add ports to it later, or it will do nothing.
    *
    * \param swNode The switch node where to install the OpenFlow device.
-   * \param ports Container of devices to be added as switch ports.
+   * \param ports Container of devices to be added as physical switch ports.
    * \return A container holding the single OpenFlow device created.
    */
-  OFSwitch13DeviceContainer
-  InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports);
+  OFSwitch13DeviceContainer InstallSwitch (Ptr<Node> swNode,
+    NetDeviceContainer ports = NetDeviceContainer ());
 
   /**
    * This method creates and aggregates an OpenFlow device to each switch node
-   * in the container. Switches configured by this methods will have no switch
+   * in the container. Switches configured by this method will have no switch
    * ports. Don't forget to add ports do them later, or they will do nothing.
    *
    * \param swNodes The switch nodes where to install the OpenFlow devices.
    * \return A container holding all the OpenFlow devices created.
    */
-  OFSwitch13DeviceContainer
-  InstallSwitchesWithoutPorts (NodeContainer swNodes);
+  OFSwitch13DeviceContainer InstallSwitch (NodeContainer swNodes);
 
   /**
-   * This method installs the given controller application into
-   * cNode. It also installs the TCP/IP stack into cNode. Finally, it starts
-   * the switch <--> controller connection for all previous registered
-   * switches.
+   * This method installs the given controller application into the given
+   * controller node. If no application is given, a new (default) learning
+   * controller application is created and installed into controller node.
    *
    * \param cNode The node to configure as controller.
    * \param controller The controller application to install into cNode
-   * \return The controller application (same as input)
+   * \return The installed controller application.
    */
-  Ptr<OFSwitch13Controller>
-  InstallControllerApp (Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller);
+  Ptr<OFSwitch13Controller> InstallController (Ptr<Node> cNode,
+    Ptr<OFSwitch13Controller> controller = 
+      CreateObject<OFSwitch13LearningController> ());
 
   /**
-   * This method creates a new ns3::OFSwitch13LearningController application
-   * and install it into cNode. It also installs the TCP/IP stack into cNode.
-   * Finally, it starts the switch <--> controller connection for all previous
-   * registered switches.
-   *
-   * \param cNode The node to configure as controller.
-   * \return The learning controller application installed into cNode.
-   */
-  Ptr<OFSwitch13Controller>
-  InstallDefaultController (Ptr<Node> cNode);
-
-  /**
-   * This method installs the TCP/IP stack into switches and controller nodes,
-   * then creates and installs the devices and channels that will be used to
-   * interconnect all switches to all controllers previously registered to this
-   * device. Finally, it starts the individual OpenFlow channel connections.
+   * This method installs the TCP/IP stack into switches and controller nodes
+   * configured by this helper, then creates and installs the devices and
+   * channels that will be used to interconnect all switches to all controllers
+   * according to previously configuration. Finally, it starts the individual
+   * OpenFlow channel connections.
    *
    * \attention After calling this method, it will not be allowed to install
-   *            more switches or devices on this OpenFlow network domain.
+   *            more switches or devices using this helper.
    */
   void CreateOpenFlowChannels (void);
 

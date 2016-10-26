@@ -90,7 +90,7 @@ main (int argc, char *argv[])
 
   // Configure the OpenFlow network
   Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
-  of13Helper->InstallDefaultController (controllerNode);
+  of13Helper->InstallController (controllerNode);
   of13Helper->InstallSwitch (switchNode, switchPorts);
   of13Helper->CreateOpenFlowChannels ();
 

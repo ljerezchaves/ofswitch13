@@ -98,8 +98,8 @@ main (int argc, char *argv[])
   Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
   Ptr<Controller0> ctrl0 = CreateObject<Controller0> ();
   Ptr<Controller1> ctrl1 = CreateObject<Controller1> ();
-  of13Helper->InstallControllerApp (controllers.Get (0), ctrl0);
-  of13Helper->InstallControllerApp (controllers.Get (1), ctrl1);
+  of13Helper->InstallController (controllers.Get (0), ctrl0);
+  of13Helper->InstallController (controllers.Get (1), ctrl1);
   of13Helper->InstallSwitch (switchNode, switchPorts);
   of13Helper->CreateOpenFlowChannels ();
 

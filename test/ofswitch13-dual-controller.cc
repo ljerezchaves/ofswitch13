@@ -87,13 +87,13 @@ Ofswitch13TestCase2::DoRun (void)
   Ptr<OFSwitch13Helper> of13Helper1 = CreateObject<OFSwitch13Helper> ();
 
   Ptr<OFSwitch13LearningController> learningCtrl0;
-  learningCtrl0 = DynamicCast<OFSwitch13LearningController> (of13Helper0->InstallDefaultController (of13ControllerNode0));
+  learningCtrl0 = DynamicCast<OFSwitch13LearningController> (of13Helper0->InstallController (of13ControllerNode0));
   of13Helper0->InstallSwitch (of13SwitchNodes.Get (0), of13SwitchPorts [0]);
   of13Helper0->InstallSwitch (of13SwitchNodes.Get (1), of13SwitchPorts [1]);
 
   of13Helper1->SetAddressBase ("10.100.151.0", "255.255.255.0");
   Ptr<OFSwitch13LearningController> learningCtrl1;
-  learningCtrl1 = DynamicCast<OFSwitch13LearningController> (of13Helper1->InstallDefaultController (of13ControllerNode1));
+  learningCtrl1 = DynamicCast<OFSwitch13LearningController> (of13Helper1->InstallController (of13ControllerNode1));
   of13Helper1->InstallSwitch (of13SwitchNodes.Get (2), of13SwitchPorts [2]);
   of13Helper1->InstallSwitch (of13SwitchNodes.Get (3), of13SwitchPorts [3]);
 
