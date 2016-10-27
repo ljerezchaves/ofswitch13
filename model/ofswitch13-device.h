@@ -167,8 +167,10 @@ public:
    * will schedule the packet for OpenFlow pipeline.
    * \param packet The packet.
    * \param portNo The switch input port number.
+   * \param tunnelId The metadata associated with a logical port.
    */
-  void ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo);
+  void ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
+                              uint64_t tunnelId = 0);
 
   /**
    * \return Number of ports attached to this switch.
@@ -325,14 +327,16 @@ private:
    * \return True if success, false otherwise.
    */
   bool SendToSwitchPort (struct packet *pkt, uint32_t portNo,
-                         uint32_t queueNo);
+                         uint32_t queueNo = 0);
 
   /**
    * Send the packet to the OpenFlow ofsoftswitch13 pipeline.
    * \param packet The packet.
    * \param portNo The switch input port number.
+   * \param tunnelId The metadata associated with a logical port.
    */
-  void SendToPipeline (Ptr<Packet> packet, uint32_t portNo);
+  void SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
+                       uint64_t tunnelId = 0);
 
   /**
    * Send a packet to the controller node.

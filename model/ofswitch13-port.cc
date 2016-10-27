@@ -252,6 +252,9 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 {
   NS_LOG_FUNCTION (this << packet);
 
+  // This is the default tunnelId value, which can be changed by logical ports.
+  uint64_t tunnelId = 0;
+
   // Check port configuration.
   if (m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
     {
@@ -265,14 +268,14 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 
   // Fire RX trace source and send the packet to OpenFlow pipeline
   m_rxTrace (packet);
-  m_openflowDev->ReceiveFromSwitchPort (packet->Copy (), m_portNo);
+  m_openflowDev->ReceiveFromSwitchPort (packet->Copy (), m_portNo, tunnelId);
   return true;
 }
 
 bool
-OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
+OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo, uint64_t tunnelId)
 {
-  NS_LOG_FUNCTION (this << packet << queueNo);
+  NS_LOG_FUNCTION (this << packet << queueNo << tunnelId);
 
   if (m_swPort->conf->config & (OFPPC_PORT_DOWN))
     {
