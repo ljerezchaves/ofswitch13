@@ -150,6 +150,11 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   // Register the receive callback to get packets from CsmaNetDevice.
   csmaDev->SetOpenFlowReceiveCallback (
     MakeCallback (&OFSwitch13Port::Receive, this));
+
+  // Setting null callbacks for logical ports
+  SetLogicalPortCallbacks (
+    MakeNullCallback<uint64_t, uint64_t, uint32_t, Ptr<Packet> > (),
+    MakeNullCallback<void, uint64_t, uint32_t, Ptr<Packet>, uint64_t> ());
 }
 
 uint32_t
@@ -192,6 +197,16 @@ OFSwitch13Port::GetOutputQueue ()
 {
   NS_LOG_FUNCTION (this);
   return m_portQueue;
+}
+
+void
+OFSwitch13Port::SetLogicalPortCallbacks (LogicalPortRxCallback rxCallback,
+                                         LogicalPortTxCallback txCallback)
+{
+  NS_LOG_FUNCTION (this << &rxCallback << &txCallback);
+
+  m_logicalRxCallback = rxCallback;
+  m_logicalTxCallback = txCallback;
 }
 
 uint32_t
@@ -266,9 +281,18 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   m_swPort->stats->rx_packets++;
   m_swPort->stats->rx_bytes += packet->GetSize ();
 
-  // Fire RX trace source and send the packet to OpenFlow pipeline
+  // Fire RX trace source
   m_rxTrace (packet);
-  m_openflowDev->ReceiveFromSwitchPort (packet->Copy (), m_portNo, tunnelId);
+
+  // If available, call the logical port receive callback
+  Ptr<Packet> localPacket = packet->Copy ();
+  if (!m_logicalRxCallback.IsNull ())
+    {
+      tunnelId = m_logicalRxCallback (m_swPort->dp->id, m_portNo, localPacket);
+    }
+
+  // Send the packet to the OpenFlow pipeline
+  m_openflowDev->ReceiveFromSwitchPort (localPacket, m_portNo, tunnelId);
   return true;
 }
 
@@ -285,6 +309,12 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo, uint64_t tunnelId)
 
   // Fire TX trace source (with complete packet)
   m_txTrace (packet);
+
+  // If available, call the logical port transmission callback
+  if (!m_logicalTxCallback.IsNull ())
+    {
+      m_logicalTxCallback (m_swPort->dp->id, m_portNo, packet, tunnelId);
+    }
 
   // Removing the Ethernet header and trailer from packet, which will be
   // included again by CsmaNetDevice
