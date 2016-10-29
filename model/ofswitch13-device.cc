@@ -101,7 +101,9 @@ OFSwitch13Device::~OFSwitch13Device ()
 }
 
 Ptr<OFSwitch13Port>
-OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
+OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice,
+                                 OFSwitch13Port::LogicalPortRxCallback rxCb,
+                                 OFSwitch13Port::LogicalPortTxCallback txCb)
 {
   NS_LOG_FUNCTION (this << portDevice);
   NS_LOG_INFO ("Adding port addr " << portDevice->GetAddress ());
@@ -121,6 +123,7 @@ OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
   // Create the OpenFlow port for this device
   Ptr<OFSwitch13Port> ofPort;
   ofPort = CreateObject<OFSwitch13Port> (m_datapath, csmaPortDevice, this);
+  ofPort->SetLogicalPortCallbacks (rxCb, txCb);
 
   // Save port in port list (assert port no and vector index)
   m_ports.push_back (ofPort);
@@ -130,12 +133,13 @@ OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
 }
 
 void
-OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo)
+OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
+                                         uint64_t tunnelId)
 {
-  NS_LOG_FUNCTION (this << packet);
+  NS_LOG_FUNCTION (this << packet << portNo << tunnelId);
 
   Simulator::Schedule (m_pipeDelay, &OFSwitch13Device::SendToPipeline, this,
-                       packet, portNo);
+                       packet, portNo, tunnelId);
 }
 
 uint32_t
@@ -281,7 +285,7 @@ OFSwitch13Device::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
       }
     case (OFPP_IN_PORT):
       {
-        dev->SendToSwitchPort (pkt, pkt->in_port, 0);
+        dev->SendToSwitchPort (pkt, pkt->in_port, outQueue);
         break;
       }
     case (OFPP_CONTROLLER):
@@ -320,7 +324,7 @@ OFSwitch13Device::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
             {
               continue;
             }
-          dev->SendToSwitchPort (pkt, p->stats->port_no, 0);
+          dev->SendToSwitchPort (pkt, p->stats->port_no);
         }
         break;
       }
@@ -558,13 +562,14 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
     }
 
   // Send the packet to switch port.
-  return port->Send (packet, queueNo);
+  return port->Send (packet, queueNo, pkt->tunnel_id);
 }
 
 void
-OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo)
+OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
+                                  uint64_t tunnelId)
 {
-  NS_LOG_FUNCTION (this << packet);
+  NS_LOG_FUNCTION (this << packet << portNo << tunnelId);
   NS_ASSERT_MSG (!m_pktPipe.IsValid (), "Another packet in pipeline.");
 
   // Creating the internal OpenFlow packet structure from ns-3 packet
@@ -572,7 +577,8 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo)
   uint32_t headRoom = 128 + 2;
   uint32_t bodyRoom = packet->GetSize () + VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofs::BufferFromPacket (packet, bodyRoom, headRoom);
-  struct packet *pkt = packet_create (m_datapath, portNo, buffer, false);
+  struct packet *pkt = packet_create (m_datapath, portNo, buffer,
+                                      tunnelId, false);
 
   // Save the ns-3 packet
   pkt->ns3_uid = OFSwitch13Device::GetNewPacketId ();

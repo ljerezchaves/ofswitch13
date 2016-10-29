@@ -37,7 +37,10 @@ class OFSwitch13Device;
  * \ingroup ofswitch13
  *
  * A OpenFlow switch port, interconnecting the underlying CsmaNetDevice to the
- * OpenFlow device through the OpenFlow trace source at CsmaNetDevice class.
+ * OpenFlow device through the OpenFlow trace source at CsmaNetDevice class. By
+ * default, this port acts as a physical port on the OpenFlow switch. However,
+ * it can be configured to work as a logical port when the receive and send
+ * callbacks are defined by the user.
  * This class handles the ofsoftswitch13 internal sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
  * \attention Each underlying CsmaNetDevice used as port must only be assigned
@@ -48,6 +51,28 @@ class OFSwitch13Port : public Object
 public:
   OFSwitch13Port ();            //!< Default constructor
   virtual ~OFSwitch13Port ();   //!< Dummy destructor, see DoDipose
+
+  /**
+   * OFSwitch13 logical port receive callback.
+   * \param uint64_t The datapath id.
+   * \param uint32_t The physical port number.
+   * \param Ptr<Packet> The received packet.
+   * \returns uint64_t The tunnel metadata associated with this packet on this
+   *                   logical port.
+   */
+  typedef Callback <uint64_t, uint64_t, uint32_t, Ptr<Packet> >
+    LogicalPortRxCallback;
+
+  /**
+   * OFSwitch13 logical port send callback.
+   * \param uint64_t The datapath id.
+   * \param uint32_t The physical port number.
+   * \param Ptr<Packet> The packet to send.
+   * \param uint64_t The tunnel metadata associated with this packet on this
+   *                 logical port.
+   */
+  typedef Callback <void, uint64_t, uint32_t, Ptr<Packet>, uint64_t>
+    LogicalPortTxCallback;
 
   /**
    * Register this type.
@@ -86,15 +111,24 @@ public:
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
    * \param packet The Packet to send.
    * \param queueNo The queue to use.
+   * \param tunnelId The metadata associated with a logical port.
    * \return true if the packet was sent successfully, false otherwise.
    */
-  bool Send (Ptr<Packet> packet, uint32_t queueNo);
+  bool Send (Ptr<Packet> packet, uint32_t queueNo = 0, uint64_t tunnelId = 0);
 
   /**
    * Get a pointer to the collection of output queues at this port.
    * \return The OFSwitch13Queue pointer.
    */
   Ptr<OFSwitch13Queue> GetOutputQueue ();
+
+  /**
+   * Set the callbacks that allow this port to work as a logical port.
+   * \param rxCallback The receive callback.
+   * \param txCallback The send callback.
+   */
+  void SetLogicalPortCallbacks (LogicalPortRxCallback rxCallback,
+                                LogicalPortTxCallback txCallback);
 
 protected:
   /** Destructor implementation */
@@ -130,6 +164,18 @@ private:
 
   /** Trace source fired when a packet will be sent over this switch port. */
   TracedCallback<Ptr<const Packet> > m_txTrace;
+
+  /**
+   * Logical port rx callback, fired for packets received by the physical
+   * underlying port, before being sent to the OpenFlow pipeline.
+   */
+  LogicalPortRxCallback     m_logicalRxCallback;
+
+  /**
+   * Logical port tx callback, fired for packets about to be sent over the
+   * physical underlying port.
+   */
+  LogicalPortTxCallback     m_logicalTxCallback;
 
   uint32_t                  m_portNo;       //!< Port number
   sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port

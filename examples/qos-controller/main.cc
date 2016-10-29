@@ -178,7 +178,7 @@ main (int argc, char *argv[])
   // (#0 and #1) into controller node 0.
   Ptr<OFSwitch13Helper> ofQosHelper = CreateObject<OFSwitch13Helper> ();
   Ptr<QosController> qosCtrl = CreateObject<QosController> ();
-  ofQosHelper->InstallControllerApp (controllerNodes.Get (0), qosCtrl);
+  ofQosHelper->InstallController (controllerNodes.Get (0), qosCtrl);
 
   // Configure OpenFlow learning controller for client switch (#2) into
   // controller node 1. Note that for using two different OpenFlow domains in
@@ -188,7 +188,7 @@ main (int argc, char *argv[])
   ofLearningHelper->SetAddressBase ("10.100.151.0", "255.255.255.252");
   Ptr<OFSwitch13LearningController> learnCtrl =
     CreateObject<OFSwitch13LearningController> ();
-  ofLearningHelper->InstallControllerApp (controllerNodes.Get (1), learnCtrl);
+  ofLearningHelper->InstallController (controllerNodes.Get (1), learnCtrl);
 
   // Install OpenFlow switches 0 and 1 with border controller
   OFSwitch13DeviceContainer ofSwitchDevices;

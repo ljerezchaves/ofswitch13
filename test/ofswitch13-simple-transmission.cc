@@ -69,7 +69,7 @@ Ofswitch13TestCase1::DoRun (void)
   // Configure the OpenFlow network
   Ptr<Node> of13ControllerNode = CreateObject<Node> ();
   Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
-  Ptr<OFSwitch13LearningController> learningCtrl = DynamicCast<OFSwitch13LearningController> (of13Helper->InstallDefaultController (of13ControllerNode));
+  Ptr<OFSwitch13LearningController> learningCtrl = DynamicCast<OFSwitch13LearningController> (of13Helper->InstallController (of13ControllerNode));
   OFSwitch13DeviceContainer of13SwitchDevice;
   of13SwitchDevice = of13Helper->InstallSwitch (of13SwitchNode, of13SwitchPorts);
 

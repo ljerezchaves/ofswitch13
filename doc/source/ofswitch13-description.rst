@@ -266,7 +266,7 @@ SDN paradigm. However, some features are not yet supported:
   switch port representing the switch's local networking stack and its
   management stack is not implemented.
 
-* **Platform supports**: This module is currently supported only for GNU/Linux
+* **Platform support**: This module is currently supported only for GNU/Linux
   platforms, as the code relies on an external library linked to the simulator
   that *must* be compiled with GCC.
 
@@ -311,10 +311,16 @@ are:
   bucket contains the set of actions to be applied before forwarding to the
   port. Groups buckets can also forward to other groups.
 
-* **Virtual ports**: Prior versions of the OpenFlow specification assumed that
+* **Logical ports**: Prior versions of the OpenFlow specification assumed that
   all the ports of the OpenFlow switch were physical ports. This version of the
-  specification adds support for virtual ports, which can represent complex
-  forwarding abstractions such as LAGs or tunnels.
+  specification adds support for logical ports, which can represent complex
+  forwarding abstractions such as LAGs or tunnels. In the ``OFSwitch13``
+  module, logical ports are implemented with the help of two (send and receive)
+  callbacks on ``OFSwitch13Port``. These callbacks can freely modify the
+  packets received by the switch input port before being sent to the OpenFlow
+  pipeline, and packets just about to be sent over the switch output port. The
+  receive callback returns a tunnel metadata information that follows the
+  packet over the pipeline and can be used by the send callback.
 
 * **Extensible match support**: Prior versions of the OpenFlow specification
   used a static fixed length structure to specify ``ofp_match``, which prevents

@@ -150,25 +150,34 @@ public:
   virtual ~OFSwitch13Device ();
 
   /**
-   * Add a 'port' to the switch device. This method adds a new switch
-   * port to a OFSwitch13Device, so that the new switch port NetDevice
-   * becomes part of the switch and L2 frames start being forwarded to/from
-   * this OpenFlow device.
+   * Add a 'port' to the switch device. This method adds a new switch port to a
+   * OFSwitch13Device, so that the new switch port NetDevice becomes part of
+   * the switch and L2 frames start being forwarded to/from this OpenFlow
+   * device. It is possible to configure user-defined receive and send
+   * callbacks, allowing this port to work as a logical port on the switch.
    * \attention The current implementation only supports CsmaNetDevices (as
    * OpenFlow deals with ethernet frames). Also, the port device that is being
    * added as switch port must _not_ have an IP address.
    * \param portDevice The NetDevice port to add.
+   * \param rxCb The logical port receive callback.
+   * \param txCb The logical port send callback.
    * \return The OFSwitch13Port created.
    */
-  Ptr<OFSwitch13Port> AddSwitchPort (Ptr<NetDevice> portDevice);
+  Ptr<OFSwitch13Port> AddSwitchPort (Ptr<NetDevice> portDevice,
+    OFSwitch13Port::LogicalPortRxCallback rxCb =
+      MakeNullCallback<uint64_t, uint64_t, uint32_t, Ptr<Packet> > (),
+    OFSwitch13Port::LogicalPortTxCallback txCb =
+      MakeNullCallback<void, uint64_t, uint32_t, Ptr<Packet>, uint64_t> ());
 
   /**
    * Called when a packet is received on one of the switch's ports. This method
    * will schedule the packet for OpenFlow pipeline.
    * \param packet The packet.
    * \param portNo The switch input port number.
+   * \param tunnelId The metadata associated with a logical port.
    */
-  void ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo);
+  void ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
+                              uint64_t tunnelId = 0);
 
   /**
    * \return Number of ports attached to this switch.
@@ -325,14 +334,16 @@ private:
    * \return True if success, false otherwise.
    */
   bool SendToSwitchPort (struct packet *pkt, uint32_t portNo,
-                         uint32_t queueNo);
+                         uint32_t queueNo = 0);
 
   /**
    * Send the packet to the OpenFlow ofsoftswitch13 pipeline.
    * \param packet The packet.
    * \param portNo The switch input port number.
+   * \param tunnelId The metadata associated with a logical port.
    */
-  void SendToPipeline (Ptr<Packet> packet, uint32_t portNo);
+  void SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
+                       uint64_t tunnelId = 0);
 
   /**
    * Send a packet to the controller node.

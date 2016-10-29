@@ -194,6 +194,16 @@ OFSwitch13Port::GetOutputQueue ()
   return m_portQueue;
 }
 
+void
+OFSwitch13Port::SetLogicalPortCallbacks (LogicalPortRxCallback rxCallback,
+                                         LogicalPortTxCallback txCallback)
+{
+  NS_LOG_FUNCTION (this << &rxCallback << &txCallback);
+
+  m_logicalRxCallback = rxCallback;
+  m_logicalTxCallback = txCallback;
+}
+
 uint32_t
 OFSwitch13Port::PortGetFeatures ()
 {
@@ -252,6 +262,9 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 {
   NS_LOG_FUNCTION (this << packet);
 
+  // This is the default tunnelId value, which can be changed by logical ports.
+  uint64_t tunnelId = 0;
+
   // Check port configuration.
   if (m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
     {
@@ -263,16 +276,25 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   m_swPort->stats->rx_packets++;
   m_swPort->stats->rx_bytes += packet->GetSize ();
 
-  // Fire RX trace source and send the packet to OpenFlow pipeline
+  // Fire RX trace source
   m_rxTrace (packet);
-  m_openflowDev->ReceiveFromSwitchPort (packet->Copy (), m_portNo);
+
+  // If available, call the logical port receive callback
+  Ptr<Packet> localPacket = packet->Copy ();
+  if (!m_logicalRxCallback.IsNull ())
+    {
+      tunnelId = m_logicalRxCallback (m_swPort->dp->id, m_portNo, localPacket);
+    }
+
+  // Send the packet to the OpenFlow pipeline
+  m_openflowDev->ReceiveFromSwitchPort (localPacket, m_portNo, tunnelId);
   return true;
 }
 
 bool
-OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
+OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo, uint64_t tunnelId)
 {
-  NS_LOG_FUNCTION (this << packet << queueNo);
+  NS_LOG_FUNCTION (this << packet << queueNo << tunnelId);
 
   if (m_swPort->conf->config & (OFPPC_PORT_DOWN))
     {
@@ -282,6 +304,12 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
 
   // Fire TX trace source (with complete packet)
   m_txTrace (packet);
+
+  // If available, call the logical port transmission callback
+  if (!m_logicalTxCallback.IsNull ())
+    {
+      m_logicalTxCallback (m_swPort->dp->id, m_portNo, packet, tunnelId);
+    }
 
   // Removing the Ethernet header and trailer from packet, which will be
   // included again by CsmaNetDevice

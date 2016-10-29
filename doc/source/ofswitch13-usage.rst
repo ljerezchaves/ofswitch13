@@ -188,7 +188,7 @@ and install the switch and the controller using the ``OFSwitch13Helper``.
 
     // Configure the OpenFlow network, installing the controller and switch
     Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
-    of13Helper->InstallDefaultController (controllerNode);
+    of13Helper->InstallController (controllerNode);
     of13Helper->InstallSwitch (switchNode, switchPorts);
     of13Helper->CreateOpenFlowChannels ();
 
@@ -232,31 +232,40 @@ instance of this helper for each domain. Don't forget to use the
 ``SetAddressBase()`` method to change the IP network address of the second
 helper instance onwards, in order to avoid IP conflicts.
 
-For configuring the controller, the ``InstallDefaultController()`` function
-creates a new learning controller application and install it into the
-controller node. It is possible to install different controllers through the
-``InstallControllerApp()`` function. Note that this helper is prepared to
-handle controller nodes with a single controller application, so don't install
-more than a single controller application on the same node or the helper will
-crash. For configuring the switches, the ``InstallSwitch()`` function is used
-to create a ``OFSwitch13Device``, add the device to the switch node, and attach
-the given device container as switch ports of the switch. Theses ports are the
-``CsmaNetDevices`` created during the connection between the nodes and the
-switches (connections previously defined by the user). It is possible to
-install the switch without ports, using the ``InstallSwitchesWithoutPorts()``
-function. In this case, users must add ports to the switch later, using the
-``OFSwitch13Device::AddSwitchPort()``.
+To configure the controller, the ``InstallController()`` method can be used to
+create a new learning controller application and install it into the controller
+node indicated as parameter. It is also possible to install a different
+controller application other than the learning controller using this same
+method by setting the proper application parameter. Note that this helper is
+prepared to install a single controller application at each controller node, so
+don't install a second application on the same node, otherwise the helper will
+crash.
+
+For configuring the switches, the ``InstallSwitch()`` method can be used to
+create and aggregate a ``OFSwitch13Device`` object for each switch node.  By
+default, the ``InstallSwitch()`` method configure the switches without ports,
+so users must add the ports to the switch later, using the
+``OFSwitch13Device::AddSwitchPort()``. Each port is constructed over the
+``CsmaNetDevice`` created during the connection between switch nodes and other
+nodes in the simulation (these connections must be previously defined by the
+user and the devices to be added as port must _not_ have an IP address).
+However, it is possible to send to the ``InstallSwitch()`` method a container
+with ``CsmaNetDevices`` that can be configured as switch ports of a single
+switch node. By default, ports are configured to work as physical ports on the
+switch device. To configure them as logical ports, it is necessary to set the
+appropriate callbacks parameters to the ``OFSwitch13Device::AddSwitchPort()``
+method.
 
 After installing the switches and controllers, it is mandatory to use the
-``CreateOpenFlowChannels()`` member function to effectively create and start
+``CreateOpenFlowChannels()`` member method to effectively create and start
 the connections between switches and controllers. After calling this method,
 you'll not be allowed to install more switches nor controllers using this
 helper.
 
 The helper allows users to enable PCAP and ASCII traces for the OpenFlow
-channel through functions ``EnableOpenFlowPcap()`` and
-``EnableOpenFlowAscii()``, respectively. It can also enable the library
-internal ASCII logs through the ``EnableDatapathLogs()`` function.
+channel through methods ``EnableOpenFlowPcap()`` and ``EnableOpenFlowAscii()``,
+respectively. It can also enable the library internal ASCII logs through the
+``EnableDatapathLogs()`` method.
 
 Attributes
 ==========
@@ -385,7 +394,7 @@ logic in the ``OFSwitch13`` module:
 
   // Create the controller node and install the learning controller app into it
   Ptr<Node> controllerNode = CreateObject<Node> ();
-  of13Helper->InstallDefaultController (controllerNode);
+  of13Helper->InstallController (controllerNode);
 
   // Install the switch device and ports.
   of13Helper->InstallSwitch (switchNode, switchDevices);
@@ -400,13 +409,13 @@ logic in the ``OFSwitch13`` module:
   Simulator::Stop (Seconds (10));
 
 Note that the ``OFSwitch13`` module requires a new node to install the
-controller into it. The ``InstallDefaultController()`` function will create the
+controller into it. The ``InstallController()`` function will create the
 learning application object instance and will install it in the
 ``controllerNode``. Then, the ``InstallSwitch()`` function will install the
 OpenFlow device into ``switchNode`` and configure the CSMA devices from
 ``switchDevices`` container as OpenFlow ports. Finally, the
-``CreateOpenFlowChannels()`` function will configure the connection between
-the switch and the controller. Note that the ``OFSwitch13LearningController``
+``CreateOpenFlowChannels()`` function will configure the connection between the
+switch and the controller. Note that the ``OFSwitch13LearningController``
 doesn't provide the ``ExpirationTime`` attribute. Don't forget to include the
 ``Simulator::Stop()`` command to schedule the time delay until the Simulator
 should stop, otherwise the simulation will never end.
@@ -502,7 +511,12 @@ Some simple examples for beginners are described below:
   switch managed by different learning controllers.
 
 * **multiple-controllers-ofswitch13**: Two hosts connected through a single
-  OpenFlow switch managed simultaneously by to different controllers 
+  OpenFlow switch managed simultaneously by to different controllers
+
+* **logical-port-ofswitch13**: Two hosts connected through two OpenFlow
+  switches, both managed by the tunnel controller. The switch ports
+  interconnecting the switches are configured as logical ports, and can
+  de/encapsulate IP traffic using the GTP tunneling protocol.
 
 .. _qos-controller:
 

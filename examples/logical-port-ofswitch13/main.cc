@@ -1,6 +1,6 @@
 /* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014 University of Campinas (Unicamp)
+ * Copyright (c) 2016 University of Campinas (Unicamp)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,17 +15,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Vitor M. Eichemberger <vitor.marge@gmail.com>
- *         Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  *
- * Two hosts connected through a single OpenFlow switch managed by the default
- * learning controller. TCP traffic flows from host 0 to host 1.
+ * Two hosts connected through two OpenFlow switches, both managed by the
+ * tunnel controller. Traffic between the switches are encapsulated with GTP
+ * protocol, to illustrate how logical ports can be used on OpenFlow switches.
+ * TCP traffic flows from host 0 to host 1.
  *
- *                  Learning Controller
- *                           |
- *                  +-----------------+
- *       Host 0 === | OpenFlow switch | === Host 1
- *                  +-----------------+
+ *                         Tunnel Controller
+ *                                 |
+ *                       +-------------------+
+ *                       |                   |
+ *                  +----------+       +----------+
+ *       Host 0 === | Switch 0 | OOOOO | Switch 1 | === Host 1
+ *                  +----------+       +----------+
  */
 
 #include "ns3/core-module.h"
@@ -34,6 +37,7 @@
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/ofswitch13-module.h"
+#include "tunnel.h"
 
 using namespace ns3;
 
@@ -56,6 +60,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Port", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
     }
@@ -67,31 +72,56 @@ main (int argc, char *argv[])
   NodeContainer hosts;
   hosts.Create (2);
 
-  // Create the switch node
-  Ptr<Node> switchNode = CreateObject<Node> ();
+  // Create the two switch nodes
+  NodeContainer switches;
+  switches.Create (2);
 
   // Create the controller node
   Ptr<Node> controllerNode = CreateObject<Node> ();
+
+  // Starting the OpenFlow network configuration
+  Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
+  Ptr<TunnelController> ofController = CreateObject<TunnelController> ();
+  of13Helper->InstallController (controllerNode, ofController);
+  OFSwitch13DeviceContainer ofDevices = of13Helper->InstallSwitch (switches);
+  Ptr<OFSwitch13Device> sw0 = ofDevices.Get (0);
+  Ptr<OFSwitch13Device> sw1 = ofDevices.Get (1);
 
   // Use the CsmaHelper to connect the host nodes to the switch.
   CsmaHelper csmaHelper;
   csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
   csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 
+  NodeContainer pair;
+  NetDeviceContainer pairDevs;
   NetDeviceContainer hostDevices;
-  NetDeviceContainer switchPorts;
-  for (size_t i = 0; i < hosts.GetN (); i++)
-    {
-      NodeContainer pair (hosts.Get (i), switchNode);
-      NetDeviceContainer link = csmaHelper.Install (pair);
-      hostDevices.Add (link.Get (0));
-      switchPorts.Add (link.Get (1));
-    }
 
-  // Configure the OpenFlow network
-  Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
-  of13Helper->InstallController (controllerNode);
-  of13Helper->InstallSwitch (switchNode, switchPorts);
+  // Connect host 0 to first switch
+  pair = NodeContainer (hosts.Get (0), switches.Get (0));
+  pairDevs = csmaHelper.Install (pair);
+  hostDevices.Add (pairDevs.Get (0));
+  sw0->AddSwitchPort (pairDevs.Get (1));
+
+  // Connect host 1 to second switch
+  pair = NodeContainer (hosts.Get (1), switches.Get (1));
+  pairDevs = csmaHelper.Install (pair);
+  hostDevices.Add (pairDevs.Get (0));
+  sw1->AddSwitchPort (pairDevs.Get (1));
+
+  // Connect the switches
+  pair = NodeContainer (switches.Get (0), switches.Get (1));
+  pairDevs = csmaHelper.Install (pair);
+
+  // Configure theses ports as logical ports, to de/encapsulate traffic
+  TunnelHandler *tunnel = new TunnelHandler ();
+  sw0->AddSwitchPort (pairDevs.Get (0),
+                      MakeCallback (&TunnelHandler::Receive, tunnel),
+                      MakeCallback (&TunnelHandler::Send, tunnel));
+  sw1->AddSwitchPort (pairDevs.Get (1),
+                      MakeCallback (&TunnelHandler::Receive, tunnel),
+                      MakeCallback (&TunnelHandler::Send, tunnel));
+
+  // Finalizing the OpenFlow network configuration
   of13Helper->CreateOpenFlowChannels ();
 
   // Install the TCP/IP stack into hosts
@@ -121,7 +151,7 @@ main (int argc, char *argv[])
   if (trace)
     {
       of13Helper->EnableOpenFlowPcap ();
-      csmaHelper.EnablePcap ("ofswitch", NodeContainer (switchNode), true);
+      csmaHelper.EnablePcap ("ofswitch", switches, true);
       csmaHelper.EnablePcap ("host", hostDevices);
     }
 
@@ -133,4 +163,6 @@ main (int argc, char *argv[])
   // Print transmitted bytes
   Ptr<PacketSink> sink = DynamicCast<PacketSink> (sinkApp.Get (0));
   std::cout << "Total bytes sent from host 0 to host 1: " << sink->GetTotalRx () << std::endl;
+
+  delete tunnel;
 }
