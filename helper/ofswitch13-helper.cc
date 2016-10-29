@@ -253,12 +253,12 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
   m_openFlowDevs.Add (openFlowDev);
   m_switchNodes.Add (swNode);
 
-  // Add physical switch ports
+  // Add switch ports
   NetDeviceContainer::Iterator it;
   for (it = ports.Begin (); it != ports.End (); it++)
     {
-      NS_LOG_INFO (" Adding physical switch port " << *it);
-      openFlowDev->AddPhysicalPort (*it);
+      NS_LOG_INFO (" Adding switch port " << *it);
+      openFlowDev->AddSwitchPort (*it);
     }
 
   return OFSwitch13DeviceContainer (openFlowDev);

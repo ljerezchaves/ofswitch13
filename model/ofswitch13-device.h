@@ -150,17 +150,17 @@ public:
   virtual ~OFSwitch13Device ();
 
   /**
-   * Add a 'physical port' to the switch device. This method adds the
-   * portDevice as a new physical port on the switch, so L2 frames can be
-   * forwarded to and received from this port.
-   * \attention The current implementation only supports CsmaNetDevices as
-   * physical ports (as OpenFlow only handles ethernet frames). Also, the
-   * device that is being added as a switch port must _not_ have an IP
-   * address.
+   * Add a 'port' to the switch device. This method adds a new switch
+   * port to a OFSwitch13Device, so that the new switch port NetDevice
+   * becomes part of the switch and L2 frames start being forwarded to/from
+   * this OpenFlow device.
+   * \attention The current implementation only supports CsmaNetDevices (as
+   * OpenFlow deals with ethernet frames). Also, the port device that is being
+   * added as switch port must _not_ have an IP address.
    * \param portDevice The NetDevice port to add.
    * \return The OFSwitch13Port created.
    */
-  Ptr<OFSwitch13Port> AddPhysicalPort (Ptr<NetDevice> portDevice);
+  Ptr<OFSwitch13Port> AddSwitchPort (Ptr<NetDevice> portDevice);
 
   /**
    * Called when a packet is received on one of the switch's ports. This method
