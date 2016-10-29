@@ -496,10 +496,8 @@ Examples
 
 The examples are located in ``src/ofswitch13/examples``.
 
-Straightforward examples
-########################
-
-Some simple examples for beginners are described below:
+Examples summary
+################
 
 * **first-ofswitch13**: Two hosts connected to a single OpenFlow switch
   managed by the default learning controller.
@@ -514,14 +512,20 @@ Some simple examples for beginners are described below:
   OpenFlow switch managed simultaneously by to different controllers
 
 * **logical-port-ofswitch13**: Two hosts connected through two OpenFlow
-  switches, both managed by the tunnel controller. The switch ports
-  interconnecting the switches are configured as logical ports, and can
+  switches, both managed by an specialized *tunnel controller*. The switch
+  ports interconnecting the switches are configured as logical ports, and can
   de/encapsulate IP traffic using the GTP tunneling protocol.
+
+* **qos-controller-ofswitch13**: It represents the network of an
+  organization, where servers and client nodes are located far from each other.
+  An specialized *OpenFlow QoS controller* is used to manage the network,
+  implementing some QoS functionalities and exploiting OpenFlow 1.3 features.
+  This example is detailed in :ref:`qos-controller` section bellow.
 
 .. _qos-controller:
 
-QoS controller example
-######################
+The QoS controller example
+##########################
 
 A case study scenario was used by [Chaves2016]_ to demonstrate how some of the
 available OpenFlow 1.3 module features can be employed to improve network
