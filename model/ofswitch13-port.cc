@@ -150,11 +150,6 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   // Register the receive callback to get packets from CsmaNetDevice.
   csmaDev->SetOpenFlowReceiveCallback (
     MakeCallback (&OFSwitch13Port::Receive, this));
-
-  // Setting null callbacks for logical ports
-  SetLogicalPortCallbacks (
-    MakeNullCallback<uint64_t, uint64_t, uint32_t, Ptr<Packet> > (),
-    MakeNullCallback<void, uint64_t, uint32_t, Ptr<Packet>, uint64_t> ());
 }
 
 uint32_t

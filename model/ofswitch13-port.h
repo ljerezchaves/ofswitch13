@@ -39,8 +39,8 @@ class OFSwitch13Device;
  * A OpenFlow switch port, interconnecting the underlying CsmaNetDevice to the
  * OpenFlow device through the OpenFlow trace source at CsmaNetDevice class. By
  * default, this port acts as a physical port on the OpenFlow switch. However,
- * it can be configured to work as a logical port when the Rx and Tx logical
- * port callbacks are defined by the user.
+ * it can be configured to work as a logical port when the receive and send
+ * callbacks are defined by the user.
  * This class handles the ofsoftswitch13 internal sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
  * \attention Each underlying CsmaNetDevice used as port must only be assigned
@@ -64,7 +64,7 @@ public:
     LogicalPortRxCallback;
 
   /**
-   * OFSwitch13 logical port transmit callback.
+   * OFSwitch13 logical port send callback.
    * \param uint64_t The datapath id.
    * \param uint32_t The physical port number.
    * \param Ptr<Packet> The packet to send.
@@ -123,11 +123,9 @@ public:
   Ptr<OFSwitch13Queue> GetOutputQueue ();
 
   /**
-   * Set the logical port callbacks to be used for packets received and
-   * transmitted by the logical port.
-   *
+   * Set the callbacks that allow this port to work as a logical port.
    * \param rxCallback The receive callback.
-   * \param txCallback The transmit callback.
+   * \param txCallback The send callback.
    */
   void SetLogicalPortCallbacks (LogicalPortRxCallback rxCallback,
                                 LogicalPortTxCallback txCallback);
