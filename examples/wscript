@@ -19,5 +19,5 @@ def build(bld):
     obj = bld.create_ns3_program('qos-controller', ['ofswitch13', 'netanim'])
     obj.source = ['qos-controller/main.cc', 'qos-controller/qos-controller.cc']
 
-    obj = bld.create_ns3_program('logical-port', ['ofswitch13', 'lte'])
-    obj.source = ['logical-port/main.cc', 'logical-port/tunnel.cc']
+    obj = bld.create_ns3_program('logical-port-ofswitch13', ['ofswitch13', 'lte'])
+    obj.source = ['logical-port-ofswitch13/main.cc', 'logical-port-ofswitch13/tunnel.cc']

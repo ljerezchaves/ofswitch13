@@ -137,7 +137,6 @@ main (int argc, char *argv[])
   // Send TCP traffic from host 0 to 1
   Ipv4Address dstAddr = internetIpIfaces.GetAddress (1);
   BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (dstAddr, 9));
-  senderHelper.SetAttribute ("MaxBytes", UintegerValue (512));
   senderHelper.Install (hosts.Get (0));
   PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 9));
   ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (1));
