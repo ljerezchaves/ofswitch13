@@ -163,7 +163,7 @@ OFSwitch13Helper::EnableDatapathLogs (std::string level)
 }
 
 void
-OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix)
+OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix, bool promiscuous)
 {
   NS_LOG_FUNCTION (this << prefix);
 
@@ -172,12 +172,12 @@ OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix)
     case OFSwitch13Helper::SINGLECSMA:
     case OFSwitch13Helper::DEDICATEDCSMA:
       {
-        m_csmaHelper.EnablePcap (prefix, m_controlDevs, true);
+        m_csmaHelper.EnablePcap (prefix, m_controlDevs, promiscuous);
         break;
       }
     case OFSwitch13Helper::DEDICATEDP2P:
       {
-        m_p2pHelper.EnablePcap (prefix, m_controlDevs, true);
+        m_p2pHelper.EnablePcap (prefix, m_controlDevs, promiscuous);
         break;
       }
     default:

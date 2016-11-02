@@ -127,8 +127,10 @@ public:
    * Enable pacp traces at OpenFlow channel between controller and switches.
    *
    * \param prefix Filename prefix to use for pcap files.
+   * \param promiscuous If true, enable promisc trace.
    */
-  void EnableOpenFlowPcap (std::string prefix = "ofchannel");
+  void EnableOpenFlowPcap (std::string prefix = "ofchannel",
+                           bool promiscuous = true);
 
   /**
    * Enable ascii traces at OpenFlow channel between controller and switches.
