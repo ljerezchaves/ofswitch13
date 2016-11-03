@@ -214,14 +214,6 @@ public:
   void StartControllerConnection (Address ctrlAddr);
 
   /**
-   * Get a pointer to the collection of output queues at a specific port on
-   * this switch.
-   * \param portNo The switch output port number.
-   * \return The queue pointer.
-   */
-  Ptr<OFSwitch13Queue> GetOutputQueue (uint32_t portNo);
-
-  /**
    * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
    * from udatapath/datapath.c. Sends the given OFLib buffer message to the
    * controller associated with remote connection structure.

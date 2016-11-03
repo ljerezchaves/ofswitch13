@@ -187,13 +187,6 @@ OFSwitch13Port::PortUpdateState ()
   return false;
 }
 
-Ptr<OFSwitch13Queue>
-OFSwitch13Port::GetOutputQueue ()
-{
-  NS_LOG_FUNCTION (this);
-  return m_portQueue;
-}
-
 void
 OFSwitch13Port::SetLogicalPortCallbacks (LogicalPortRxCallback rxCallback,
                                          LogicalPortTxCallback txCallback)

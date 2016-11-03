@@ -117,12 +117,6 @@ public:
   bool Send (Ptr<Packet> packet, uint32_t queueNo = 0, uint64_t tunnelId = 0);
 
   /**
-   * Get a pointer to the collection of output queues at this port.
-   * \return The OFSwitch13Queue pointer.
-   */
-  Ptr<OFSwitch13Queue> GetOutputQueue ();
-
-  /**
    * Set the callbacks that allow this port to work as a logical port.
    * \param rxCallback The receive callback.
    * \param txCallback The send callback.

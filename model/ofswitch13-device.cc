@@ -244,13 +244,6 @@ OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
   m_controllers.push_back (remoteCtrl);
 }
 
-Ptr<OFSwitch13Queue>
-OFSwitch13Device::GetOutputQueue (uint32_t portNo)
-{
-  NS_LOG_FUNCTION (this << portNo);
-  return GetOFSwitch13Port (portNo)->GetOutputQueue ();
-}
-
 // ofsoftswitch13 overriding and callback functions.
 int
 OFSwitch13Device::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *remote)
