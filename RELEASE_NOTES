@@ -18,7 +18,8 @@ Release 3.0.0 (Place the date here)
 - Including support for multiple controllers on the same OpenFlow network
   domain.
 
-- Including support to configure switch ports to work as logical ports.
+- Including support to build switch ports over VirtualNetDevices to work as
+  logical ports.
 
 - Removing the need of registering the switch at the controller before the
   connection start.
