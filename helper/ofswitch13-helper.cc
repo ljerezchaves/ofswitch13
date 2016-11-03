@@ -247,6 +247,9 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
   NS_LOG_DEBUG ("Installing OpenFlow device on node " << swNode->GetId ());
   NS_ASSERT_MSG (!m_blocked, "OpenFlow channels already configured.");
 
+  // Install the TCP/IP stack into switch node
+  m_internet.Install (swNode);
+
   // Create and aggregate the OpenFlow device to the switch node
   Ptr<OFSwitch13Device> openFlowDev = m_devFactory.Create<OFSwitch13Device> ();
   swNode->AggregateObject (openFlowDev);
@@ -288,6 +291,9 @@ OFSwitch13Helper::InstallController (Ptr<Node> cNode,
   NS_LOG_DEBUG ("Installing OpenFlow controller on node " << cNode->GetId ());
   NS_ASSERT_MSG (!m_blocked, "OpenFlow channels already configured.");
 
+  // Install the TCP/IP stack into controller node
+  m_internet.Install (cNode);
+
   // Install the controller App into controller node
   controller->SetStartTime (Seconds (0));
   cNode->AddApplication (controller);
@@ -305,10 +311,6 @@ OFSwitch13Helper::CreateOpenFlowChannels (void)
 
   // Block this helper to avoid further calls to install methods
   m_blocked = true;
-
-  // Install the TCP/IP stack into controller and switche nodes
-  m_internet.Install (m_controlNodes);
-  m_internet.Install (m_switchNodes);
 
   // Create and start the connections between switches and controllers
   switch (m_channelType)
