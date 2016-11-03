@@ -101,9 +101,7 @@ OFSwitch13Device::~OFSwitch13Device ()
 }
 
 Ptr<OFSwitch13Port>
-OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice,
-                                 OFSwitch13Port::LogicalPortRxCallback rxCb,
-                                 OFSwitch13Port::LogicalPortTxCallback txCb)
+OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
 {
   NS_LOG_FUNCTION (this << portDevice);
   NS_LOG_INFO ("Adding port addr " << portDevice->GetAddress ());
@@ -123,7 +121,6 @@ OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice,
   // Create the OpenFlow port for this device
   Ptr<OFSwitch13Port> ofPort;
   ofPort = CreateObject<OFSwitch13Port> (m_datapath, csmaPortDevice, this);
-  ofPort->SetLogicalPortCallbacks (rxCb, txCb);
 
   // Save port in port list (assert port no and vector index)
   m_ports.push_back (ofPort);

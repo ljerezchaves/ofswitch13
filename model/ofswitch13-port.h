@@ -116,14 +116,6 @@ public:
    */
   bool Send (Ptr<Packet> packet, uint32_t queueNo = 0, uint64_t tunnelId = 0);
 
-  /**
-   * Set the callbacks that allow this port to work as a logical port.
-   * \param rxCallback The receive callback.
-   * \param txCallback The send callback.
-   */
-  void SetLogicalPortCallbacks (LogicalPortRxCallback rxCallback,
-                                LogicalPortTxCallback txCallback);
-
 protected:
   /** Destructor implementation */
   virtual void DoDispose ();
@@ -158,18 +150,6 @@ private:
 
   /** Trace source fired when a packet will be sent over this switch port. */
   TracedCallback<Ptr<const Packet> > m_txTrace;
-
-  /**
-   * Logical port rx callback, fired for packets received by the physical
-   * underlying port, before being sent to the OpenFlow pipeline.
-   */
-  LogicalPortRxCallback     m_logicalRxCallback;
-
-  /**
-   * Logical port tx callback, fired for packets about to be sent over the
-   * physical underlying port.
-   */
-  LogicalPortTxCallback     m_logicalTxCallback;
 
   uint32_t                  m_portNo;       //!< Port number
   sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port
