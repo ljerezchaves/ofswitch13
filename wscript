@@ -74,7 +74,7 @@ def build(bld):
     if 'ofswitch13' in bld.env.MODULES_NOT_BUILT:
         return
 
-    module = bld.create_ns3_module('ofswitch13', ['core', 'network', 'internet', 'csma', 'point-to-point', 'applications'])
+    module = bld.create_ns3_module('ofswitch13', ['core', 'network', 'internet', 'csma', 'point-to-point', 'virtual-net-device', 'applications'])
     module.source = [
         'model/ofswitch13-interface.cc',
         'model/ofswitch13-port.cc',

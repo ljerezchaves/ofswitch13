@@ -112,15 +112,9 @@ OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
       return 0;
     }
 
-  Ptr<CsmaNetDevice> csmaPortDevice = portDevice->GetObject<CsmaNetDevice> ();
-  if (!csmaPortDevice)
-    {
-      NS_FATAL_ERROR ("NetDevice must be of CsmaNetDevice type.");
-    }
-
   // Create the OpenFlow port for this device
   Ptr<OFSwitch13Port> ofPort;
-  ofPort = CreateObject<OFSwitch13Port> (m_datapath, csmaPortDevice, this);
+  ofPort = CreateObject<OFSwitch13Port> (m_datapath, portDevice, this);
 
   // Save port in port list (assert port no and vector index)
   m_ports.push_back (ofPort);

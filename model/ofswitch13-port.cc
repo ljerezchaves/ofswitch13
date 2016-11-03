@@ -24,6 +24,8 @@
 #include "ns3/ethernet-header.h"
 #include "ns3/ethernet-trailer.h"
 #include "ns3/pointer.h"
+#include "ns3/csma-net-device.h"
+#include "ns3/virtual-net-device.h"
 #include "ofswitch13-device.h"
 #include "ofswitch13-port.h"
 
@@ -34,7 +36,7 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Port);
 
 OFSwitch13Port::OFSwitch13Port ()
   : m_swPort (0),
-    m_csmaDev (0),
+    m_netDev (0),
     m_openflowDev (0)
 {
   NS_LOG_FUNCTION (this);
@@ -50,7 +52,7 @@ OFSwitch13Port::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_csmaDev = 0;
+  m_netDev = 0;
   m_openflowDev = 0;
 
   // Calling Dispose on internal port, so it can use m_swPort pointer to free
@@ -87,13 +89,21 @@ OFSwitch13Port::GetTypeId (void)
   return tid;
 }
 
-OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
+OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
                                 Ptr<OFSwitch13Device> openflowDev)
   : m_swPort (0),
-    m_csmaDev (csmaDev),
+    m_netDev (netDev),
     m_openflowDev (openflowDev)
 {
-  NS_LOG_FUNCTION (this << csmaDev << openflowDev);
+  NS_LOG_FUNCTION (this << netDev << openflowDev);
+
+  // Check for valid NetDevice type
+  Ptr<CsmaNetDevice> csmaDev = netDev->GetObject<CsmaNetDevice> ();
+  Ptr<VirtualNetDevice> virtDev = netDev->GetObject<VirtualNetDevice> ();
+  if (!csmaDev && !virtDev)
+    {
+      NS_FATAL_ERROR ("NetDevice must be CsmaNetDevice or VirtualNetDevice.");
+    }
 
   m_portNo = ++(dp->ports_num);
   m_swPort = &dp->ports[m_portNo];
@@ -107,7 +117,7 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   m_swPort->conf->port_no = m_portNo;
   m_swPort->conf->name = (char*)xmalloc (OFP_MAX_PORT_NAME_LEN);
   snprintf (m_swPort->conf->name, OFP_MAX_PORT_NAME_LEN, "Port %d", m_portNo);
-  m_csmaDev->GetAddress ().CopyTo (m_swPort->conf->hw_addr);
+  m_netDev->GetAddress ().CopyTo (m_swPort->conf->hw_addr);
   m_swPort->conf->config = 0x00000000;
   m_swPort->conf->state = 0x00000000 | OFPPS_LIVE;
   m_swPort->conf->curr = PortGetFeatures ();
@@ -126,15 +136,18 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
 
   // To avoid a null check failure in ofsoftswitch13
   // dp_ports_handle_stats_request_port (), we are pointing m_swPort->netdev to
-  // corresponding ns3::CsmaNetDevice, but this pointer must not be used!
-  m_swPort->netdev = (struct netdev*)PeekPointer (csmaDev);
+  // corresponding ns3::NetDevice, but this pointer must not be used!
+  m_swPort->netdev = (struct netdev*)PeekPointer (netDev);
 
   // Creating the OFSwitch13Queue for this switch port
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
   m_swPort->max_queues = OFSwitch13Queue::GetMaxQueues ();
   m_swPort->num_queues = 0;
   m_portQueue = CreateObject<OFSwitch13Queue> (m_swPort);
-  csmaDev->SetQueue (m_portQueue);
+  if (csmaDev)
+    {
+      csmaDev->SetQueue (m_portQueue);
+    }
 
   m_swPort->created = time_msec ();
 
@@ -147,9 +160,18 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   msg.desc = m_swPort->conf;
   dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
 
-  // Register the receive callback to get packets from CsmaNetDevice.
-  csmaDev->SetOpenFlowReceiveCallback (
-    MakeCallback (&OFSwitch13Port::Receive, this));
+  // Register the receive callback to get packets from the NetDevice.
+  if (csmaDev)
+    {
+      csmaDev->SetOpenFlowReceiveCallback (
+        MakeCallback (&OFSwitch13Port::Receive, this));
+    }
+  else
+    {
+      NS_ASSERT (virtDev);
+      virtDev->SetOpenFlowReceiveCallback (
+        MakeCallback (&OFSwitch13Port::Receive, this));
+    }
 }
 
 uint32_t
@@ -164,7 +186,7 @@ OFSwitch13Port::PortUpdateState ()
   NS_LOG_FUNCTION (this);
 
   uint32_t orig_state = m_swPort->conf->state;
-  if (m_csmaDev->IsLinkUp ())
+  if (m_netDev->IsLinkUp ())
     {
       m_swPort->conf->state &= ~OFPPS_LINK_DOWN;
     }
@@ -192,12 +214,18 @@ OFSwitch13Port::PortGetFeatures ()
 {
   NS_LOG_FUNCTION (this);
 
-  DataRateValue drv;
   DataRate dr;
-  Ptr<CsmaChannel> channel =
-    DynamicCast<CsmaChannel> (m_csmaDev->GetChannel ());
-  channel->GetAttribute ("DataRate", drv);
-  dr = drv.Get ();
+  Ptr<Channel> channel = m_netDev->GetChannel ();
+  if (channel)
+    {
+      Ptr<CsmaChannel> csmaChannel = channel->GetObject<CsmaChannel> ();
+      if (csmaChannel)
+        {
+          DataRateValue drv;
+          csmaChannel->GetAttribute ("DataRate", drv);
+          dr = drv.Get ();
+        }
+    }
 
   uint32_t feat = 0x00000000;
   feat |= OFPPF_COPPER;
@@ -291,9 +319,9 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo, uint64_t tunnelId)
   // Tagging the packet with queue number
   QueueTag queueNoTag (queueNo);
   packet->AddPacketTag (queueNoTag);
-  bool status = m_csmaDev->SendFrom (packet, header.GetSource (),
-                                     header.GetDestination (),
-                                     header.GetLengthType ());
+  bool status = m_netDev->SendFrom (packet, header.GetSource (),
+                                    header.GetDestination (),
+                                    header.GetLengthType ());
   // Updating port statistics
   if (status)
     {

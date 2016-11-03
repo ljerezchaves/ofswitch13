@@ -153,9 +153,10 @@ public:
    * Add a 'port' to the switch device. This method adds a new switch port to a
    * OFSwitch13Device, so that the new switch port NetDevice becomes part of
    * the switch and L2 frames start being forwarded to/from this OpenFlow
-   * device. The current implementation only supports CsmaNetDevices (as
-   * OpenFlow deals with ethernet frames). Also, the port device that is being
-   * added as switch port must _not_ have an IP address.
+   * device. The current implementation only supports CsmaNetDevice (for
+   * physical ports) or VirtualNetDevice (for logical ports). Keep in mind that
+   * an OpenFlow switch expects to receive packets with Ethernet header from
+   * port devices and that these devices must _not_ have an IP address.
    * \param portDevice The NetDevice port to add.
    * \return The OFSwitch13Port created.
    */

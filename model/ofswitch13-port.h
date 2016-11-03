@@ -23,7 +23,6 @@
 
 #include "ns3/object.h"
 #include "ns3/net-device.h"
-#include "ns3/csma-net-device.h"
 #include "ns3/packet.h"
 #include "ns3/traced-callback.h"
 #include "ofswitch13-interface.h"
@@ -36,14 +35,11 @@ class OFSwitch13Device;
 /**
  * \ingroup ofswitch13
  *
- * A OpenFlow switch port, interconnecting the underlying CsmaNetDevice to the
- * OpenFlow device through the OpenFlow trace source at CsmaNetDevice class. By
- * default, this port acts as a physical port on the OpenFlow switch. However,
- * it can be configured to work as a logical port when the receive and send
- * callbacks are defined by the user.
- * This class handles the ofsoftswitch13 internal sw_port structure.
+ * A OpenFlow switch port, interconnecting the underlying NetDevice to the
+ * OpenFlow device through the OpenFlow receive callback. This class handles
+ * the ofsoftswitch13 internal sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
- * \attention Each underlying CsmaNetDevice used as port must only be assigned
+ * \attention Each underlying NetDevice used as port must only be assigned
  * a Mac Address. Adding an Ipv4 or Ipv6 layer to it will cause an error.
  */
 class OFSwitch13Port : public Object
@@ -69,14 +65,14 @@ public:
    * the controller of this new port.
    * \see ofsoftswitch new_port () at udatapath/dp_ports.c
    * \param dp The datapath.
-   * \param csmaDev The underlying CsmaNetDevice.
+   * \param netDev The underlying NetDevice.
    * \param openflowDev The OpenFlow device.
    */
-  OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
+  OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
                   Ptr<OFSwitch13Device> openflowDev);
 
   /**
-   * Update the port state field based on CsmaNetDevice status, and notify the
+   * Update the port state field based on NetDevice status, and notify the
    * controller when changes occurs.
    * \return true if the state of the port has changed, false otherwise.
    */
@@ -84,8 +80,8 @@ public:
 
   /**
    * Send a packet over this OpenFlow switch port. It will check port
-   * configuration, update counters and send the packet over the underlying
-   * CsmaNetDevice.
+   * configuration, update counters and send the packet to the underlying
+   * device.
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
    * \param packet The Packet to send.
    * \param queueNo The queue to use.
@@ -100,8 +96,7 @@ protected:
 
 private:
   /**
-   * Create the bitmaps of OFPPF_* describing port features, based on
-   * ns3::CsmaNetDevice.
+   * Create the bitmaps of OFPPF_* describing port features.
    * \see ofsoftswitch netdev_get_features () at lib/netdev.c
    * \return Port features bitmap.
    */
@@ -109,10 +104,10 @@ private:
 
   /**
    * Called when a packet is received on this OpenFlow switch port by the
-   * underlying CsmaNetDevice. It will check port configuration, update counter
+   * underlying NetDevice. It will check port configuration, update counter
    * and send the packet to the OpenFlow pipeline.
    * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
-   * \param Underlying Csma network device
+   * \param device Underlying ns-3 network device.
    * \param packet The received packet.
    * \param protocol Next protocol header value.
    * \param from Address of the correspondant.
@@ -131,7 +126,7 @@ private:
 
   uint32_t                  m_portNo;       //!< Port number
   sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port
-  Ptr<CsmaNetDevice>        m_csmaDev;      //!< Underlying CsmaNetDevice
+  Ptr<NetDevice>            m_netDev;       //!< Underlying NetDevice
   Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue
   Ptr<OFSwitch13Device>     m_openflowDev;  //!< OpenFlow device
 };
