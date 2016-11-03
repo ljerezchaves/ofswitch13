@@ -53,28 +53,6 @@ public:
   virtual ~OFSwitch13Port ();   //!< Dummy destructor, see DoDipose
 
   /**
-   * OFSwitch13 logical port receive callback.
-   * \param uint64_t The datapath id.
-   * \param uint32_t The physical port number.
-   * \param Ptr<Packet> The received packet.
-   * \returns uint64_t The tunnel metadata associated with this packet on this
-   *                   logical port.
-   */
-  typedef Callback <uint64_t, uint64_t, uint32_t, Ptr<Packet> >
-    LogicalPortRxCallback;
-
-  /**
-   * OFSwitch13 logical port send callback.
-   * \param uint64_t The datapath id.
-   * \param uint32_t The physical port number.
-   * \param Ptr<Packet> The packet to send.
-   * \param uint64_t The tunnel metadata associated with this packet on this
-   *                 logical port.
-   */
-  typedef Callback <void, uint64_t, uint32_t, Ptr<Packet>, uint64_t>
-    LogicalPortTxCallback;
-
-  /**
    * Register this type.
    * \return The object TypeId.
    */
