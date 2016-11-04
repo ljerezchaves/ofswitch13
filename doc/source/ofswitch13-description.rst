@@ -26,13 +26,14 @@ The ``OFSwitch13`` module provides support for OpenFlow protocol version 1.3,
 bringing both a switch device and a controller application interface to the
 |ns3| simulator, as depicted in Figure :ref:`fig-ofswitch13-module`, from
 [Chaves2016]_. With this module, it is possible to interconnect |ns3| nodes to
-send and receive traffic using the existing ``CsmaNetDevices``. To orchestrate
-the network, the controller application interface can be extended to implement
-any desired control logic. The communication between the controller and the
-switch is realized over standard |ns3| protocol stack, devices and channels.
-The module also relies on the external external `OpenFlow 1.3 Software Switch
-for ns-3 <https://github.com/ljerezchaves/ofsoftswitch13>`_ compiled as a
-library, a.k.a. ``ofsoftswitch13`` library, that provides the switch datapath
+send and receive traffic using the existing ``CsmaNetDevice`` or
+``VirtualNetDevice``. To orchestrate the network, the controller application
+interface can be extended to implement any desired control logic. The
+communication between the controller and the switch is realized over standard
+|ns3| protocol stack, devices and channels. The module also relies on the
+external external `OpenFlow 1.3 Software Switch for ns-3
+<https://github.com/ljerezchaves/ofsoftswitch13>`_ compiled as a library,
+a.k.a. ``ofsoftswitch13`` library, that provides the switch datapath
 implementation, the code for converting OpenFlow messages to and from wire
 format, and the ``dpctl`` utility tool for configuring the switch from the
 command line. The source code for the ``OFSwitch13`` module lives in the
@@ -52,17 +53,20 @@ OpenFlow 1.3 Switch Device
 ##########################
 
 The OpenFlow 1.3 switch device, namely ``OFSwitch13Device``, can be used to
-interconnect |ns3| nodes using the existing CSMA network devices and channels.
+interconnect |ns3| nodes using the existing network devices and channels.
 Figure :ref:`fig-ofswitch13-netdevice` shows the internal switch device
 structure. It takes a collection of ``OFSwtich13Port`` acting as input/output
-ports, each one associated with a |ns3| underlying ``CsmaNetDevice``. The
-switch device acts as the intermediary between the ports, receiving a packet
-from one port and forwarding it to another. The OpenFlow switch datapath
-implementation (flow tables, group table, and meter table) is provided by the
-``ofsoftswitch13`` library. For this reason, packets entering the switch are
-sent to the library for OpenFlow pipeline processing before being forwarded to
-the correct output port(s). OpenFlow messages received from the controller are
-also sent to the library for datapath configuration.
+ports, each one associated with a |ns3| underlying ``NetDevice``. In most
+cases, the ``CsmaNetDevice`` is used to build the ports, which will act like
+physical ports. However, it is possible to use a ``VirtualNetDevice`` to
+implement logical ports. The switch device acts as the intermediary between the
+ports, receiving a packet from one port and forwarding it to another. The
+OpenFlow switch datapath implementation (flow tables, group table, and meter
+table) is provided by the ``ofsoftswitch13`` library. For this reason, packets
+entering the switch are sent to the library for OpenFlow pipeline processing
+before being forwarded to the correct output port(s). OpenFlow messages
+received from the controller are also sent to the library for datapath
+configuration.
 
 .. _fig-ofswitch13-netdevice:
 
@@ -72,12 +76,11 @@ also sent to the library for datapath configuration.
    The ``OFSwitch13Device`` internal structure
 
 A packet enters the switch device through a new OpenFlow receive callback in
-the ``CsmaNetDevice`` that is invoked for packets successfully received by the
+the ``NetDevice`` that is invoked for packets successfully received by the
 device. This is a promiscuous receive callback, but in contrast to a
-promiscuous protocol handler, the packet sent to this callback includes the
-Ethernet header, which is necessary by OpenFlow pipeline processing. This is
-the only required modification to the |ns3| source code for ``OFSwitch13``
-usage.
+promiscuous protocol handler, the packet sent to this callback includes all
+the headers, which are necessary by OpenFlow pipeline processing. This is the
+only required modification to the |ns3| source code for ``OFSwitch13`` usage.
 
 To model OpenFlow hardware operations, the module considers the concept of
 *virtual TCAM* (Ternary Content-Addressable Memory) to estimate the average
@@ -101,14 +104,15 @@ provides limited QoS support by means of a simple queuing mechanism, where one
 or more queues can attach to a port and be used to map flow entries on it.
 Flow entries mapped to a specific queue will be treated according to that
 queue's configuration. The ``OFSwitch13Queue`` class implements the common
-queue interface, extending the ``Queue`` class to allow compatibility with the
-``CsmaNetDevice`` used within ``OFSwitch13Port`` objects. In this way, it is
-possible to replace the standard ``CsmaNetDevice::TxQueue`` attribute by this
-modified ``OFSwitch13Queue`` object. Figure :ref:`fig-ofswitch13-queue` shows
-its internal structure. It can hold a collection of other queues, each one
+queue interface, extending the ``Queue`` class to allow compatibility with
+the ``CsmaNetDevice`` used within ``OFSwitch13Port`` objects (in the case of
+``VirtualNetDevice`` the queue will not be used). In this way, it is possible
+to replace the standard ``CsmaNetDevice::TxQueue`` attribute by this modified
+``OFSwitch13Queue`` object. Figure :ref:`fig-ofswitch13-queue` shows its
+internal structure. It can hold a collection of other queues, each one
 identified by a unique ID. Packets sent to the OpenFlow queue for transmission
-by the ``CsmaNetDevice`` are expected to carry the ``QueueTag``, which is used
-to identify the internal queue that will hold the packet. Then, the output
+by the ``CsmaNetDevice`` are expected to carry the ``QueueTag``, which is
+used to identify the internal queue that will hold the packet. Then, the output
 scheduling algorithm decides from which queue to get packets during dequeue
 procedures. Currently, only a priority scheduling algorithm is available for
 use (with lowest priority id set to 0). By default, the maximum number of
@@ -314,13 +318,10 @@ are:
 * **Logical ports**: Prior versions of the OpenFlow specification assumed that
   all the ports of the OpenFlow switch were physical ports. This version of the
   specification adds support for logical ports, which can represent complex
-  forwarding abstractions such as LAGs or tunnels. In the ``OFSwitch13``
-  module, logical ports are implemented with the help of two (send and receive)
-  callbacks on ``OFSwitch13Port``. These callbacks can freely modify the
-  packets received by the switch input port before being sent to the OpenFlow
-  pipeline, and packets just about to be sent over the switch output port. The
-  receive callback returns a tunnel metadata information that follows the
-  packet over the pipeline and can be used by the send callback.
+  forwarding abstractions such as tunnels. In the ``OFSwitch13`` module,
+  logical ports are implemented with the help of ``VirtualNetDevice`` withing
+  the ``OFSwitch13Port``, where the user can configure callbacks to handle
+  packets in a proper way.
 
 * **Extensible match support**: Prior versions of the OpenFlow specification
   used a static fixed length structure to specify ``ofp_match``, which prevents
@@ -343,13 +344,13 @@ please, check the :ref:`port-coding` section for detailed instructions.
 
 The only required modification to the |ns3| source code for ``OFSwitch13``
 integration is the inclusion of the new OpenFlow receive callback in the
-``CsmaNetDevice`` that is invoked for packets successfully received by the
-device. The module brings the patch for including this receive callback into
-|ns3| source code, available under ``src/ofswitch13/utils`` directory.  Note
-the existence of a *csma* patch for the receive callback inclusion, and an
-optional *doc* patch that can be used for including the ``OFSwitch13`` when
-compiling Doxygen and Sphinx documentation. For older versions, users can
-apply the *csma* patch and, if necessary, manually resolve the conflicts.
+``CsmaNetDevice`` and ``VirtualNetDevice``. The module brings the patch for
+including this receive callback into |ns3| source code, available under
+``src/ofswitch13/utils`` directory.  Note the existence of a *src* patch for
+the receive callbacks inclusion, and an optional *doc* patch that can be used
+for including the ``OFSwitch13`` when compiling Doxygen and Sphinx
+documentation. For older versions, users can apply the *src* patch and, if
+necessary, manually resolve the conflicts.
 
 Current ``OFSwitch13`` stable version have been tested with |ns3| versions 3.26
 and greater. For older |ns3| releases, it is possible to use ``OFSwitch13``

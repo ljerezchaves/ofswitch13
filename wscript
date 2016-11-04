@@ -74,7 +74,7 @@ def build(bld):
     if 'ofswitch13' in bld.env.MODULES_NOT_BUILT:
         return
 
-    module = bld.create_ns3_module('ofswitch13', ['core', 'network', 'internet', 'csma', 'point-to-point', 'applications'])
+    module = bld.create_ns3_module('ofswitch13', ['core', 'network', 'internet', 'csma', 'point-to-point', 'virtual-net-device', 'applications'])
     module.source = [
         'model/ofswitch13-interface.cc',
         'model/ofswitch13-port.cc',
@@ -83,6 +83,7 @@ def build(bld):
         'model/ofswitch13-learning-controller.cc',
         'model/ofswitch13-queue.cc',
         'model/queue-tag.cc',
+        'model/tunnel-id-tag.cc',
         'helper/ofswitch13-helper.cc',
         'helper/ofswitch13-device-container.cc'
         ]
@@ -105,6 +106,7 @@ def build(bld):
         'model/ofswitch13-learning-controller.h',
         'model/ofswitch13-queue.h',
         'model/queue-tag.h',
+        'model/tunnel-id-tag.h',
         'helper/ofswitch13-helper.h',
         'helper/ofswitch13-device-container.h'
         ]

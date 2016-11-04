@@ -20,4 +20,4 @@ def build(bld):
     obj.source = ['qos-controller-ofswitch13/main.cc', 'qos-controller-ofswitch13/qos-controller.cc']
 
     obj = bld.create_ns3_program('logical-port-ofswitch13', ['ofswitch13', 'lte'])
-    obj.source = ['logical-port-ofswitch13/main.cc', 'logical-port-ofswitch13/tunnel.cc']
+    obj.source = ['logical-port-ofswitch13/main.cc', 'logical-port-ofswitch13/tunnel-controller.cc', 'logical-port-ofswitch13/tunnel-user-app.cc']

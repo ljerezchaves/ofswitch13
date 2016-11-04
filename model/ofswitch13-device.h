@@ -153,21 +153,14 @@ public:
    * Add a 'port' to the switch device. This method adds a new switch port to a
    * OFSwitch13Device, so that the new switch port NetDevice becomes part of
    * the switch and L2 frames start being forwarded to/from this OpenFlow
-   * device. It is possible to configure user-defined receive and send
-   * callbacks, allowing this port to work as a logical port on the switch.
-   * \attention The current implementation only supports CsmaNetDevices (as
-   * OpenFlow deals with ethernet frames). Also, the port device that is being
-   * added as switch port must _not_ have an IP address.
+   * device. The current implementation only supports CsmaNetDevice (for
+   * physical ports) or VirtualNetDevice (for logical ports). Keep in mind that
+   * an OpenFlow switch expects to receive packets with Ethernet header from
+   * port devices).
    * \param portDevice The NetDevice port to add.
-   * \param rxCb The logical port receive callback.
-   * \param txCb The logical port send callback.
    * \return The OFSwitch13Port created.
    */
-  Ptr<OFSwitch13Port> AddSwitchPort (Ptr<NetDevice> portDevice,
-    OFSwitch13Port::LogicalPortRxCallback rxCb =
-      MakeNullCallback<uint64_t, uint64_t, uint32_t, Ptr<Packet> > (),
-    OFSwitch13Port::LogicalPortTxCallback txCb =
-      MakeNullCallback<void, uint64_t, uint32_t, Ptr<Packet>, uint64_t> ());
+  Ptr<OFSwitch13Port> AddSwitchPort (Ptr<NetDevice> portDevice);
 
   /**
    * Called when a packet is received on one of the switch's ports. This method
@@ -212,14 +205,6 @@ public:
    * \param ctrlAddr The controller address used to open the connection.
    */
   void StartControllerConnection (Address ctrlAddr);
-
-  /**
-   * Get a pointer to the collection of output queues at a specific port on
-   * this switch.
-   * \param portNo The switch output port number.
-   * \return The queue pointer.
-   */
-  Ptr<OFSwitch13Queue> GetOutputQueue (uint32_t portNo);
 
   /**
    * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function

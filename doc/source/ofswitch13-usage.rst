@@ -116,15 +116,15 @@ version):
 
 .. code-block:: bash
 
-  $ patch -p1 < src/ofswitch13/utils/ofswitch13-csma-3_26.patch
+  $ patch -p1 < src/ofswitch13/utils/ofswitch13-src-3_26.patch
   $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_26.patch
 
-The ``ofswitch13-csma-3_26.patch`` creates the new OpenFlow receive callback
-at ``CsmaNetDevice``, allowing OpenFlow switch to get raw L2 packets from this
-device. This is the only required change in the |ns3| code to allow
-``OFSwitch13`` usage. The ``ofswitch13-doc-3_26.patch`` is optional. It
-instructs the simulator to include the module in the |ns3| model library and
-source code API documentation, which can be helpful to compile the
+The ``ofswitch13-src-3_26.patch`` creates the new OpenFlow receive callback at
+``CsmaNetDevice`` and ``virtualNetDevie``, allowing OpenFlow switch to get raw
+packets from these devices. These are the only required change in the |ns3|
+code to allow ``OFSwitch13`` usage. The ``ofswitch13-doc-3_26.patch`` is
+optional. It instructs the simulator to include the module in the |ns3| model
+library and source code API documentation, which can be helpful to compile the
 documentation using Doxygen and Sphinx.
 
 Now, you can configure the |ns3| including the ``--with-ofswitch13`` option to
@@ -202,11 +202,11 @@ and install the switch and the controller using the ``OFSwitch13Helper``.
   }
 
 To run this code, users *must install* the TCP/IP stack into host nodes, assign
-IP addresses to host interfaces (don't add IP addresses to the devices that are
-used as OpenFlow port), and configure any traffic application. You can also
-check for the ``first-ofswitch13.cc`` example, which is very similar to this
-code. For instructions on how to compile and run simulation programs, please
-refer to the |ns3| tutorial.
+IP addresses to host interfaces (there's no need to add IP addresses to the
+devices that are used as OpenFlow port), and configure any traffic application.
+You can also check for the ``first-ofswitch13.cc`` example, which is very
+similar to this code. For instructions on how to compile and run simulation
+programs, please refer to the |ns3| tutorial.
 
 Helpers
 =======
@@ -242,19 +242,18 @@ don't install a second application on the same node, otherwise the helper will
 crash.
 
 For configuring the switches, the ``InstallSwitch()`` method can be used to
-create and aggregate a ``OFSwitch13Device`` object for each switch node.  By
-default, the ``InstallSwitch()`` method configure the switches without ports,
-so users must add the ports to the switch later, using the
-``OFSwitch13Device::AddSwitchPort()``. Each port is constructed over the
-``CsmaNetDevice`` created during the connection between switch nodes and other
-nodes in the simulation (these connections must be previously defined by the
-user and the devices to be added as port must _not_ have an IP address).
-However, it is possible to send to the ``InstallSwitch()`` method a container
-with ``CsmaNetDevices`` that can be configured as switch ports of a single
-switch node. By default, ports are configured to work as physical ports on the
-switch device. To configure them as logical ports, it is necessary to set the
-appropriate callbacks parameters to the ``OFSwitch13Device::AddSwitchPort()``
-method.
+create and aggregate an ``OFSwitch13Device`` object for each switch node. By
+default, the ``InstallSwitch()`` method configures the switches without ports,
+so users must add the ports to the switch later, using the device
+``AddSwitchPort()``. However, it is possible to send to the ``InstallSwitch()``
+method a container with ``NetDevices`` that can be configured as switch ports
+of a single switch node.
+
+Each port can be constructed over a ``CsmaNetDevice`` created during the
+connection between switch nodes and other nodes in the simulation (these
+connections must be previously defined by the user) It is also possible to use
+a ``VirtualNetDevice`` as a logical port, allowing the user to configure
+complex operations like tunneling.
 
 After installing the switches and controllers, it is mandatory to use the
 ``CreateOpenFlowChannels()`` member method to effectively create and start
@@ -303,7 +302,9 @@ OFSwitch13Port
 ##############
 
 * ``PortQueue``: The OpenFlow queue to use as the transmission queue in this
-  port. This queue will be set for use in the underlying ``CsmaNetDevice``.
+  port. When the port is constructed over a ``CsmaNetDevice``, this queue will
+  be set for use in the underlying device. When the port is constructed over a
+  ``VirtualNetDevice``, this queue will not be used.
 
 OFSwitch13Queue
 ###############
@@ -513,8 +514,12 @@ Examples summary
 
 * **logical-port-ofswitch13**: Two hosts connected through two OpenFlow
   switches, both managed by an specialized *tunnel controller*. The switch
-  ports interconnecting the switches are configured as logical ports, and can
-  de/encapsulate IP traffic using the GTP tunneling protocol.
+  ports interconnecting the switches are configured as logical ports, and each
+  switch acts as a gateway that can de/encapsulate IP traffic using the GTP
+  tunneling protocol. The gateway implementation is very similar to the SgwPgw
+  implementation from the LTE module. However, the traffic routing between the
+  CsmaNetDevice connected to the local host and the VirtualNetDevice connected
+  to the tunnel socket is performed by the OpenFlow pipeline.
 
 * **qos-controller-ofswitch13**: It represents the network of an
   organization, where servers and client nodes are located far from each other.
