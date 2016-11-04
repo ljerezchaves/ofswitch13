@@ -21,6 +21,8 @@ Release 3.0.0 (Place the date here)
 - Including support to build switch ports over VirtualNetDevices to work as
   logical ports.
 
+- Including the logical-port-ofswitch13 example.
+
 - Removing the need of registering the switch at the controller before the
   connection start.
 

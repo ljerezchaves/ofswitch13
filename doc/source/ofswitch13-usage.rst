@@ -202,11 +202,11 @@ and install the switch and the controller using the ``OFSwitch13Helper``.
   }
 
 To run this code, users *must install* the TCP/IP stack into host nodes, assign
-IP addresses to host interfaces (don't add IP addresses to the devices that are
-used as OpenFlow port), and configure any traffic application. You can also
-check for the ``first-ofswitch13.cc`` example, which is very similar to this
-code. For instructions on how to compile and run simulation programs, please
-refer to the |ns3| tutorial.
+IP addresses to host interfaces (there's no need to add IP addresses to the
+devices that are used as OpenFlow port), and configure any traffic application.
+You can also check for the ``first-ofswitch13.cc`` example, which is very
+similar to this code. For instructions on how to compile and run simulation
+programs, please refer to the |ns3| tutorial.
 
 Helpers
 =======
@@ -251,10 +251,9 @@ of a single switch node.
 
 Each port can be constructed over a ``CsmaNetDevice`` created during the
 connection between switch nodes and other nodes in the simulation (these
-connections must be previously defined by the user and the devices to be added
-as port must _not_ have an IP address). It is also possible to use a
-``VirtualNetDevice`` as a logical port, allowing the user to configure complex
-operations like tunneling. 
+connections must be previously defined by the user) It is also possible to use
+a ``VirtualNetDevice`` as a logical port, allowing the user to configure
+complex operations like tunneling.
 
 After installing the switches and controllers, it is mandatory to use the
 ``CreateOpenFlowChannels()`` member method to effectively create and start
@@ -515,8 +514,12 @@ Examples summary
 
 * **logical-port-ofswitch13**: Two hosts connected through two OpenFlow
   switches, both managed by an specialized *tunnel controller*. The switch
-  ports interconnecting the switches are configured as logical ports, and can
-  de/encapsulate IP traffic using the GTP tunneling protocol.
+  ports interconnecting the switches are configured as logical ports, and each
+  switch acts as a gateway that can de/encapsulate IP traffic using the GTP
+  tunneling protocol. The gateway implementation is very similar to the SgwPgw
+  implementation from the LTE module. However, the traffic routing between the
+  CsmaNetDevice connected to the local host and the VirtualNetDevice connected
+  to the tunnel socket is performed by the OpenFlow pipeline.
 
 * **qos-controller-ofswitch13**: It represents the network of an
   organization, where servers and client nodes are located far from each other.

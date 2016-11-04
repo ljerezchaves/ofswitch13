@@ -156,7 +156,7 @@ public:
    * device. The current implementation only supports CsmaNetDevice (for
    * physical ports) or VirtualNetDevice (for logical ports). Keep in mind that
    * an OpenFlow switch expects to receive packets with Ethernet header from
-   * port devices and that these devices must _not_ have an IP address.
+   * port devices).
    * \param portDevice The NetDevice port to add.
    * \return The OFSwitch13Port created.
    */

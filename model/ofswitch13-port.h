@@ -40,7 +40,7 @@ class OFSwitch13Device;
  * the ofsoftswitch13 internal sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
  * \attention Each underlying NetDevice used as port must only be assigned
- * a Mac Address. Adding an Ipv4 or Ipv6 layer to it will cause an error.
+ * a Mac Address. Adding an Ipv4 or Ipv6 layer to it may cause an error.
  */
 class OFSwitch13Port : public Object
 {
