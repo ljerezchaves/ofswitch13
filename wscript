@@ -83,6 +83,7 @@ def build(bld):
         'model/ofswitch13-learning-controller.cc',
         'model/ofswitch13-queue.cc',
         'model/queue-tag.cc',
+        'model/tunnel-id-tag.cc',
         'helper/ofswitch13-helper.cc',
         'helper/ofswitch13-device-container.cc'
         ]
@@ -105,6 +106,7 @@ def build(bld):
         'model/ofswitch13-learning-controller.h',
         'model/ofswitch13-queue.h',
         'model/queue-tag.h',
+        'model/tunnel-id-tag.h',
         'helper/ofswitch13-helper.h',
         'helper/ofswitch13-device-container.h'
         ]

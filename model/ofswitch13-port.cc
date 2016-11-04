@@ -28,6 +28,7 @@
 #include "ns3/virtual-net-device.h"
 #include "ofswitch13-device.h"
 #include "ofswitch13-port.h"
+#include "tunnel-id-tag.h"
 
 namespace ns3 {
 
@@ -273,9 +274,6 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 {
   NS_LOG_FUNCTION (this << packet);
 
-  // This is the default tunnelId value, which can be changed by logical ports.
-  uint64_t tunnelId = 0;
-
   // Check port configuration.
   if (m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
     {
@@ -290,8 +288,17 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   // Fire RX trace source
   m_rxTrace (packet);
 
+  // Retrieve the tunnel id from packet, if available.
+  Ptr<Packet> localPacket = packet->Copy ();
+  TunnelIdTag tunnelIdTag;
+  uint64_t tunnelId = 0;
+  if (localPacket->RemovePacketTag (tunnelIdTag))
+    {
+      tunnelId = tunnelIdTag.GetTunnelId ();
+    }
+
   // Send the packet to the OpenFlow pipeline
-  m_openflowDev->ReceiveFromSwitchPort (packet->Copy (), m_portNo, tunnelId);
+  m_openflowDev->ReceiveFromSwitchPort (localPacket, m_portNo, tunnelId);
   return true;
 }
 
@@ -316,9 +323,18 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo, uint64_t tunnelId)
   EthernetHeader header;
   packet->RemoveHeader (header);
 
-  // Tagging the packet with queue number
-  QueueTag queueNoTag (queueNo);
-  packet->AddPacketTag (queueNoTag);
+  // Tagging the packet with queue number only for ports associated to
+  // CsmaNetDevices (note that VirtualNetDevices doesn't have queue).
+  if (m_netDev->GetObject<CsmaNetDevice> ())
+    {
+      QueueTag queueTag (queueNo);
+      packet->AddPacketTag (queueTag);
+    }
+
+  // Tagging the packet with tunnel id
+  TunnelIdTag tunnelIdTag (tunnelId);
+  packet->AddPacketTag (tunnelIdTag);
+
   bool status = m_netDev->SendFrom (packet, header.GetSource (),
                                     header.GetDestination (),
                                     header.GetLengthType ());
