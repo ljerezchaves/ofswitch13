@@ -324,20 +324,25 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo, uint64_t tunnelId)
   packet->RemoveHeader (header);
 
   // Tagging the packet with queue number only for ports associated to
-  // CsmaNetDevices (note that VirtualNetDevices doesn't have queue).
+  // CsmaNetDevices (note that VirtualNetDevices doesn't have a queue).
   if (m_netDev->GetObject<CsmaNetDevice> ())
     {
       QueueTag queueTag (queueNo);
       packet->AddPacketTag (queueTag);
     }
 
-  // Tagging the packet with tunnel id
-  TunnelIdTag tunnelIdTag (tunnelId);
-  packet->AddPacketTag (tunnelIdTag);
-
+  // Tagging the packet with tunnel id only for logical ports associated to
+  // VirtualNetDevices. The logical port implementation should remove the tag.
+  if (m_netDev->GetObject<VirtualNetDevice> ())
+    {
+      TunnelIdTag tunnelIdTag (tunnelId);
+      packet->AddPacketTag (tunnelIdTag);
+    }
+ 
+  // Send the packet over the underlying net device.
   bool status = m_netDev->SendFrom (packet, header.GetSource (),
                                     header.GetDestination (),
-                                    header.GetLengthType ());
+                                    header.GetLengthType ()); 
   // Updating port statistics
   if (status)
     {
@@ -348,7 +353,6 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo, uint64_t tunnelId)
     {
       m_swPort->stats->tx_dropped++;
     }
-
   return status;
 }
 
