@@ -217,7 +217,8 @@ OFSwitch13Controller::SendToSwitch (Ptr<const RemoteSwitch> swtch,
   NS_LOG_FUNCTION (this << swtch);
 
   char *msg_str = ofl_msg_to_string (msg, 0);
-  NS_LOG_DEBUG ("TX to switch " << swtch->GetIpv4 () << ": " << msg_str);
+  NS_LOG_DEBUG ("TX to switch " << swtch->GetIpv4 () <<
+                " [dp " << swtch->GetDpId () << "]: " << msg_str);
   free (msg_str);
 
   // Set the transaction ID only for unknown values
@@ -586,20 +587,19 @@ OFSwitch13Controller::ReceiveFromSwitch (Ptr<Packet> packet, Address from)
 
   if (!error)
     {
+      Ptr<RemoteSwitch> swtch = GetRemoteSwitch (from);
       char *msg_str = ofl_msg_to_string (msg, 0);
-      Ipv4Address swtchIp = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
-      NS_LOG_DEBUG ("RX from switch " << swtchIp << ": " << msg_str);
+      NS_LOG_DEBUG ("RX from switch " << swtch->GetIpv4 () <<
+                    " [dp " << swtch->GetDpId () << "]: " << msg_str);
       free (msg_str);
 
-      Ptr<RemoteSwitch> swtch = GetRemoteSwitch (from);
       error = HandleSwitchMsg (msg, swtch, xid);
       if (error)
         {
-          // NOTE: It is assumed that if a handler returns with error,
-          // it did not use any part of the control message, thus it
-          // can be freed up. If no error is returned however, the
-          // message must be freed inside the handler (because the
-          // handler might keep parts of the message)
+          // NOTE: It is assumed that if a handler returns with error, it did
+          // not use any part of the control message, thus it can be freed up.
+          // If no error is returned however, the message must be freed inside
+          // the handler (because the handler might keep parts of the message)
           ofl_msg_free (msg, 0);
         }
     }
