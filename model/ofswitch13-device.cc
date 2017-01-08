@@ -531,7 +531,8 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
           // The original ns-3 packet was modified by OpenFlow switch.
           // Create a new packet with modified data and copy tags from the
           // original packet.
-          NS_LOG_INFO ("Packet modified by OpenFlow switch.");
+          NS_LOG_DEBUG ("Packet " << pkt->ns3_uid <<
+                        " modified by OpenFlow switch.");
           packet = ofs::PacketFromBuffer (pkt->buffer);
           OFSwitch13Device::CopyTags (m_pktPipe.GetPacket (), packet);
         }
@@ -544,7 +545,7 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
   else
     {
       // This is a new packet (probably created by the controller).
-      NS_LOG_INFO ("Creating new ns-3 packet from openflow buffer.");
+      NS_LOG_DEBUG ("Creating new ns-3 packet from OpenFlow buffer.");
       packet = ofs::PacketFromBuffer (pkt->buffer);
     }
 
@@ -607,11 +608,6 @@ void
 OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
 {
   NS_LOG_FUNCTION (this << packet << from);
-
-  NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () <<
-               "s the OpenFlow switch " << GetDatapathId () <<
-               " received " << packet->GetSize () <<
-               " bytes from controller " << from);
 
   ofl_msg_header *msg;
   ofl_err error;
@@ -747,7 +743,7 @@ OFSwitch13Device::NotifyPacketDestroyed (struct packet *pkt)
       bool valid = m_pktPipe.DelCopy (pkt->ns3_uid);
       if (!valid)
         {
-          NS_LOG_INFO ("Packet " << pkt->ns3_uid << " done at this switch.");
+          NS_LOG_DEBUG ("Packet " << pkt->ns3_uid << " done at this switch.");
         }
     }
   else
@@ -767,7 +763,7 @@ OFSwitch13Device::NotifyPacketDropped (struct packet *pkt)
   NS_LOG_FUNCTION (this << pkt->ns3_uid);
 
   NS_ASSERT_MSG (m_pktPipe.HasId (pkt->ns3_uid), "Invalid packet ID.");
-  NS_LOG_INFO ("OpenFlow meter band dropped packet " << pkt->ns3_uid);
+  NS_LOG_DEBUG ("OpenFlow meter band dropped packet " << pkt->ns3_uid);
 
   // Fire drop trace source
   m_meterDropTrace (m_pktPipe.GetPacket ());

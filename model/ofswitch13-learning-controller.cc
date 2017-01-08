@@ -108,7 +108,7 @@ OFSwitch13LearningController::HandlePacketIn (
                 }
               else
                 {
-                  NS_LOG_INFO ("No L2 info for mac " << dst48 << ". Flood.");
+                  NS_LOG_DEBUG ("No L2 info for mac " << dst48 << ". Flood.");
                 }
             }
 
@@ -126,7 +126,7 @@ OFSwitch13LearningController::HandlePacketIn (
                 }
               else
                 {
-                  NS_LOG_INFO ("Learning that mac " << src48 <<
+                  NS_LOG_DEBUG ("Learning that mac " << src48 <<
                                " can be found at port " << inPort);
 
                   // Send a flow-mod to switch creating this flow. Let's
@@ -194,7 +194,7 @@ OFSwitch13LearningController::HandleFlowRemoved (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  NS_LOG_INFO ( "Flow entry expired. Removing from L2 switch table.");
+  NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");
   uint64_t dpId = swtch->GetDpId ();
   DatapathMap_t::iterator it = m_learnedInfo.find (dpId);
   if (it != m_learnedInfo.end ())

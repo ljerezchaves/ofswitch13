@@ -140,7 +140,7 @@ OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
     {
       queueNo = queueNoTag.GetQueueId ();
     }
-  NS_LOG_INFO ("Item " << item << " to be enqueued in queue id " << queueNo);
+  NS_LOG_DEBUG ("Item " << item << " to be enqueued in queue id " << queueNo);
 
   swQueue = dp_ports_lookup_queue (m_swPort, queueNo);
   NS_ASSERT_MSG (swQueue, "Invalid queue id.");
@@ -167,7 +167,7 @@ OFSwitch13Queue::DoDequeue (void)
   NS_LOG_FUNCTION (this);
 
   uint32_t qId = GetOutputQueue ();
-  NS_LOG_INFO ("Packet dequeued from queue id " << qId);
+  NS_LOG_DEBUG ("Packet dequeued from queue id " << qId);
   return GetQueue (qId)->Dequeue ();
 }
 
@@ -177,7 +177,7 @@ OFSwitch13Queue::DoRemove (void)
   NS_LOG_FUNCTION (this);
 
   uint32_t qId = GetOutputQueue ();
-  NS_LOG_INFO ("Packet removed from queue id " << qId);
+  NS_LOG_DEBUG ("Packet removed from queue id " << qId);
   return GetQueue (qId)->Remove ();
 }
 
@@ -187,7 +187,7 @@ OFSwitch13Queue::DoPeek (void) const
   NS_LOG_FUNCTION (this);
 
   uint32_t qId = GetOutputQueue (true);
-  NS_LOG_INFO ("Packet peeked from queue id " << qId);
+  NS_LOG_DEBUG ("Packet peeked from queue id " << qId);
   return GetQueue (qId)->Peek ();
 }
 

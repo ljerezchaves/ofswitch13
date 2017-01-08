@@ -571,11 +571,6 @@ OFSwitch13Controller::ReceiveFromSwitch (Ptr<Packet> packet, Address from)
 {
   NS_LOG_FUNCTION (this << packet);
 
-  NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () <<
-               "s the OpenFlow controller " << this <<
-               " received " << packet->GetSize () <<
-               " bytes from switch " << from);
-
   uint32_t xid;
   ofl_msg_header *msg;
   ofl_err error;
