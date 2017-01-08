@@ -56,7 +56,7 @@ TunnelController::SaveArpEntry (Ipv4Address ipAddr, Mac48Address macAddr)
   ret = m_arpTable.insert (entry);
   if (ret.second == true)
     {
-      NS_LOG_DEBUG ("New ARP entry: " << ipAddr << " - " << macAddr);
+      NS_LOG_INFO ("New ARP entry: " << ipAddr << " - " << macAddr);
       return;
     }
   NS_FATAL_ERROR ("This IP already exists in ARP table.");
@@ -66,6 +66,7 @@ void
 TunnelController::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
+
   m_arpTable.clear ();
 }
 
@@ -107,8 +108,8 @@ TunnelController::HandlePacketIn (
   ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
-  ofl_match_tlv *tlv;
 
+  ofl_match_tlv *tlv;
   enum ofp_packet_in_reason reason = msg->reason;
   if (reason == OFPR_NO_MATCH)
     {
@@ -149,7 +150,7 @@ TunnelController::GetArpEntry (Ipv4Address ip)
   ret = m_arpTable.find (ip);
   if (ret != m_arpTable.end ())
     {
-      NS_LOG_DEBUG ("Found ARP entry: " << ip << " - " << ret->second);
+      NS_LOG_INFO ("Found ARP entry: " << ip << " - " << ret->second);
       return ret->second;
     }
   NS_FATAL_ERROR ("No ARP information for this IP.");
@@ -182,8 +183,8 @@ TunnelController::HandleArpPacketIn (
 
       // Get target MAC address from ARP table
       Mac48Address dstMac = GetArpEntry (dstIp);
-      NS_LOG_DEBUG ("Got ARP request for IP " << dstIp <<
-                    ", resolved to " << dstMac);
+      NS_LOG_INFO ("Got ARP request for IP " << dstIp <<
+                   ", resolved to " << dstMac);
 
       // Get source IP address
       Ipv4Address srcIp;
@@ -221,7 +222,7 @@ TunnelController::HandleArpPacketIn (
       free (action);
       if (error)
         {
-          NS_LOG_ERROR ("Error sending packet out with arp request");
+          NS_LOG_ERROR ("Error sending packet out with ARP request.");
         }
     }
   else

@@ -41,6 +41,7 @@ void
 SocketReader::SetReceiveCallback (MessageCallback cb)
 {
   NS_LOG_FUNCTION (this);
+
   m_receivedMsg = cb;
 }
 
@@ -48,8 +49,8 @@ void
 SocketReader::Read (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-  Address from;
 
+  Address from;
   do
     {
       if (!m_pendingBytes)
@@ -101,8 +102,8 @@ ofpbuf*
 BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  NS_ASSERT (packet->GetSize () <= bodyRoom);
 
+  NS_ASSERT (packet->GetSize () <= bodyRoom);
   ofpbuf *buffer;
   uint32_t pktSize;
 

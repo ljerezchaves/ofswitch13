@@ -147,7 +147,7 @@ main (int argc, char *argv[])
 /**
  * Controller 0 is responsible to installs the rule to forward packets from
  * host 0 (port 1) to host 1 (port 2).
- */ 
+ */
 class Controller0 : public OFSwitch13Controller
 {
 protected:
@@ -164,7 +164,7 @@ Controller0::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
 /**
  * Controller 1 is responsible to installs the rule to forward packets from
  * host 1 (port 2) to host 0 (port 1).
- */ 
+ */
 class Controller1 : public OFSwitch13Controller
 {
 protected:

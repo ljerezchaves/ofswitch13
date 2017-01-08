@@ -199,7 +199,7 @@ OFSwitch13Port::PortUpdateState ()
 
   if (orig_state != m_swPort->conf->state)
     {
-      NS_LOG_DEBUG ("Port status has changed. Notifying the controller.");
+      NS_LOG_INFO ("Port status has changed. Notifying the controller.");
       ofl_msg_port_status msg;
       msg.header.type = OFPT_PORT_STATUS;
       msg.reason = OFPPR_MODIFY;
@@ -338,11 +338,11 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo, uint64_t tunnelId)
       TunnelIdTag tunnelIdTag (tunnelId);
       packet->AddPacketTag (tunnelIdTag);
     }
- 
+
   // Send the packet over the underlying net device.
   bool status = m_netDev->SendFrom (packet, header.GetSource (),
                                     header.GetDestination (),
-                                    header.GetLengthType ()); 
+                                    header.GetLengthType ());
   // Updating port statistics
   if (status)
     {

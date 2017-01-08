@@ -51,6 +51,8 @@ OFSwitch13LearningController::GetTypeId (void)
 void
 OFSwitch13LearningController::DoDispose ()
 {
+  NS_LOG_FUNCTION (this);
+
   m_learnedInfo.clear ();
   OFSwitch13Controller::DoDispose ();
 }
@@ -76,18 +78,18 @@ OFSwitch13LearningController::HandlePacketIn (
       // Let's get necessary information (input port and mac address)
       uint32_t inPort;
       size_t portLen = OXM_LENGTH (OXM_OF_IN_PORT); // (Always 4 bytes)
-      ofl_match_tlv *input = oxm_match_lookup (OXM_OF_IN_PORT,
-                                               (ofl_match*)msg->match);
+      ofl_match_tlv *input =
+        oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
       memcpy (&inPort, input->value, portLen);
 
       Mac48Address src48;
-      ofl_match_tlv *ethSrc = oxm_match_lookup (OXM_OF_ETH_SRC,
-                                                (ofl_match*)msg->match);
+      ofl_match_tlv *ethSrc =
+        oxm_match_lookup (OXM_OF_ETH_SRC, (ofl_match*)msg->match);
       src48.CopyFrom (ethSrc->value);
 
       Mac48Address dst48;
-      ofl_match_tlv *ethDst = oxm_match_lookup (OXM_OF_ETH_DST,
-                                                (ofl_match*)msg->match);
+      ofl_match_tlv *ethDst =
+        oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->match);
       dst48.CopyFrom (ethDst->value);
 
       // Get L2Table for this datapath
@@ -106,8 +108,7 @@ OFSwitch13LearningController::HandlePacketIn (
                 }
               else
                 {
-                  NS_LOG_DEBUG ("No L2 switch information for mac " << dst48 <<
-                                " yet. Flooding...");
+                  NS_LOG_INFO ("No L2 info for mac " << dst48 << ". Flood.");
                 }
             }
 
@@ -125,8 +126,8 @@ OFSwitch13LearningController::HandlePacketIn (
                 }
               else
                 {
-                  NS_LOG_DEBUG ("Learning that mac " << src48 <<
-                                " can be found at port " << inPort);
+                  NS_LOG_INFO ("Learning that mac " << src48 <<
+                               " can be found at port " << inPort);
 
                   // Send a flow-mod to switch creating this flow. Let's
                   // configure the flow entry to 10s idle timeout and to
@@ -146,7 +147,7 @@ OFSwitch13LearningController::HandlePacketIn (
         }
       else
         {
-          NS_LOG_WARN ("No L2Table for this datapath id " << dpId);
+          NS_LOG_ERROR ("No L2 table for this datapath id " << dpId);
         }
 
       // Lets send the packet out to switch.
@@ -192,8 +193,8 @@ OFSwitch13LearningController::HandleFlowRemoved (
   ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
-  NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");
 
+  NS_LOG_INFO ( "Flow entry expired. Removing from L2 switch table.");
   uint64_t dpId = swtch->GetDpId ();
   DatapathMap_t::iterator it = m_learnedInfo.find (dpId);
   if (it != m_learnedInfo.end ())
@@ -237,7 +238,7 @@ OFSwitch13LearningController::HandshakeSuccessful (
   ret =  m_learnedInfo.insert (std::pair<uint64_t, L2Table_t> (dpId, l2Table));
   if (ret.second == false)
     {
-      NS_LOG_ERROR ("There is already a table for this datapath");
+      NS_LOG_ERROR ("Table exists for this datapath.");
     }
 }
 

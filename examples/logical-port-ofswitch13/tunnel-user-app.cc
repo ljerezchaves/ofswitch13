@@ -61,6 +61,7 @@ void
 TunnelUserApp::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
+
   m_tunnelSocket = 0;
   m_logicalPort = 0;
 }
@@ -100,7 +101,7 @@ TunnelUserApp::RecvFromLogicalPort (
   packet->AddHeader (gtpu);
 
   // Send the packet to the tunnel socket
-  NS_LOG_DEBUG ("Sending packet to IP " << m_ipTunnelAddr);
+  NS_LOG_INFO ("Sending packet to IP " << m_ipTunnelAddr);
   m_tunnelSocket->SendTo (packet, 0, InetSocketAddress (m_ipTunnelAddr, 2152));
   return true;
 }
@@ -109,6 +110,7 @@ void
 TunnelUserApp::RecvFromTunnelSocket (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
+
   NS_ASSERT (socket == m_tunnelSocket);
   Ptr<Packet> packet = socket->Recv ();
 
@@ -122,8 +124,6 @@ TunnelUserApp::RecvFromTunnelSocket (Ptr<Socket> socket)
 
   // Add the Ethernet header to the packet and send it to the logical port
   AddHeader (packet, m_macPortAddr, m_macHostAddr, Ipv4L3Protocol::PROT_NUMBER);
-
-  NS_LOG_FUNCTION (this << packet << m_macPortAddr << m_macHostAddr);
   m_logicalPort->Receive (packet, Ipv4L3Protocol::PROT_NUMBER, m_macPortAddr,
                           m_macHostAddr, NetDevice::PACKET_HOST);
 }

@@ -530,7 +530,7 @@ QosController::SaveArpEntry (Ipv4Address ipAddr, Mac48Address macAddr)
   ret = m_arpTable.insert (entry);
   if (ret.second == true)
     {
-      NS_LOG_DEBUG ("New ARP entry: " << ipAddr << " - " << macAddr);
+      NS_LOG_INFO ("New ARP entry: " << ipAddr << " - " << macAddr);
       return;
     }
 }
@@ -542,7 +542,7 @@ QosController::GetArpEntry (Ipv4Address ip)
   ret = m_arpTable.find (ip);
   if (ret != m_arpTable.end ())
     {
-      NS_LOG_DEBUG ("Found ARP entry: " << ip << " - " << ret->second);
+      NS_LOG_INFO ("Found ARP entry: " << ip << " - " << ret->second);
       return ret->second;
     }
   NS_FATAL_ERROR ("No ARP information for this IP.");

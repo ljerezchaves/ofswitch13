@@ -93,6 +93,7 @@ void
 OFSwitch13Helper::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
+
   m_csmaChannel = 0;
 }
 
@@ -100,6 +101,7 @@ void
 OFSwitch13Helper::SetDeviceAttribute (std::string n1, const AttributeValue &v1)
 {
   NS_LOG_FUNCTION (this);
+
   m_devFactory.Set (n1, v1);
 }
 
@@ -244,7 +246,8 @@ OFSwitch13DeviceContainer
 OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
 {
   NS_LOG_FUNCTION (this << swNode);
-  NS_LOG_DEBUG ("Installing OpenFlow device on node " << swNode->GetId ());
+
+  NS_LOG_INFO ("Installing OpenFlow device on node " << swNode->GetId ());
   NS_ASSERT_MSG (!m_blocked, "OpenFlow channels already configured.");
 
   // Install the TCP/IP stack into switch node
@@ -288,7 +291,8 @@ OFSwitch13Helper::InstallController (Ptr<Node> cNode,
                                      Ptr<OFSwitch13Controller> controller)
 {
   NS_LOG_FUNCTION (this << cNode << controller);
-  NS_LOG_DEBUG ("Installing OpenFlow controller on node " << cNode->GetId ());
+
+  NS_LOG_INFO ("Installing OpenFlow controller on node " << cNode->GetId ());
   NS_ASSERT_MSG (!m_blocked, "OpenFlow channels already configured.");
 
   // Install the TCP/IP stack into controller node
@@ -307,6 +311,7 @@ void
 OFSwitch13Helper::CreateOpenFlowChannels (void)
 {
   NS_LOG_FUNCTION (this);
+
   NS_ASSERT_MSG (!m_blocked, "OpenFlow channels already configured.");
 
   // Block this helper to avoid further calls to install methods
