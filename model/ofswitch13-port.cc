@@ -287,6 +287,7 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 
   // Fire RX trace source
   m_rxTrace (packet);
+  NS_LOG_DEBUG ("Pkt " << packet->GetUid () << " received at this port.");
 
   // Retrieve the tunnel id from packet, if available.
   Ptr<Packet> localPacket = packet->Copy ();
@@ -295,15 +296,18 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   if (localPacket->RemovePacketTag (tunnelIdTag))
     {
       tunnelId = tunnelIdTag.GetTunnelId ();
+      NS_LOG_DEBUG ("Pkt tunnel id is " << tunnelId);
     }
 
   // Send the packet to the OpenFlow pipeline
+  NS_LOG_DEBUG ("Pkt copy " << localPacket->GetUid () << " sent to pipeline.");
   m_openflowDev->ReceiveFromSwitchPort (localPacket, m_portNo, tunnelId);
   return true;
 }
 
 bool
-OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo, uint64_t tunnelId)
+OFSwitch13Port::Send (Ptr<const Packet> packet, uint32_t queueNo,
+                      uint64_t tunnelId)
 {
   NS_LOG_FUNCTION (this << packet << queueNo << tunnelId);
 
@@ -315,20 +319,25 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo, uint64_t tunnelId)
 
   // Fire TX trace source (with complete packet)
   m_txTrace (packet);
+  
+  Ptr<Packet> packetCopy = packet->Copy ();
+  NS_LOG_DEBUG ("Pkt " << packetCopy->GetUid () <<
+                " will be sent at this port.");
 
   // Removing the Ethernet header and trailer from packet, which will be
   // included again by CsmaNetDevice
   EthernetTrailer trailer;
-  packet->RemoveTrailer (trailer);
+  packetCopy->RemoveTrailer (trailer);
   EthernetHeader header;
-  packet->RemoveHeader (header);
+  packetCopy->RemoveHeader (header);
 
   // Tagging the packet with queue number only for ports associated to
   // CsmaNetDevices (note that VirtualNetDevices doesn't have a queue).
   if (m_netDev->GetObject<CsmaNetDevice> ())
     {
       QueueTag queueTag (queueNo);
-      packet->AddPacketTag (queueTag);
+      packetCopy->AddPacketTag (queueTag);
+      NS_LOG_DEBUG ("Pkt queue will be " << queueNo);
     }
 
   // Tagging the packet with tunnel id only for logical ports associated to
@@ -336,21 +345,23 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo, uint64_t tunnelId)
   if (m_netDev->GetObject<VirtualNetDevice> ())
     {
       TunnelIdTag tunnelIdTag (tunnelId);
-      packet->AddPacketTag (tunnelIdTag);
+      packetCopy->AddPacketTag (tunnelIdTag);
+      NS_LOG_DEBUG ("Pkt tunnel tag will be " << tunnelId);
     }
 
   // Send the packet over the underlying net device.
-  bool status = m_netDev->SendFrom (packet, header.GetSource (),
+  bool status = m_netDev->SendFrom (packetCopy, header.GetSource (),
                                     header.GetDestination (),
                                     header.GetLengthType ());
   // Updating port statistics
   if (status)
     {
       m_swPort->stats->tx_packets++;
-      m_swPort->stats->tx_bytes += packet->GetSize ();
+      m_swPort->stats->tx_bytes += packetCopy->GetSize ();
     }
   else
     {
+      NS_LOG_ERROR ("Error while transmitting packet.");
       m_swPort->stats->tx_dropped++;
     }
   return status;

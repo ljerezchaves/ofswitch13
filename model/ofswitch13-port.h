@@ -88,7 +88,8 @@ public:
    * \param tunnelId The metadata associated with a logical port.
    * \return true if the packet was sent successfully, false otherwise.
    */
-  bool Send (Ptr<Packet> packet, uint32_t queueNo = 0, uint64_t tunnelId = 0);
+  bool Send (Ptr<const Packet> packet, uint32_t queueNo = 0,
+             uint64_t tunnelId = 0);
 
 protected:
   /** Destructor implementation */

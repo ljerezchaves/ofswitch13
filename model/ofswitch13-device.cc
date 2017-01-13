@@ -531,8 +531,7 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
           // The original ns-3 packet was modified by OpenFlow switch.
           // Create a new packet with modified data and copy tags from the
           // original packet.
-          NS_LOG_DEBUG ("Packet " << pkt->ns3_uid <<
-                        " modified by OpenFlow switch.");
+          NS_LOG_DEBUG ("Packet " << pkt->ns3_uid << " modified by switch.");
           packet = ofs::PacketFromBuffer (pkt->buffer);
           OFSwitch13Device::CopyTags (m_pktPipe.GetPacket (), packet);
         }
@@ -550,7 +549,12 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
     }
 
   // Send the packet to switch port.
-  return port->Send (packet, queueNo, pkt->tunnel_id);
+  bool success = port->Send (packet, queueNo, pkt->tunnel_id);
+  if (!success)
+    {
+      NS_LOG_ERROR ("Error when sending packet to switch port.");
+    }
+  return success;
 }
 
 void
@@ -569,8 +573,10 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
   struct packet *pkt = packet_create (m_datapath, portNo, buffer,
                                       tunnelId, false);
 
-  // Save the ns-3 packet
-  pkt->ns3_uid = OFSwitch13Device::GetNewPacketId ();
+  // Save the ns-3 packet into pipeline structure
+  // FIXME: Should use a new packet ID? Not sure about conficts...
+  // pkt->ns3_uid = OFSwitch13Device::GetNewPacketId ();
+  pkt->ns3_uid = packet->GetUid ();
   m_pktPipe.SetPacket (pkt->ns3_uid, packet);
 
   // Send packet to ofsoftswitch13 pipeline
@@ -764,6 +770,9 @@ OFSwitch13Device::NotifyPacketDropped (struct packet *pkt)
 
   NS_ASSERT_MSG (m_pktPipe.HasId (pkt->ns3_uid), "Invalid packet ID.");
   NS_LOG_DEBUG ("OpenFlow meter band dropped packet " << pkt->ns3_uid);
+  
+  m_pktPipe.DelCopy (pkt->ns3_uid);
+  NS_ASSERT_MSG (!m_pktPipe.IsValid (), "Packet still valid in pipeline.");
 
   // Fire drop trace source
   m_meterDropTrace (m_pktPipe.GetPacket ());
@@ -785,6 +794,7 @@ OFSwitch13Device::BufferPacketSave (uint64_t packetId, time_t timeout)
       NS_LOG_WARN ("Packet " << packetId << " already in buffer.");
     }
   m_pktPipe.DelCopy (packetId);
+  NS_ASSERT_MSG (!m_pktPipe.IsValid (), "Packet copy still in pipeline.");
 
   // Scheduling the buffer remove for expired packet. Since packet timeout
   // resolution is expressed in seconds, let's double it to avoid rounding
@@ -813,6 +823,7 @@ OFSwitch13Device::BufferPacketDelete (uint64_t packetId)
   NS_LOG_FUNCTION (this << packetId);
 
   // Delete from buffer map
+  NS_LOG_DEBUG ("Expired packet " << packetId << " deleted from buffer.");
   IdPacketMap_t::iterator it = m_pktsBuffer.find (packetId);
   if (it != m_pktsBuffer.end ())
     {
