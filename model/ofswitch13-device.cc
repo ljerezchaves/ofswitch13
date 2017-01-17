@@ -543,7 +543,9 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
     }
   else
     {
-      // This is a new packet (probably created by the controller).
+      // This is a new packet, probably created by the controller and sent to
+      // the switch within an OpenFlow packet-out message.
+      NS_ASSERT_MSG (pkt->ns3_uid == 0, "Invalid packet ID.");
       NS_LOG_DEBUG ("Creating new ns-3 packet from OpenFlow buffer.");
       packet = ofs::PacketFromBuffer (pkt->buffer);
     }
@@ -743,24 +745,36 @@ OFSwitch13Device::NotifyPacketDestroyed (struct packet *pkt)
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid);
 
+  // This is the packet current under pipeline. Let's delete this copy.
   if (m_pktPipe.IsValid () && m_pktPipe.HasId (pkt->ns3_uid))
     {
-      // This is the packet current under pipeline
       bool valid = m_pktPipe.DelCopy (pkt->ns3_uid);
       if (!valid)
         {
           NS_LOG_DEBUG ("Packet " << pkt->ns3_uid << " done at this switch.");
         }
+      return;
     }
-  else
+
+  // This destroyed packet has no ns-3 ID. This packet was probably created by
+  // the OpenFlow controller and sent to the switch within an OpenFlow
+  // packet-out message. No action is required here.
+  if (pkt->ns3_uid == 0)
     {
-      // This dropped packet is not the one current under pipeline. It must be
-      // an old packet that was previously saved into buffer and will be
-      // deleted now, freeing up space for a new packet at same buffer index
-      // (that's how the ofsoftswitch13 handles the buffer). So, we are going
-      // to remove this packet from our buffer list, if it still exists there.
-      BufferPacketDelete (pkt->ns3_uid);
+      NS_LOG_DEBUG ("Deleting lib packet with no corresponding ns-3 packet.");
+      return;
     }
+
+  // If we got here, this packet must not be valid on the pipeline structure.
+  NS_ASSERT_MSG ((m_pktPipe.IsValid () && !m_pktPipe.HasId (pkt->ns3_uid))
+                 || !m_pktPipe.IsValid (), "Packet still valid in pipeline.");
+
+  // This destroyed packet is probably an old packet that was previously saved
+  // into buffer and will be deleted now, freeing up space for a new packet at
+  // same buffer index (that's how the library handles the buffer). So, we are
+  // going to remove this packet from our buffer, if it still exists there.
+  BufferPacketDelete (pkt->ns3_uid);
+  NS_LOG_DEBUG ("Packet " << pkt->ns3_uid << " done at this switch.");
 }
 
 void
@@ -770,9 +784,6 @@ OFSwitch13Device::NotifyPacketDropped (struct packet *pkt)
 
   NS_ASSERT_MSG (m_pktPipe.HasId (pkt->ns3_uid), "Invalid packet ID.");
   NS_LOG_DEBUG ("OpenFlow meter band dropped packet " << pkt->ns3_uid);
-
-  m_pktPipe.DelCopy (pkt->ns3_uid);
-  NS_ASSERT_MSG (!m_pktPipe.IsValid (), "Packet still valid in pipeline.");
 
   // Fire drop trace source
   m_meterDropTrace (m_pktPipe.GetPacket ());
@@ -789,7 +800,11 @@ OFSwitch13Device::BufferPacketSave (uint64_t packetId, time_t timeout)
   std::pair <uint64_t, Ptr<Packet> > entry (packetId, m_pktPipe.GetPacket ());
   std::pair <IdPacketMap_t::iterator, bool> ret;
   ret = m_pktsBuffer.insert (entry);
-  if (ret.second == false)
+  if (ret.second == true)
+    {
+      NS_LOG_DEBUG ("Packet " << packetId << " saved into buffer.");
+    }
+  else
     {
       NS_LOG_WARN ("Packet " << packetId << " already in buffer.");
     }
@@ -813,6 +828,7 @@ OFSwitch13Device::BufferPacketRetrieve (uint64_t packetId)
   // Remove from buffer map and save back into pipeline
   IdPacketMap_t::iterator it = m_pktsBuffer.find (packetId);
   NS_ASSERT_MSG (it != m_pktsBuffer.end (), "Packet not found in buffer.");
+  NS_LOG_DEBUG ("Packet " << packetId << " removed from buffer.");
   m_pktPipe.SetPacket (it->first, it->second);
   m_pktsBuffer.erase (it);
 }
@@ -823,10 +839,10 @@ OFSwitch13Device::BufferPacketDelete (uint64_t packetId)
   NS_LOG_FUNCTION (this << packetId);
 
   // Delete from buffer map
-  NS_LOG_DEBUG ("Expired packet " << packetId << " deleted from buffer.");
   IdPacketMap_t::iterator it = m_pktsBuffer.find (packetId);
   if (it != m_pktsBuffer.end ())
     {
+      NS_LOG_DEBUG ("Expired packet " << packetId << " deleted from buffer.");
       m_pktsBuffer.erase (it);
     }
 }
