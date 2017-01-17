@@ -574,7 +574,7 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
                                       tunnelId, false);
 
   // Save the ns-3 packet into pipeline structure
-  // FIXME: Should use a new packet ID? Not sure about conficts...
+  // FIXME: Should I use a new packet ID? I'm not sure about id conficts...
   // pkt->ns3_uid = OFSwitch13Device::GetNewPacketId ();
   pkt->ns3_uid = packet->GetUid ();
   m_pktPipe.SetPacket (pkt->ns3_uid, packet);
