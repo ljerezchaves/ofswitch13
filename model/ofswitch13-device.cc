@@ -770,7 +770,7 @@ OFSwitch13Device::NotifyPacketDropped (struct packet *pkt)
 
   NS_ASSERT_MSG (m_pktPipe.HasId (pkt->ns3_uid), "Invalid packet ID.");
   NS_LOG_DEBUG ("OpenFlow meter band dropped packet " << pkt->ns3_uid);
-  
+
   m_pktPipe.DelCopy (pkt->ns3_uid);
   NS_ASSERT_MSG (!m_pktPipe.IsValid (), "Packet still valid in pipeline.");
 

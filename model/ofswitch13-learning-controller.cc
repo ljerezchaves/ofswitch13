@@ -127,7 +127,7 @@ OFSwitch13LearningController::HandlePacketIn (
               else
                 {
                   NS_LOG_DEBUG ("Learning that mac " << src48 <<
-                               " can be found at port " << inPort);
+                                " can be found at port " << inPort);
 
                   // Send a flow-mod to switch creating this flow. Let's
                   // configure the flow entry to 10s idle timeout and to

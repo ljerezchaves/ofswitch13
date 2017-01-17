@@ -319,7 +319,7 @@ OFSwitch13Port::Send (Ptr<const Packet> packet, uint32_t queueNo,
 
   // Fire TX trace source (with complete packet)
   m_txTrace (packet);
-  
+
   Ptr<Packet> packetCopy = packet->Copy ();
   NS_LOG_DEBUG ("Pkt " << packetCopy->GetUid () <<
                 " will be sent at this port.");
