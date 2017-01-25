@@ -575,10 +575,9 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
   struct packet *pkt = packet_create (m_datapath, portNo, buffer,
                                       tunnelId, false);
 
-  // Save the ns-3 packet into pipeline structure
-  // FIXME: Should I use a new packet ID? I'm not sure about id conficts...
-  // pkt->ns3_uid = OFSwitch13Device::GetNewPacketId ();
-  pkt->ns3_uid = packet->GetUid ();
+  // Save the ns-3 packet into pipeline structure. Note that we are using a
+  // private packet uid to avoid conflicts with ns3::Packet uid.
+  pkt->ns3_uid = OFSwitch13Device::GetNewPacketId ();
   m_pktPipe.SetPacket (pkt->ns3_uid, packet);
 
   // Send packet to ofsoftswitch13 pipeline
