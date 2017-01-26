@@ -224,10 +224,15 @@ OFSwitch13LearningController::HandshakeSuccessful (
 {
   NS_LOG_FUNCTION (this << swtch);
 
-  // After a successfull handshake, let's install the table-miss entry
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl");
+  // After a successfull handshake, let's install the table-miss entry, setting
+  // to 128 bytes the maximum amount of data from a packet that should be sent
+  // to the controller.
+  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=0 "
+                "apply:output=ctrl:128");
 
-  // Configure te switch to buffer packets and send only the first 128 bytes
+  // Configure te switch to buffer packets and send only the first 128 bytes of
+  // each packet sent to the controller when not using an output action to the
+  // OFPP_CONTROLLER logical port.
   DpctlExecute (swtch, "set-config miss=128");
 
   // Create an empty L2SwitchingTable and insert it into m_learnedInfo
