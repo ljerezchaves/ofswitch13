@@ -285,7 +285,7 @@ OFSwitch13Device
 
 * ``PortList``: The list of ports available in this switch.
 
-* ``TCAMDelay``: Average time to perform a TCAM operation in pipeline. The
+* ``TcamDelay``: Average time to perform a TCAM operation in pipeline. The
   default value of 30 nanoseconds is the standard TCAM on a NetFPGA. This value
   will be used to calculate the average pipeline delay for packets, based on
   the number of flow entries in the tables.

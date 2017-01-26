@@ -94,7 +94,7 @@ the delay:
 .. math::
   K * log_2 (n)
 
-where *K* is the ``OFSwitch13Device::TCAMDelay`` attribute set to the time for
+where *K* is the ``OFSwitch13Device::TcamDelay`` attribute set to the time for
 a TCAM operation in a NetFPGA hardware, and *n* is the current number of
 entries in the flow tables.
 

@@ -53,7 +53,7 @@ OFSwitch13Device::GetTypeId (void)
                    ObjectVectorValue (),
                    MakeObjectVectorAccessor (&OFSwitch13Device::m_ports),
                    MakeObjectVectorChecker<OFSwitch13Port> ())
-    .AddAttribute ("TCAMDelay",
+    .AddAttribute ("TcamDelay",
                    "Average time to perform a TCAM operation in pipeline "
                    "(Default: standard TCAM on a NetFPGA).",
                    TimeValue (NanoSeconds (30)),
