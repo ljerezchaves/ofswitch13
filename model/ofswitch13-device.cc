@@ -29,7 +29,7 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Device");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Device);
 
-// Initializing OFSwitch13Device static members
+// Initializing OFSwitch13Device static members.
 uint64_t OFSwitch13Device::m_globalDpId = 0;
 uint64_t OFSwitch13Device::m_globalPktId = 0;
 OFSwitch13Device::DpIdDevMap_t OFSwitch13Device::m_globalSwitchMap;
@@ -73,12 +73,93 @@ OFSwitch13Device::GetTypeId (void)
                    MakeStringAccessor (&OFSwitch13Device::SetLibLogLevel),
                    MakeStringChecker ())
 
-    // Meter band packet drop trace source
+    .AddTraceSource ("PipelinePacket",
+                     "Trace source indicating a packet sent to pipeline.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_pipelinePacketTrace),
+                     "ns3::Packet::TracedCallback")
     .AddTraceSource ("MeterDrop",
-                     "Trace source indicating a packet dropped by meter band",
+                     "Trace source indicating a packet dropped by meter band.",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_meterDropTrace),
                      "ns3::Packet::TracedCallback")
+    .AddTraceSource ("BufferSave",
+                     "Trace source indicating a packet saved into buffer.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_bufferSaveTrace),
+                     "ns3::Packet::TracedCallback")
+    .AddTraceSource ("BufferRetrieve",
+                     "Trace source indicating a packet retrieved from buffer.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_bufferRetrieveTrace),
+                     "ns3::Packet::TracedCallback")
+    .AddTraceSource ("BufferExpire",
+                     "Trace source indicating an expired packet in buffer.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_bufferExpireTrace),
+                     "ns3::Packet::TracedCallback")
+    .AddTraceSource ("PipelineDelay",
+                     "Traced value indicating the average pipeline delay for "
+                     "packet processing (periodically updated on datapath "
+                     "timeout operations).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_pipelineDelay),
+                     "ns3::TracedValueCallback::Time")
+    .AddTraceSource ("BufferSize",
+                     "Traced value indicating the number of packets saved "
+                     "into datapath buffer.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_bufferSize),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("FlowEntries",
+                     "Traced value indicating the number of flow entries in "
+                     "all pipeline flow tables (periodically updated on "
+                     "datapath timeout operations).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_flowEntries),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("MeterEntries",
+                     "Traced value indicating the number of meter entries "
+                     "(periodically updated on datapath timeout operations).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_meterEntries),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("GroupEntries",
+                     "Traced value indicating the number of group entries "
+                     "(periodically updated on datapath timeout operations).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_groupEntries),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("FlowModCounter",
+                     "Traced value indicating the number of flow-mod "
+                     "messages received by this switch.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_flowModCounter),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("MeterModCounter",
+                     "Traced value indicating the number of meter-mod "
+                     "messages received by this switch.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_meterModCounter),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("GroupModCounter",
+                     "Traced value indicating the number of group-mod "
+                     "messages received by this switch.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_groupModCounter),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("PacketInCounter",
+                     "Traced value indicating the number of packet-in "
+                     "messages sent by this switch.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_packetInCounter),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("PacketOutCounter",
+                     "Traced value indicating the number of packet-out "
+                     "messages received by this switch.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_packetOutCounter),
+                     "ns3::TracedValueCallback::Uint32")
   ;
   return tid;
 }
@@ -111,11 +192,11 @@ OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
       NS_FATAL_ERROR ("No more ports allowed.");
     }
 
-  // Create the OpenFlow port for this device
+  // Create the OpenFlow port for this device.
   Ptr<OFSwitch13Port> ofPort;
   ofPort = CreateObject<OFSwitch13Port> (m_datapath, portDevice, this);
 
-  // Save port in port list (assert port no and vector index)
+  // Save port in port list (assert port no and vector index).
   m_ports.push_back (ofPort);
   NS_ASSERT (m_ports.size () == ofPort->GetPortNo ());
 
@@ -128,8 +209,8 @@ OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
 {
   NS_LOG_FUNCTION (this << packet << portNo << tunnelId);
 
-  Simulator::Schedule (m_pipeDelay, &OFSwitch13Device::SendToPipeline, this,
-                       packet, portNo, tunnelId);
+  Simulator::Schedule (m_pipelineDelay, &OFSwitch13Device::SendToPipeline,
+                       this, packet, portNo, tunnelId);
 }
 
 uint32_t
@@ -208,7 +289,7 @@ OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
   NS_ASSERT_MSG (!GetRemoteController (ctrlAddr),
                  "Controller address already in use.");
 
-  // Start a TCP connection to this target controller
+  // Start a TCP connection to this target controller.
   int error = 0;
   Ptr<Socket> ctrlSocket =
     Socket::CreateSocket (GetObject<Node> (), TcpSocketFactory::GetTypeId ());
@@ -232,7 +313,7 @@ OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
     MakeCallback (&OFSwitch13Device::SocketCtrlSucceeded, this),
     MakeCallback (&OFSwitch13Device::SocketCtrlFailed, this));
 
-  // Create a RemoteController object for this controller and save it
+  // Create a RemoteController object for this controller and save it.
   Ptr<RemoteController> remoteCtrl = Create<RemoteController> ();
   remoteCtrl->m_address = ctrlAddr;
   remoteCtrl->m_socket = ctrlSocket;
@@ -455,7 +536,7 @@ OFSwitch13Device::DatapathTimeout (datapath* dp)
   meter_table_add_tokens (dp->meters);
   pipeline_timeout (dp->pipeline);
 
-  // Check for changes in links (port) status
+  // Check for changes in links (port) status.
   PortList_t::iterator it;
   for (it = m_ports.begin (); it != m_ports.end (); it++)
     {
@@ -469,16 +550,19 @@ OFSwitch13Device::DatapathTimeout (datapath* dp)
   // implementations, packet classification can use sophisticated search
   // algorithms, as the HyperSplit (DOI 10.1109/FPT.2010.5681492). As most of
   // theses algorithms classifies the packet based on binary search trees, we
-  // are estimating the pipeline average time to a K * log (n), where k is the
-  // m_tcamDelay set to the time for a TCAM operation in a NetFPGA hardware,
-  // and n is the current number of entries in flow tables.
+  // are estimating the pipeline average time to a k * log (n), where 'k' is
+  // the m_tcamDelay set to the time for a single TCAM operation in a NetFPGA
+  // hardware, and 'n' is the current number of entries in flow tables.
   //
-  m_pipeDelay = m_tcamDelay * (int64_t)ceil (log2 (GetNumberFlowEntries ()));
+  m_flowEntries = GetNumberFlowEntries ();
+  m_meterEntries = m_datapath->meters->entries_num;
+  m_groupEntries = m_datapath->groups->entries_num;
+  m_pipelineDelay = m_tcamDelay * (int64_t)ceil (log2 (m_flowEntries));
 
   dp->last_timeout = time_now ();
   m_lastTimeout = Simulator::Now ();
-  Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout, this,
-                       dp);
+  Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout,
+                       this, dp);
 }
 
 Ptr<OFSwitch13Port>
@@ -486,7 +570,7 @@ OFSwitch13Device::GetOFSwitch13Port (uint32_t no)
 {
   NS_LOG_FUNCTION (this << no);
 
-  // Assert port no (starts at 1)
+  // Assert port no (starts at 1).
   NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Port is out of range.");
   return m_ports.at (no - 1);
 }
@@ -498,6 +582,7 @@ OFSwitch13Device::SendPacketInMessage (struct packet *pkt, uint8_t tableId,
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid << tableId << reason);
 
+  // Create the packet_in message.
   ofl_msg_packet_in msg;
   msg.header.type = OFPT_PACKET_IN;
   msg.total_len = pkt->buffer->size;
@@ -510,7 +595,7 @@ OFSwitch13Device::SendPacketInMessage (struct packet *pkt, uint8_t tableId,
   // sent, and it should not be buffered. However, in this implementation we
   // always save the packet into buffer to avoid losing ns-3 packet id
   // reference. This is not full compliant with OpenFlow specification, but
-  // works very well here ;)
+  // works very well here.
   dp_buffers_save (pkt->dp->buffers, pkt);
   msg.buffer_id = pkt->buffer_id;
   msg.data_length = MIN (maxLength, pkt->buffer->size);
@@ -520,6 +605,9 @@ OFSwitch13Device::SendPacketInMessage (struct packet *pkt, uint8_t tableId,
       packet_handle_std_validate (pkt->handle_std);
     }
   msg.match = (ofl_match_header*) &pkt->handle_std->match;
+
+  // Increase packet-in counter and send the message.
+  m_packetInCounter++;
   dp_send_message (pkt->dp, (ofl_msg_header *)&msg, 0);
 }
 
@@ -539,7 +627,7 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
   // When a packet is sent to OpenFlow pipeline, we keep track of its original
   // ns3::Packet using the PipelinePacket structure. When the packet is
   // processed by the pipeline with no internal changes, we forward the
-  // original ns3::Packet to the specified output port.  When internal changes
+  // original ns3::Packet to the specified output port. When internal changes
   // are necessary, we need to create a new packet with the modified content
   // and copy all packet tags to this new one. This approach is more expensive
   // than the previous one, but is far more simple than identifying which
@@ -602,7 +690,8 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
   pkt->ns3_uid = OFSwitch13Device::GetNewPacketId ();
   m_pktPipe.SetPacket (pkt->ns3_uid, packet);
 
-  // Send packet to ofsoftswitch13 pipeline
+  // Fire trace source and send the packet to ofsoftswitch13 pipeline.
+  m_pipelinePacketTrace (packet);
   pipeline_process_packet (m_datapath->pipeline, pkt);
 }
 
@@ -617,7 +706,7 @@ OFSwitch13Device::SendToController (Ptr<Packet> packet,
     }
 
   // TODO: No support for auxiliary connections.
-  // Check for available space in TCP buffer before sending the packet
+  // Check for available space in TCP buffer before sending the packet.
   if (remoteCtrl->m_socket->GetTxAvailable () < packet->GetSize ())
     {
       NS_LOG_WARN ("Unavailable space to send message now. Will retry.");
@@ -648,7 +737,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
   senderCtrl.remote = remoteCtrl->m_remote;
   senderCtrl.conn_id = 0; // TODO No support for auxiliary connections
 
-  // Get the OpenFlow buffer, unpack the message and send to handler
+  // Get the OpenFlow buffer and unpack the message.
   ofpbuf *buffer;
   buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
   error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
@@ -660,6 +749,35 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
       NS_LOG_DEBUG ("RX from controller " << ctrlIp << ": " << msg_str);
       free (msg_str);
 
+      // Increase internal counters based on message type.
+      switch (msg->type)
+        {
+        case (OFPT_PACKET_OUT):
+          {
+            m_packetOutCounter++;
+            break;
+          }
+        case (OFPT_FLOW_MOD):
+          {
+            m_flowModCounter++;
+            break;
+          }
+        case (OFPT_METER_MOD):
+          {
+            m_meterModCounter++;
+            break;
+          }
+        case (OFPT_GROUP_MOD):
+          {
+            m_groupModCounter++;
+            break;
+          }
+        default:
+          {
+          }
+        }
+
+      // Send the message to handler.
       error = handle_control_msg (m_datapath, msg, &senderCtrl);
       if (error)
         {
@@ -667,7 +785,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
           // it did not use any part of the control message, thus it
           // can be freed up. If no error is returned however, the
           // message must be freed inside the handler (because the
-          // handler might keep parts of the message)
+          // handler might keep parts of the message).
           ofl_msg_free (msg, m_datapath->exp);
         }
     }
@@ -675,7 +793,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
     {
       NS_LOG_ERROR ("Error processing OpenFlow message from controller.");
 
-      // Notify the controller
+      // Notify the controller.
       ofl_msg_error err;
       err.header.type = OFPT_ERROR;
       err.type = (ofp_error_type)ofl_error_type (error);
@@ -705,7 +823,7 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
   remoteCtrl->m_reader->SetReceiveCallback (
     MakeCallback (&OFSwitch13Device::ReceiveFromController, this));
 
-  // Send the OpenFlow Hello message
+  // Send the OpenFlow Hello message.
   ofl_msg_header msg;
   msg.type = OFPT_HELLO;
 
@@ -806,7 +924,7 @@ OFSwitch13Device::NotifyPacketDropped (struct packet *pkt)
   NS_ASSERT_MSG (m_pktPipe.HasId (pkt->ns3_uid), "Invalid packet ID.");
   NS_LOG_DEBUG ("OpenFlow meter band dropped packet " << pkt->ns3_uid);
 
-  // Fire drop trace source
+  // Fire drop trace source.
   m_meterDropTrace (m_pktPipe.GetPacket ());
 }
 
@@ -817,13 +935,15 @@ OFSwitch13Device::BufferPacketSave (uint64_t packetId, time_t timeout)
 
   NS_ASSERT_MSG (m_pktPipe.HasId (packetId), "Invalid packet ID.");
 
-  // Remove from pipeline and save into buffer map
+  // Remove from pipeline and save into buffer.
   std::pair <uint64_t, Ptr<Packet> > entry (packetId, m_pktPipe.GetPacket ());
   std::pair <IdPacketMap_t::iterator, bool> ret;
   ret = m_pktsBuffer.insert (entry);
   if (ret.second == true)
     {
       NS_LOG_DEBUG ("Packet " << packetId << " saved into buffer.");
+      m_bufferSaveTrace (m_pktPipe.GetPacket ());
+      m_bufferSize = m_pktsBuffer.size ();
     }
   else
     {
@@ -846,12 +966,18 @@ OFSwitch13Device::BufferPacketRetrieve (uint64_t packetId)
 
   NS_ASSERT_MSG (!m_pktPipe.IsValid (), "Another packet in pipeline.");
 
-  // Remove from buffer map and save back into pipeline
+  // Find packet in buffer.
   IdPacketMap_t::iterator it = m_pktsBuffer.find (packetId);
   NS_ASSERT_MSG (it != m_pktsBuffer.end (), "Packet not found in buffer.");
-  NS_LOG_DEBUG ("Packet " << packetId << " removed from buffer.");
+
+  // Save packet into pipeline structure.
   m_pktPipe.SetPacket (it->first, it->second);
+  m_bufferRetrieveTrace (m_pktPipe.GetPacket ());
+
+  // Delete packet from buffer.
+  NS_LOG_DEBUG ("Packet " << packetId << " removed from buffer.");
   m_pktsBuffer.erase (it);
+  m_bufferSize = m_pktsBuffer.size ();
 }
 
 void
@@ -859,12 +985,14 @@ OFSwitch13Device::BufferPacketDelete (uint64_t packetId)
 {
   NS_LOG_FUNCTION (this << packetId);
 
-  // Delete from buffer map
+  // Delete from buffer map.
   IdPacketMap_t::iterator it = m_pktsBuffer.find (packetId);
   if (it != m_pktsBuffer.end ())
     {
       NS_LOG_DEBUG ("Expired packet " << packetId << " deleted from buffer.");
+      m_bufferExpireTrace (it->second);
       m_pktsBuffer.erase (it);
+      m_bufferSize = m_pktsBuffer.size ();
     }
 }
 
@@ -925,7 +1053,7 @@ OFSwitch13Device::GetNewPacketId ()
 bool
 OFSwitch13Device::CopyTags (Ptr<const Packet> srcPkt, Ptr<const Packet> dstPkt)
 {
-  // Copy packet tags
+  // Copy packet tags.
   PacketTagIterator pktIt = srcPkt->GetPacketTagIterator ();
   while (pktIt.HasNext ())
     {
@@ -937,7 +1065,7 @@ OFSwitch13Device::CopyTags (Ptr<const Packet> srcPkt, Ptr<const Packet> dstPkt)
       delete tag;
     }
 
-  // Copy byte tags
+  // Copy byte tags.
   ByteTagIterator bytIt = srcPkt->GetByteTagIterator ();
   while (bytIt.HasNext ())
     {

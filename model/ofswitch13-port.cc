@@ -77,13 +77,11 @@ OFSwitch13Port::GetTypeId (void)
                    MakePointerAccessor (&OFSwitch13Port::m_portQueue),
                    MakePointerChecker<OFSwitch13Queue> ())
     .AddTraceSource ("SwitchPortRx",
-                     "Trace source indicating a packet "
-                     "received at this switch port",
+                     "Trace source indicating a packet received at this port.",
                      MakeTraceSourceAccessor (&OFSwitch13Port::m_rxTrace),
                      "ns3::Packet::TracedCallback")
     .AddTraceSource ("SwitchPortTx",
-                     "Trace source indicating a packet "
-                     "transmitted at this switch port",
+                     "Trace source indicating a packet sent at this port.",
                      MakeTraceSourceAccessor (&OFSwitch13Port::m_txTrace),
                      "ns3::Packet::TracedCallback")
   ;

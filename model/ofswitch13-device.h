@@ -504,9 +504,6 @@ private:
    */
   static Ptr<OFSwitch13Device> GetDevice (uint64_t id);
 
-  /** Trace source fired when the OpenFlow meter band drops a packet */
-  TracedCallback<Ptr<const Packet> > m_meterDropTrace;
-
   /** Structure to save the list of ports in this datapath. */
   typedef std::vector<Ptr<OFSwitch13Port> > PortList_t;
 
@@ -519,11 +516,55 @@ private:
   /** Structure to save packets, indexed by its id. */
   typedef std::map<uint64_t, Ptr<Packet> > IdPacketMap_t;
 
+  /** Trace source fired when a packet is sent to pipeline. */
+  TracedCallback<Ptr<const Packet> > m_pipelinePacketTrace;
+
+  /** Trace source fired when a packet is dropped by a meter band. */
+  TracedCallback<Ptr<const Packet> > m_meterDropTrace;
+
+  /** Trace source fired when a packet is saved into buffer. */
+  TracedCallback<Ptr<const Packet> > m_bufferSaveTrace;
+
+  /** Trace source fired when a packet is retrieved from buffer. */
+  TracedCallback<Ptr<const Packet> > m_bufferRetrieveTrace;
+
+  /** Trace source fired when a packet in buffer expires. */
+  TracedCallback<Ptr<const Packet> > m_bufferExpireTrace;
+
+  /** Average pipeline delay for packet processing. */
+  TracedValue<Time> m_pipelineDelay;
+
+  /** Number of packets saved into buffer. */
+  TracedValue<uint32_t> m_bufferSize;
+
+  /** Number of entries in pipeline flow tables. */
+  TracedValue<uint32_t> m_flowEntries;
+
+  /** Number of entries in meter table. */
+  TracedValue<uint32_t> m_meterEntries;
+
+  /** Number of entries in group table. */
+  TracedValue<uint32_t> m_groupEntries;
+
+  /** Number of flow-mod messages received by this switch. */
+  TracedValue<uint32_t> m_flowModCounter;
+
+  /** Number of meter-mod messages received by this switch. */
+  TracedValue<uint32_t> m_meterModCounter;
+
+  /** Number of group-mod messages received by this switch. */
+  TracedValue<uint32_t> m_groupModCounter;
+
+  /** Number of packet-in messages sent by this switch. */
+  TracedValue<uint32_t> m_packetInCounter;
+
+  /** Number of packet-out messages received by this switch. */
+  TracedValue<uint32_t> m_packetOutCounter;
+
   uint64_t        m_dpId;         //!< This datapath id.
   Time            m_timeout;      //!< Datapath timeout interval.
   Time            m_lastTimeout;  //!< Datapath last timeout.
   Time            m_tcamDelay;    //!< Flow Table TCAM lookup delay.
-  Time            m_pipeDelay;    //!< Flow Table average delay.
   std::string     m_libLog;       //!< The ofsoftswitch13 library log levels.
   datapath*       m_datapath;     //!< The OpenFlow datapath.
   PipelinePacket  m_pktPipe;      //!< Packet under switch pipeline.
@@ -531,8 +572,8 @@ private:
   CtrlList_t      m_controllers;  //!< Collection of active controllers.
   IdPacketMap_t   m_pktsBuffer;   //!< Packets saved in switch buffer.
 
-  static uint64_t m_globalDpId;   //!< Global counter for datapath IDs
-  static uint64_t m_globalPktId;  //!< Global counter for packets IDs
+  static uint64_t m_globalDpId;   //!< Global counter for datapath IDs.
+  static uint64_t m_globalPktId;  //!< Global counter for packets IDs.
 
   /**
    * As the integration of ofsoftswitch13 and ns-3 involve overriding some C
