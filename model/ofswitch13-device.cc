@@ -240,6 +240,15 @@ OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
 }
 
 // ofsoftswitch13 overriding and callback functions.
+void
+OFSwitch13Device::SendPacketToController (pipeline *pl, struct packet *pkt,
+                                          uint8_t tableId, uint8_t reason)
+{
+  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pl->dp->id);
+  dev->SendPacketInMessage (pkt, tableId, reason,
+                            dev->m_datapath->config.miss_send_len);
+}
+
 int
 OFSwitch13Device::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *remote)
 {
@@ -251,7 +260,7 @@ OFSwitch13Device::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *remote)
 
 void
 OFSwitch13Device::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
-                                       uint32_t outQueue, uint16_t maxLen,
+                                       uint32_t outQueue, uint16_t maxLength,
                                        uint64_t cookie)
 {
   Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pkt->dp->id);
@@ -277,27 +286,9 @@ OFSwitch13Device::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
       }
     case (OFPP_CONTROLLER):
       {
-        ofl_msg_packet_in msg;
-        msg.header.type = OFPT_PACKET_IN;
-        msg.total_len = pkt->buffer->size;
-        msg.reason = pkt->handle_std->table_miss ? OFPR_NO_MATCH : OFPR_ACTION;
-        msg.table_id = pkt->table_id;
-        msg.data = (uint8_t*)pkt->buffer->data;
-        msg.cookie = cookie;
-
-        // Even with miss_send_len == OFPCML_NO_BUFFER, save the packet into
-        // buffer to avoid loosing ns-3 packet id. This is not full compliant
-        // with OpenFlow specification, but works very well here ;)
-        dp_buffers_save (pkt->dp->buffers, pkt);
-        msg.buffer_id = pkt->buffer_id;
-        msg.data_length = MIN (maxLen, pkt->buffer->size);
-
-        if (!pkt->handle_std->valid)
-          {
-            packet_handle_std_validate (pkt->handle_std);
-          }
-        msg.match = (ofl_match_header*) &pkt->handle_std->match;
-        dp_send_message (pkt->dp, (ofl_msg_header *)&msg, 0);
+        dev->SendPacketInMessage (pkt, pkt->table_id,
+                                  pkt->handle_std->table_miss ? OFPR_NO_MATCH :
+                                  OFPR_ACTION, maxLength, cookie);
         break;
       }
     case (OFPP_FLOOD):
@@ -321,7 +312,6 @@ OFSwitch13Device::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
       {
         if (pkt->in_port != outPort)
           {
-            // Outputting packet on port outPort
             dev->SendToSwitchPort (pkt, outPort, outQueue);
           }
       }
@@ -501,6 +491,38 @@ OFSwitch13Device::GetOFSwitch13Port (uint32_t no)
   return m_ports.at (no - 1);
 }
 
+void
+OFSwitch13Device::SendPacketInMessage (struct packet *pkt, uint8_t tableId,
+                                       uint8_t reason, uint16_t maxLength,
+                                       uint64_t cookie)
+{
+  NS_LOG_FUNCTION (this << pkt->ns3_uid << tableId << reason);
+
+  ofl_msg_packet_in msg;
+  msg.header.type = OFPT_PACKET_IN;
+  msg.total_len = pkt->buffer->size;
+  msg.reason = (ofp_packet_in_reason)reason;
+  msg.table_id = tableId;
+  msg.cookie = cookie;
+  msg.data = (uint8_t*)pkt->buffer->data;
+
+  // A maxLength of OFPCML_NO_BUFFER means that the complete packet should be
+  // sent, and it should not be buffered. However, in this implementation we
+  // always save the packet into buffer to avoid losing ns-3 packet id
+  // reference. This is not full compliant with OpenFlow specification, but
+  // works very well here ;)
+  dp_buffers_save (pkt->dp->buffers, pkt);
+  msg.buffer_id = pkt->buffer_id;
+  msg.data_length = MIN (maxLength, pkt->buffer->size);
+
+  if (!pkt->handle_std->valid)
+    {
+      packet_handle_std_validate (pkt->handle_std);
+    }
+  msg.match = (ofl_match_header*) &pkt->handle_std->match;
+  dp_send_message (pkt->dp, (ofl_msg_header *)&msg, 0);
+}
+
 bool
 OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
                                     uint32_t queueNo)
@@ -594,7 +616,7 @@ OFSwitch13Device::SendToController (Ptr<Packet> packet,
       return -1;
     }
 
-  // FIXME: No support for auxiliary connections.
+  // TODO: No support for auxiliary connections.
   // Check for available space in TCP buffer before sending the packet
   if (remoteCtrl->m_socket->GetTxAvailable () < packet->GetSize ())
     {
@@ -624,7 +646,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
 
   struct sender senderCtrl;
   senderCtrl.remote = remoteCtrl->m_remote;
-  senderCtrl.conn_id = 0; // FIXME No support for auxiliary connections
+  senderCtrl.conn_id = 0; // TODO No support for auxiliary connections
 
   // Get the OpenFlow buffer, unpack the message and send to handler
   ofpbuf *buffer;
@@ -689,7 +711,7 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
 
   struct sender senderCtrl;
   senderCtrl.remote = remoteCtrl->m_remote;
-  senderCtrl.conn_id = 0; // FIXME No support for auxiliary connections.
+  senderCtrl.conn_id = 0; // TODO No support for auxiliary connections.
   dp_send_message (m_datapath, &msg, &senderCtrl);
 }
 

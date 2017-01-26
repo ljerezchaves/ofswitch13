@@ -173,6 +173,13 @@ time_msec (void)
 }
 
 /** Overriding ofsoftswitch weak functions using static member functions. */
+void
+send_packet_to_controller (struct pipeline *pl, struct packet *pkt,
+                           uint8_t table_id, uint8_t reason)
+{
+  return OFSwitch13Device::SendPacketToController (pl, pkt, table_id, reason);
+}
+
 int
 send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
 {

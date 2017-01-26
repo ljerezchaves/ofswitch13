@@ -207,6 +207,22 @@ public:
   void StartControllerConnection (Address ctrlAddr);
 
   /**
+   * Overriding ofsoftswitch13 send_packet_to_controller weak function
+   * from udatapath/pipeline.c. Sends the given packet to controller(s) in a
+   * packet_in message.
+   * \internal
+   * This function relies on the global map that stores OpenFlow devices to
+   * call the method on the correct object.
+   * \param pl The pipeline structure.
+   * \param pkt The internal packet to send.
+   * \param tableId ID of the table that was looked up.
+   * \param reason Reason packet is being sent (on of OFPR_*).
+   */
+  static void
+  SendPacketToController (pipeline *pl, struct packet *pkt, uint8_t tableId,
+                          uint8_t reason);
+
+  /**
    * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
    * from udatapath/datapath.c. Sends the given OFLib buffer message to the
    * controller associated with remote connection structure.
@@ -232,12 +248,12 @@ public:
    * \param pkt The internal packet to send.
    * \param outPort The output switch port number.
    * \param outQueue The output queue number.
-   * \param maxLen Max length of packet to send to controller.
+   * \param maxLength Max length of packet to send to controller.
    * \param cookie Packet cookie to send to controller.
    */
   static void
-  DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
-                       uint32_t outQueue, uint16_t maxLen, uint64_t cookie);
+  DpActionsOutputPort (struct packet *pkt, uint32_t outPort, uint32_t outQueue,
+                       uint16_t maxLength, uint64_t cookie);
 
   /**
    * Callback fired when a new meter entry is created at meter table.
@@ -308,6 +324,19 @@ private:
    * \return A pointer to the corresponding OFSwitch13Port.
    */
   Ptr<OFSwitch13Port> GetOFSwitch13Port (uint32_t no);
+
+  /**
+   * Create an OpenFlow packet in message and send the packet to all
+   * controllers with open connections.
+   * \param pkt The internal packet to send.
+   * \param tableId ID of the table that was looked up.
+   * \param reason Reason packet is being sent (on of OFPR_*).
+   * \param maxLength Max length of packet to send to controller.
+   * \param cookie Packet cookie to send to controller.
+   */
+  void SendPacketInMessage (struct packet *pkt, uint8_t tableId,
+                            uint8_t reason, uint16_t maxLength,
+                            uint64_t cookie = 0);
 
   /**
    * Send a message over a specific switch port. Check port configuration,
