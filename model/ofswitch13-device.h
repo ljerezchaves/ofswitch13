@@ -534,8 +534,8 @@ private:
   /** Average pipeline delay for packet processing. */
   TracedValue<Time> m_pipelineDelay;
 
-  /** Number of packets saved into buffer. */
-  TracedValue<uint32_t> m_bufferSize;
+  /** Buffer space usage in terms of packets. */
+  TracedValue<double> m_bufferUsage;
 
   /** Number of entries in pipeline flow tables. */
   TracedValue<uint32_t> m_flowEntries;
@@ -571,6 +571,7 @@ private:
   PortList_t      m_ports;        //!< List of switch ports.
   CtrlList_t      m_controllers;  //!< Collection of active controllers.
   IdPacketMap_t   m_pktsBuffer;   //!< Packets saved in switch buffer.
+  uint32_t        m_bufferSize;   //!< Buffer size in terms of packets.
 
   static uint64_t m_globalDpId;   //!< Global counter for datapath IDs.
   static uint64_t m_globalPktId;  //!< Global counter for packets IDs.

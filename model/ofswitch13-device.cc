@@ -105,12 +105,11 @@ OFSwitch13Device::GetTypeId (void)
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_pipelineDelay),
                      "ns3::TracedValueCallback::Time")
-    .AddTraceSource ("BufferSize",
-                     "Traced value indicating the number of packets saved "
-                     "into datapath buffer.",
+    .AddTraceSource ("BufferUsage",
+                     "Traced value indicating the buffer space usage.",
                      MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_bufferSize),
-                     "ns3::TracedValueCallback::Uint32")
+                       &OFSwitch13Device::m_bufferUsage),
+                     "ns3::TracedValueCallback::Double")
     .AddTraceSource ("FlowEntries",
                      "Traced value indicating the number of flow entries in "
                      "all pipeline flow tables (periodically updated on "
@@ -132,31 +131,31 @@ OFSwitch13Device::GetTypeId (void)
                      "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("FlowModCounter",
                      "Traced value indicating the number of flow-mod "
-                     "messages received by this switch.",
+                     "messages received by this switch so far.",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_flowModCounter),
                      "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("MeterModCounter",
                      "Traced value indicating the number of meter-mod "
-                     "messages received by this switch.",
+                     "messages received by this switch so far.",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_meterModCounter),
                      "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("GroupModCounter",
                      "Traced value indicating the number of group-mod "
-                     "messages received by this switch.",
+                     "messages received by this switch so far.",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_groupModCounter),
                      "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("PacketInCounter",
                      "Traced value indicating the number of packet-in "
-                     "messages sent by this switch.",
+                     "messages sent by this switch so far.",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_packetInCounter),
                      "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("PacketOutCounter",
                      "Traced value indicating the number of packet-out "
-                     "messages received by this switch.",
+                     "messages received by this switch so far.",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_packetOutCounter),
                      "ns3::TracedValueCallback::Uint32")
@@ -508,6 +507,8 @@ OFSwitch13Device::DatapathNew ()
   dp->pipeline = pipeline_create (dp);
   dp->groups = group_table_create (dp);
   dp->meters = meter_table_create (dp);
+
+  m_bufferSize = dp_buffers_size (dp->buffers);
 
   list_init (&dp->port_list);
   dp->ports_num = 0;
@@ -943,7 +944,7 @@ OFSwitch13Device::BufferPacketSave (uint64_t packetId, time_t timeout)
     {
       NS_LOG_DEBUG ("Packet " << packetId << " saved into buffer.");
       m_bufferSaveTrace (m_pktPipe.GetPacket ());
-      m_bufferSize = m_pktsBuffer.size ();
+      m_bufferUsage = (double)m_pktsBuffer.size () / m_bufferSize;
     }
   else
     {
@@ -977,7 +978,7 @@ OFSwitch13Device::BufferPacketRetrieve (uint64_t packetId)
   // Delete packet from buffer.
   NS_LOG_DEBUG ("Packet " << packetId << " removed from buffer.");
   m_pktsBuffer.erase (it);
-  m_bufferSize = m_pktsBuffer.size ();
+  m_bufferUsage = (double)m_pktsBuffer.size () / m_bufferSize;
 }
 
 void
@@ -992,7 +993,7 @@ OFSwitch13Device::BufferPacketDelete (uint64_t packetId)
       NS_LOG_DEBUG ("Expired packet " << packetId << " deleted from buffer.");
       m_bufferExpireTrace (it->second);
       m_pktsBuffer.erase (it);
-      m_bufferSize = m_pktsBuffer.size ();
+      m_bufferUsage = (double)m_pktsBuffer.size () / m_bufferSize;
     }
 }
 
