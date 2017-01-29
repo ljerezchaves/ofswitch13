@@ -136,16 +136,10 @@ main (int argc, char *argv[])
   PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 9));
   ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (1));
 
-  // Enable datapath logs
-  if (verbose)
-    {
-      of13Helper0->EnableDatapathLogs ("all");
-      of13Helper1->EnableDatapathLogs ("all");
-    }
-
-  // Enable pcap traces
+  // Enable pcap traces and datapath log
   if (trace)
     {
+      OFSwitch13Helper::EnableDatapathLogs ();
       of13Helper0->EnableOpenFlowPcap ();
       of13Helper1->EnableOpenFlowPcap ();
       csmaHelper.EnablePcap ("ofswitch", switches, true);

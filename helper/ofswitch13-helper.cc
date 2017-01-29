@@ -152,17 +152,6 @@ OFSwitch13Helper::SetChannelDataRate (DataRate datarate)
     "DataRate", DataRateValue (m_channelDataRate));
 }
 
-void
-OFSwitch13Helper::EnableDatapathLogs (std::string level)
-{
-  NS_LOG_FUNCTION (this << level);
-
-  OFSwitch13DeviceContainer::Iterator it;
-  for (it = m_openFlowDevs.Begin (); it != m_openFlowDevs.End (); it++)
-    {
-      (*it)->SetLibLogLevel (level);
-    }
-}
 
 void
 OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix, bool promiscuous)
@@ -393,6 +382,15 @@ OFSwitch13Helper::CreateOpenFlowChannels (void)
         NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
       }
     }
+}
+
+void
+OFSwitch13Helper::EnableDatapathLogs (std::string prefix)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+  
+  // Saving library logs into 'prefix'-ofsoftswtich13.log file.
+  ofs::EnableLibraryLog (true, prefix);
 }
 
 NetDeviceContainer

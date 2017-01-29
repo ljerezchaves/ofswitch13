@@ -64,14 +64,6 @@ OFSwitch13Device::GetTypeId (void)
                    TimeValue (MilliSeconds (100)),
                    MakeTimeAccessor (&OFSwitch13Device::m_timeout),
                    MakeTimeChecker ())
-    .AddAttribute ("LibLogLevel",
-                   "Set the ofsoftswitch13 library logging level."
-                   "Use 'none' to turn logging off. "
-                   "Use 'all' to maximum verbosity. "
-                   "You can also use a custom ofsoftswitch13 verbosity level.",
-                   StringValue ("none"),
-                   MakeStringAccessor (&OFSwitch13Device::SetLibLogLevel),
-                   MakeStringChecker ())
 
     .AddTraceSource ("PipelinePacket",
                      "Trace source indicating a packet sent to pipeline.",
@@ -255,26 +247,6 @@ OFSwitch13Device::GetNumberFlowEntries (size_t tid) const
       entries = table->stats->active_count;
     }
   return entries;
-}
-
-void
-OFSwitch13Device::SetLibLogLevel (std::string log)
-{
-  NS_LOG_FUNCTION (this << log);
-
-  if (log != "none")
-    {
-      set_program_name ("ns3-ofswitch13");
-      vlog_init ();
-      if (log == "all")
-        {
-          vlog_set_verbosity (0);
-        }
-      else
-        {
-          vlog_set_verbosity (log.c_str ());
-        }
-    }
 }
 
 void

@@ -243,16 +243,10 @@ main (int argc, char *argv[])
       (*appIt)->SetStartTime (Seconds (rngStart->GetValue ()));
     }
 
-  // Enable OpenFlow switches datapath logs
-  if (verbose)
-    {
-      ofLearningHelper->EnableDatapathLogs ("all");
-      ofQosHelper->EnableDatapathLogs ("all");
-    }
-
-  // Enable pcap traces
+  // Enable pcap traces and datapath log
   if (trace)
     {
+      OFSwitch13Helper::EnableDatapathLogs ("qosctlr");
       ofLearningHelper->EnableOpenFlowPcap ();
       ofQosHelper->EnableOpenFlowPcap ();
       csmaHelper.EnablePcap ("qosctrl-ofswitch", switchNodes, true);

@@ -98,6 +98,39 @@ SocketReader::Read (Ptr<Socket> socket)
 
 namespace ofs {
 
+void  
+EnableLibraryLog (bool printToFile, std::string prefix,
+                  bool explicitFilename, std::string customLevels)
+{
+  set_program_name ("ns3-ofswitch13");
+  vlog_init ();
+  vlog_set_levels (VLM_ANY_MODULE, VLF_ANY_FACILITY, VLL_EMER);
+
+  if (printToFile)
+    {
+      std::string filename = prefix;
+      if (!explicitFilename)
+        {
+          if (filename.size ())
+            {
+              filename += "-";
+            }
+          filename += "ofsoftswitch13.log";
+        }
+      vlog_set_levels (VLM_ANY_MODULE, VLF_FILE, VLL_DBG);
+      vlog_set_log_file (filename.c_str ()); 
+    }
+  else
+    {
+      vlog_set_levels (VLM_ANY_MODULE, VLF_CONSOLE, VLL_DBG);
+    }
+
+  if (customLevels.size ())
+    {
+      vlog_set_verbosity (customLevels.c_str ());
+    }
+}
+
 ofpbuf*
 BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
 {

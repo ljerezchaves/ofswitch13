@@ -220,15 +220,10 @@ main (int argc, char *argv[])
   ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (1));
   senderApp.Start (Seconds (1));
 
-  // Enable datapath logs
-  if (verbose)
-    {
-      of13Helper->EnableDatapathLogs ("all");
-    }
-
-  // Enable pcap traces
+  // Enable pcap traces and datapath log
   if (trace)
     {
+      OFSwitch13Helper::EnableDatapathLogs ();
       of13Helper->EnableOpenFlowPcap ();
       csmaHelper.EnablePcap ("ofswitch", switches, true);
       csmaHelper.EnablePcap ("host", hostDevices);

@@ -263,8 +263,12 @@ helper.
 
 The helper allows users to enable PCAP and ASCII traces for the OpenFlow
 channel through methods ``EnableOpenFlowPcap()`` and ``EnableOpenFlowAscii()``,
-respectively. It can also enable the library internal ASCII logs through the
-``EnableDatapathLogs()`` method.
+respectively. These trace files can be used to analyze the OpenFlow messages
+exchanged between switches and controllers that were configured by this helper
+using the ``Install*()`` methods. The helper can also enable the
+``ofsoftswitch13`` library internal logging system through the
+``EnableDatapathLogs()`` static method, which will dump the library log
+messages to an output file.
 
 Attributes
 ==========
@@ -293,10 +297,6 @@ OFSwitch13Device
 * ``DatapathTimeout``: The interval time interval between timeout operations on
   pipeline. At each internal, the device checks if any flow in any table is
   timed out and update port status.
-
-* ``LibLogLevel``: Set the ``ofsoftswitch13`` library logging level. Use *none*
-  to turn logging off, or use *all* to maximum verbosity. You can also use a
-  custom ``ofsoftswitch13`` verbosity argument.
 
 OFSwitch13Port
 ##############
@@ -327,11 +327,20 @@ Output
 ======
 
 This module relies on the |ns3| tracing subsystem for output. The helper allow
-users to enable PCAP and ASCII traces for the ``CsmaNetDevices`` used as switch
-ports and for the OpenFlow channel. It is also possible to enable the internal
-``ofsoftswitch13`` library ASCII logging mechanism, using the
-``EnableDatapathLogs()`` helper function for all devices, or the
-``SetLibLogLevel()`` device function for individual device logging.
+users to enable PCAP and ASCII trace files for the ``NetDevices`` used as
+switch ports and used to create the OpenFlow channel (connecting switches to
+controllers).
+
+It is also possible to enable the internal ``ofsoftswitch13`` library ASCII
+logging mechanism using two different approaches:
+
+* The simplified ``OFSwitch13Helper::EnableDatapathLogs()``
+  static method will dump messages at debug level for all library internal
+  modules into output file (users can set the filename prefix);
+
+* The advanced ``ofs::EnableLibraryLog()`` method allow users to
+  define the target log facility (console of file), set the filename, and also
+  customize the logging levels for different library internal modules. 
 
 .. _port-coding:
 

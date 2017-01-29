@@ -133,6 +133,21 @@ typedef void (*OpenFlowCallback)(Ptr<Packet> packet);
 
 /**
  * \ingroup ofswitch13
+ * Enable the logging system of the ofsoftswitch13 library.
+ * By default, it will configure de logging system for maximum verbose dump on
+ * console. You can set the \p printToFile parameter to dump messages to file
+ * instead. 
+ * \param printToFile Dump log messages to file instead of console.
+ * \param prefix Filename prefix to use for log files.
+ * \param explicitFilename Treat the prefix as an explicit filename if true.
+ * \param customLevels Customize vlog levels.
+ */
+void EnableLibraryLog (bool printToFile = false, std::string prefix = "",
+                       bool explicitFilename = false,
+                       std::string customLevels = "");
+
+/**
+ * \ingroup ofswitch13
  * Create an internal ofsoftswitch13 buffer from ns3::Packet. Takes a
  * Ptr<Packet> and generates a buffer (ofpbuf*) from it, loading the packet
  * data as well as its headers into the buffer.

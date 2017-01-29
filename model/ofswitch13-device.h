@@ -194,12 +194,6 @@ public:
   uint32_t GetNumberFlowEntries (size_t tid) const;
 
   /**
-   * Set the logging level of ofsoftswitch13 library.
-   * \param log String representing library logging level.
-   */
-  void SetLibLogLevel (std::string log);
-
-  /**
    * Starts the TCP connection between this switch and the target controller
    * indicated by the address parameter.
    * \param ctrlAddr The controller address used to open the connection.

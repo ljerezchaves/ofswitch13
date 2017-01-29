@@ -117,13 +117,6 @@ public:
   void SetChannelDataRate (DataRate datarate);
 
   /**
-   * Enable OpenFlow datapath logs at OpenFlow switch devices.
-   *
-   * \param level The log level to use.
-   */
-  void EnableDatapathLogs (std::string level = "all");
-
-  /**
    * Enable pacp traces at OpenFlow channel between controller and switches.
    *
    * \param prefix Filename prefix to use for pcap files.
@@ -133,7 +126,7 @@ public:
                            bool promiscuous = true);
 
   /**
-   * Enable ascii traces at OpenFlow channel between controller and switches.
+   * Enable ASCII traces at OpenFlow channel between controller and switches.
    *
    * \param prefix Filename prefix to use for ascii files.
    */
@@ -200,6 +193,15 @@ public:
    *            more switches or devices using this helper.
    */
   void CreateOpenFlowChannels (void);
+
+  /**
+   * Enable OpenFlow datapath logs at all OpenFlow switch devices on the
+   * simulation. This method will enable vlog system at debug level on the
+   * ofsoftswitch13 library, dumping messages to output file. 
+   *
+   * \param prefix Filename prefix to use for log file.
+   */
+  static void EnableDatapathLogs (std::string prefix = "");
 
 private:
   /**
