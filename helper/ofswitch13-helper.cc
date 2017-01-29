@@ -21,6 +21,7 @@
 #ifdef NS3_OFSWITCH13
 
 #include "ofswitch13-helper.h"
+#include "ofswitch13-stats-calculator.h"
 #include "ns3/ofswitch13-learning-controller.h"
 #include "ns3/uinteger.h"
 #include "ns3/node.h"
@@ -201,6 +202,32 @@ OFSwitch13Helper::EnableOpenFlowAscii (std::string prefix)
       {
         NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
       }
+    }
+}
+
+void
+OFSwitch13Helper::EnableDatapathStats (std::string prefix)
+{
+  NS_LOG_FUNCTION (this << prefix);
+
+  NS_ASSERT_MSG (m_blocked, "OpenFlow channels not configured yet.");
+  NS_ABORT_MSG_UNLESS (prefix.size (), "Empty prefix string.");
+  prefix += "-";
+
+  const std::string suffix = "-stats.log";
+  std::string filename = "";
+  ObjectFactory statsFactory ("ns3::OFSwitch13StatsCalculator");
+  Ptr<OFSwitch13StatsCalculator> statsCalculator;
+
+  OFSwitch13DeviceContainer::Iterator it;
+  for (it = m_openFlowDevs.Begin (); it != m_openFlowDevs.End (); it++)
+    {
+      Ptr<OFSwitch13Device> dev = *it;
+      filename = prefix + std::to_string (dev->GetDatapathId ()) + suffix;
+
+      statsFactory.Set ("OutputFilename", StringValue (filename));
+      statsCalculator = statsFactory.Create<OFSwitch13StatsCalculator> ();
+      statsCalculator->HookSinks (dev);
     }
 }
 
@@ -389,7 +416,7 @@ OFSwitch13Helper::EnableDatapathLogs (std::string prefix,
                                       bool explicitFilename)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  
+
   // Saving library logs into output file.
   ofs::EnableLibraryLog (true, prefix, explicitFilename);
 }

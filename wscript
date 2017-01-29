@@ -84,8 +84,9 @@ def build(bld):
         'model/ofswitch13-queue.cc',
         'model/queue-tag.cc',
         'model/tunnel-id-tag.cc',
+        'helper/ofswitch13-device-container.cc',
         'helper/ofswitch13-helper.cc',
-        'helper/ofswitch13-device-container.cc'
+        'helper/ofswitch13-stats-calculator.cc'
         ]
     module.use.extend('OFSWITCH13'.split())
 
@@ -107,8 +108,9 @@ def build(bld):
         'model/ofswitch13-queue.h',
         'model/queue-tag.h',
         'model/tunnel-id-tag.h',
+        'helper/ofswitch13-device-container.h',
         'helper/ofswitch13-helper.h',
-        'helper/ofswitch13-device-container.h'
+        'helper/ofswitch13-stats-calculator.h'
         ]
 
     if bld.env['ENABLE_EXAMPLES']:

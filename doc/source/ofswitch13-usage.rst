@@ -261,14 +261,9 @@ the connections between switches and controllers. After calling this method,
 you'll not be allowed to install more switches nor controllers using this
 helper.
 
-The helper allows users to enable PCAP and ASCII traces for the OpenFlow
-channel through methods ``EnableOpenFlowPcap()`` and ``EnableOpenFlowAscii()``,
-respectively. These trace files can be used to analyze the OpenFlow messages
-exchanged between switches and controllers that were configured by this helper
-using the ``Install*()`` methods. The helper can also enable the
-``ofsoftswitch13`` library internal logging system through the
-``EnableDatapathLogs()`` static method, which will dump the library log
-messages to an output file.
+This helper also allow users to enable some module outputs that can be used for
+traffic monitoring and performance evaluation. Please, check the :ref:`output`
+section for detailed information.
 
 Attributes
 ==========
@@ -323,24 +318,70 @@ OFSwitch13Helper
 
 * ``ChannelDataRate``: The data rate to be used for the OpenFlow channel.
 
+OFSwitch13StatsCalculator
+#########################
+
+* ``OutputFilename``: The filename used to save OpenFlow switch datapath
+  performance statistics.
+
+* ``DumpTimeout``: The interval between successive dump operations.
+
+* ``EwmaAlpha``: The EWMA alpha parameter, which is the weight given to the
+  most recent measured value when updating average metrics.
+
+.. _output:
+
 Output
 ======
 
-This module relies on the |ns3| tracing subsystem for output. The helper allow
-users to enable PCAP and ASCII trace files for the ``NetDevices`` used as
-switch ports and used to create the OpenFlow channel (connecting switches to
-controllers).
+This module relies on the |ns3| tracing subsystem for output. The
+``OFSwitch13Helper`` class allows users to monitor control-plane traffic by
+enabling PCAP and ASCII trace files for the ``NetDevices`` used to create the
+OpenFlow Channel (using methods ``EnableOpenFlowPcap()`` and
+``EnableOpenFlowAscii()``, respectively). This can be useful to analyze the
+OpenFlow messages exchanged between switches and controllers that were
+configured by this helper using the ``Install*()`` methods. It is also
+possible to enable PCAP and ASCII trace files to monitor data-plane traffic on
+switch ports using the standard ``CsmaHelper`` trace functions.
 
-It is also possible to enable the internal ``ofsoftswitch13`` library ASCII
-logging mechanism using two different approaches:
+For performance evaluation, the ``OFSwitch13StatsCalculator`` class can monitor
+statistics of an OpenFlow switch datapath. The instances of this class connect
+to a collection of trace sources in the switch device and periodically dumps
+the following datapath metrics on the output file:
 
-* The simplified ``OFSwitch13Helper::EnableDatapathLogs()``
-  static method will dump messages at debug level for all library internal
-  modules into output file (users can set the filename prefix);
+#. Packets per second sent to the pipeline;
+#. Packets per second dropped by meter bands;
+#. Kbits per second of data processed by the pipeline;
+#. Flow-mod per second operations executed by the switch;
+#. Meter-mod per second operations executed by the switch;
+#. Group-mod per second operations executed by the OpenFlow switch;
+#. Packets-in per second sent from the switch to the controller;
+#. Packets-out per second sent from the controller to the switch;
+#. Average switch buffer space usage (percent);
+#. Average number of flow entries in pipeline tables;
+#. Average number of meter entries in meter table;
+#. Average number of group entries in group table;
+#. Average pipeline lookup delay for packet processing (nanoseconds).
 
-* The advanced ``ofs::EnableLibraryLog()`` method allow users to
-  define the target log facility (console of file), set the filename, and also
-  customize the logging levels for different library internal modules. 
+To enable performance monitoring, just call the ``EnableDatapathStats()``
+helper member function *after* configuring the switches and creating the
+OpenFlow channels. By default, statistics are dumped every second, but users
+can adjust this timeout changing the ``OFSwitch13StatsCalculator::DumpTimeout``
+attribute. Besides, for the average metrics, an Exponentially Weighted Moving
+Average (EWMA) is used to update the values, and the attribute
+``OFSwitch13StatsCalculator::EwmaAlpha`` can be adjusted to reflect the desired
+weight given to most recent measured values.
+
+When necessary, it is also possible to enable the internal ``ofsoftswitch13``
+library ASCII logging mechanism using two different approaches:
+
+#. The simplified ``OFSwitch13Helper::EnableDatapathLogs()``
+   static method will dump messages at debug level for all library internal
+   modules into output file (users can set the filename prefix);
+
+#. The advanced ``ofs::EnableLibraryLog()`` method allow users to
+   define the target log facility (console of file), set the filename, and also
+   customize the logging levels for different library internal modules.
 
 .. _port-coding:
 

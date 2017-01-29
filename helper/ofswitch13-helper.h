@@ -133,6 +133,15 @@ public:
   void EnableOpenFlowAscii (std::string prefix = "ofchannel");
 
   /**
+   * Enable OpenFlow datapath statistics at OpenFlow switch devices configured
+   * by this helper. This method will create an OFSwitch13StatsCalculator for
+   * each switch device, dumping statistcs to output files.
+   *
+   * \param prefix Filename prefix to use for stats files.
+   */
+  void EnableDatapathStats (std::string prefix = "datapath");
+
+  /**
    * Set the IP network base address, used to assign IP addresses to switches
    * and controllers during the CreateOpenFlowChannels () procedure.
    *
@@ -197,9 +206,9 @@ public:
   /**
    * Enable OpenFlow datapath logs at all OpenFlow switch devices on the
    * simulation. This method will enable vlog system at debug level on the
-   * ofsoftswitch13 library, dumping messages to output file. 
+   * ofsoftswitch13 library, dumping messages to output file.
    *
-   * \param prefix Filename prefix to use for log files.
+   * \param prefix Filename prefix to use for log file.
    * \param explicitFilename Treat the prefix as an explicit filename if true.
    */
   static void EnableDatapathLogs (std::string prefix = "",
