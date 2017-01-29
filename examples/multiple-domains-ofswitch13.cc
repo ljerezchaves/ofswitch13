@@ -55,6 +55,8 @@ main (int argc, char *argv[])
 
   if (verbose)
     {
+      OFSwitch13Helper::EnableDatapathLogs ();
+
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
@@ -136,12 +138,13 @@ main (int argc, char *argv[])
   PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 9));
   ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (1));
 
-  // Enable pcap traces and datapath log
+  // Enable pcap traces and datapath stats
   if (trace)
     {
-      OFSwitch13Helper::EnableDatapathLogs ();
       of13Helper0->EnableOpenFlowPcap ();
       of13Helper1->EnableOpenFlowPcap ();
+      of13Helper0->EnableDatapathStats ();
+      of13Helper1->EnableDatapathStats ();
       csmaHelper.EnablePcap ("ofswitch", switches, true);
       csmaHelper.EnablePcap ("host", hostDevices);
     }

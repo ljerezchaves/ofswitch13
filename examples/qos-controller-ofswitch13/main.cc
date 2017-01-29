@@ -83,6 +83,8 @@ main (int argc, char *argv[])
 
   if (verbose)
     {
+      OFSwitch13Helper::EnableDatapathLogs ();
+
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
@@ -243,12 +245,13 @@ main (int argc, char *argv[])
       (*appIt)->SetStartTime (Seconds (rngStart->GetValue ()));
     }
 
-  // Enable pcap traces and datapath log
+  // Enable pcap traces and datapath stats
   if (trace)
     {
-      OFSwitch13Helper::EnableDatapathLogs ("qosctlr");
       ofLearningHelper->EnableOpenFlowPcap ();
+      ofLearningHelper->EnableDatapathStats ();
       ofQosHelper->EnableOpenFlowPcap ();
+      ofQosHelper->EnableDatapathStats ();
       csmaHelper.EnablePcap ("qosctrl-ofswitch", switchNodes, true);
       csmaHelper.EnablePcap ("qosctrl-server", serverDevices);
       csmaHelper.EnablePcap ("qosctrl-client", clientDevices);
