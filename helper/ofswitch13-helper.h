@@ -199,9 +199,11 @@ public:
    * simulation. This method will enable vlog system at debug level on the
    * ofsoftswitch13 library, dumping messages to output file. 
    *
-   * \param prefix Filename prefix to use for log file.
+   * \param prefix Filename prefix to use for log files.
+   * \param explicitFilename Treat the prefix as an explicit filename if true.
    */
-  static void EnableDatapathLogs (std::string prefix = "");
+  static void EnableDatapathLogs (std::string prefix = "",
+                                  bool explicitFilename = false);
 
 private:
   /**

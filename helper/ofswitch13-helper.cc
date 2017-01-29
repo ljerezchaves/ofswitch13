@@ -385,12 +385,13 @@ OFSwitch13Helper::CreateOpenFlowChannels (void)
 }
 
 void
-OFSwitch13Helper::EnableDatapathLogs (std::string prefix)
+OFSwitch13Helper::EnableDatapathLogs (std::string prefix,
+                                      bool explicitFilename)
 {
   NS_LOG_FUNCTION_NOARGS ();
   
-  // Saving library logs into 'prefix'-ofsoftswtich13.log file.
-  ofs::EnableLibraryLog (true, prefix);
+  // Saving library logs into output file.
+  ofs::EnableLibraryLog (true, prefix, explicitFilename);
 }
 
 NetDeviceContainer
