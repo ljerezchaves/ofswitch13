@@ -98,7 +98,7 @@ SocketReader::Read (Ptr<Socket> socket)
 
 namespace ofs {
 
-void  
+void
 EnableLibraryLog (bool printToFile, std::string prefix,
                   bool explicitFilename, std::string customLevels)
 {
@@ -118,7 +118,7 @@ EnableLibraryLog (bool printToFile, std::string prefix,
           filename += "ofsoftswitch13.log";
         }
       vlog_set_levels (VLM_ANY_MODULE, VLF_FILE, VLL_DBG);
-      vlog_set_log_file (filename.c_str ()); 
+      vlog_set_log_file (filename.c_str ());
     }
   else
     {

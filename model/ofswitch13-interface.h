@@ -136,7 +136,7 @@ typedef void (*OpenFlowCallback)(Ptr<Packet> packet);
  * Enable the logging system of the ofsoftswitch13 library.
  * By default, it will configure de logging system for maximum verbose dump on
  * console. You can set the \p printToFile parameter to dump messages to file
- * instead. 
+ * instead.
  * \param printToFile Dump log messages to file instead of console.
  * \param prefix Filename prefix to use for log files.
  * \param explicitFilename Treat the prefix as an explicit filename if true.
