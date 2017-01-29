@@ -29,6 +29,8 @@ Release 3.0.0 (Place the date here)
 - Removing from the OpenFlow device the controller address attribute. It now
   must be indicated by the helper as a parameter to StartControllerConnection.
 
+- Create the OFSwitch13StatsCalculator for switch performance monitoring.
+
 - Create the SocketReader class to read OpenFlow messages from TCP sockets in
   safe and independently way.
 
