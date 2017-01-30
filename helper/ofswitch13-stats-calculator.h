@@ -31,19 +31,19 @@ namespace ns3 {
  * statistics and save write them to an output file. This stats calculator
  * connects to a collection of trace sources in the OpenFlow switch device to
  * monitor the following metrics:
- * 1) Packets per second sent to the pipeline;
- * 2) Packets per second dropped by meter bands;
- * 3) Kbits per second of data processed by the pipeline;
- * 4) Flow-mod per second operations executed by the switch;
- * 5) Meter-mod per second operations executed by the switch;
- * 6) Group-mod per second operations executed by the OpenFlow switch;
- * 7) Packets-in per second sent from the switch to the controller;
- * 8) Packets-out per second sent from the controller to the switch;
- * 9) Average switch buffer space usage (percent);
- * 10) Average number of flow entries in pipeline tables;
- * 11) Average number of meter entries in meter table;
- * 12) Average number of group entries in group table;
- * 13) Average pipeline lookup delay for packet processing (nanoseconds).
+ *  -# Packets per second sent to the pipeline;
+ *  -# Packets per second dropped by meter bands;
+ *  -# Kbits per second of data processed by the pipeline;
+ *  -# Flow-mod per second operations executed by the switch;
+ *  -# Meter-mod per second operations executed by the switch;
+ *  -# Group-mod per second operations executed by the OpenFlow switch;
+ *  -# Packets-in per second sent from the switch to the controller;
+ *  -# Packets-out per second sent from the controller to the switch;
+ *  -# Average switch buffer space usage (percent);
+ *  -# Average number of flow entries in pipeline tables;
+ *  -# Average number of meter entries in meter table;
+ *  -# Average number of group entries in group table;
+ *  -# Average pipeline lookup delay for packet processing (nanoseconds).
  */
 class OFSwitch13StatsCalculator : public Object
 {
@@ -72,6 +72,7 @@ protected:
 
 private:
   /**
+   * \name Trace sinks for monitoring pipeline packets.
    * Trace sinks used to monitor for packets sent to the OpenFlow pipeline and
    * packets dropped by meter bands.
    * \param packet The packet.
@@ -82,7 +83,8 @@ private:
   //\}
 
   /**
-   * Trace sinks used to monitor OpenFlow datapath internal counters.
+   * \name Trace sinks for monitoring traced values.
+   * Trace sinks used to monitor traced values on the OpenFlow switch datapath.
    * \param oldValue The old value.
    * \param newValue The new just updated value.
    */
@@ -100,6 +102,7 @@ private:
   //\}
 
   /**
+   * \name Statistics calculators.
    * Functions used to calculate average metric values based on data collected
    * since the last dump operation.
    * \return The requested average metric value.
@@ -142,7 +145,7 @@ private:
   Time                      m_lastDump;     //!< Last dump time
   double                    m_alpha;        //!< EWMA alpha parameter
 
-  /** Internal counters. */
+  /** \name Internal counters. */
   //\{
   uint32_t m_pipelinePackets;
   uint32_t m_pipelineBytes;
