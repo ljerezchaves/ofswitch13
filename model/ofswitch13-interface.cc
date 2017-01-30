@@ -105,6 +105,7 @@ EnableLibraryLog (bool printToFile, std::string prefix,
   set_program_name ("ns3-ofswitch13");
   vlog_init ();
   vlog_set_levels (VLM_ANY_MODULE, VLF_ANY_FACILITY, VLL_EMER);
+  vlog_set_pattern (VLF_ANY_FACILITY, "%d{%ss} [%c|%p] %m");
 
   if (printToFile)
     {
