@@ -111,7 +111,7 @@ EnableLibraryLog (bool printToFile, std::string prefix,
       std::string filename = prefix;
       if (!explicitFilename)
         {
-          if (filename.size ())
+          if (filename.size () && filename.back () != '-')
             {
               filename += "-";
             }
