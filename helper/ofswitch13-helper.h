@@ -138,8 +138,10 @@ public:
    * each switch device, dumping statistcs to output files.
    *
    * \param prefix Filename prefix to use for stats files.
+   * \param useNodeNames Use node names instead of datapath id.
    */
-  void EnableDatapathStats (std::string prefix = "datapath");
+  void EnableDatapathStats (std::string prefix = "datapath",
+                            bool useNodeNames = false);
 
   /**
    * Set the IP network base address, used to assign IP addresses to switches

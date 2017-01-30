@@ -206,24 +206,43 @@ OFSwitch13Helper::EnableOpenFlowAscii (std::string prefix)
 }
 
 void
-OFSwitch13Helper::EnableDatapathStats (std::string prefix)
+OFSwitch13Helper::EnableDatapathStats (std::string prefix, bool useNodeNames)
 {
   NS_LOG_FUNCTION (this << prefix);
 
   NS_ASSERT_MSG (m_blocked, "OpenFlow channels not configured yet.");
-  NS_ABORT_MSG_UNLESS (prefix.size (), "Empty prefix string.");
-  prefix += "-";
 
-  const std::string suffix = "-stats.log";
-  std::string filename = "";
+  NS_ABORT_MSG_UNLESS (prefix.size (), "Empty prefix string.");
+  if (prefix.back () != '-')
+    {
+      prefix += "-";
+    }
+
   ObjectFactory statsFactory ("ns3::OFSwitch13StatsCalculator");
   Ptr<OFSwitch13StatsCalculator> statsCalculator;
+  const std::string extension = ".log";
 
   OFSwitch13DeviceContainer::Iterator it;
   for (it = m_openFlowDevs.Begin (); it != m_openFlowDevs.End (); it++)
     {
       Ptr<OFSwitch13Device> dev = *it;
-      filename = prefix + std::to_string (dev->GetDatapathId ()) + suffix;
+      std::string filename = prefix;
+      std::string nodename;
+
+      if (useNodeNames)
+        {
+          Ptr<Node> node = dev->GetObject<Node> ();
+          nodename = Names::FindName (node);
+        }
+      if (nodename.size ())
+        {
+          filename += nodename;
+        }
+      else
+        {
+          filename += std::to_string (dev->GetDatapathId ());
+        }
+      filename += extension;
 
       statsFactory.Set ("OutputFilename", StringValue (filename));
       statsCalculator = statsFactory.Create<OFSwitch13StatsCalculator> ();
