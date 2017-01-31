@@ -21,11 +21,11 @@
 #ifndef OFSWITCH13_DEVICE_H
 #define OFSWITCH13_DEVICE_H
 
-#include "ns3/socket.h"
-#include "ns3/uinteger.h"
-#include "ns3/inet-socket-address.h"
-#include "ns3/string.h"
-#include "ns3/tcp-header.h"
+#include <ns3/socket.h>
+#include <ns3/uinteger.h>
+#include <ns3/inet-socket-address.h>
+#include <ns3/string.h>
+#include <ns3/tcp-header.h>
 #include "ofswitch13-interface.h"
 #include "ofswitch13-port.h"
 

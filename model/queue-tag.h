@@ -21,7 +21,7 @@
 #ifndef QUEUE_TAG_H
 #define QUEUE_TAG_H
 
-#include "ns3/tag.h"
+#include <ns3/tag.h>
 
 namespace ns3 {
 

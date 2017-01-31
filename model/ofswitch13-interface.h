@@ -31,13 +31,13 @@
 #ifndef OFSWITCH13_INTERFACE_H
 #define OFSWITCH13_INTERFACE_H
 
-#include <assert.h>
+#include <cassert>
 
-#include "ns3/simulator.h"
-#include "ns3/log.h"
-#include "ns3/packet.h"
-#include "ns3/csma-module.h"
-#include "ns3/socket.h"
+#include <ns3/simulator.h>
+#include <ns3/log.h>
+#include <ns3/packet.h>
+#include <ns3/csma-module.h>
+#include <ns3/socket.h>
 
 #include <boost/static_assert.hpp>
 #include "openflow/openflow.h"

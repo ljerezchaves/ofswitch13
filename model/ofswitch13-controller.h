@@ -21,8 +21,8 @@
 #ifndef OFSWITCH13_CONTROLLER_H
 #define OFSWITCH13_CONTROLLER_H
 
-#include "ns3/application.h"
-#include "ns3/socket.h"
+#include <ns3/application.h>
+#include <ns3/socket.h>
 #include "ofswitch13-interface.h"
 #include <string>
 

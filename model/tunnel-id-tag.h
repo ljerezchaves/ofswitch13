@@ -21,7 +21,7 @@
 #ifndef TUNNEL_ID_TAG_H
 #define TUNNEL_ID_TAG_H
 
-#include "ns3/tag.h"
+#include <ns3/tag.h>
 
 namespace ns3 {
 

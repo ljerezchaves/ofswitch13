@@ -21,7 +21,7 @@
 #define NS_LOG_APPEND_CONTEXT \
   if (m_dpId) { std::clog << "[dp " << m_dpId << "] "; }
 
-#include "ns3/object-vector.h"
+#include <ns3/object-vector.h>
 #include "ofswitch13-device.h"
 
 namespace ns3 {

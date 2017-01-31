@@ -19,7 +19,7 @@
  */
 
 #include "ofswitch13-device-container.h"
-#include "ns3/names.h"
+#include <ns3/names.h>
 
 namespace ns3 {
 
