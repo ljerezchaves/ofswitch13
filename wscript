@@ -90,13 +90,6 @@ def build(bld):
         ]
     module.use.extend('OFSWITCH13'.split())
 
-    module_test = bld.create_ns3_module_test_library('ofswitch13')
-    module_test.source = [
-        'test/ofswitch13-simple-transmission.cc',
-        'test/ofswitch13-dual-controller.cc'
-        ]
-    module_test.use.extend('OFSWITCH13'.split())
-
     headers = bld(features='ns3header')
     headers.module = 'ofswitch13'
     headers.source = [
