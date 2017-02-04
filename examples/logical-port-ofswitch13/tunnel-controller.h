@@ -42,7 +42,7 @@ class TunnelController : public OFSwitch13Controller
 {
 public:
   TunnelController ();           //!< Default constructor
-  virtual ~TunnelController ();  //!< Dummy destructor, see DoDipose
+  virtual ~TunnelController ();  //!< Dummy destructor, see DoDispose
 
   /**
    * Register this type.

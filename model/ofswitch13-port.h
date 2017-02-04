@@ -46,7 +46,7 @@ class OFSwitch13Port : public Object
 {
 public:
   OFSwitch13Port ();            //!< Default constructor
-  virtual ~OFSwitch13Port ();   //!< Dummy destructor, see DoDipose
+  virtual ~OFSwitch13Port ();   //!< Dummy destructor, see DoDispose
 
   /**
    * Register this type.
