@@ -57,6 +57,7 @@ main (int argc, char *argv[])
 
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
@@ -91,7 +92,7 @@ main (int argc, char *argv[])
     }
 
   // Configure the OpenFlow network
-  Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
+  Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper> ();
   of13Helper->InstallController (controllerNode);
   of13Helper->InstallSwitch (switchNode, switchPorts);
   of13Helper->CreateOpenFlowChannels ();

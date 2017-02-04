@@ -48,9 +48,9 @@ class OFSwitch13LearningController;
 /**
  * \ingroup ofswitch13
  *
- * This helper can be used to create and configure an OpenFlow 1.3 network
- * domain, composed of one or more OpenFlow switches connected to a single or
- * multiple controllers.
+ * This is a base class that must be extended to create and configure an
+ * OpenFlow 1.3 network domain composed of one or more OpenFlow switches
+ * connected to single or multiple OpenFlow controllers.
  *
  * By default, the connections between switches and controllers are created
  * using a single shared out-of-band CSMA channel, with IP addresses assigned
@@ -59,19 +59,20 @@ class OFSwitch13LearningController;
  * connections over CSMA or Point-to-Point channels are also available, using a
  * /30 network mask for IP allocation.
  *
- * Note that this helper was designed to configure a single OpenFlow network
- * domain. All switches will be connected to all controllers on the same
- * domain. If you want to configure separated OpenFlow domains on your network
- * topology (with their individual switches and controllers) so you may need
- * to use a different instance of this helper for each domain. In this case,
- * don't forget to use the SetAddressBase () method to change the IP network
- * address for the other helper instances, in order to avoid IP conflicts.
+ * Please note that this base helper class was designed to configure a single
+ * OpenFlow network domain. All switches will be connected to all controllers
+ * on the same domain. If you want to configure separated OpenFlow domains on
+ * your network topology (with their individual switches and controllers) so
+ * you may need to use a different instance of the derived helper class for
+ * each domain. In this case, don't forget to use the SetAddressBase ()
+ * method to change the IP network address of the other helper instances, in
+ * order to avoid IP conflicts.
  */
 class OFSwitch13Helper : public Object
 {
 public:
   /**
-   * OpenFlow channel type, used to create the connections
+   * OpenFlow channel type, used to create the connections.
    * between controllers and switches.
    */
   enum ChannelType
@@ -80,9 +81,6 @@ public:
     DEDICATEDCSMA = 1,    //!< Uses individual CSMA channels.
     DEDICATEDP2P = 2      //!< Uses individual P2P channels.
   };
-
-  OFSwitch13Helper ();          //!< Default constructor.
-  virtual ~OFSwitch13Helper (); //!< Dummy destructor, see DoDispose.
 
   /**
    * Register this type.
@@ -175,31 +173,6 @@ public:
   OFSwitch13DeviceContainer InstallSwitch (NodeContainer swNodes);
 
   /**
-   * This method installs the given controller application into the given
-   * controller node. If no application is given, a new (default) learning
-   * controller application is created and installed into controller node.
-   *
-   * \param cNode The node to configure as controller.
-   * \param controller The controller application to install into cNode
-   * \return The installed controller application.
-   */
-  Ptr<OFSwitch13Controller> InstallController (Ptr<Node> cNode,
-    Ptr<OFSwitch13Controller> controller =
-      CreateObject<OFSwitch13LearningController> ());
-
-  /**
-   * This method installs the TCP/IP stack into switches and controller nodes
-   * configured by this helper, then creates and installs the devices and
-   * channels that will be used to interconnect all switches to all controllers
-   * according to previously configuration. Finally, it starts the individual
-   * OpenFlow channel connections.
-   *
-   * \attention After calling this method, it will not be allowed to install
-   *            more switches or devices using this helper.
-   */
-  void CreateOpenFlowChannels (void);
-
-  /**
    * Enable OpenFlow datapath logs at all OpenFlow switch devices on the
    * simulation. This method will enable vlog system at debug level on the
    * ofsoftswitch13 library, dumping messages to output file.
@@ -211,32 +184,20 @@ public:
                                   bool explicitFilename = false);
 
 protected:
+  OFSwitch13Helper ();          //!< Default constructor.
+  virtual ~OFSwitch13Helper (); //!< Dummy destructor, see DoDispose.
+
   /** Destructor implementation. */
-  virtual void DoDispose ();
+  virtual void DoDispose () ;
 
-private:
-  /**
-   * Create an individual connection between the switch and the controller
-   * node, using the already configured channel type.
-   *
-   * \param swtch The switch node.
-   * \param ctrl The controller node.
-   * \return The devices created on both nodes.
-   */
-  NetDeviceContainer Connect (Ptr<Node> swtch, Ptr<Node> ctrl);
-
-protected:
   ChannelType               m_channelType;      //!< OF channel type.
   DataRate                  m_channelDataRate;  //!< OF channel data rate.
   ObjectFactory             m_devFactory;       //!< OF device factory.
   bool                      m_blocked;          //!< Block this helper.
 
+  NetDeviceContainer        m_controlDevs;      //!< OF channel ctrl devices.
   OFSwitch13DeviceContainer m_openFlowDevs;     //!< OF switch devices.
   NodeContainer             m_switchNodes;      //!< OF switch nodes.
-
-  ApplicationContainer      m_controlApps;      //!< OF controller apps.
-  NodeContainer             m_controlNodes;     //!< OF controller nodes.
-  NetDeviceContainer        m_controlDevs;      //!< OF channel ctrl devices.
 
   InternetStackHelper       m_internet;         //!< Helper for TCP/IP stack.
   Ipv4AddressHelper         m_ipv4helper;       //!< Helper for IP address.

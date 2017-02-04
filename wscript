@@ -86,6 +86,7 @@ def build(bld):
         'model/tunnel-id-tag.cc',
         'helper/ofswitch13-device-container.cc',
         'helper/ofswitch13-helper.cc',
+        'helper/ofswitch13-internal-helper.cc',
         'helper/ofswitch13-stats-calculator.cc'
         ]
     module.use.extend('OFSWITCH13'.split())
@@ -103,6 +104,7 @@ def build(bld):
         'model/tunnel-id-tag.h',
         'helper/ofswitch13-device-container.h',
         'helper/ofswitch13-helper.h',
+        'helper/ofswitch13-internal-helper.h',
         'helper/ofswitch13-stats-calculator.h'
         ]
 

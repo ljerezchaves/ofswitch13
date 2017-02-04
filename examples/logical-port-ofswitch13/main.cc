@@ -64,6 +64,7 @@ main (int argc, char *argv[])
 
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Port", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
@@ -93,7 +94,8 @@ main (int argc, char *argv[])
   Ptr<Node> controllerNode = CreateObject<Node> ();
 
   // Starting the OpenFlow network configuration
-  Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
+  Ptr<OFSwitch13InternalHelper> of13Helper =
+    CreateObject<OFSwitch13InternalHelper> ();
   Ptr<TunnelController> ofController = CreateObject<TunnelController> ();
   of13Helper->InstallController (controllerNode, ofController);
   OFSwitch13DeviceContainer ofDevices = of13Helper->InstallSwitch (switches);
