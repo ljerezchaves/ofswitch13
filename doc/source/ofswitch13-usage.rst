@@ -217,20 +217,21 @@ OFSwitch13Helper
 The single ``OFSwitch13helper`` follows the pattern usage of normal helpers.
 It can be used to create and configure an OpenFlow 1.3 network domain, composed
 of one or more OpenFlow switches connected to a single or multiple controllers.
-It is possible to create the connections between switches and controllers using
-a single shared out-of-band CSMA channel (default option), but users can change
-the ``ChannelType`` attribute to create individual connections between
-controllers and switches, using either out-of-band CSMA or point-to-point
-links. The use of standard |ns3| channels and devices provides realistic
-connections with delay and error models.
+By default, the connections between switches and controllers are created
+using a single shared out-of-band CSMA channel, with IP addresses assigned
+using a /24 network mask. Users can modify this configuration by changing the
+ChannelType attribute at instantiation time. Dedicated out-of-band connections
+over CSMA or Point-to-Point channels are also available, using a /30 network
+mask for IP allocation. The use of standard |ns3| channels and devices provides
+realistic connections with delay and error models.
 
 This helper was designed to configure a single OpenFlow network domain. All
 switches will be connected to all controllers on the same domain. If you want
 to configure separated OpenFlow domains on your network topology (with their
-individual switches and controllers) so you may need to use a different
-instance of this helper for each domain. Don't forget to use the
-``SetAddressBase()`` method to change the IP network address of the second
-helper instance onwards, in order to avoid IP conflicts.
+    individual switches and controllers) so you may need to use a different
+instance of this helper for each domain. In this case, don't forget to use the
+``SetAddressBase()`` method to change the IP network address of the other
+helper instances, in order to avoid IP conflicts.
 
 To configure the controller, the ``InstallController()`` method can be used to
 create a new learning controller application and install it into the controller

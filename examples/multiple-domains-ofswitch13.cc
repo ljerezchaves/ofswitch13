@@ -116,7 +116,7 @@ main (int argc, char *argv[])
   of13Helper0->CreateOpenFlowChannels ();
 
   Ptr<OFSwitch13Helper> of13Helper1 = CreateObject<OFSwitch13Helper> ();
-  of13Helper1->SetAddressBase ("10.100.151.0", "255.255.255.0");
+  of13Helper1->SetAddressBase ("10.100.151.0");
   of13Helper1->InstallController (controllers.Get (1));
   of13Helper1->InstallSwitch (switches.Get (1), switchPorts [1]);
   of13Helper1->CreateOpenFlowChannels ();

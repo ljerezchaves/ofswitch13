@@ -50,29 +50,29 @@ class OFSwitch13LearningController;
  *
  * This helper can be used to create and configure an OpenFlow 1.3 network
  * domain, composed of one or more OpenFlow switches connected to a single or
- * multiple controllers. By default, the connections between switches and
- * controllers are created using a single shared out-of-band CSMA channel, but
- * users can modify this by changing the ChannelType attribute (point-to-point
- * out-of-band connections over CSMA or Point-to-Point channels are available).
+ * multiple controllers.
  *
- * \note Note that this helper was designed to configure a single OpenFlow
- *       network domain. All switches will be connected to all controllers on
- *       the same domain. If you want to configure separated OpenFlow domains
- *       on your network topology (with their individual switches and
- *       controllers) so you may need to use a different instance of this
- *       helper for each domain. Don't forget to use the SetAddressBase ()
- *       method to change the IP network address for each helper instance, in
- *       order to avoid IP conflicts.
+ * By default, the connections between switches and controllers are created
+ * using a single shared out-of-band CSMA channel, with IP addresses assigned
+ * using a /24 network mask. Users can modify this configuration by changing
+ * the ChannelType attribute at instantiation time. Dedicated out-of-band
+ * connections over CSMA or Point-to-Point channels are also available, using a
+ * /30 network mask for IP allocation.
  *
- * \attention This helper extends the Object class, and should be created with
- *            the CreateObject method.
+ * Note that this helper was designed to configure a single OpenFlow network
+ * domain. All switches will be connected to all controllers on the same
+ * domain. If you want to configure separated OpenFlow domains on your network
+ * topology (with their individual switches and controllers) so you may need
+ * to use a different instance of this helper for each domain. In this case,
+ * don't forget to use the SetAddressBase () method to change the IP network
+ * address for the other helper instances, in order to avoid IP conflicts.
  */
 class OFSwitch13Helper : public Object
 {
 public:
   /**
-   * OpenFlow channel type, used to create the connections between controllers
-   * and switches.
+   * OpenFlow channel type, used to create the connections
+   * between controllers and switches.
    */
   enum ChannelType
   {
@@ -82,16 +82,13 @@ public:
   };
 
   OFSwitch13Helper ();          //!< Default constructor.
-  virtual ~OFSwitch13Helper (); //!< Dummy destructor, see DoDipose.
+  virtual ~OFSwitch13Helper (); //!< Dummy destructor, see DoDispose.
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
   static TypeId GetTypeId (void);
-
-  /** Destructor implementation. */
-  virtual void DoDispose ();
 
   /**
    * Set an attribute on each OpenFlow device created by this helper.
@@ -110,14 +107,21 @@ public:
   void SetChannelType (ChannelType type);
 
   /**
-   * Set the OpenFlow channel data rate.
+   * Set the IP network base address, used to assign IP addresses to switches
+   * and controllers during the CreateOpenFlowChannels () procedure. Network
+   * mask is automatically selected based on channel type configuration.
    *
-   * \param datarate The DataRate to use.
+   * \param network The Ipv4Address containing the initial network number to
+   *        use during allocation.
+   * \param base An optional Ipv4Address containing the initial address used
+   *        for IP address allocation.
    */
-  void SetChannelDataRate (DataRate datarate);
+  void SetAddressBase (Ipv4Address network, Ipv4Address base = "0.0.0.1");
 
   /**
    * Enable pacp traces at OpenFlow channel between controller and switches.
+   *
+   * \attention Call this method only after configuring the OpenFlow channels.
    *
    * \param prefix Filename prefix to use for pcap files.
    * \param promiscuous If true, enable promisc trace.
@@ -128,6 +132,8 @@ public:
   /**
    * Enable ASCII traces at OpenFlow channel between controller and switches.
    *
+   * \attention Call this method only after configuring the OpenFlow channels.
+   *
    * \param prefix Filename prefix to use for ascii files.
    */
   void EnableOpenFlowAscii (std::string prefix = "ofchannel");
@@ -137,25 +143,13 @@ public:
    * by this helper. This method will create an OFSwitch13StatsCalculator for
    * each switch device, dumping statistcs to output files.
    *
+   * \attention Call this method only after configuring the OpenFlow channels.
+   *
    * \param prefix Filename prefix to use for stats files.
    * \param useNodeNames Use node names instead of datapath id.
    */
   void EnableDatapathStats (std::string prefix = "datapath",
                             bool useNodeNames = false);
-
-  /**
-   * Set the IP network base address, used to assign IP addresses to switches
-   * and controllers during the CreateOpenFlowChannels () procedure.
-   *
-   * \param network The Ipv4Address containing the initial network number to
-   *        use during allocation.
-   * \param mask The Ipv4Mask containing one bits in each bit position of the
-   *        network number.
-   * \param base An optional Ipv4Address containing the initial address used
-   *        for IP address allocation.
-   */
-  void SetAddressBase (Ipv4Address network, Ipv4Mask mask,
-    Ipv4Address base = "0.0.0.1");
 
   /**
    * This method creates an OpenFlow device and aggregates it to the switch
@@ -216,6 +210,10 @@ public:
   static void EnableDatapathLogs (std::string prefix = "",
                                   bool explicitFilename = false);
 
+protected:
+  /** Destructor implementation. */
+  virtual void DoDispose ();
+
 private:
   /**
    * Create an individual connection between the switch and the controller
@@ -244,7 +242,6 @@ protected:
   Ipv4AddressHelper         m_ipv4helper;       //!< Helper for IP address.
   CsmaHelper                m_csmaHelper;       //!< Helper for CSMA links.
   PointToPointHelper        m_p2pHelper;        //!< Helper for P2P links.
-  Ptr<CsmaChannel>          m_csmaChannel;      //!< Common CSMA OF channel.
 };
 
 } // namespace ns3
