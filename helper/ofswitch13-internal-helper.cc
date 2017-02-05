@@ -158,14 +158,14 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels (void)
                 Ptr<Node> ctNode = m_controlNodes.Get (ctIdx);
                 Ptr<Application> ctApp = m_controlApps.Get (ctIdx);
 
-                NetDeviceContainer pairDevs = Connect (swNode, ctNode);
-                m_controlDevs.Add (pairDevs.Get (1));
+                NetDeviceContainer pairDevs = Connect (ctNode, swNode);
+                m_controlDevs.Add (pairDevs.Get (0));
                 Ipv4InterfaceContainer pairIfaces =
                   m_ipv4helper.Assign (pairDevs);
 
                 // Start this single connection between switch and controller.
                 m_controlApps.Get (ctIdx)->GetAttribute ("Port", portValue);
-                InetSocketAddress addr (pairIfaces.GetAddress (1),
+                InetSocketAddress addr (pairIfaces.GetAddress (0),
                                         portValue.Get ());
 
                 NS_LOG_INFO ("Connect switch " << ofDev->GetDatapathId () <<
@@ -194,11 +194,11 @@ OFSwitch13InternalHelper::DoDispose ()
 }
 
 NetDeviceContainer
-OFSwitch13InternalHelper::Connect (Ptr<Node> swtch, Ptr<Node> ctrl)
+OFSwitch13InternalHelper::Connect (Ptr<Node> ctrl, Ptr<Node> swtch)
 {
-  NS_LOG_FUNCTION (this << swtch << ctrl);
+  NS_LOG_FUNCTION (this << ctrl << swtch);
 
-  NodeContainer pairNodes (swtch, ctrl);
+  NodeContainer pairNodes (ctrl, swtch);
   switch (m_channelType)
     {
     case OFSwitch13InternalHelper::DEDICATEDCSMA:

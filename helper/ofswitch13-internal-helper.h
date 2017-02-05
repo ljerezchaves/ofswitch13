@@ -85,11 +85,11 @@ private:
    * Create an individual connection between the switch and the controller
    * node, using the already configured channel type.
    *
-   * \param swtch The switch node.
    * \param ctrl The controller node.
+   * \param swtch The switch node.
    * \return The devices created on both nodes.
    */
-  NetDeviceContainer Connect (Ptr<Node> swtch, Ptr<Node> ctrl);
+  NetDeviceContainer Connect (Ptr<Node> ctrl, Ptr<Node> swtch);
 
   ApplicationContainer      m_controlApps;      //!< OF controller apps.
   NodeContainer             m_controlNodes;     //!< OF controller nodes.
