@@ -551,28 +551,27 @@ The examples are located in ``src/ofswitch13/examples``.
 Examples summary
 ################
 
-* **ofswitch13-first**: Two hosts connected to a single OpenFlow switch
-  managed by the default learning controller.
+* **ofswitch13-first**: Two hosts connected to a single OpenFlow switch. The
+  switch is managed by the default learning controller application.
 
-* **ofswitch13-single-domain**: Two hosts connected through two OpenFlow
-  switches, both managed by the default learning controller.
+* **ofswitch13-multiple-controllers**: Two hosts connected to a single OpenFlow
+  switch. The switch is managed by to different controllers applications.
 
-* **ofswitch13-multiple-domains**: Two hosts connected through two OpenFlow
-  switch managed by different learning controllers.
+* **ofswitch13-multiple-domains**: Two hosts connected to different OpenFlow
+  switches. Each switch is managed by an independent default learning
+  controller application.
 
-* **ofswitch13-multiple-controllers**: Two hosts connected through a single
-  OpenFlow switch managed simultaneously by to different controllers
+* **ofswitch13-single-domain**: Two hosts connected to different OpenFlow
+  switches. Both switches are managed by the default learning controller
+  application.
 
-* **ofswitch13-logical-port**: Two hosts connected through two OpenFlow
-  switches, both managed by an specialized *tunnel controller*. The switch
-  ports interconnecting the switches are configured as logical ports, and each
-  switch acts as a gateway that can de/encapsulate IP traffic using the GTP
-  tunneling protocol. The gateway implementation is very similar to the SgwPgw
-  implementation from the LTE module. However, the traffic routing between the
-  CsmaNetDevice connected to the local host and the VirtualNetDevice connected
-  to the tunnel socket is performed by the OpenFlow pipeline.
-
-* **ofswitch13-qos-controller**: It represents the network of an
+* **ofswitch13-logical-port**:  Two hosts connected to different OpenFlow
+  switches. Both switches are managed by the tunnel controller application.
+  The ports interconnecting the switches are configured as logical ports,
+  allowing switches to de/encapsulate IP traffic using the GTP/UDP/IP tunneling
+  protocol.
+  
+* **ofswitch13-qos-controller**: It represents the internal network of an
   organization, where servers and client nodes are located far from each other.
   An specialized *OpenFlow QoS controller* is used to manage the network,
   implementing some QoS functionalities and exploiting OpenFlow 1.3 features.

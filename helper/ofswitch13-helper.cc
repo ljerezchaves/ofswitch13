@@ -305,7 +305,7 @@ OFSwitch13Helper::CreateOpenFlowChannels (void)
         Ptr<CsmaChannel> csmaChannel =
           CreateObjectWithAttributes<CsmaChannel> (
             "DataRate", DataRateValue (m_channelDataRate));
- 
+
         // Connecting all switches and controllers to the common channel.
         NetDeviceContainer switchDevices;
         Ipv4InterfaceContainer controllerAddrs;
