@@ -7,20 +7,20 @@ def build(bld):
     obj = bld.create_ns3_program('external-controller-ofswitch13', ['ofswitch13', 'internet-apps', 'tap-bridge'])
     obj.source = 'external-controller-ofswitch13.cc'
 
-    obj = bld.create_ns3_program('first-ofswitch13', ['ofswitch13'])
-    obj.source = 'first-ofswitch13.cc'
+    obj = bld.create_ns3_program('ofswitch13-first', ['ofswitch13'])
+    obj.source = 'ofswitch13-first.cc'
 
-    obj = bld.create_ns3_program('single-domain-ofswitch13', ['ofswitch13'])
-    obj.source = 'single-domain-ofswitch13.cc'
+    obj = bld.create_ns3_program('ofswitch13-ofsingle-domain', ['ofswitch13'])
+    obj.source = 'ofswitch13-single-domain.cc'
 
-    obj = bld.create_ns3_program('multiple-domains-ofswitch13', ['ofswitch13'])
-    obj.source = 'multiple-domains-ofswitch13.cc'
+    obj = bld.create_ns3_program('ofswitch13-multiple-domains', ['ofswitch13'])
+    obj.source = 'ofswitch13-multiple-domains.cc'
 
-    obj = bld.create_ns3_program('multiple-controllers-ofswitch13', ['ofswitch13'])
-    obj.source = 'multiple-controllers-ofswitch13.cc'
+    obj = bld.create_ns3_program('ofswitch13-multiple-controllers', ['ofswitch13'])
+    obj.source = 'ofswitch13-multiple-controllers.cc'
 
-    obj = bld.create_ns3_program('qos-controller-ofswitch13', ['ofswitch13', 'netanim'])
-    obj.source = ['qos-controller-ofswitch13/main.cc', 'qos-controller-ofswitch13/qos-controller.cc']
+    obj = bld.create_ns3_program('ofswitch13-qos-controller', ['ofswitch13', 'netanim'])
+    obj.source = ['ofswitch13-qos-controller/main.cc', 'ofswitch13-qos-controller/qos-controller.cc']
 
-    obj = bld.create_ns3_program('logical-port-ofswitch13', ['ofswitch13', 'lte'])
-    obj.source = ['logical-port-ofswitch13/main.cc', 'logical-port-ofswitch13/tunnel-controller.cc', 'logical-port-ofswitch13/tunnel-user-app.cc']
+    obj = bld.create_ns3_program('ofswitch13-logical-port-ofswitch13', ['ofswitch13', 'lte'])
+    obj.source = ['ofswitch13-logical-port/main.cc', 'ofswitch13-logical-port/tunnel-controller.cc', 'ofswitch13-logical-port/tunnel-user-app.cc']
