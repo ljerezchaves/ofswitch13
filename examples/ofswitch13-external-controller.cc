@@ -17,13 +17,13 @@
  *
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  *
- * Two hosts connected through two OpenFlow switches, both managed by the same
- * external controller. UDP traffic (ping) flows between host 0 and host 1.
+ * Two hosts connected to different OpenFlow switches.
+ * Both switches are managed by the same external controller application.
  *
- *                       External Controller
+ *                        External Controller
  *                                |
- *                       +-----------------+
- *                       |                 |
+ *                         +-------------+
+ *                         |             |
  *                  +----------+     +----------+
  *       Host 0 === | Switch 0 | === | Switch 1 | === Host 1
  *                  +----------+     +----------+
@@ -35,53 +35,53 @@
 #include <ns3/internet-module.h>
 #include <ns3/applications-module.h>
 #include <ns3/ofswitch13-module.h>
-#include <ns3/tap-bridge-module.h>
 #include <ns3/internet-apps-module.h>
+#include <ns3/tap-bridge-module.h>
 
 using namespace ns3;
 
 int
 main (int argc, char *argv[])
 {
+  uint16_t simTime = 10;
   bool verbose = false;
   bool trace = false;
-  uint16_t simTime = 30;
 
   // Configure command line parameters
   CommandLine cmd;
+  cmd.AddValue ("simTime", "Simulation time (seconds)", simTime);
   cmd.AddValue ("verbose", "Enable verbose output", verbose);
-  cmd.AddValue ("trace", "Enable pcap trace files output", trace);
-  cmd.AddValue ("simTime", "Simulation time", simTime);
+  cmd.AddValue ("trace", "Enable datapath stats and pcap traces", trace);
   cmd.Parse (argc, argv);
 
   if (verbose)
     {
       OFSwitch13Helper::EnableDatapathLogs ();
-
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Port", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Queue", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13ExternalHelper", LOG_LEVEL_ALL);
     }
 
-  // Enabling Checksum computations and setting realtime simulator
-  GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));
+  // Enable checksum computations (required by OFSwitch13 module)
   GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
 
-  // Create the hosts nodes
+  // Set simulator to real time mode
+  GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));
+
+  // Create two host nodes
   NodeContainer hosts;
   hosts.Create (2);
 
-  // Create the two switch nodes
+  // Create two switch nodes
   NodeContainer switches;
   switches.Create (2);
 
-  // Create the controller node
-  Ptr<Node> controllerNode = CreateObject<Node> ();
-
-  // Use the CsmaHelper to connect the host nodes to the switch.
+  // Use the CsmaHelper to connect hosts and switches
   CsmaHelper csmaHelper;
   csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
   csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
@@ -111,11 +111,14 @@ main (int argc, char *argv[])
   switchPorts [0].Add (pairDevs.Get (0));
   switchPorts [1].Add (pairDevs.Get (1));
 
-  // Configure the OpenFlow network using an external controller
+  // Create the controller node
+  Ptr<Node> controllerNode = CreateObject<Node> ();
+
+  // Configure the OpenFlow network domain using an external controller
   Ptr<OFSwitch13ExternalHelper> of13Helper = CreateObject<OFSwitch13ExternalHelper> ();
+  Ptr<NetDevice> ctrlDev = of13Helper->InstallExternalController (controllerNode);
   of13Helper->InstallSwitch (switches.Get (0), switchPorts [0]);
   of13Helper->InstallSwitch (switches.Get (1), switchPorts [1]);
-  Ptr<NetDevice> ctrlDev = of13Helper->InstallExternalController (controllerNode);
   of13Helper->CreateOpenFlowChannels ();
 
   // TapBridge the controller device to local machine
@@ -125,29 +128,29 @@ main (int argc, char *argv[])
   tapBridge.SetAttribute ("DeviceName", StringValue ("ctrl"));
   tapBridge.Install (controllerNode, ctrlDev);
 
-  // Install the TCP/IP stack into hosts
+  // Install the TCP/IP stack into hosts nodes
   InternetStackHelper internet;
   internet.Install (hosts);
 
-  // Set IPv4 terminal address
-  Ipv4AddressHelper ipv4switches;
-  Ipv4InterfaceContainer internetIpIfaces;
-  ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
-  internetIpIfaces = ipv4switches.Assign (hostDevices);
+  // Set IPv4 host addresses
+  Ipv4AddressHelper ipv4helpr;
+  Ipv4InterfaceContainer hostIpIfaces;
+  ipv4helpr.SetBase ("10.1.1.0", "255.255.255.0");
+  hostIpIfaces = ipv4helpr.Assign (hostDevices);
 
-  // Create the ping application from terminal 0 to 1
-  Ipv4Address destAddr = internetIpIfaces.GetAddress (1);
-  V4PingHelper pingHelper = V4PingHelper (destAddr);
+  // Configure ping application between hosts
+  V4PingHelper pingHelper = V4PingHelper (hostIpIfaces.GetAddress (1));
   pingHelper.SetAttribute ("Verbose", BooleanValue (true));
-  ApplicationContainer apps = pingHelper.Install (hosts.Get (0));
-  apps.Start (Seconds (3));
+  ApplicationContainer pingApps = pingHelper.Install (hosts.Get (0));
+  pingApps.Start (Seconds (1));
 
-  // Enable pcap traces and datapath stats
+  // Enable datapath stats and pcap traces at hosts, switch(es), and controller(s)
   if (trace)
     {
-      of13Helper->EnableOpenFlowPcap ();
-      of13Helper->EnableDatapathStats ();
-      csmaHelper.EnablePcap ("ofswitch", switches, true);
+      of13Helper->EnableOpenFlowPcap ("openflow");
+      of13Helper->EnableDatapathStats ("switch-stats");
+      csmaHelper.EnablePcap ("switch", switchPorts [0], true);
+      csmaHelper.EnablePcap ("switch", switchPorts [1], true);
       csmaHelper.EnablePcap ("host", hostDevices);
     }
 
