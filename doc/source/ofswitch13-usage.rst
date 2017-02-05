@@ -204,7 +204,7 @@ and install the switch and the controller using the ``OFSwitch13Helper``.
 To run this code, users *must install* the TCP/IP stack into host nodes, assign
 IP addresses to host interfaces (there's no need to add IP addresses to the
 devices that are used as OpenFlow port), and configure any traffic application.
-You can also check for the ``first-ofswitch13.cc`` example, which is very
+You can also check for the ``ofswitch13-first.cc`` example, which is very
 similar to this code. For instructions on how to compile and run simulation
 programs, please refer to the |ns3| tutorial.
 
@@ -551,19 +551,19 @@ The examples are located in ``src/ofswitch13/examples``.
 Examples summary
 ################
 
-* **first-ofswitch13**: Two hosts connected to a single OpenFlow switch
+* **ofswitch13-first**: Two hosts connected to a single OpenFlow switch
   managed by the default learning controller.
 
-* **single-domain-ofswitch13**: Two hosts connected through two OpenFlow
+* **ofswitch13-single-domain**: Two hosts connected through two OpenFlow
   switches, both managed by the default learning controller.
 
-* **multiple-domains-ofswitch13**: Two hosts connected through two OpenFlow
+* **ofswitch13-multiple-domains**: Two hosts connected through two OpenFlow
   switch managed by different learning controllers.
 
-* **multiple-controllers-ofswitch13**: Two hosts connected through a single
+* **ofswitch13-multiple-controllers**: Two hosts connected through a single
   OpenFlow switch managed simultaneously by to different controllers
 
-* **logical-port-ofswitch13**: Two hosts connected through two OpenFlow
+* **ofswitch13-logical-port**: Two hosts connected through two OpenFlow
   switches, both managed by an specialized *tunnel controller*. The switch
   ports interconnecting the switches are configured as logical ports, and each
   switch acts as a gateway that can de/encapsulate IP traffic using the GTP
@@ -572,7 +572,7 @@ Examples summary
   CsmaNetDevice connected to the local host and the VirtualNetDevice connected
   to the tunnel socket is performed by the OpenFlow pipeline.
 
-* **qos-controller-ofswitch13**: It represents the network of an
+* **ofswitch13-qos-controller**: It represents the network of an
   organization, where servers and client nodes are located far from each other.
   An specialized *OpenFlow QoS controller* is used to manage the network,
   implementing some QoS functionalities and exploiting OpenFlow 1.3 features.
