@@ -715,67 +715,76 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
   buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
   error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
                           &senderCtrl.xid, m_datapath->exp);
-  if (!error)
-    {
-      char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
-      Ipv4Address ctrlIp = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
-      NS_LOG_DEBUG ("RX from controller " << ctrlIp << ": " << msg_str);
-      free (msg_str);
-
-      // Increase internal counters based on message type.
-      switch (msg->type)
-        {
-        case (OFPT_PACKET_OUT):
-          {
-            m_packetOutCounter++;
-            break;
-          }
-        case (OFPT_FLOW_MOD):
-          {
-            m_flowModCounter++;
-            break;
-          }
-        case (OFPT_METER_MOD):
-          {
-            m_meterModCounter++;
-            break;
-          }
-        case (OFPT_GROUP_MOD):
-          {
-            m_groupModCounter++;
-            break;
-          }
-        default:
-          {
-          }
-        }
-
-      // Send the message to handler.
-      error = handle_control_msg (m_datapath, msg, &senderCtrl);
-      if (error)
-        {
-          // NOTE: It is assumed that if a handler returns with error,
-          // it did not use any part of the control message, thus it
-          // can be freed up. If no error is returned however, the
-          // message must be freed inside the handler (because the
-          // handler might keep parts of the message).
-          ofl_msg_free (msg, m_datapath->exp);
-        }
-    }
   if (error)
     {
-      NS_LOG_ERROR ("Error processing OpenFlow message from controller.");
+      // Error while unpacking the message. Notify the error and return.
+      ReplyWithErrorMessage (error, buffer, &senderCtrl);
+      ofpbuf_delete (buffer);
+      return;
+    }
 
-      // Notify the controller.
-      ofl_msg_error err;
-      err.header.type = OFPT_ERROR;
-      err.type = (ofp_error_type)ofl_error_type (error);
-      err.code = ofl_error_code (error);
-      err.data_length = buffer->size;
-      err.data = (uint8_t*)buffer->data;
-      dp_send_message (m_datapath, (ofl_msg_header*)&err, &senderCtrl);
+  // Print message content.
+  char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
+  Ipv4Address ctrlIp = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
+  NS_LOG_DEBUG ("RX from controller " << ctrlIp << ": " << msg_str);
+  free (msg_str);
+
+  // Increase internal counters based on message type.
+  switch (msg->type)
+    {
+    case (OFPT_PACKET_OUT):
+      {
+        m_packetOutCounter++;
+        break;
+      }
+    case (OFPT_FLOW_MOD):
+      {
+        m_flowModCounter++;
+        break;
+      }
+    case (OFPT_METER_MOD):
+      {
+        m_meterModCounter++;
+        break;
+      }
+    case (OFPT_GROUP_MOD):
+      {
+        m_groupModCounter++;
+        break;
+      }
+    default:
+      {
+      }
+    }
+
+  // Send the message to handler.
+  error = handle_control_msg (m_datapath, msg, &senderCtrl);
+  if (error)
+    {
+      // NOTE: It is assumed that if a handler returns with error, it did not
+      // use any part of the control message, thus it can be freed up. If no
+      // error is returned however, the message must be freed inside the
+      // handler (because the handler might keep parts of the message).
+      ofl_msg_free (msg, m_datapath->exp);
+      ReplyWithErrorMessage (error, buffer, &senderCtrl);
     }
   ofpbuf_delete (buffer);
+}
+
+void
+OFSwitch13Device::ReplyWithErrorMessage (ofl_err error, ofpbuf *buffer,
+                                         struct sender *senderCtrl)
+{
+  NS_LOG_FUNCTION (this << error);
+
+  NS_LOG_ERROR ("Error processing OpenFlow message from controller.");
+  ofl_msg_error err;
+  err.header.type = OFPT_ERROR;
+  err.type = (ofp_error_type)ofl_error_type (error);
+  err.code = ofl_error_code (error);
+  err.data_length = buffer->size;
+  err.data = (uint8_t*)buffer->data;
+  dp_send_message (m_datapath, (ofl_msg_header*)&err, senderCtrl);
 }
 
 void

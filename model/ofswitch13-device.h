@@ -375,6 +375,17 @@ private:
   void ReceiveFromController (Ptr<Packet> packet, Address from);
 
   /**
+   * Create an OpenFlow error message and send it back to the sender
+   * controller. This function is used only when an error occurred while
+   * processing an OpenFlow message received from the controller.
+   * \param error The error code.
+   * \param buffer The message buffer that originated the error.
+   * \param senderCtrl The origin of a received OpenFlow message.
+   */
+  void ReplyWithErrorMessage (ofl_err error, ofpbuf *buffer,
+                              struct sender *senderCtrl);
+
+  /**
    * Socket callback fired when a TCP connection to controller succeed.
    * \param socket The TCP socket.
    */
