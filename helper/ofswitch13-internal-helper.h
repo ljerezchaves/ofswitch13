@@ -72,7 +72,7 @@ public:
    * OpenFlow channel connections.
    *
    * \attention After calling this method, it will not be allowed to install
-   *            more switches or devices using this helper.
+   *            more switches or controllers using this helper.
    */
   void CreateOpenFlowChannels (void);
 

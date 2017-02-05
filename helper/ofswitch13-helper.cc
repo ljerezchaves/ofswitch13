@@ -48,7 +48,7 @@ OFSwitch13Helper::GetTypeId (void)
     .AddAttribute ("ChannelDataRate",
                    "The data rate to be used for the OpenFlow channel.",
                    DataRateValue (DataRate ("10Gb/s")),
-                   MakeDataRateAccessor (&OFSwitch13Helper::m_channelDataRate),
+                   MakeDataRateAccessor (&OFSwitch13Helper::SetChannelDataRate),
                    MakeDataRateChecker ())
   ;
   return tid;
@@ -70,6 +70,14 @@ OFSwitch13Helper::SetChannelType (ChannelType type)
   // Set the channel type and address, which will select proper netowrk mask.
   m_channelType = type;
   SetAddressBase ("10.100.150.0");
+}
+
+void
+OFSwitch13Helper::SetChannelDataRate (DataRate rate)
+{
+  NS_LOG_FUNCTION (this << rate);
+
+  m_channelDataRate = rate;
 }
 
 void

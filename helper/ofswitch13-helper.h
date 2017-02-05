@@ -102,7 +102,15 @@ public:
    *
    * \param type The ChannelType to use.
    */
-  void SetChannelType (ChannelType type);
+  virtual void SetChannelType (ChannelType type);
+ 
+  /**
+   * Set the OpenFlow channel data rate used to create the connections between
+   * switches and controllers.
+   *
+   * \param rate The channel data rate to use.
+   */
+  virtual void SetChannelDataRate (DataRate rate);
 
   /**
    * Set the IP network base address, used to assign IP addresses to switches

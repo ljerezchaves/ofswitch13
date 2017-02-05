@@ -277,6 +277,29 @@ After installing the switches and controllers, it is mandatory to use the
 connections between switches and controllers. After calling this method, you'll
 not be allowed to install more switches nor controllers using this helper.
 
+OFSwitch13ExternalHelper
+########################
+
+This helper extends the base class and can be instantiated to create and
+configure an OpenFlow 1.3 network domain composed of one or more OpenFlow
+switches connected to a single external real OpenFlow controller. It brings
+methods for installing the controller node for TapBridge usage and creating the
+OpenFlow channels.
+
+To configure the external controller, the ``InstallExternalController()``
+method can be used to prepare the controller node so it can be used to connect
+internal simulated switches to an external OpenFlow controller running on the
+local machine over a TapBridge device. It installs the TCP/IP stack into
+controller node, attach it to the common CSMA channel, configure IP address for
+it and returns the ``NetDevice`` that the user will be responsible to bind to
+the TabBridge. Note that this helper is prepared to configure a single
+controller node.
+
+After installing the switches and the controller node, it is mandatory to use
+the ``CreateOpenFlowChannels()`` member method to effectively create and start
+the connections between switches and controller. After calling this method,
+you'll not be allowed to install more switches nor controllers using this
+helper.
 
 Attributes
 ==========
@@ -330,6 +353,12 @@ OFSwitch13Helper
   between the controller and each switch, using CSMA or point-to-point links.
 
 * ``ChannelDataRate``: The data rate to be used for the OpenFlow channel.
+
+OFSwitch13ExternalHelper
+########################
+
+* ``TcpPort``: The TCP port number where the real OpenFlow controller will be
+  available for communication.
 
 OFSwitch13StatsCalculator
 #########################
