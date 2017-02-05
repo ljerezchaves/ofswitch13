@@ -455,9 +455,9 @@ OFSwitch13Device::DatapathNew ()
   dp->serial_num = (char*)xmalloc (DESC_STR_LEN);
   strncpy (dp->mfr_desc, "The ns-3 team", DESC_STR_LEN);
   strncpy (dp->hw_desc, "N/A", DESC_STR_LEN);
-  strncpy (dp->sw_desc, "ns3 OpenFlow datapath version 1.3", DESC_STR_LEN);
-  strncpy (dp->dp_desc, "ofsoftswitch13 (from CPqD)", DESC_STR_LEN);
-  strncpy (dp->serial_num, "1.1", DESC_STR_LEN);
+  strncpy (dp->sw_desc, "The ns-3 OFSwitch13 module", DESC_STR_LEN);
+  strncpy (dp->dp_desc, "Using ofsoftswitch13 (from CPqD)", DESC_STR_LEN);
+  strncpy (dp->serial_num, "3.0.0", DESC_STR_LEN);
 
   dp->id = m_dpId;
   dp->last_timeout = time_now ();
