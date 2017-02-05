@@ -7,17 +7,17 @@ def build(bld):
     obj = bld.create_ns3_program('ofswitch13-first', ['ofswitch13'])
     obj.source = 'ofswitch13-first.cc'
 
-    obj = bld.create_ns3_program('ofswitch13-ofsingle-domain', ['ofswitch13'])
-    obj.source = 'ofswitch13-single-domain.cc'
-
-    obj = bld.create_ns3_program('ofswitch13-multiple-domains', ['ofswitch13'])
-    obj.source = 'ofswitch13-multiple-domains.cc'
+    obj = bld.create_ns3_program('ofswitch13-logical-port-ofswitch13', ['ofswitch13', 'lte'])
+    obj.source = ['ofswitch13-logical-port/main.cc', 'ofswitch13-logical-port/tunnel-controller.cc', 'ofswitch13-logical-port/tunnel-user-app.cc']
 
     obj = bld.create_ns3_program('ofswitch13-multiple-controllers', ['ofswitch13'])
     obj.source = 'ofswitch13-multiple-controllers.cc'
 
+    obj = bld.create_ns3_program('ofswitch13-multiple-domains', ['ofswitch13'])
+    obj.source = 'ofswitch13-multiple-domains.cc'
+
     obj = bld.create_ns3_program('ofswitch13-qos-controller', ['ofswitch13', 'netanim'])
     obj.source = ['ofswitch13-qos-controller/main.cc', 'ofswitch13-qos-controller/qos-controller.cc']
 
-    obj = bld.create_ns3_program('ofswitch13-logical-port-ofswitch13', ['ofswitch13', 'lte'])
-    obj.source = ['ofswitch13-logical-port/main.cc', 'ofswitch13-logical-port/tunnel-controller.cc', 'ofswitch13-logical-port/tunnel-user-app.cc']
+    obj = bld.create_ns3_program('ofswitch13-single-domain', ['ofswitch13'])
+    obj.source = 'ofswitch13-single-domain.cc'
