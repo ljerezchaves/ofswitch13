@@ -50,8 +50,7 @@ OFSwitch13Controller::GetTypeId (void)
     .SetParent<Object> ()
     .SetGroupName ("OFSwitch13")
     .AddAttribute ("Port",
-                   "Port on which we listen for incoming packets.",
-                   TypeId::ATTR_GET,
+                   "Port number to listen for incoming packets.",
                    UintegerValue (0),
                    MakeUintegerAccessor (&OFSwitch13Controller::m_port),
                    MakeUintegerChecker<uint16_t> ())

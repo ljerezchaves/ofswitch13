@@ -272,16 +272,16 @@ Attributes
 OFSwitch13Controller
 ####################
 
-* ``Port``: The port number on which the controller listen for incoming
-  packets. This is a read-only attribute, and the default value is port 6653
-  (the official IANA port since 2013-07-18).
+* ``Port``: The port number on which the controller application listen for
+  incoming packets. The default value is port 6653 (the official IANA port
+  since 2013-07-18).
 
 OFSwitch13Device
 ###################
 
-* ``DatapathId``: The unique identification of this OpenFlow switch. This is a
-  read-only attribute, and the datapath ID is automatically assigned by the
-  object constructor.
+* ``DatapathId``: The unique datapath identification of this OpenFlow switch.
+  This is a read-only attribute, automatically assigned by the object
+  constructor.
 
 * ``PortList``: The list of ports available in this switch.
 
@@ -314,10 +314,10 @@ OFSwitch13Helper
 ################
 
 * ``ChannelType``: The configuration used to create the OpenFlow channel. Users
-  can select between a single shared CSMA connection, of dedicated connection
+  can select between a single shared CSMA connection, or dedicated connection
   between the controller and each switch, using CSMA or point-to-point links.
 
-* ``ChannelDataRate``: The data rate to be used for the OpenFlow channel.
+* ``ChannelDataRate``: The data rate to be used for the OpenFlow channel links.
 
 OFSwitch13StatsCalculator
 #########################
