@@ -107,18 +107,6 @@ public:
   void SetChannelType (ChannelType type);
 
   /**
-   * Set the IP network base address, used to assign IP addresses to switches
-   * and controllers during the CreateOpenFlowChannels () procedure. Network
-   * mask is automatically selected based on channel type configuration.
-   *
-   * \param network The Ipv4Address containing the initial network number to
-   *        use during allocation.
-   * \param base An optional Ipv4Address containing the initial address used
-   *        for IP address allocation.
-   */
-  void SetAddressBase (Ipv4Address network, Ipv4Address base = "0.0.0.1");
-
-  /**
    * Enable pacp traces at OpenFlow channel between controller and switches.
    *
    * \attention Call this method only after configuring the OpenFlow channels.
@@ -200,6 +188,20 @@ public:
   void CreateOpenFlowChannels (void);
 
   /**
+   * Set the IP network base address, used to assign IP addresses to switches
+   * and controllers during the CreateOpenFlowChannels () procedure.
+   *
+   * \param network The Ipv4Address containing the initial network number to
+   *        use during allocation.
+   * \param mask The Ipv4Mask containing one bits in each bit position of the
+            network number.
+   * \param base An optional Ipv4Address containing the initial address used
+   *        for IP address allocation.
+   */
+  static void SetAddressBase (Ipv4Address network, Ipv4Mask mask,
+                              Ipv4Address base = "0.0.0.1");
+
+  /**
    * Enable OpenFlow datapath logs at all OpenFlow switch devices on the
    * simulation. This method will enable vlog system at debug level on the
    * ofsoftswitch13 library, dumping messages to output file.
@@ -239,9 +241,10 @@ protected:
   NetDeviceContainer        m_controlDevs;      //!< OF channel ctrl devices.
 
   InternetStackHelper       m_internet;         //!< Helper for TCP/IP stack.
-  Ipv4AddressHelper         m_ipv4helper;       //!< Helper for IP address.
   CsmaHelper                m_csmaHelper;       //!< Helper for CSMA links.
   PointToPointHelper        m_p2pHelper;        //!< Helper for P2P links.
+
+  static Ipv4AddressHelper  m_ipv4helper;       //!< Helper for IP address.
 };
 
 } // namespace ns3

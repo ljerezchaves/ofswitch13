@@ -228,10 +228,8 @@ realistic connections with delay and error models.
 This helper was designed to configure a single OpenFlow network domain. All
 switches will be connected to all controllers on the same domain. If you want
 to configure separated OpenFlow domains on your network topology (with their
-    individual switches and controllers) so you may need to use a different
-instance of this helper for each domain. In this case, don't forget to use the
-``SetAddressBase()`` method to change the IP network address of the other
-helper instances, in order to avoid IP conflicts.
+individual switches and controllers) so you may need to use a different
+instance of this helper for each domain. 
 
 To configure the controller, the ``InstallController()`` method can be used to
 create a new learning controller application and install it into the controller
@@ -690,8 +688,7 @@ Troubleshooting
 
 * For simulating scenarios with more than one OpenFlow network domain
   configured with the ``OFSwtich13Helper``, use a different helper instance
-  for each domain, and don't forget to change the network address with the
-  ``SetAddressBase()``.
+  for each domain.
 
 * For using ASCII traces it is necessary to manually include the
   ``ns3::PacketMetadata::Enable ()`` at the beginning of the program, before

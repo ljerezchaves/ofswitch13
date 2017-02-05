@@ -173,7 +173,6 @@ main (int argc, char *argv[])
   // the same simulation script it is necessary to change the addresse network
   // used by the helper to configure the OpenFlow channels.
   Ptr<OFSwitch13Helper> ofLearningHelper = CreateObject<OFSwitch13Helper> ();
-  ofLearningHelper->SetAddressBase ("10.100.151.0");
   Ptr<OFSwitch13LearningController> learnCtrl = CreateObject<OFSwitch13LearningController> ();
   ofLearningHelper->InstallController (controllerNodes.Get (1), learnCtrl);
 
