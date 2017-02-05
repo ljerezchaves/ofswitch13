@@ -355,8 +355,9 @@ OFSwitch13Helper
 OFSwitch13ExternalHelper
 ########################
 
-* ``TcpPort``: The TCP port number where the real OpenFlow controller will be
-  available for communication.
+* ``Port``: The port number on which the external controller application
+  listen for incoming packets. The default value is port 6653 (the official
+  IANA port since 2013-07-18).
 
 OFSwitch13StatsCalculator
 #########################

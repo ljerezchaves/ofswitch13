@@ -49,8 +49,8 @@ OFSwitch13ExternalHelper::GetTypeId (void)
     .SetParent<OFSwitch13Helper> ()
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13ExternalHelper> ()
-    .AddAttribute ("TcpPort",
-                   "The TCP port number where controller will be available.",
+    .AddAttribute ("Port",
+                   "The port number where controller will be available.",
                    UintegerValue (6653),
                    MakeUintegerAccessor (
                      &OFSwitch13ExternalHelper::m_controlPort),
