@@ -15,17 +15,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Vitor M. Eichemberger <vitor.marge@gmail.com>
- *         Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ *         Vitor M. Eichemberger <vitor.marge@gmail.com>
  *
- * Two hosts connected through a single OpenFlow switch managed by the default
- * learning controller. TCP traffic flows from host 0 to host 1.
+ * Two hosts connected to a single OpenFlow switch.
+ * The switch is managed by the default learning controller application.
  *
- *                  Learning Controller
- *                           |
- *                  +-----------------+
- *       Host 0 === | OpenFlow switch | === Host 1
- *                  +-----------------+
+ *                       Learning Controller
+ *                                |
+ *                       +-----------------+
+ *            Host 0 === | OpenFlow switch | === Host 1
+ *                       +-----------------+
  */
 
 #include <ns3/core-module.h>
@@ -34,49 +34,48 @@
 #include <ns3/internet-module.h>
 #include <ns3/applications-module.h>
 #include <ns3/ofswitch13-module.h>
+#include <ns3/internet-apps-module.h>
 
 using namespace ns3;
 
 int
 main (int argc, char *argv[])
 {
+  uint16_t simTime = 10;
   bool verbose = false;
   bool trace = false;
-  uint16_t simTime = 30;
 
   // Configure command line parameters
   CommandLine cmd;
+  cmd.AddValue ("simTime", "Simulation time (seconds)", simTime);
   cmd.AddValue ("verbose", "Enable verbose output", verbose);
-  cmd.AddValue ("trace", "Enable pcap trace files output", trace);
-  cmd.AddValue ("simTime", "Simulation time", simTime);
+  cmd.AddValue ("trace", "Enable datapath stats and pcap traces", trace);
   cmd.Parse (argc, argv);
 
   if (verbose)
     {
       OFSwitch13Helper::EnableDatapathLogs ();
-
       LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Port", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Queue", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
     }
 
-  // Enabling Checksum computations
+  // Enable checksum computations (required by OFSwitch13 module)
   GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
 
-  // Creating two host nodes
+  // Create two host nodes
   NodeContainer hosts;
   hosts.Create (2);
 
   // Create the switch node
   Ptr<Node> switchNode = CreateObject<Node> ();
 
-  // Create the controller node
-  Ptr<Node> controllerNode = CreateObject<Node> ();
-
-  // Use the CsmaHelper to connect the host nodes to the switch.
+  // Use the CsmaHelper to connect host nodes to the switch node
   CsmaHelper csmaHelper;
   csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
   csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
@@ -91,35 +90,37 @@ main (int argc, char *argv[])
       switchPorts.Add (link.Get (1));
     }
 
-  // Configure the OpenFlow network
+  // Create the controller node
+  Ptr<Node> controllerNode = CreateObject<Node> ();
+
+  // Configure the OpenFlow network domain
   Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper> ();
   of13Helper->InstallController (controllerNode);
   of13Helper->InstallSwitch (switchNode, switchPorts);
   of13Helper->CreateOpenFlowChannels ();
 
-  // Install the TCP/IP stack into hosts
+  // Install the TCP/IP stack into hosts nodes
   InternetStackHelper internet;
   internet.Install (hosts);
 
-  // Set IPv4 terminal address
-  Ipv4AddressHelper ipv4switches;
-  Ipv4InterfaceContainer internetIpIfaces;
-  ipv4switches.SetBase ("10.1.1.0", "255.255.255.0");
-  internetIpIfaces = ipv4switches.Assign (hostDevices);
+  // Set IPv4 host addresses
+  Ipv4AddressHelper ipv4helpr;
+  Ipv4InterfaceContainer hostIpIfaces;
+  ipv4helpr.SetBase ("10.1.1.0", "255.255.255.0");
+  hostIpIfaces = ipv4helpr.Assign (hostDevices);
 
-  // Send TCP traffic from host 0 to 1
-  Ipv4Address dstAddr = internetIpIfaces.GetAddress (1);
-  BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (dstAddr, 9));
-  senderHelper.Install (hosts.Get (0));
-  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 9));
-  ApplicationContainer sinkApp = sinkHelper.Install (hosts.Get (1));
+  // Configure ping application between hosts
+  V4PingHelper pingHelper = V4PingHelper (hostIpIfaces.GetAddress (1));
+  pingHelper.SetAttribute ("Verbose", BooleanValue (true));
+  ApplicationContainer pingApps = pingHelper.Install (hosts.Get (0));
+  pingApps.Start (Seconds (1));
 
-  // Enable pcap traces and datapath stats
+  // Enable datapath stats and pcap traces at hosts, switch(es), and controller(s)
   if (trace)
     {
-      of13Helper->EnableOpenFlowPcap ();
-      of13Helper->EnableDatapathStats ();
-      csmaHelper.EnablePcap ("ofswitch", NodeContainer (switchNode), true);
+      of13Helper->EnableOpenFlowPcap ("openflow");
+      of13Helper->EnableDatapathStats ("switch-stats");
+      csmaHelper.EnablePcap ("switch", switchPorts, true);
       csmaHelper.EnablePcap ("host", hostDevices);
     }
 
@@ -127,8 +128,4 @@ main (int argc, char *argv[])
   Simulator::Stop (Seconds (simTime));
   Simulator::Run ();
   Simulator::Destroy ();
-
-  // Print transmitted bytes
-  Ptr<PacketSink> sink = DynamicCast<PacketSink> (sinkApp.Get (0));
-  std::cout << "Total bytes sent from host 0 to host 1: " << sink->GetTotalRx () << std::endl;
 }

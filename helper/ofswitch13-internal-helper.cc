@@ -121,6 +121,7 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels (void)
                   &OFSwitch13Device::StartControllerConnection, *ofDev, addr);
               }
           }
+        m_ipv4helper.NewNetwork ();
         break;
       }
     case OFSwitch13InternalHelper::DEDICATEDCSMA:

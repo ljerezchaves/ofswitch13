@@ -16,32 +16,26 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * Author:  Luciano Chaves <luciano@lrc.ic.unicamp.br>
- */
-
-/**
- *   Servers                 OpenFlow controllers                Clients
- *  +-------+             +-------+       +-------+             +-------+
- *  | Srv 0 |=======+   +=| Ctr 0 |=+     | Ctr 1 |=+   +=======| Cli 0 |
- *  +-------+       |   | +-------+ |     +-------+ |   |       +-------+
- *                  |   |           |               |   |
- *                +-------+       +-------+       +-------+     +-------+
- *                | Swt 0 |#######| Swt 1 |=======| Swt 2 |=====| Cli 1 |
- *                +-------+       +-------+       +-------+     +-------+
- *                  |         OpenFlow switches         |          ...
- *  +-------+       |                                   |       +-------+
- *  | Srv 1 |=======+                                   +=======| Cli N |
- *  +-------+                                                   +-------+
  *
- *  Swt 0 --> Border switch
- *  Swt 1 --> Aggregation switch
- *  Swt 2 --> Client switch
+ * - This is the internal network of an organization.
+ * - 2 servers and N client nodes are located far from each other.
+ * - Between border and aggregation switches there are two narrowband links of
+ *   10 Mbps each. Other local connections have links of 100 Mbps.
+ * - The default learning application manages the client switch.
+ * - An specialized OpenFlow QoS controller is used to manage the border and
+ *   aggregation switches, balancing traffic among internal servers and
+ *   aggregating narrowband links to increase throughput.
  *
- *  Ctr 0 --> QoS controller
- *  Ctr 1 --> Learning controller
- *
- *  ====  --> 100 Mbps CSMA links
- *  ####  --> 2 x 10 Mbps CSMA links
- *
+ *                          QoS controller       Learning controller
+ *                                |                       |
+ *                         +--------------+               |
+ *  +----------+           |              |               |           +----------+
+ *  | Server 0 | ==== +--------+      +--------+      +--------+ ==== | Client 0 |
+ *  +----------+      | Border | ~~~~ | Aggreg |      | Client |      +----------+
+ *  +----------+      | Switch | ~~~~ | Switch | ==== | Switch |      +----------+
+ *  | Server 1 | ==== +--------+      +--------+      +--------+ ==== | Client N |
+ *  +----------+                 2x10            100                  +----------+
+ *                               Mbps            Mbps
  **/
 
 #include <ns3/core-module.h>
@@ -59,40 +53,40 @@ using namespace ns3;
 int
 main (int argc, char *argv[])
 {
-  // Configure dedicated connections between controller and switches
-  Config::SetDefault ("ns3::OFSwitch13Helper::ChannelType",
-                      EnumValue (OFSwitch13Helper::DEDICATEDCSMA));
-
-  // Increase TCP MSS for larger packets
-  Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1400));
-
-  // Enable Checksum computations
-  GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
-
+  uint16_t clients = 2;
+  uint16_t simTime = 10;
   bool verbose = false;
   bool trace = false;
-  uint16_t numClients = 4;
-  uint16_t simTime = 101;
 
+  // Configure command line parameters
   CommandLine cmd;
-  cmd.AddValue ("verbose", "Verbose log if true", verbose);
-  cmd.AddValue ("trace", "Pcap trace files if true", trace);
-  cmd.AddValue ("numClients", "Number of client nodes", numClients);
-  cmd.AddValue ("simTime", "Simulation time", simTime);
+  cmd.AddValue ("clients", "Number of client nodes", clients);
+  cmd.AddValue ("simTime", "Simulation time (seconds)", simTime);
+  cmd.AddValue ("verbose", "Enable verbose output", verbose);
+  cmd.AddValue ("trace", "Enable datapath stats and pcap traces", trace);
   cmd.Parse (argc, argv);
 
   if (verbose)
     {
       OFSwitch13Helper::EnableDatapathLogs ();
-
-      LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Port", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Queue", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("QosController", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
     }
+
+  // Configure dedicated connections between controller and switches
+  Config::SetDefault ("ns3::OFSwitch13Helper::ChannelType", EnumValue (OFSwitch13Helper::DEDICATEDCSMA));
+
+  // Increase TCP MSS for larger packets
+  Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1400));
+
+  // Enable checksum computations (required by OFSwitch13 module)
+  GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
 
   // Discard the first MAC address ("00:00:00:00:00:01") which will be used by
   // the border switch in association with the first IP address ("10.1.1.1")
@@ -104,19 +98,19 @@ main (int argc, char *argv[])
   serverNodes.Create (2);
   switchNodes.Create (3);
   controllerNodes.Create (2);
-  clientNodes.Create (numClients);
+  clientNodes.Create (clients);
 
   // Setting node positions for NetAnim support
   Ptr<ListPositionAllocator> listPosAllocator;
   listPosAllocator = CreateObject<ListPositionAllocator> ();
-  listPosAllocator->Add (Vector (0, 0, 0));     // Server 0
-  listPosAllocator->Add (Vector (0, 75, 0));    // Server 1
-  listPosAllocator->Add (Vector (50, 50, 0));   // Border switch
+  listPosAllocator->Add (Vector (  0,  0, 0));  // Server 0
+  listPosAllocator->Add (Vector (  0, 75, 0));  // Server 1
+  listPosAllocator->Add (Vector ( 50, 50, 0));  // Border switch
   listPosAllocator->Add (Vector (100, 50, 0));  // Aggregation switch
   listPosAllocator->Add (Vector (150, 50, 0));  // Client switch
-  listPosAllocator->Add (Vector (75, 25, 0));   // QoS controller
+  listPosAllocator->Add (Vector ( 75, 25, 0));  // QoS controller
   listPosAllocator->Add (Vector (150, 25, 0));  // Learning controller
-  for (size_t i = 0; i < numClients; i++)
+  for (size_t i = 0; i < clients; i++)
     {
       listPosAllocator->Add (Vector (200, 25 * i, 0)); // Clients
     }
@@ -124,55 +118,46 @@ main (int argc, char *argv[])
   MobilityHelper mobilityHelper;
   mobilityHelper.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobilityHelper.SetPositionAllocator (listPosAllocator);
-  mobilityHelper.Install (NodeContainer (serverNodes, switchNodes,
-                                         controllerNodes, clientNodes));
+  mobilityHelper.Install (NodeContainer (serverNodes, switchNodes, controllerNodes, clientNodes));
 
   // Create device containers
   NetDeviceContainer serverDevices, clientDevices;
   NetDeviceContainer switch0Ports, switch1Ports, switch2Ports;
   NetDeviceContainer link;
 
-  // Create two 10Mbps connections between switch 0 and switch 1
+  // Create two 10Mbps connections between border and aggregation switches
   CsmaHelper csmaHelper;
-  csmaHelper.SetChannelAttribute (
-    "DataRate", DataRateValue (DataRate ("10Mbps")));
+  csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("10Mbps")));
 
-  link = csmaHelper.Install (
-      NodeContainer (switchNodes.Get (0), switchNodes.Get (1)));
+  link = csmaHelper.Install (NodeContainer (switchNodes.Get (0), switchNodes.Get (1)));
   switch0Ports.Add (link.Get (0));
   switch1Ports.Add (link.Get (1));
 
-  link = csmaHelper.Install (
-      NodeContainer (switchNodes.Get (0), switchNodes.Get (1)));
+  link = csmaHelper.Install (NodeContainer (switchNodes.Get (0), switchNodes.Get (1)));
   switch0Ports.Add (link.Get (0));
   switch1Ports.Add (link.Get (1));
 
-  // Configure the CsmaHelper for 100Mbos connections
-  csmaHelper.SetChannelAttribute (
-    "DataRate", DataRateValue (DataRate ("100Mbps")));
+  // Configure the CsmaHelper for 100Mbps connections
+  csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
 
-  // Connect switch 1 to switch 2
-  link = csmaHelper.Install (
-      NodeContainer (switchNodes.Get (1), switchNodes.Get (2)));
+  // Connect aggregation switch to client switch
+  link = csmaHelper.Install (NodeContainer (switchNodes.Get (1), switchNodes.Get (2)));
   switch1Ports.Add (link.Get (0));
   switch2Ports.Add (link.Get (1));
 
-  // Connect server 0 and 1 to switch 0
-  link = csmaHelper.Install (
-      NodeContainer (serverNodes.Get (0), switchNodes.Get (0)));
+  // Connect servers to border switch
+  link = csmaHelper.Install (NodeContainer (serverNodes.Get (0), switchNodes.Get (0)));
   serverDevices.Add (link.Get (0));
   switch0Ports.Add (link.Get (1));
 
-  link = csmaHelper.Install (
-      NodeContainer (serverNodes.Get (1), switchNodes.Get (0)));
+  link = csmaHelper.Install (NodeContainer (serverNodes.Get (1), switchNodes.Get (0)));
   serverDevices.Add (link.Get (0));
   switch0Ports.Add (link.Get (1));
 
-  // Connect client nodes to switch 2
-  for (size_t i = 0; i < numClients; i++)
+  // Connect client nodes to client switch
+  for (size_t i = 0; i < clients; i++)
     {
-      link = csmaHelper.Install (
-          NodeContainer (clientNodes.Get (i), switchNodes.Get (2)));
+      link = csmaHelper.Install (NodeContainer (clientNodes.Get (i), switchNodes.Get (2)));
       clientDevices.Add (link.Get (0));
       switch2Ports.Add (link.Get (1));
     }
@@ -185,30 +170,22 @@ main (int argc, char *argv[])
   ofQosHelper->InstallController (controllerNodes.Get (0), qosCtrl);
 
   // Configure OpenFlow learning controller for client switch (#2) into
-  // controller node 1. Note that for using two different OpenFlow domains in
-  // the same simulation script it is necessary to change the addresse network
-  // used by the helper to configure the OpenFlow channels.
-  Ptr<OFSwitch13InternalHelper> ofLearningHelper =
-    CreateObject<OFSwitch13InternalHelper> ();
-  ofLearningHelper->SetAddressBase ("10.100.151.0");
-  Ptr<OFSwitch13LearningController> learnCtrl =
-    CreateObject<OFSwitch13LearningController> ();
+  // controller node 1. 
+  Ptr<OFSwitch13InternalHelper> ofLearningHelper = CreateObject<OFSwitch13InternalHelper> ();
+  Ptr<OFSwitch13LearningController> learnCtrl = CreateObject<OFSwitch13LearningController> ();
   ofLearningHelper->InstallController (controllerNodes.Get (1), learnCtrl);
 
   // Install OpenFlow switches 0 and 1 with border controller
   OFSwitch13DeviceContainer ofSwitchDevices;
-  ofSwitchDevices.Add (
-    ofQosHelper->InstallSwitch (switchNodes.Get (0), switch0Ports));
-  ofSwitchDevices.Add (
-    ofQosHelper->InstallSwitch (switchNodes.Get (1), switch1Ports));
+  ofSwitchDevices.Add (ofQosHelper->InstallSwitch (switchNodes.Get (0), switch0Ports));
+  ofSwitchDevices.Add (ofQosHelper->InstallSwitch (switchNodes.Get (1), switch1Ports));
   ofQosHelper->CreateOpenFlowChannels ();
 
   // Install OpenFlow switches 2 with learning controller
-  ofSwitchDevices.Add (
-    ofLearningHelper->InstallSwitch (switchNodes.Get (2), switch2Ports));
+  ofSwitchDevices.Add (ofLearningHelper->InstallSwitch (switchNodes.Get (2), switch2Ports));
   ofLearningHelper->CreateOpenFlowChannels ();
 
-  // Install the TCP/IP stack into hosts
+  // Install the TCP/IP stack into hosts nodes
   InternetStackHelper internet;
   internet.Install (serverNodes);
   internet.Install (clientNodes);
@@ -228,14 +205,12 @@ main (int argc, char *argv[])
   Ipv4Address serverAddr ("10.1.1.1");
 
   // Installing a sink application at server nodes
-  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory",
-                               InetSocketAddress (Ipv4Address::GetAny (), 9));
+  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 9));
   ApplicationContainer sinkApps = sinkHelper.Install (serverNodes);
   sinkApps.Start (Seconds (0));
 
   // Installing a sender application at client nodes
-  BulkSendHelper senderHelper ("ns3::TcpSocketFactory",
-                               InetSocketAddress (serverAddr, 9));
+  BulkSendHelper senderHelper ("ns3::TcpSocketFactory", InetSocketAddress (serverAddr, 9));
   ApplicationContainer senderApps = senderHelper.Install (clientNodes);
 
   // Get random start times
@@ -251,13 +226,13 @@ main (int argc, char *argv[])
   // Enable pcap traces and datapath stats
   if (trace)
     {
-      ofLearningHelper->EnableOpenFlowPcap ();
-      ofLearningHelper->EnableDatapathStats ();
-      ofQosHelper->EnableOpenFlowPcap ();
-      ofQosHelper->EnableDatapathStats ();
-      csmaHelper.EnablePcap ("qosctrl-ofswitch", switchNodes, true);
-      csmaHelper.EnablePcap ("qosctrl-server", serverDevices);
-      csmaHelper.EnablePcap ("qosctrl-client", clientDevices);
+      ofLearningHelper->EnableOpenFlowPcap ("openflow");
+      ofLearningHelper->EnableDatapathStats ("switch-stats");
+      ofQosHelper->EnableOpenFlowPcap ("openflow");
+      ofQosHelper->EnableDatapathStats ("switch-stats");
+      csmaHelper.EnablePcap ("switch", switchNodes, true);
+      csmaHelper.EnablePcap ("server", serverDevices);
+      csmaHelper.EnablePcap ("client", clientDevices);
     }
 
   // Creating NetAnim output file
@@ -273,7 +248,7 @@ main (int argc, char *argv[])
   anim.UpdateNodeDescription (4, "Client switch");
   anim.UpdateNodeDescription (5, "QoS controller");
   anim.UpdateNodeDescription (6, "Learning controller");
-  for (size_t i = 0; i < numClients; i++)
+  for (size_t i = 0; i < clients; i++)
     {
       std::ostringstream desc;
       desc << "Client " << i;
@@ -298,17 +273,17 @@ main (int argc, char *argv[])
       anim.UpdateNodeImage (4, switchImg);
       anim.UpdateNodeImage (5, controllerImg);
       anim.UpdateNodeImage (6, controllerImg);
-      for (size_t i = 0; i < numClients; i++)
+      for (size_t i = 0; i < clients; i++)
         {
           anim.UpdateNodeImage (i + 7, clientImg);
         }
-      for (size_t i = 0; i < numClients + 7U; i++)
+      for (size_t i = 0; i < clients + 7U; i++)
         {
           anim.UpdateNodeSize (i, 10, 10);
         }
     }
 
-  // Run the simulation for simTime seconds
+  // Run the simulation
   Simulator::Stop (Seconds (simTime));
   Simulator::Run ();
   Simulator::Destroy ();
@@ -323,4 +298,3 @@ main (int argc, char *argv[])
             << (8. * sink2->GetTotalRx ()) / 1000000 / simTime << " Mbps)"
             << std::endl;
 }
-

@@ -219,12 +219,13 @@ base class that must be extended to create and configure an OpenFlow 1.3
 network domain, composed of one or more OpenFlow switches connected to single
 or multiple OpenFlow controllers. By default, the connections between switches
 and controllers are created using a single shared out-of-band CSMA channel,
-with IP addresses assigned using a /24 network mask. Users can modify this
-configuration by changing the ChannelType attribute at instantiation time.
-Dedicated out-of-band connections over CSMA or Point-to-Point channels are also
-available, using a /30 network mask for IP allocation. The use of standard
+with IP addresses assigned to the 10.100.0.0/24 network. Users can modify this
+configuration by changing the ChannelType attribute at instantiation time
+(dedicated out-of-band connections over CSMA or Point-to-Point channels are
+also available), or setting a different IP network address with the help of the
+static method ``OFSwitch13Helper::SetAddressBase()``.  The use of standard
 |ns3| channels and devices provides realistic connections with delay and error
-models.
+models. 
 
 This base class brings the methods for configuring the switches. The
 ``InstallSwitch()`` method can be used to create and aggregate an
@@ -250,9 +251,6 @@ OpenFlow network domain. All switches will be connected to all controllers on
 the same domain. If you want to configure separated OpenFlow domains on your
 network topology (with their individual switches and controllers) so you may
 need to use a different instance of the derived helper class for each domain.
-In this case, don't forget to use the ``SetAddressBase()`` method to change the
-IP network address of the other helper instances, in order to avoid IP
-conflicts.
 
 OFSwitch13InternalHelper
 ########################
@@ -307,16 +305,16 @@ Attributes
 OFSwitch13Controller
 ####################
 
-* ``Port``: The port number on which the controller listen for incoming
-  packets. This is a read-only attribute, and the default value is port 6653
-  (the official IANA port since 2013-07-18).
+* ``Port``: The port number on which the controller application listen for
+  incoming packets. The default value is port 6653 (the official IANA port
+  since 2013-07-18).
 
 OFSwitch13Device
 ################
 
-* ``DatapathId``: The unique identification of this OpenFlow switch. This is a
-  read-only attribute, and the datapath ID is automatically assigned by the
-  object constructor.
+* ``DatapathId``: The unique datapath identification of this OpenFlow switch.
+  This is a read-only attribute, automatically assigned by the object
+  constructor.
 
 * ``PortList``: The list of ports available in this switch.
 
@@ -349,10 +347,10 @@ OFSwitch13Helper
 ################
 
 * ``ChannelType``: The configuration used to create the OpenFlow channel. Users
-  can select between a single shared CSMA connection, of dedicated connection
+  can select between a single shared CSMA connection, or dedicated connection
   between the controller and each switch, using CSMA or point-to-point links.
 
-* ``ChannelDataRate``: The data rate to be used for the OpenFlow channel.
+* ``ChannelDataRate``: The data rate to be used for the OpenFlow channel links.
 
 OFSwitch13ExternalHelper
 ########################
@@ -593,28 +591,27 @@ The examples are located in ``src/ofswitch13/examples``.
 Examples summary
 ################
 
-* **ofswitch13-first**: Two hosts connected to a single OpenFlow switch
-  managed by the default learning controller.
+* **ofswitch13-first**: Two hosts connected to a single OpenFlow switch. The
+  switch is managed by the default learning controller application.
 
-* **ofswitch13-single-domain**: Two hosts connected through two OpenFlow
-  switches, both managed by the default learning controller.
+* **ofswitch13-multiple-controllers**: Two hosts connected to a single OpenFlow
+  switch. The switch is managed by to different controllers applications.
 
-* **ofswitch13-multiple-domains**: Two hosts connected through two OpenFlow
-  switch managed by different learning controllers.
+* **ofswitch13-multiple-domains**: Two hosts connected to different OpenFlow
+  switches. Each switch is managed by an independent default learning
+  controller application.
 
-* **ofswitch13-multiple-controllers**: Two hosts connected through a single
-  OpenFlow switch managed simultaneously by to different controllers
+* **ofswitch13-single-domain**: Two hosts connected to different OpenFlow
+  switches. Both switches are managed by the default learning controller
+  application.
 
-* **ofswitch13-logical-port**: Two hosts connected through two OpenFlow
-  switches, both managed by an specialized *tunnel controller*. The switch
-  ports interconnecting the switches are configured as logical ports, and each
-  switch acts as a gateway that can de/encapsulate IP traffic using the GTP
-  tunneling protocol. The gateway implementation is very similar to the SgwPgw
-  implementation from the LTE module. However, the traffic routing between the
-  CsmaNetDevice connected to the local host and the VirtualNetDevice connected
-  to the tunnel socket is performed by the OpenFlow pipeline.
-
-* **ofswitch13-qos-controller**: It represents the network of an
+* **ofswitch13-logical-port**:  Two hosts connected to different OpenFlow
+  switches. Both switches are managed by the tunnel controller application.
+  The ports interconnecting the switches are configured as logical ports,
+  allowing switches to de/encapsulate IP traffic using the GTP/UDP/IP tunneling
+  protocol.
+  
+* **ofswitch13-qos-controller**: It represents the internal network of an
   organization, where servers and client nodes are located far from each other.
   An specialized *OpenFlow QoS controller* is used to manage the network,
   implementing some QoS functionalities and exploiting OpenFlow 1.3 features.
@@ -733,8 +730,7 @@ Troubleshooting
 
 * For simulating scenarios with more than one OpenFlow network domain
   configured with the ``OFSwtich13Helper``, use a different helper instance
-  for each domain, and don't forget to change the network address with the
-  ``SetAddressBase()``.
+  for each domain.
 
 * For using ASCII traces it is necessary to manually include the
   ``ns3::PacketMetadata::Enable ()`` at the beginning of the program, before

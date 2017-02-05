@@ -136,6 +136,7 @@ OFSwitch13ExternalHelper::CreateOpenFlowChannels (void)
             Simulator::ScheduleNow (
               &OFSwitch13Device::StartControllerConnection, *ofDev, addr);
           }
+        m_ipv4helper.NewNetwork ();
         break;
       }
     case OFSwitch13ExternalHelper::DEDICATEDCSMA:

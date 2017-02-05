@@ -28,6 +28,9 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Helper");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Helper);
 
+Ipv4AddressHelper OFSwitch13Helper::m_ipv4helper =
+  Ipv4AddressHelper ("10.100.0.0", "255.255.255.0");
+
 class OFSwitch13Controller;
 
 TypeId
@@ -69,7 +72,6 @@ OFSwitch13Helper::SetChannelType (ChannelType type)
 
   // Set the channel type and address, which will select proper netowrk mask.
   m_channelType = type;
-  SetAddressBase ("10.100.150.0");
 }
 
 void
@@ -78,33 +80,6 @@ OFSwitch13Helper::SetChannelDataRate (DataRate rate)
   NS_LOG_FUNCTION (this << rate);
 
   m_channelDataRate = rate;
-}
-
-void
-OFSwitch13Helper::SetAddressBase (Ipv4Address network, Ipv4Address base)
-{
-  NS_LOG_FUNCTION (this << network << base);
-
-  switch (m_channelType)
-    {
-    case OFSwitch13Helper::SINGLECSMA:
-      {
-        // Forcing a /24 network mask
-        m_ipv4helper.SetBase (network, "255.255.255.0", base);
-        break;
-      }
-    case OFSwitch13Helper::DEDICATEDCSMA:
-    case OFSwitch13Helper::DEDICATEDP2P:
-      {
-        // Forcing a /30 network mask
-        m_ipv4helper.SetBase (network, "255.255.255.252", base);
-        break;
-      }
-    default:
-      {
-        NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
-      }
-    }
 }
 
 void
@@ -248,6 +223,15 @@ OFSwitch13Helper::InstallSwitch (NodeContainer swNodes)
     }
 
   return openFlowDevices;
+}
+
+void
+OFSwitch13Helper::SetAddressBase (Ipv4Address network, Ipv4Mask mask,
+                                  Ipv4Address base)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  m_ipv4helper.SetBase (network, mask, base);
 }
 
 void
