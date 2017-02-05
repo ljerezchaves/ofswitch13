@@ -30,8 +30,7 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller);
 
 /********** Public methods ***********/
 OFSwitch13Controller::OFSwitch13Controller ()
-  : m_port (6653),
-    m_serverSocket (0)
+  : m_serverSocket (0)
 {
   NS_LOG_FUNCTION (this);
 
@@ -51,7 +50,7 @@ OFSwitch13Controller::GetTypeId (void)
     .SetGroupName ("OFSwitch13")
     .AddAttribute ("Port",
                    "Port number to listen for incoming packets.",
-                   UintegerValue (0),
+                   UintegerValue (6653),
                    MakeUintegerAccessor (&OFSwitch13Controller::m_port),
                    MakeUintegerChecker<uint16_t> ())
   ;
