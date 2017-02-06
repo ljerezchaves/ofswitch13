@@ -54,6 +54,7 @@ public:
   // Inherited from OFSwitch13Helper.
   void SetChannelType (ChannelType type);
   void SetChannelDataRate (DataRate rate);
+  void CreateOpenFlowChannels (void);
 
   /**
    * This method prepares the controller node so it can be used to connect
@@ -66,18 +67,6 @@ public:
    * \return The network device to bind to the TapBridge.
    */
   Ptr<NetDevice> InstallExternalController (Ptr<Node> cNode);
-
-  /**
-   * This method installs the TCP/IP stack into switches nodes configured by
-   * this helper, then creates and installs the devices and channels that will
-   * be used to interconnect all switches to the external controller according
-   * over the common CSMA channel. Finally, it starts the individual OpenFlow
-   * channel connections.
-   *
-   * \attention After calling this method, it will not be allowed to install
-   *            more switches or controller using this helper.
-   */
-  void CreateOpenFlowChannels (void);
 
 protected:
   /** Destructor implementation. */

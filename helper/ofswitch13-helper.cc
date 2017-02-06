@@ -33,6 +33,20 @@ Ipv4AddressHelper OFSwitch13Helper::m_ipv4helper =
 
 class OFSwitch13Controller;
 
+OFSwitch13Helper::OFSwitch13Helper ()
+  : m_blocked (false)
+{
+  NS_LOG_FUNCTION (this);
+
+  // Set OpenFlow device factory TypeId.
+  m_devFactory.SetTypeId ("ns3::OFSwitch13Device");
+}
+
+OFSwitch13Helper::~OFSwitch13Helper ()
+{
+  NS_LOG_FUNCTION (this);
+}
+
 TypeId
 OFSwitch13Helper::GetTypeId (void)
 {
@@ -242,20 +256,6 @@ OFSwitch13Helper::EnableDatapathLogs (std::string prefix,
 
   // Saving library logs into output file.
   ofs::EnableLibraryLog (true, prefix, explicitFilename);
-}
-
-OFSwitch13Helper::OFSwitch13Helper ()
-  : m_blocked (false)
-{
-  NS_LOG_FUNCTION (this);
-
-  // Set OpenFlow device factory TypeId.
-  m_devFactory.SetTypeId ("ns3::OFSwitch13Device");
-}
-
-OFSwitch13Helper::~OFSwitch13Helper ()
-{
-  NS_LOG_FUNCTION (this);
 }
 
 void

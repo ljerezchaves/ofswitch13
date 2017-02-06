@@ -51,6 +51,9 @@ public:
    */
   static TypeId GetTypeId (void);
 
+  // Inherited from OFSwitch13Helper.
+  void CreateOpenFlowChannels (void);
+
   /**
    * This method installs the given controller application into the given
    * controller node. If no application is given, a new (default) learning
@@ -63,18 +66,6 @@ public:
   Ptr<OFSwitch13Controller> InstallController (Ptr<Node> cNode,
     Ptr<OFSwitch13Controller> controller =
       CreateObject<OFSwitch13LearningController> ());
-
-  /**
-   * This method installs the TCP/IP stack into switches and controller nodes
-   * configured by this helper, then creates and installs the devices and
-   * channels that will be used to interconnect all switches to all controllers
-   * according to previously configuration. Finally, it starts the individual
-   * OpenFlow channel connections.
-   *
-   * \attention After calling this method, it will not be allowed to install
-   *            more switches or controllers using this helper.
-   */
-  void CreateOpenFlowChannels (void);
 
 protected:
   /** Destructor implementation. */

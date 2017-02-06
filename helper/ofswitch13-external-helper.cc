@@ -79,27 +79,6 @@ OFSwitch13ExternalHelper::SetChannelDataRate (DataRate rate)
   m_csmaChannel->SetAttribute ("DataRate", DataRateValue (rate));
 }
 
-Ptr<NetDevice>
-OFSwitch13ExternalHelper::InstallExternalController (Ptr<Node> cNode)
-{
-  NS_LOG_FUNCTION (this << cNode);
-
-  NS_LOG_INFO ("Installing OpenFlow controller on node " << cNode->GetId ());
-  NS_ABORT_MSG_UNLESS (!m_blocked && m_controlDevs.GetN () == 0,
-                       "OpenFlow controller/channels already configured.");
-
-  // Install the TCP/IP stack and the controller application into node.
-  m_internet.Install (cNode);
-  m_controlNode = cNode;
-
-  // Connect the controller node to the common channel and configure IP addrs.
-  m_controlDevs = m_csmaHelper.Install (cNode, m_csmaChannel);
-  Ipv4InterfaceContainer ctrlIface = m_ipv4helper.Assign (m_controlDevs);
-  m_controlAddr = ctrlIface.GetAddress (0);
-
-  return m_controlDevs.Get (0);
-}
-
 void
 OFSwitch13ExternalHelper::CreateOpenFlowChannels (void)
 {
@@ -146,6 +125,27 @@ OFSwitch13ExternalHelper::CreateOpenFlowChannels (void)
         NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
       }
     }
+}
+
+Ptr<NetDevice>
+OFSwitch13ExternalHelper::InstallExternalController (Ptr<Node> cNode)
+{
+  NS_LOG_FUNCTION (this << cNode);
+
+  NS_LOG_INFO ("Installing OpenFlow controller on node " << cNode->GetId ());
+  NS_ABORT_MSG_UNLESS (!m_blocked && m_controlDevs.GetN () == 0,
+                       "OpenFlow controller/channels already configured.");
+
+  // Install the TCP/IP stack and the controller application into node.
+  m_internet.Install (cNode);
+  m_controlNode = cNode;
+
+  // Connect the controller node to the common channel and configure IP addrs.
+  m_controlDevs = m_csmaHelper.Install (cNode, m_csmaChannel);
+  Ipv4InterfaceContainer ctrlIface = m_ipv4helper.Assign (m_controlDevs);
+  m_controlAddr = ctrlIface.GetAddress (0);
+
+  return m_controlDevs.Get (0);
 }
 
 void

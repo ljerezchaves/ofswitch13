@@ -82,6 +82,9 @@ public:
     DEDICATEDP2P = 2      //!< Uses individual P2P channels.
   };
 
+  OFSwitch13Helper ();          //!< Default constructor.
+  virtual ~OFSwitch13Helper (); //!< Dummy destructor, see DoDispose.
+
   /**
    * Register this type.
    * \return The object TypeId.
@@ -169,6 +172,15 @@ public:
   OFSwitch13DeviceContainer InstallSwitch (NodeContainer swNodes);
 
   /**
+   * This virtual method must interconnect all switches to all controllers
+   * installed by this helper and starts the individual OpenFlow channel
+   * connections.
+   * \attention After calling this method, it will not be allowed to install
+   *            more switches or controller using this helper.
+   */
+  virtual void CreateOpenFlowChannels (void) = 0;
+
+  /**
    * Set the IP network base address, used to assign IP addresses to switches
    * and controllers during the CreateOpenFlowChannels () procedure.
    *
@@ -194,9 +206,6 @@ public:
                                   bool explicitFilename = false);
 
 protected:
-  OFSwitch13Helper ();          //!< Default constructor.
-  virtual ~OFSwitch13Helper (); //!< Dummy destructor, see DoDispose.
-
   /** Destructor implementation. */
   virtual void DoDispose () ;
 

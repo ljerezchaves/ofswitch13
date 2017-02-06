@@ -51,25 +51,6 @@ OFSwitch13InternalHelper::GetTypeId (void)
   return tid;
 }
 
-Ptr<OFSwitch13Controller>
-OFSwitch13InternalHelper::InstallController (
-  Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller)
-{
-  NS_LOG_FUNCTION (this << cNode << controller);
-
-  NS_LOG_INFO ("Installing OpenFlow controller on node " << cNode->GetId ());
-  NS_ABORT_MSG_UNLESS (!m_blocked, "OpenFlow channels already configured.");
-
-  // Install the TCP/IP stack and the controller application into node.
-  m_internet.Install (cNode);
-  controller->SetStartTime (Seconds (0));
-  cNode->AddApplication (controller);
-  m_controlApps.Add (controller);
-  m_controlNodes.Add (cNode);
-
-  return controller;
-}
-
 void
 OFSwitch13InternalHelper::CreateOpenFlowChannels (void)
 {
@@ -183,6 +164,25 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels (void)
         NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
       }
     }
+}
+
+Ptr<OFSwitch13Controller>
+OFSwitch13InternalHelper::InstallController (
+  Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller)
+{
+  NS_LOG_FUNCTION (this << cNode << controller);
+
+  NS_LOG_INFO ("Installing OpenFlow controller on node " << cNode->GetId ());
+  NS_ABORT_MSG_UNLESS (!m_blocked, "OpenFlow channels already configured.");
+
+  // Install the TCP/IP stack and the controller application into node.
+  m_internet.Install (cNode);
+  controller->SetStartTime (Seconds (0));
+  cNode->AddApplication (controller);
+  m_controlApps.Add (controller);
+  m_controlNodes.Add (cNode);
+
+  return controller;
 }
 
 void
