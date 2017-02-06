@@ -169,8 +169,7 @@ main (int argc, char *argv[])
   Ptr<QosController> qosCtrl = CreateObject<QosController> ();
   ofQosHelper->InstallController (controllerNodes.Get (0), qosCtrl);
 
-  // Configure OpenFlow learning controller for client switch (#2) into
-  // controller node 1. 
+  // Configure OpenFlow learning controller for client switch (#2) into controller node 1
   Ptr<OFSwitch13InternalHelper> ofLearningHelper = CreateObject<OFSwitch13InternalHelper> ();
   Ptr<OFSwitch13LearningController> learnCtrl = CreateObject<OFSwitch13LearningController> ();
   ofLearningHelper->InstallController (controllerNodes.Get (1), learnCtrl);

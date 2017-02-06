@@ -821,11 +821,11 @@ OFSwitch13Device::ReplyWithErrorMessage (ofl_err error, ofpbuf *buffer,
   err.code = ofl_error_code (error);
   err.data_length = buffer->size;
   err.data = (uint8_t*)buffer->data;
-  
+
   char *msg_str = ofl_msg_to_string ((ofl_msg_header*)&err, 0);
   NS_LOG_ERROR ("Error processing OpenFlow message. Reply with " << msg_str);
   free (msg_str);
-  
+
   dp_send_message (m_datapath, (ofl_msg_header*)&err, senderCtrl);
 }
 
