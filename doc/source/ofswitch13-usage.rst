@@ -146,33 +146,35 @@ That's it! Enjoy your |ns3| fresh compilation with OpenFlow 1.3 capabilities.
 Basic usage
 ===========
 
-Here is the minimal simulation program that is necessary to simulate an
-OpenFlow 1.3 network domain. This script connects two hosts to a single
-OpenFlow switch using CSMA links, and configure both the switch and the
-controller using the ``OFSwitch13InternalHelper`` class.
+Here is the minimal script that is necessary to simulate an OpenFlow 1.3
+network domain (code extracted from ``ofswitch13-first.cc`` example). This
+script connects two hosts to a single OpenFlow switch using CSMA links, and
+configure both the switch and the controller using the
+``OFSwitch13InternalHelper`` class.
 
 .. code-block:: cpp
 
-  #include "ns3/core-module.h"
-  #include "ns3/network-module.h"
-  #include "ns3/internet-module.h"
-  #include "ns3/csma-module.h"
-  #include "ns3/ofswitch13-module.h"
+  #include <ns3/core-module.h>
+  #include <ns3/network-module.h>
+  #include <ns3/csma-module.h>
+  #include <ns3/internet-module.h>
+  #include <ns3/ofswitch13-module.h>
+  #include <ns3/internet-apps-module.h>
 
   using namespace ns3;
 
   int
   main (int argc, char *argv[])
   {
+    // Enable checksum computations (required by OFSwitch13 module)
+    GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
+  
     // Create two host nodes
     NodeContainer hosts;
     hosts.Create (2);
 
     // Create the switch node
     Ptr<Node> switchNode = CreateObject<Node> ();
-
-    // Create the controller node
-    Ptr<Node> controllerNode = CreateObject<Node> ();
 
     // Use the CsmaHelper to connect the host nodes to the switch.
     CsmaHelper csmaHelper;
@@ -186,27 +188,61 @@ controller using the ``OFSwitch13InternalHelper`` class.
         switchPorts.Add (link.Get (1));
       }
 
-    // Configure the OpenFlow network, installing the controller and switch
+    // Create the controller node
+    Ptr<Node> controllerNode = CreateObject<Node> ();
+
+    // Configure the OpenFlow network domain
     Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper> ();
     of13Helper->InstallController (controllerNode);
     of13Helper->InstallSwitch (switchNode, switchPorts);
     of13Helper->CreateOpenFlowChannels ();
 
-    // Other configurations: TCP/IP stack, apps, monitors, etc.
-    // ...
+    // Install the TCP/IP stack into hosts nodes
+    InternetStackHelper internet;
+    internet.Install (hosts);
 
-    // Simulate
+    // Set IPv4 host addresses
+    Ipv4AddressHelper ipv4helpr;
+    Ipv4InterfaceContainer hostIpIfaces;
+    ipv4helpr.SetBase ("10.1.1.0", "255.255.255.0");
+    hostIpIfaces = ipv4helpr.Assign (hostDevices);
+
+    // Configure ping application between hosts
+    V4PingHelper pingHelper = V4PingHelper (hostIpIfaces.GetAddress (1));
+    pingHelper.SetAttribute ("Verbose", BooleanValue (true));
+    ApplicationContainer pingApps = pingHelper.Install (hosts.Get (0));
+    pingApps.Start (Seconds (1));
+
+    // Run the simulation
     Simulator::Stop (Seconds (10));
     Simulator::Run ();
     Simulator::Destroy ();
   }
 
-To run this code, users *must install* the TCP/IP stack into host nodes, assign
-IP addresses to host interfaces (there's no need to add IP addresses to the
-devices that are used as OpenFlow port), and configure any traffic application.
-You can also check for the ``ofswitch13-first.cc`` example, which is very
-similar to this code. For instructions on how to compile and run simulation
-programs, please refer to the |ns3| tutorial.
+At first, don't forget to enable checksum computations, which are required by
+the OFSwitch13 module. After creating host and switch nodes, the user is
+responsible to connect the hosts and switches in order to create the desired
+network topology. It's mandatory to use CSMA links for these connections. Note
+that ``CsmaNetDevices`` created and installed into switch node will be later
+configured as switch ports. After connecting hosts and switches, it's time to
+create a controller node and configure the OpenFlow network. The
+``OFSwitch13InternalHelper`` helper can be used to configure an OpenFlow
+network domain with internal controller application. Using the
+``InstallController()`` method, the helper will configure controller node with
+a default OpenFlow learning controller application. The ``InstallSwitch()``
+method will install the OpenFlow datapath into switch node and configure the
+witch ports. At the end, it's mandatory to call the
+``CreateOpenFlowChannels()`` method to create the connections and start the
+communication between switches and controllers.
+
+The rest of this example follows the standard |ns3| usage: installing TCP/IP
+stack into host nodes, configuring IP addresses, installing applications and
+running the simulation. Don't install the TCP/IP stack into switches and
+controllers nodes (the helper will do that for you). Also, don't assign IP
+address to devices configured as switch ports. You can check for the
+``ofswitch13-first.cc`` example, which is very similar to this code. For
+instructions on how to compile and run simulation programs, please refer to the
+|ns3| tutorial.
 
 Helpers
 =======
@@ -223,7 +259,7 @@ with IP addresses assigned to the 10.100.0.0/24 network. Users can modify this
 configuration by changing the ChannelType attribute at instantiation time
 (dedicated out-of-band connections over CSMA or Point-to-Point channels are
 also available), or setting a different IP network address with the help of the
-static method ``OFSwitch13Helper::SetAddressBase()``.  The use of standard
+static method ``OFSwitch13Helper::SetAddressBase()``. The use of standard
 |ns3| channels and devices provides realistic connections with delay and error
 models. 
 
@@ -232,7 +268,7 @@ the controllers is done by derived classes). The ``InstallSwitch()`` method can
 be used to create and aggregate an ``OFSwitch13Device`` object for each switch
 node. By default, the ``InstallSwitch()`` method configures the switches
 without ports, so users must add the ports to the switch later, using the
-device ``AddSwitchPort()``.  However, it is possible to send to the
+device ``AddSwitchPort()``. However, it is possible to send to the
 ``InstallSwitch()`` method a container with ``NetDevices`` that can be
 configured as switch ports of a single switch node.
 
@@ -648,7 +684,7 @@ Examples summary
   switches. Both switches are managed by the same external controller
   application.
 
-* **ofswitch13-logical-port**:  Two hosts connected to different OpenFlow
+* **ofswitch13-logical-port**: Two hosts connected to different OpenFlow
   switches. Both switches are managed by the tunnel controller application.
   The ports interconnecting the switches are configured as logical ports,
   allowing switches to de/encapsulate IP traffic using the GTP/UDP/IP tunneling

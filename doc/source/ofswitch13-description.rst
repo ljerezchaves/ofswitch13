@@ -347,7 +347,7 @@ The only required modification to the |ns3| source code for ``OFSwitch13``
 integration is the inclusion of the new OpenFlow receive callback in the
 ``CsmaNetDevice`` and ``VirtualNetDevice``. The module brings the patch for
 including this receive callback into |ns3| source code, available under
-``src/ofswitch13/utils`` directory.  Note the existence of a *src* patch for
+``src/ofswitch13/utils`` directory. Note the existence of a *src* patch for
 the receive callbacks inclusion, and an optional *doc* patch that can be used
 for including the ``OFSwitch13`` when compiling Doxygen and Sphinx
 documentation. For older versions, users can apply the *src* patch and, if
