@@ -715,12 +715,48 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
   buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
   error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
                           &senderCtrl.xid, m_datapath->exp);
+
+  // Check for error while unpacking the message.
   if (error)
     {
-      // Error while unpacking the message. Notify the error and return.
-      ReplyWithErrorMessage (error, buffer, &senderCtrl);
-      ofpbuf_delete (buffer);
-      return;
+      // The ofsoftswitch13 librady only unpacks messages that has the same
+      // OFP_VERSION that is supported by the datapath implementation. However,
+      // when an OpenFlow connection is first established, each side of the
+      // connection must immediately send an OFPT_HELLO message with the
+      // version field set to the highest OpenFlow switch protocol version
+      // supported by the sender. Upon receipt of this message, the recipient
+      // must calculate the OpenFlow switch protocol version to be used, and
+      // the negotiated version must be the smaller of the version number that
+      // was sent and the one that was received in the version fields. So, for
+      // the OFPT_HELLO message, we will check for advertised version to see if
+      // it is higher than ours, in which case we can continue.
+      ofp_header *header = (ofp_header*)buffer->data;
+      if (header->type != OFPT_HELLO || header->version <= OFP_VERSION)
+        {
+          // This is not a hello message or the advertised version is lower
+          // than OFP_VERSION. Notify the error and return.
+          ReplyWithErrorMessage (error, buffer, &senderCtrl);
+          ofpbuf_delete (buffer);
+          return;
+        }
+      else
+        {
+          // The advertised version is equal or higher than OFP_VERSION. Let's
+          // change the message version to OFP_VERSION so the message can be
+          // successfully unpacked and we can continue.
+          header->version = OFP_VERSION;
+          error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
+                                  &senderCtrl.xid, m_datapath->exp);
+
+          // Check for any other error while unpacking the message.
+          if (error)
+            {
+              // Notify the error and return.
+              ReplyWithErrorMessage (error, buffer, &senderCtrl);
+              ofpbuf_delete (buffer);
+              return;
+            }
+        }
     }
 
   // Print message content.
@@ -761,13 +797,15 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
   error = handle_control_msg (m_datapath, msg, &senderCtrl);
   if (error)
     {
-      // NOTE: It is assumed that if a handler returns with error, it did not
-      // use any part of the control message, thus it can be freed up. If no
-      // error is returned however, the message must be freed inside the
-      // handler (because the handler might keep parts of the message).
+      // It is assumed that if a handler returns with error, it did not use any
+      // part of the control message, thus it can be freed up. If no error is
+      // returned however, the message must be freed inside the handler because
+      // the handler might keep parts of the message.
       ofl_msg_free (msg, m_datapath->exp);
       ReplyWithErrorMessage (error, buffer, &senderCtrl);
     }
+
+  // If we got here, let's free the buffer.
   ofpbuf_delete (buffer);
 }
 
@@ -777,13 +815,17 @@ OFSwitch13Device::ReplyWithErrorMessage (ofl_err error, ofpbuf *buffer,
 {
   NS_LOG_FUNCTION (this << error);
 
-  NS_LOG_ERROR ("Error processing OpenFlow message from controller.");
   ofl_msg_error err;
   err.header.type = OFPT_ERROR;
   err.type = (ofp_error_type)ofl_error_type (error);
   err.code = ofl_error_code (error);
   err.data_length = buffer->size;
   err.data = (uint8_t*)buffer->data;
+  
+  char *msg_str = ofl_msg_to_string ((ofl_msg_header*)&err, 0);
+  NS_LOG_ERROR ("Error processing OpenFlow message. Reply with " << msg_str);
+  free (msg_str);
+  
   dp_send_message (m_datapath, (ofl_msg_header*)&err, senderCtrl);
 }
 
