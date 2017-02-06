@@ -69,6 +69,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("TunnelController", LOG_LEVEL_ALL);
       LogComponentEnable ("TunnelUserApp", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
     }
 
   // Enable checksum computations (required by OFSwitch13 module)
@@ -90,7 +91,7 @@ main (int argc, char *argv[])
   Ptr<Node> controllerNode = CreateObject<Node> ();
 
   // Configure the OpenFlow network domain (don't create the OpenFlow channel now)
-  Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
+  Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper> ();
   Ptr<TunnelController> tunnelController = CreateObject<TunnelController> ();
   of13Helper->InstallController (controllerNode, tunnelController);
   OFSwitch13DeviceContainer ofDevices = of13Helper->InstallSwitch (switches);

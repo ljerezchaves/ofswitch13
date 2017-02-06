@@ -422,10 +422,9 @@ OFSwitch13Controller::HandleError (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  char *str;
-  str = ofl_msg_to_string ((ofl_msg_header*)msg, 0);
-  NS_LOG_ERROR ("OpenFlow error: " << str);
-  free (str);
+  char *msg_str = ofl_msg_to_string ((ofl_msg_header*)msg, 0);
+  NS_LOG_ERROR ("OpenFlow error: " << msg_str);
+  free (msg_str);
 
   ofl_msg_free ((ofl_msg_header*)msg, 0);
   return 0;

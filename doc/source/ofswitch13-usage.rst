@@ -146,33 +146,35 @@ That's it! Enjoy your |ns3| fresh compilation with OpenFlow 1.3 capabilities.
 Basic usage
 ===========
 
-Here is the minimal simulation program that is needed simulate an OpenFlow 1.3
-environment. This code connects two hosts to a single switch using CSMA links,
-and install the switch and the controller using the ``OFSwitch13Helper``.
+Here is the minimal script that is necessary to simulate an OpenFlow 1.3
+network domain (code extracted from ``ofswitch13-first.cc`` example). This
+script connects two hosts to a single OpenFlow switch using CSMA links, and
+configure both the switch and the controller using the
+``OFSwitch13InternalHelper`` class.
 
 .. code-block:: cpp
 
-  // Initial boilerplate
-  #include "ns3/core-module.h"
-  #include "ns3/network-module.h"
-  #include "ns3/internet-module.h"
-  #include "ns3/csma-module.h"
-  #include "ns3/ofswitch13-module.h"
+  #include <ns3/core-module.h>
+  #include <ns3/network-module.h>
+  #include <ns3/csma-module.h>
+  #include <ns3/internet-module.h>
+  #include <ns3/ofswitch13-module.h>
+  #include <ns3/internet-apps-module.h>
 
   using namespace ns3;
 
   int
   main (int argc, char *argv[])
   {
+    // Enable checksum computations (required by OFSwitch13 module)
+    GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
+  
     // Create two host nodes
     NodeContainer hosts;
     hosts.Create (2);
 
     // Create the switch node
     Ptr<Node> switchNode = CreateObject<Node> ();
-
-    // Create the controller node
-    Ptr<Node> controllerNode = CreateObject<Node> ();
 
     // Use the CsmaHelper to connect the host nodes to the switch.
     CsmaHelper csmaHelper;
@@ -186,27 +188,61 @@ and install the switch and the controller using the ``OFSwitch13Helper``.
         switchPorts.Add (link.Get (1));
       }
 
-    // Configure the OpenFlow network, installing the controller and switch
-    Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
+    // Create the controller node
+    Ptr<Node> controllerNode = CreateObject<Node> ();
+
+    // Configure the OpenFlow network domain
+    Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper> ();
     of13Helper->InstallController (controllerNode);
     of13Helper->InstallSwitch (switchNode, switchPorts);
     of13Helper->CreateOpenFlowChannels ();
 
-    // Other configurations: TCP/IP stack, apps, monitors, etc.
-    // ...
+    // Install the TCP/IP stack into hosts nodes
+    InternetStackHelper internet;
+    internet.Install (hosts);
 
-    // Simulate
+    // Set IPv4 host addresses
+    Ipv4AddressHelper ipv4helpr;
+    Ipv4InterfaceContainer hostIpIfaces;
+    ipv4helpr.SetBase ("10.1.1.0", "255.255.255.0");
+    hostIpIfaces = ipv4helpr.Assign (hostDevices);
+
+    // Configure ping application between hosts
+    V4PingHelper pingHelper = V4PingHelper (hostIpIfaces.GetAddress (1));
+    pingHelper.SetAttribute ("Verbose", BooleanValue (true));
+    ApplicationContainer pingApps = pingHelper.Install (hosts.Get (0));
+    pingApps.Start (Seconds (1));
+
+    // Run the simulation
     Simulator::Stop (Seconds (10));
     Simulator::Run ();
     Simulator::Destroy ();
   }
 
-To run this code, users *must install* the TCP/IP stack into host nodes, assign
-IP addresses to host interfaces (there's no need to add IP addresses to the
-devices that are used as OpenFlow port), and configure any traffic application.
-You can also check for the ``ofswitch13-first.cc`` example, which is very
-similar to this code. For instructions on how to compile and run simulation
-programs, please refer to the |ns3| tutorial.
+At first, don't forget to enable checksum computations, which are required by
+the OFSwitch13 module. After creating host and switch nodes, the user is
+responsible to connect the hosts and switches in order to create the desired
+network topology. It's mandatory to use CSMA links for these connections. Note
+that ``CsmaNetDevices`` created and installed into switch node will be later
+configured as switch ports. After connecting hosts and switches, it's time to
+create a controller node and configure the OpenFlow network. The
+``OFSwitch13InternalHelper`` helper can be used to configure an OpenFlow
+network domain with internal controller application. Using the
+``InstallController()`` method, the helper will configure controller node with
+a default OpenFlow learning controller application. The ``InstallSwitch()``
+method will install the OpenFlow datapath into switch node and configure the
+witch ports. At the end, it's mandatory to call the
+``CreateOpenFlowChannels()`` method to create the connections and start the
+communication between switches and controllers.
+
+The rest of this example follows the standard |ns3| usage: installing TCP/IP
+stack into host nodes, configuring IP addresses, installing applications and
+running the simulation. Don't install the TCP/IP stack into switches and
+controllers nodes (the helper will do that for you). Also, don't assign IP
+address to devices configured as switch ports. You can check for the
+``ofswitch13-first.cc`` example, which is very similar to this code. For
+instructions on how to compile and run simulation programs, please refer to the
+|ns3| tutorial.
 
 Helpers
 =======
@@ -214,55 +250,84 @@ Helpers
 OFSwitch13Helper
 ################
 
-The single ``OFSwitch13helper`` follows the pattern usage of normal helpers.
-It can be used to create and configure an OpenFlow 1.3 network domain, composed
-of one or more OpenFlow switches connected to a single or multiple controllers.
-By default, the connections between switches and controllers are created
-using a single shared out-of-band CSMA channel, with IP addresses assigned
-using a /24 network mask. Users can modify this configuration by changing the
-ChannelType attribute at instantiation time. Dedicated out-of-band connections
-over CSMA or Point-to-Point channels are also available, using a /30 network
-mask for IP allocation. The use of standard |ns3| channels and devices provides
-realistic connections with delay and error models.
+The ``OFSwitch13Helper`` follows the pattern usage of normal helpers. This is a
+base class that must be extended to create and configure an OpenFlow 1.3
+network domain, composed of one or more OpenFlow switches connected to single
+or multiple OpenFlow controllers. By default, the connections between switches
+and controllers are created using a single shared out-of-band CSMA channel,
+with IP addresses assigned to the 10.100.0.0/24 network. Users can modify this
+configuration by changing the ChannelType attribute at instantiation time
+(dedicated out-of-band connections over CSMA or Point-to-Point channels are
+also available), or setting a different IP network address with the help of the
+static method ``OFSwitch13Helper::SetAddressBase()``. The use of standard
+|ns3| channels and devices provides realistic connections with delay and error
+models. 
 
-This helper was designed to configure a single OpenFlow network domain. All
-switches will be connected to all controllers on the same domain. If you want
-to configure separated OpenFlow domains on your network topology (with their
-individual switches and controllers) so you may need to use a different
-instance of this helper for each domain. 
-
-To configure the controller, the ``InstallController()`` method can be used to
-create a new learning controller application and install it into the controller
-node indicated as parameter. It is also possible to install a different
-controller application other than the learning controller using this same
-method by setting the proper application parameter. Note that this helper is
-prepared to install a single controller application at each controller node, so
-don't install a second application on the same node, otherwise the helper will
-crash.
-
-For configuring the switches, the ``InstallSwitch()`` method can be used to
-create and aggregate an ``OFSwitch13Device`` object for each switch node. By
-default, the ``InstallSwitch()`` method configures the switches without ports,
-so users must add the ports to the switch later, using the device
-``AddSwitchPort()``. However, it is possible to send to the ``InstallSwitch()``
-method a container with ``NetDevices`` that can be configured as switch ports
-of a single switch node.
+This base class brings the methods for configuring the switches (configuring
+the controllers is done by derived classes). The ``InstallSwitch()`` method can
+be used to create and aggregate an ``OFSwitch13Device`` object for each switch
+node. By default, the ``InstallSwitch()`` method configures the switches
+without ports, so users must add the ports to the switch later, using the
+device ``AddSwitchPort()``. However, it is possible to send to the
+``InstallSwitch()`` method a container with ``NetDevices`` that can be
+configured as switch ports of a single switch node.
 
 Each port can be constructed over a ``CsmaNetDevice`` created during the
 connection between switch nodes and other nodes in the simulation (these
-connections must be previously defined by the user) It is also possible to use
+connections must be previously defined by the user). It is also possible to use
 a ``VirtualNetDevice`` as a logical port, allowing the user to configure
 complex operations like tunneling.
 
 After installing the switches and controllers, it is mandatory to use the
-``CreateOpenFlowChannels()`` member method to effectively create and start
-the connections between switches and controllers. After calling this method,
-you'll not be allowed to install more switches nor controllers using this
-helper.
+``CreateOpenFlowChannels()`` member method to effectively create and start the
+connections between switches and controllers. After calling this method, you'll
+not be allowed to install more switches nor controllers using this helper.
+Please note that this base helper class was designed to configure a single
+OpenFlow network domain. All switches will be connected to all controllers on
+the same domain. If you want to configure separated OpenFlow domains on your
+network topology (with their individual switches and controllers) so you may
+need to use a different instance of the derived helper class for each domain.
 
 This helper also allow users to enable some module outputs that can be used for
 traffic monitoring and performance evaluation. Please, check the :ref:`output`
 section for detailed information.
+
+OFSwitch13InternalHelper
+########################
+
+This helper extends the base class and can be instantiated to create and
+configure an OpenFlow 1.3 network domain composed of one or more OpenFlow
+switches connected to a single or multiple internal simulated OpenFlow
+controllers. It brings methods for installing the controller and creating the
+OpenFlow channels.
+
+To configure the controller, the ``InstallController()`` method can be used to
+create a (default) new learning controller application and install it into the
+controller node indicated as parameter. It is also possible to install a
+different controller application other than the learning controller using this
+same method by setting the proper application parameter. Note that this helper
+is prepared to install a single controller application at each controller node,
+so don't install a second application on the same node, otherwise the helper
+will crash.
+
+OFSwitch13ExternalHelper
+########################
+
+This helper extends the base class and can be instantiated to create and
+configure an OpenFlow 1.3 network domain composed of one or more OpenFlow
+switches connected to a single external real OpenFlow controller. It brings
+methods for installing the controller node for TapBridge usage and creating
+the OpenFlow channels. The current implementation only supports the single
+shared CSMA channel type.
+
+To configure the external controller, the ``InstallExternalController()``
+method can be used to prepare the controller node so it can be used to connect
+internal simulated switches to an external OpenFlow controller running on the
+local machine over a TapBridge device. It installs the TCP/IP stack into
+controller node, attach it to the common CSMA channel, configure IP address for
+it and returns the ``NetDevice`` that the user will be responsible to bind to
+the TabBridge. Note that this helper is prepared to configure a single
+controller node. See the :ref:`external-controller` section for more details.
 
 Attributes
 ==========
@@ -275,7 +340,7 @@ OFSwitch13Controller
   since 2013-07-18).
 
 OFSwitch13Device
-###################
+################
 
 * ``DatapathId``: The unique datapath identification of this OpenFlow switch.
   This is a read-only attribute, automatically assigned by the object
@@ -317,6 +382,13 @@ OFSwitch13Helper
 
 * ``ChannelDataRate``: The data rate to be used for the OpenFlow channel links.
 
+OFSwitch13ExternalHelper
+########################
+
+* ``Port``: The port number on which the external controller application
+  listen for incoming packets. The default value is port 6653 (the official
+  IANA port since 2013-07-18).
+
 OFSwitch13StatsCalculator
 #########################
 
@@ -334,14 +406,15 @@ Output
 ======
 
 This module relies on the |ns3| tracing subsystem for output. The
-``OFSwitch13Helper`` class allows users to monitor control-plane traffic by
-enabling PCAP and ASCII trace files for the ``NetDevices`` used to create the
-OpenFlow Channel (using methods ``EnableOpenFlowPcap()`` and
-``EnableOpenFlowAscii()``, respectively). This can be useful to analyze the
-OpenFlow messages exchanged between switches and controllers that were
-configured by this helper using the ``Install*()`` methods. It is also
-possible to enable PCAP and ASCII trace files to monitor data-plane traffic on
-switch ports using the standard ``CsmaHelper`` trace functions.
+``OFSwitch13Helper`` base class allows users to monitor control-plane traffic
+by enabling PCAP and ASCII trace files for the ``NetDevices`` used to create
+the OpenFlow Channel(s). This can be useful to analyze the OpenFlow messages
+exchanged between switches and controllers on this network domain. To enable
+these traces just call the ``EnableOpenFlowPcap()`` and
+``EnableOpenFlowAscii()`` helper member functions *after* configuring the
+switches and creating the OpenFlow channels. It is also possible to enable PCAP
+and ASCII trace files to monitor data-plane traffic on switch ports using the
+standard ``CsmaHelper`` trace functions.
 
 For performance evaluation, the ``OFSwitch13StatsCalculator`` class can monitor
 statistics of an OpenFlow switch datapath. The instances of this class connect
@@ -440,7 +513,7 @@ logic in the ``OFSwitch13`` module:
   // ...
 
   // Create the OpenFlow 1.3 helper
-  Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
+  Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper> ();
 
   // Create the controller node and install the learning controller app into it
   Ptr<Node> controllerNode = CreateObject<Node> ();
@@ -541,6 +614,50 @@ controller and send to the network over a packet-out message. Developers are
 encouraged to study the library internal structures to better understand the
 handlers' implementation and also how to build an OpenFlow message manually.
 
+.. _external-controller:
+
+External controller
+###################
+
+Considering that the OpenFlow messages traversing the OpenFlow channel follows
+the standard wire format, it is possible to use the |ns3| ``TapBridge`` module
+to integrate an external OpenFlow 1.3 controller, running on the local system,
+to the simulated environment. The experimental ``external-controller.cc``
+example uses the ``OFSwitch13ExternalHelper`` to this end, as follows:
+
+.. code-block:: cpp
+
+  // ...
+  // Configure the OpenFlow network domain using an external controller
+  Ptr<OFSwitch13ExternalHelper> of13Helper = CreateObject<OFSwitch13ExternalHelper> ();
+  Ptr<NetDevice> ctrlDev = of13Helper->InstallExternalController (controllerNode);
+  of13Helper->InstallSwitch (switches.Get (0), switchPorts [0]);
+  of13Helper->InstallSwitch (switches.Get (1), switchPorts [1]);
+  of13Helper->CreateOpenFlowChannels ();
+
+  // TapBridge the controller device to local machine
+  // The default configuration expects a controller on local port 6653
+  TapBridgeHelper tapBridge;
+  tapBridge.SetAttribute ("Mode", StringValue ("ConfigureLocal"));
+  tapBridge.SetAttribute ("DeviceName", StringValue ("ctrl"));
+  tapBridge.Install (controllerNode, ctrlDev);
+
+  // ...
+
+The ``InstallExternalController()`` function configures the controller node as
+a "ghost node" on the simulator. The net device created at the controller node
+(``ctrlDev``) is returned by the function and the user is responsible to bind
+it to the ``TapBridge`` device so it will appear as if it were actually
+replacing the TAP device in the Linux. The default configuration expects an
+OpenFlow controller running on the local machine at port 6653 (the IP address
+is automatically set by the helper). Users can modify the local port number
+setting the ``OFSwitch13ExternalHelper::Port`` attribute. 
+
+This example was tested with the Floodlight 1.2 controller
+(http://www.projectfloodlight.org) running on the local machine. Consistent
+behavior is observed once sufficient time elapses (say 3 to 5 minutes) between
+any two executions.
+
 Examples
 ========
 
@@ -563,7 +680,11 @@ Examples summary
   switches. Both switches are managed by the default learning controller
   application.
 
-* **ofswitch13-logical-port**:  Two hosts connected to different OpenFlow
+* **ofswitch13-external-controller**: Two hosts connected to different OpenFlow
+  switches. Both switches are managed by the same external controller
+  application.
+
+* **ofswitch13-logical-port**: Two hosts connected to different OpenFlow
   switches. Both switches are managed by the tunnel controller application.
   The ports interconnecting the switches are configured as logical ports,
   allowing switches to de/encapsulate IP traffic using the GTP/UDP/IP tunneling
@@ -687,10 +808,9 @@ Troubleshooting
   collapse.
 
 * For simulating scenarios with more than one OpenFlow network domain
-  configured with the ``OFSwtich13Helper``, use a different helper instance
-  for each domain.
+  configured with the ``OFSwtich13InternalHelper``, use a different helper
+  instance for each domain.
 
 * For using ASCII traces it is necessary to manually include the
   ``ns3::PacketMetadata::Enable ()`` at the beginning of the program, before
   any packets are sent.
-

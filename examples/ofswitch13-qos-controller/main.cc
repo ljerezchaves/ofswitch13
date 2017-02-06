@@ -69,7 +69,6 @@ main (int argc, char *argv[])
   if (verbose)
     {
       OFSwitch13Helper::EnableDatapathLogs ();
-      LogComponentEnable ("OFSwitch13Interface", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Port", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Queue", LOG_LEVEL_ALL);
@@ -77,6 +76,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("QosController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
     }
 
   // Configure dedicated connections between controller and switches
@@ -164,15 +164,13 @@ main (int argc, char *argv[])
 
   // Configure OpenFlow QoS controller for border and aggregation switches
   // (#0 and #1) into controller node 0.
-  Ptr<OFSwitch13Helper> ofQosHelper = CreateObject<OFSwitch13Helper> ();
+  Ptr<OFSwitch13InternalHelper> ofQosHelper =
+    CreateObject<OFSwitch13InternalHelper> ();
   Ptr<QosController> qosCtrl = CreateObject<QosController> ();
   ofQosHelper->InstallController (controllerNodes.Get (0), qosCtrl);
 
-  // Configure OpenFlow learning controller for client switch (#2) into
-  // controller node 1. Note that for using two different OpenFlow domains in
-  // the same simulation script it is necessary to change the addresse network
-  // used by the helper to configure the OpenFlow channels.
-  Ptr<OFSwitch13Helper> ofLearningHelper = CreateObject<OFSwitch13Helper> ();
+  // Configure OpenFlow learning controller for client switch (#2) into controller node 1
+  Ptr<OFSwitch13InternalHelper> ofLearningHelper = CreateObject<OFSwitch13InternalHelper> ();
   Ptr<OFSwitch13LearningController> learnCtrl = CreateObject<OFSwitch13LearningController> ();
   ofLearningHelper->InstallController (controllerNodes.Get (1), learnCtrl);
 

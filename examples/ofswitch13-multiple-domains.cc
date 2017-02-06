@@ -32,7 +32,6 @@
 #include <ns3/network-module.h>
 #include <ns3/csma-module.h>
 #include <ns3/internet-module.h>
-#include <ns3/applications-module.h>
 #include <ns3/ofswitch13-module.h>
 #include <ns3/internet-apps-module.h>
 
@@ -62,6 +61,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
     }
 
   // Enable checksum computations (required by OFSwitch13 module)
@@ -110,12 +110,12 @@ main (int argc, char *argv[])
   controllers.Create (2);
 
   // Configure both OpenFlow network domains
-  Ptr<OFSwitch13Helper> of13Helper0 = CreateObject<OFSwitch13Helper> ();
+  Ptr<OFSwitch13InternalHelper> of13Helper0 = CreateObject<OFSwitch13InternalHelper> ();
   of13Helper0->InstallController (controllers.Get (0));
   of13Helper0->InstallSwitch (switches.Get (0), switchPorts [0]);
   of13Helper0->CreateOpenFlowChannels ();
 
-  Ptr<OFSwitch13Helper> of13Helper1 = CreateObject<OFSwitch13Helper> ();
+  Ptr<OFSwitch13InternalHelper> of13Helper1 = CreateObject<OFSwitch13InternalHelper> ();
   of13Helper1->InstallController (controllers.Get (1));
   of13Helper1->InstallSwitch (switches.Get (1), switchPorts [1]);
   of13Helper1->CreateOpenFlowChannels ();

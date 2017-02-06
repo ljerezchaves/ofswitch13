@@ -21,15 +21,19 @@ Release 3.0.0 (Place the date here)
 - Including support to build switch ports over VirtualNetDevices to work as
   logical ports.
 
-- Including the logical-port-ofswitch13 example.
+- Renaming examples files to ofswitch13-*.cc and including the new
+  ofswitch13-logical-port example.
 
 - Removing the need of registering the switch at the controller before the
   connection start.
 
-- Removing from the OpenFlow device the controller address attribute. It now
-  must be indicated by the helper as a parameter to StartControllerConnection.
+- Removing the controller address attribute from the OpenFlow device. It now
+  must be indicated by the helper as a parameter to the 
+  StartControllerConnection () device method.
 
-- Create the OFSwitch13StatsCalculator for switch performance monitoring.
+- Creating the OFSwitch13StatsCalculator for switch performance monitoring.
+
+- Implementing a simplified OpenFlow version-negotiation in OpenFlow device.
 
 - Create the SocketReader class to read OpenFlow messages from TCP sockets in
   safe and independently way.
@@ -41,20 +45,25 @@ Release 3.0.0 (Place the date here)
 - Refactoring the OFSwitch13Controller class:
   * Splitting the DpctlCommand into execute and schedule versions;
   * Removing dependence from OFSwitch13Device class;
-  * Renaming ConnectionStarted to HandshakeSuccessful to reflect semantic;
+  * Renaming ConnectionStarted () method to HandshakeSuccessful () to reflect
+    the method semantic;
   * Implementing the handshake procedure;
   * Implementing barrier reply, hello and features reply handlers;
   * Using constant pointers to RemoteSwitch objects to avoid mistakes.
 
-- Refactoring the OFSwitch13Helper class to support the configuration of
-  OpenFlow networks domains with multiple controllers:
+- Refactoring the OFSwitch13Helper class:
+  * Using the OFSwitch13Helper as a base class and implementing extended
+    helpers for configuring an OpenFlow network domain with internal controller
+    applications (OFSwitch13InternalHelper) or an external real controller
+    (OFSwitch13ExternalHelper);
+  * Supporting the configuration of OpenFlow networks domains with multiple
+    controllers;
   * Removing the dependence of installing the controller before the switches;
-  * The new CreateOpenFlowChannels () member function was introduced to
-    effectively connect switches to controllers after installing switches
-    devices and controller applications into respective nodes (the use of this
-    function is mandatory).
+  * Introducing the CreateOpenFlowChannels () member function to effectively
+    connect switches to controllers after installing switches and controllers
+    into respective nodes (the use of this function is mandatory).
 
-- This code is compatible with ofsoftswitch13 library, release v3.0.x and ns-3
+- This code is compatible with ofsoftswitch13 library release v3.0.x and ns-3
   version 3.26 (including patches).
 
 
@@ -90,7 +99,7 @@ Release 2.0.2 (April 11, 2016)
   new figures) and the QosController description. Minor corrections along the
   entire text.
 
-- This code is compatible with ofsoftswitch13 library, release v2.0.x and ns-3
+- This code is compatible with ofsoftswitch13 library release v2.0.x and ns-3
   versions 3.22, 3.23 and 3.24.1, and 3.25 (including patches for ns-3.25).
 
 
@@ -104,7 +113,7 @@ Release 2.0.1 (February 16, 2016)
 
 - Including this release notes file.
 
-- This code is compatible with ofsoftswitch13 library, release v2.0.x and ns-3
+- This code is compatible with ofsoftswitch13 library release v2.0.x and ns-3
   versions 3.22, 3.23 and 3.24.1.
 
 
@@ -114,6 +123,6 @@ Release 2.0.0 (February 15, 2016)
 - First public release of the OFSwitch13 module, including source code and
   documentation.
 
-- This code is compatible with ofsoftswitch13 library, release v2.0.x and ns-3
+- This code is compatible with ofsoftswitch13 library release v2.0.x and ns-3
   versions 3.22, 3.23 and 3.24.1.
 

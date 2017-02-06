@@ -1,6 +1,6 @@
 /* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2016 University of Campinas (Unicamp)
+ * Copyright (c) 2017 University of Campinas (Unicamp)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -17,16 +17,16 @@
  *
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  *
- * Two hosts connected to a single OpenFlow switch.
- * The switch is managed by to different controllers applications (Controllers 0 and 1).
+ * Two hosts connected to different OpenFlow switches.
+ * Both switches are managed by the same external controller application.
  *
- *                  Controller 0     Controller 1
- *                         |             |
- *                         +-------------+
+ *                        External Controller
  *                                |
- *                       +-----------------+
- *            Host 0 === | OpenFlow switch | === Host 1
- *                       +-----------------+
+ *                         +-------------+
+ *                         |             |
+ *                  +----------+     +----------+
+ *       Host 0 === | Switch 0 | === | Switch 1 | === Host 1
+ *                  +----------+     +----------+
  */
 
 #include <ns3/core-module.h>
@@ -35,11 +35,9 @@
 #include <ns3/internet-module.h>
 #include <ns3/ofswitch13-module.h>
 #include <ns3/internet-apps-module.h>
+#include <ns3/tap-bridge-module.h>
 
 using namespace ns3;
-
-class Controller0;
-class Controller1;
 
 int
 main (int argc, char *argv[])
@@ -65,46 +63,69 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13ExternalHelper", LOG_LEVEL_ALL);
     }
 
   // Enable checksum computations (required by OFSwitch13 module)
   GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
 
+  // Set simulator to real time mode
+  GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));
+
   // Create two host nodes
   NodeContainer hosts;
   hosts.Create (2);
 
-  // Create the switch node
-  Ptr<Node> switchNode = CreateObject<Node> ();
+  // Create two switch nodes
+  NodeContainer switches;
+  switches.Create (2);
 
-  // Use the CsmaHelper to connect host nodes to the switch node
+  // Use the CsmaHelper to connect hosts and switches
   CsmaHelper csmaHelper;
   csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
   csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 
+  NodeContainer pair;
+  NetDeviceContainer pairDevs;
   NetDeviceContainer hostDevices;
-  NetDeviceContainer switchPorts;
-  for (size_t i = 0; i < hosts.GetN (); i++)
-    {
-      NodeContainer pair (hosts.Get (i), switchNode);
-      NetDeviceContainer link = csmaHelper.Install (pair);
-      hostDevices.Add (link.Get (0));
-      switchPorts.Add (link.Get (1));
-    }
+  NetDeviceContainer switchPorts [2];
+  switchPorts [0] = NetDeviceContainer ();
+  switchPorts [1] = NetDeviceContainer ();
 
-  // Create two controller nodes
-  NodeContainer controllers;
-  controllers.Create (2);
+  // Connect host 0 to first switch
+  pair = NodeContainer (hosts.Get (0), switches.Get (0));
+  pairDevs = csmaHelper.Install (pair);
+  hostDevices.Add (pairDevs.Get (0));
+  switchPorts [0].Add (pairDevs.Get (1));
 
-  // Configure the OpenFlow network domain
-  Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper> ();
-  Ptr<Controller0> ctrl0 = CreateObject<Controller0> ();
-  Ptr<Controller1> ctrl1 = CreateObject<Controller1> ();
-  of13Helper->InstallController (controllers.Get (0), ctrl0);
-  of13Helper->InstallController (controllers.Get (1), ctrl1);
-  of13Helper->InstallSwitch (switchNode, switchPorts);
+  // Connect host 1 to second switch
+  pair = NodeContainer (hosts.Get (1), switches.Get (1));
+  pairDevs = csmaHelper.Install (pair);
+  hostDevices.Add (pairDevs.Get (0));
+  switchPorts [1].Add (pairDevs.Get (1));
+
+  // Connect the switches
+  pair = NodeContainer (switches.Get (0), switches.Get (1));
+  pairDevs = csmaHelper.Install (pair);
+  switchPorts [0].Add (pairDevs.Get (0));
+  switchPorts [1].Add (pairDevs.Get (1));
+
+  // Create the controller node
+  Ptr<Node> controllerNode = CreateObject<Node> ();
+
+  // Configure the OpenFlow network domain using an external controller
+  Ptr<OFSwitch13ExternalHelper> of13Helper = CreateObject<OFSwitch13ExternalHelper> ();
+  Ptr<NetDevice> ctrlDev = of13Helper->InstallExternalController (controllerNode);
+  of13Helper->InstallSwitch (switches.Get (0), switchPorts [0]);
+  of13Helper->InstallSwitch (switches.Get (1), switchPorts [1]);
   of13Helper->CreateOpenFlowChannels ();
+
+  // TapBridge the controller device to local machine
+  // The default configuration expects a controller on local port 6653
+  TapBridgeHelper tapBridge;
+  tapBridge.SetAttribute ("Mode", StringValue ("ConfigureLocal"));
+  tapBridge.SetAttribute ("DeviceName", StringValue ("ctrl"));
+  tapBridge.Install (controllerNode, ctrlDev);
 
   // Install the TCP/IP stack into hosts nodes
   InternetStackHelper internet;
@@ -127,7 +148,8 @@ main (int argc, char *argv[])
     {
       of13Helper->EnableOpenFlowPcap ("openflow");
       of13Helper->EnableDatapathStats ("switch-stats");
-      csmaHelper.EnablePcap ("switch", switchPorts, true);
+      csmaHelper.EnablePcap ("switch", switchPorts [0], true);
+      csmaHelper.EnablePcap ("switch", switchPorts [1], true);
       csmaHelper.EnablePcap ("host", hostDevices);
     }
 
@@ -135,32 +157,4 @@ main (int argc, char *argv[])
   Simulator::Stop (Seconds (simTime));
   Simulator::Run ();
   Simulator::Destroy ();
-}
-
-/** Controller 0 installs the rule to forward packets from host 0 to 1 (port 1 to 2). */
-class Controller0 : public OFSwitch13Controller
-{
-protected:
-  // Inherited from OFSwitch13Controller
-  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
-};
-
-void
-Controller0::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
-{
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=1 in_port=1 write:output=2");
-}
-
-/** Controller 1 installs the rule to forward packets from host 1 to 0 (port 2 to 1). */
-class Controller1 : public OFSwitch13Controller
-{
-protected:
-  // Inherited from OFSwitch13Controller
-  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
-};
-
-void
-Controller1::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
-{
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=1 in_port=2 write:output=1");
 }

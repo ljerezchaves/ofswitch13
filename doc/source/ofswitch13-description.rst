@@ -178,8 +178,7 @@ outputting PCAP files to be read by third-party software.
 Considering that the OpenFlow messages traversing the OpenFlow channel follow
 the standard wire format, it is also possible to use the |ns3| ``TapBridge``
 module to integrate an external OpenFlow controller, running on the local
-machine, to the simulated environment. *Note that this use case has not been
-validated yet.*
+machine, to the simulated environment.
 
 Library integration
 ###################
@@ -288,7 +287,9 @@ One difference between the |ns3| OpenFlow model and the ``OFSwitch13`` is the
 introduction of the OpenFlow channel, using |ns3| devices and channels to
 provide the control connection between the controller and the switches. It
 allows the user to collect PCAP traces for this control channel, simplifying
-the analysis of OpenFlow messages.
+the analysis of OpenFlow messages. It is also possible the use of the |ns3|
+``TapBridge`` module to integrate a local external OpenFlow 1.3 controller to
+the simulated environment.
 
 In respect to the controller, this module provides a more flexible interface.
 Instead of dealing with the internal library structures, the user can use
@@ -346,7 +347,7 @@ The only required modification to the |ns3| source code for ``OFSwitch13``
 integration is the inclusion of the new OpenFlow receive callback in the
 ``CsmaNetDevice`` and ``VirtualNetDevice``. The module brings the patch for
 including this receive callback into |ns3| source code, available under
-``src/ofswitch13/utils`` directory.  Note the existence of a *src* patch for
+``src/ofswitch13/utils`` directory. Note the existence of a *src* patch for
 the receive callbacks inclusion, and an optional *doc* patch that can be used
 for including the ``OFSwitch13`` when compiling Doxygen and Sphinx
 documentation. For older versions, users can apply the *src* patch and, if
@@ -396,4 +397,3 @@ References
    `"Integrating OpenFlow to LTE: some issues toward Software-Defined Mobile Networks"
    <http://ieeexplore.ieee.org/xpl/articleDetails.jsp?reload=true&arnumber=7266498>`_.
    In: 7th IFIP International Conference on New Technologies, Mobility and Security (NTMS), 2015.
-

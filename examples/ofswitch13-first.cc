@@ -32,7 +32,6 @@
 #include <ns3/network-module.h>
 #include <ns3/csma-module.h>
 #include <ns3/internet-module.h>
-#include <ns3/applications-module.h>
 #include <ns3/ofswitch13-module.h>
 #include <ns3/internet-apps-module.h>
 
@@ -62,6 +61,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
     }
 
   // Enable checksum computations (required by OFSwitch13 module)
@@ -93,7 +93,7 @@ main (int argc, char *argv[])
   Ptr<Node> controllerNode = CreateObject<Node> ();
 
   // Configure the OpenFlow network domain
-  Ptr<OFSwitch13Helper> of13Helper = CreateObject<OFSwitch13Helper> ();
+  Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper> ();
   of13Helper->InstallController (controllerNode);
   of13Helper->InstallSwitch (switchNode, switchPorts);
   of13Helper->CreateOpenFlowChannels ();
