@@ -353,10 +353,12 @@ for including the ``OFSwitch13`` when compiling Doxygen and Sphinx
 documentation. For older versions, users can apply the *src* patch and, if
 necessary, manually resolve the conflicts.
 
-Current ``OFSwitch13`` stable version have been tested with |ns3| versions 3.26
-and greater. For older |ns3| releases, it is possible to use ``OFSwitch13``
-versions 2.0.x. It is strongly recommended to use the latest module version for
-better results.
+Current ``OFSwitch13`` stable version is 3.0.0. It has been developed and
+tested together with |ns3| versions 3.26, and will not compile with older |ns3|
+versions. If you really need to use an older |ns3| releases, you can use the
+``OFSwitch13`` version 2.0.3, but keep in mind that this is an old release,
+with knonw bugs and an outdated API. It is strongly recommended to use the
+latest module version for better results.
 
 References
 ==========
