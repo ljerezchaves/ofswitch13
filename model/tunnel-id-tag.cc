@@ -18,75 +18,75 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
-#include "queue-tag.h"
+#include "tunnel-id-tag.h"
 #include <ns3/log.h>
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("QueueTag");
-NS_OBJECT_ENSURE_REGISTERED (QueueTag);
+NS_LOG_COMPONENT_DEFINE ("TunnelIdTag");
+NS_OBJECT_ENSURE_REGISTERED (TunnelIdTag);
 
-QueueTag::QueueTag ()
-  : m_queueId (0)
+TunnelIdTag::TunnelIdTag ()
+  : m_tunnelId (0)
 {
 }
 
-QueueTag::QueueTag (uint32_t id)
-  : m_queueId (id)
+TunnelIdTag::TunnelIdTag (uint64_t id)
+  : m_tunnelId (id)
 {
 }
 
 TypeId
-QueueTag::GetTypeId (void)
+TunnelIdTag::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::QueueTag")
+  static TypeId tid = TypeId ("ns3::TunnelIdTag")
     .SetParent<Tag> ()
     .SetGroupName ("OFSwitch13")
-    .AddConstructor<QueueTag> ()
+    .AddConstructor<TunnelIdTag> ()
   ;
   return tid;
 }
 
 TypeId
-QueueTag::GetInstanceTypeId (void) const
+TunnelIdTag::GetInstanceTypeId (void) const
 {
   return GetTypeId ();
 }
 
 void
-QueueTag::SetQueueId (uint32_t id)
+TunnelIdTag::SetTunnelId (uint64_t id)
 {
-  m_queueId = id;
+  m_tunnelId = id;
+}
+
+uint64_t
+TunnelIdTag::GetTunnelId (void) const
+{
+  return m_tunnelId;
 }
 
 uint32_t
-QueueTag::GetQueueId (void) const
+TunnelIdTag::GetSerializedSize (void) const
 {
-  return m_queueId;
-}
-
-uint32_t
-QueueTag::GetSerializedSize (void) const
-{
-  return 4;
+  return 8;
 }
 
 void
-QueueTag::Serialize (TagBuffer i) const
+TunnelIdTag::Serialize (TagBuffer i) const
 {
-  i.WriteU32 (m_queueId);
+  i.WriteU64 (m_tunnelId);
 }
 
 void
-QueueTag::Deserialize (TagBuffer i)
+TunnelIdTag::Deserialize (TagBuffer i)
 {
-  m_queueId = i.ReadU32 ();
+  m_tunnelId = i.ReadU64 ();
 }
 
 void
-QueueTag::Print (std::ostream &os) const
+TunnelIdTag::Print (std::ostream &os) const
 {
-  os << " QueueTag id=" << m_queueId;
+  os << " TunnelIdTag id=" << m_tunnelId;
 }
 
 };  // namespace ns3

@@ -21,8 +21,6 @@
 #ifndef QOS_CONTROLLER_H
 #define QOS_CONTROLLER_H
 
-#include <ns3/network-module.h>
-#include <ns3/internet-module.h>
 #include <ns3/ofswitch13-module.h>
 
 using namespace ns3;
@@ -46,24 +44,25 @@ public:
   static TypeId GetTypeId (void);
 
   // Inherited from OFSwitch13Controller
-  ofl_err HandlePacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid);
+  ofl_err HandlePacketIn (
+    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
 protected:
   // Inherited from OFSwitch13Controller
-  void ConnectionStarted (SwitchInfo swtch);
+  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
 
 private:
   /**
    * Configure the border switch.
    * \param swtch The switch information.
    */
-  void ConfigureBorderSwitch (SwitchInfo swtch);
+  void ConfigureBorderSwitch (Ptr<const RemoteSwitch> swtch);
 
   /**
    * Configure the aggregation switch.
    * \param swtch The switch information.
    */
-  void ConfigureAggregationSwitch (SwitchInfo swtch);
+  void ConfigureAggregationSwitch (Ptr<const RemoteSwitch> swtch);
 
   /**
    * Handle ARP request messages.
@@ -72,7 +71,8 @@ private:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandleArpPacketIn (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid);
+  ofl_err HandleArpPacketIn (
+    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
   /**
    * Handle TCP connection request
@@ -81,7 +81,8 @@ private:
    * \param xid Transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  ofl_err HandleConnectionRequest (ofl_msg_packet_in *msg, SwitchInfo swtch, uint32_t xid);
+  ofl_err HandleConnectionRequest (
+    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
 
   /**
    * Extract an IPv4 address from packet match.
@@ -92,7 +93,17 @@ private:
   Ipv4Address ExtractIpv4Address (uint32_t oxm_of, ofl_match* match);
 
   /**
-   * Create a Packet with an ARP reply, encapsulated inside of an Ethernet frame.
+   * Create an ARP request packet, encapsulated inside of an Ethernet frame.
+   * \param srcMac Source MAC address.
+   * \param srcIP Source IP address.
+   * \param dstMac Destination IP address.
+   * \return The ns3 Ptr<Packet> with the ARP request.
+   */
+  Ptr<Packet> CreateArpRequest (Mac48Address srcMac, Ipv4Address srcIp,
+                                Ipv4Address dstIp);
+
+  /**
+   * Create an ARP reply packet, encapsulated inside of an Ethernet frame.
    * \param srcMac Source MAC address.
    * \param srcIP Source IP address.
    * \param dstMac Destination MAC address.
@@ -102,12 +113,30 @@ private:
   Ptr<Packet> CreateArpReply (Mac48Address srcMac, Ipv4Address srcIp,
                               Mac48Address dstMac, Ipv4Address dstIp);
 
+  /**
+   * Save the pair IP / MAC address in ARP table.
+   * \param ipAddr The IPv4 address.
+   * \param macAddr The MAC address.
+   */
+  void SaveArpEntry (Ipv4Address ipAddr, Mac48Address macAddr);
+
+  /**
+   * Perform an ARP resolution
+   * \param ip The Ipv4Address to search.
+   * \return The MAC address for this ip.
+   */
+  Mac48Address GetArpEntry (Ipv4Address ip);
+
   Address   m_serverIpAddress;    //!< Virtual server IP address
   uint16_t  m_serverTcpPort;      //!< Virtual server TCP port
   Address   m_serverMacAddress;   //!< Border switch MAC address
   bool      m_meterEnable;        //!< Enable per-flow mettering
   DataRate  m_meterRate;          //!< Per-flow meter rate
   bool      m_linkAggregation;    //!< Enable link aggregation
+
+  /** Map saving <IPv4 address / MAC address> */
+  typedef std::map<Ipv4Address, Mac48Address> IpMacMap_t;
+  IpMacMap_t m_arpTable;          //!< ARP resolution table.
 };
 
 #endif /* QOS_CONTROLLER_H */

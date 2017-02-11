@@ -31,12 +31,13 @@
 #ifndef OFSWITCH13_INTERFACE_H
 #define OFSWITCH13_INTERFACE_H
 
-#include <assert.h>
+#include <cassert>
 
-#include "ns3/simulator.h"
-#include "ns3/log.h"
-#include "ns3/packet.h"
-#include "ns3/csma-module.h"
+#include <ns3/simulator.h>
+#include <ns3/log.h>
+#include <ns3/packet.h>
+#include <ns3/csma-module.h>
+#include <ns3/socket.h>
 
 #include <boost/static_assert.hpp>
 #include "openflow/openflow.h"
@@ -79,10 +80,47 @@ uint32_t port_speed (uint32_t conf);
 }
 
 namespace ns3 {
-namespace ofs {
 
-class OFSwitch13Device;
-class OFSwitch13Controller;
+/**
+ * \ingroup ofswitch13
+ * Class used to read a single complete OpenFlow messages from an open socket.
+ */
+class SocketReader : public SimpleRefCount<SocketReader>
+{
+public:
+  /**
+   * Complete constructor, with the socket pointer.
+   * \param socket The socket pointer.
+   */
+  SocketReader (Ptr<Socket> socket);
+
+  /**
+   * \param packet The packet with the received OpenFlow message.
+   * \param sender The address of the sender.
+   */
+  typedef Callback <void, Ptr<Packet>, Address > MessageCallback;
+
+  /**
+   * Set the callback to invoke whenever an OpenFlow message has been received
+   * at the associated socket.
+   * \param cb The callback to invoke.
+   */
+  void SetReceiveCallback (MessageCallback cb);
+
+private:
+  /**
+   * Socket callback used to read bytes from the socket.
+   * \param socket The TCP socket.
+   */
+  void Read (Ptr<Socket> socket);
+
+  Ptr<Socket>     m_socket;         //!< TCP socket.
+  Ptr<Packet>     m_pendingPacket;  //!< Buffer for receiving bytes.
+  uint32_t        m_pendingBytes;   //!< Pending bytes for complete message.
+  MessageCallback m_receivedMsg;    //!< OpenFlow message callback.
+}; // Class SocketReader
+
+namespace ofs {
 
 /**
  * TracedCallback signature for sending packets from CsmaNetDevice to OpenFlow
@@ -92,6 +130,21 @@ class OFSwitch13Controller;
  * \param packet The packet.
  */
 typedef void (*OpenFlowCallback)(Ptr<Packet> packet);
+
+/**
+ * \ingroup ofswitch13
+ * Enable the logging system of the ofsoftswitch13 library.
+ * By default, it will configure de logging system for maximum verbose dump on
+ * console. You can set the \p printToFile parameter to dump messages to file
+ * instead.
+ * \param printToFile Dump log messages to file instead of console.
+ * \param prefix Filename prefix to use for log files.
+ * \param explicitFilename Treat the prefix as an explicit filename if true.
+ * \param customLevels Customize vlog levels.
+ */
+void EnableLibraryLog (bool printToFile = false, std::string prefix = "",
+                       bool explicitFilename = false,
+                       std::string customLevels = "");
 
 /**
  * \ingroup ofswitch13

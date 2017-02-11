@@ -51,11 +51,6 @@ OFSwitch13Queue::GetTypeId (void)
                    ObjectVectorValue (),
                    MakeObjectVectorAccessor (&OFSwitch13Queue::m_queues),
                    MakeObjectVectorChecker<Queue> ())
-    .AddAttribute ("Scheduling",
-                   "The output scheduling algorithm.",
-                   EnumValue (OFSwitch13Queue::PRIO),
-                   MakeEnumAccessor (&OFSwitch13Queue::m_scheduling),
-                   MakeEnumChecker (OFSwitch13Queue::PRIO, "prio"))
   ;
   return tid;
 }
@@ -117,15 +112,6 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
 {
   NS_LOG_FUNCTION (this);
 
-#ifndef NS3_OFSWITCH13_PRIOR_325
-  // Configure this queue for operating in packet mode with an 'infinite'
-  // buffer. Internal queues will check for the the available space during
-  // enqueue operation.
-  SetAttribute ("Mode", EnumValue (Queue::QUEUE_MODE_PACKETS));
-  uint32_t max = std::numeric_limits<uint32_t>::max ();
-  SetAttribute ("MaxPackets", UintegerValue (max));
-#endif
-
   // Setting default internal queue configuration
   ObjectFactory queueFactory;
   queueFactory.SetTypeId (DropTailQueue::GetTypeId ());
@@ -142,77 +128,66 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
   Queue::NotifyConstructionCompleted ();
 }
 
-#ifdef NS3_OFSWITCH13_PRIOR_325
-bool
-OFSwitch13Queue::DoEnqueue (Ptr<Packet> p)
-{
-  NS_LOG_FUNCTION (this << p);
-#else
 bool
 OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
 {
   NS_LOG_FUNCTION (this << item);
-  Ptr<Packet> p = item->GetPacket ();
-#endif
 
   sw_queue* swQueue;
   QueueTag queueNoTag;
   uint32_t queueNo = 0;
-  if (p->RemovePacketTag (queueNoTag))
+  if (item->GetPacket ()->RemovePacketTag (queueNoTag))
     {
       queueNo = queueNoTag.GetQueueId ();
     }
-  NS_LOG_DEBUG ("Packet " << p << " to be enqueued in queue id " << queueNo);
+  NS_LOG_DEBUG ("Item " << item << " to be enqueued in queue id " << queueNo);
 
   swQueue = dp_ports_lookup_queue (m_swPort, queueNo);
   NS_ASSERT_MSG (swQueue, "Invalid queue id.");
-#ifdef NS3_OFSWITCH13_PRIOR_325
-  bool retval = GetQueue (queueNo)->Enqueue (p);
-#else
+
   bool retval = GetQueue (queueNo)->Enqueue (item);
-#endif
   if (retval)
     {
       swQueue->stats->tx_packets++;
-      swQueue->stats->tx_bytes += p->GetSize ();
+      swQueue->stats->tx_bytes += item->GetPacketSize ();
       return true;
     }
   else
     {
-      NS_LOG_LOGIC ("Packet enqueue fails for internal queue " << queueNo);
-      Drop (p);
+      NS_LOG_WARN ("Packet enqueue fails for internal queue " << queueNo);
+      Drop (item);
       swQueue->stats->tx_errors++;
       return false;
     }
 }
 
-#ifdef NS3_OFSWITCH13_PRIOR_325
-Ptr<Packet>
-OFSwitch13Queue::DoDequeue (void)
-#else
 Ptr<QueueItem>
 OFSwitch13Queue::DoDequeue (void)
-#endif
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t qId = GetOutputQueue (false);
+  uint32_t qId = GetOutputQueue ();
   NS_LOG_DEBUG ("Packet dequeued from queue id " << qId);
   return GetQueue (qId)->Dequeue ();
 }
 
-#ifdef NS3_OFSWITCH13_PRIOR_325
-Ptr<const Packet>
-OFSwitch13Queue::DoPeek (void) const
-#else
+Ptr<QueueItem>
+OFSwitch13Queue::DoRemove (void)
+{
+  NS_LOG_FUNCTION (this);
+
+  uint32_t qId = GetOutputQueue ();
+  NS_LOG_DEBUG ("Packet removed from queue id " << qId);
+  return GetQueue (qId)->Remove ();
+}
+
 Ptr<const QueueItem>
 OFSwitch13Queue::DoPeek (void) const
-#endif
 {
   NS_LOG_FUNCTION (this);
 
   uint32_t qId = GetOutputQueue (true);
-  NS_LOG_DEBUG ("Packet peek from queue id " << qId);
+  NS_LOG_DEBUG ("Packet peeked from queue id " << qId);
   return GetQueue (qId)->Peek ();
 }
 
@@ -245,7 +220,7 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
 
   // Inserting the ns3::Queue object into queue list.
   m_queues.push_back (queue);
-  NS_LOG_DEBUG ("New queue with id " << queueId);
+  NS_LOG_INFO ("New queue with id " << queueId);
 
   return queueId;
 }
@@ -253,6 +228,8 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
 Ptr<Queue>
 OFSwitch13Queue::GetQueue (uint32_t queueId) const
 {
+  NS_LOG_FUNCTION (this << queueId);
+
   NS_ASSERT_MSG (queueId < GetNQueues (), "Queue is out of range.");
   return m_queues.at (queueId);
 }
@@ -260,6 +237,8 @@ OFSwitch13Queue::GetQueue (uint32_t queueId) const
 uint32_t
 OFSwitch13Queue::GetOutputQueue (bool peekLock) const
 {
+  NS_LOG_FUNCTION (this << peekLock);
+
   static bool isLocked = false;
   static uint32_t queueId = 0;
 
@@ -274,20 +253,15 @@ OFSwitch13Queue::GetOutputQueue (bool peekLock) const
       return queueId;
     }
 
-  // If output queue is unlocked, let's select the queue based on output queue
-  // scheduling algorithm.
-  if (m_scheduling == OFSwitch13Queue::PRIO)
+  // If output queue is unlocked, let's select the higher-priority nonempty
+  // queue. We use queue id as priority indicator (lowest priority id is 0).
+  for (int32_t i = GetNQueues () - 1; i >= 0; i--)
     {
-      // For priority queuing, select the higher-priority nonempty queue.
-      // We use the queue id as priority indicator (lowest priority id is 0).
-      for (int32_t i = GetNQueues () - 1; i >= 0; i--)
+      // Check for nonempty queue
+      if (GetQueue (i)->IsEmpty () == false)
         {
-          // Check for nonempty queue
-          if (GetQueue (i)->IsEmpty () == false)
-            {
-              queueId = i;
-              break;
-            }
+          queueId = i;
+          break;
         }
     }
 

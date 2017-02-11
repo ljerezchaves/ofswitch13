@@ -21,9 +21,9 @@
 #ifndef OFSWITCH13_DEVICE_CONTAINER_H
 #define OFSWITCH13_DEVICE_CONTAINER_H
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
-#include "ns3/ofswitch13-device.h"
+#include <ns3/ofswitch13-device.h>
 
 namespace ns3 {
 

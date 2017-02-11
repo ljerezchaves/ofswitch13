@@ -23,7 +23,7 @@ diff --git a/doc/main.h b/doc/main.h
 diff --git a/doc/models/Makefile b/doc/models/Makefile
 --- a/doc/models/Makefile
 +++ b/doc/models/Makefile
-@@ -65,6 +65,10 @@
+@@ -66,6 +66,10 @@
  	$(SRC)/internet-apps/doc/internet-apps.rst \
  	$(SRC)/mobility/doc/mobility.rst \
  	$(SRC)/olsr/doc/olsr.rst \
@@ -34,7 +34,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(SRC)/openflow/doc/openflow-switch.rst \
  	$(SRC)/point-to-point/doc/point-to-point.rst \
  	$(SRC)/wifi/doc/source/wifi.rst \
-@@ -263,6 +267,12 @@
+@@ -267,6 +271,12 @@
  	$(SRC)/netanim/doc/figures/RoutingTables.pdf \
  	$(SRC)/netanim/doc/figures/PacketTimeline.png \
  	$(SRC)/netanim/doc/figures/PacketTimeline.pdf \
@@ -47,7 +47,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.png \
  	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.pdf \
  	$(SRC)/spectrum/doc/spectrum-analyzer-example.eps \
-@@ -362,6 +372,12 @@
+@@ -366,6 +376,12 @@
  	$(FIGURES)/lr-wpan-primitives.eps \
  	$(FIGURES)/lr-wpan-data-example.eps \
  	$(FIGURES)/lr-wpan-arch.eps \
@@ -60,7 +60,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(FIGURES)/802-15-4-ber.eps \
  	$(FIGURES)/802-15-4-per-sens.eps \
  	$(FIGURES)/802-15-4-psr-distance.eps \
-@@ -419,6 +435,12 @@
+@@ -423,6 +439,12 @@
  $(FIGURES)/spectrum-tv-rand-geo-points.pdf_width = 8cm
  $(FIGURES)/lr-wpan-primitives.pdf_width = 3in
  $(FIGURES)/lr-wpan-arch.pdf_width = 2in

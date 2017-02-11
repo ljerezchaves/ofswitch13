@@ -21,11 +21,14 @@
 #define NS_LOG_APPEND_CONTEXT \
   if (m_swPort != 0) { std::clog << "[dp " << m_swPort->dp->id << " port " << m_swPort->conf->port_no << "] "; }
 
-#include "ns3/ethernet-header.h"
-#include "ns3/ethernet-trailer.h"
-#include "ns3/pointer.h"
+#include <ns3/ethernet-header.h>
+#include <ns3/ethernet-trailer.h>
+#include <ns3/pointer.h>
+#include <ns3/csma-net-device.h>
+#include <ns3/virtual-net-device.h>
 #include "ofswitch13-device.h"
 #include "ofswitch13-port.h"
+#include "tunnel-id-tag.h"
 
 namespace ns3 {
 
@@ -34,7 +37,7 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Port);
 
 OFSwitch13Port::OFSwitch13Port ()
   : m_swPort (0),
-    m_csmaDev (0),
+    m_netDev (0),
     m_openflowDev (0)
 {
   NS_LOG_FUNCTION (this);
@@ -50,7 +53,7 @@ OFSwitch13Port::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_csmaDev = 0;
+  m_netDev = 0;
   m_openflowDev = 0;
 
   // Calling Dispose on internal port, so it can use m_swPort pointer to free
@@ -74,26 +77,32 @@ OFSwitch13Port::GetTypeId (void)
                    MakePointerAccessor (&OFSwitch13Port::m_portQueue),
                    MakePointerChecker<OFSwitch13Queue> ())
     .AddTraceSource ("SwitchPortRx",
-                     "Trace source indicating a packet "
-                     "received at this switch port",
+                     "Trace source indicating a packet received at this port.",
                      MakeTraceSourceAccessor (&OFSwitch13Port::m_rxTrace),
                      "ns3::Packet::TracedCallback")
     .AddTraceSource ("SwitchPortTx",
-                     "Trace source indicating a packet "
-                     "transmitted at this switch port",
+                     "Trace source indicating a packet sent at this port.",
                      MakeTraceSourceAccessor (&OFSwitch13Port::m_txTrace),
                      "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
 
-OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
+OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
                                 Ptr<OFSwitch13Device> openflowDev)
   : m_swPort (0),
-    m_csmaDev (csmaDev),
+    m_netDev (netDev),
     m_openflowDev (openflowDev)
 {
-  NS_LOG_FUNCTION (this << csmaDev << openflowDev);
+  NS_LOG_FUNCTION (this << netDev << openflowDev);
+
+  // Check for valid NetDevice type
+  Ptr<CsmaNetDevice> csmaDev = netDev->GetObject<CsmaNetDevice> ();
+  Ptr<VirtualNetDevice> virtDev = netDev->GetObject<VirtualNetDevice> ();
+  if (!csmaDev && !virtDev)
+    {
+      NS_FATAL_ERROR ("NetDevice must be CsmaNetDevice or VirtualNetDevice.");
+    }
 
   m_portNo = ++(dp->ports_num);
   m_swPort = &dp->ports[m_portNo];
@@ -107,7 +116,7 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   m_swPort->conf->port_no = m_portNo;
   m_swPort->conf->name = (char*)xmalloc (OFP_MAX_PORT_NAME_LEN);
   snprintf (m_swPort->conf->name, OFP_MAX_PORT_NAME_LEN, "Port %d", m_portNo);
-  m_csmaDev->GetAddress ().CopyTo (m_swPort->conf->hw_addr);
+  m_netDev->GetAddress ().CopyTo (m_swPort->conf->hw_addr);
   m_swPort->conf->config = 0x00000000;
   m_swPort->conf->state = 0x00000000 | OFPPS_LIVE;
   m_swPort->conf->curr = PortGetFeatures ();
@@ -126,15 +135,18 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
 
   // To avoid a null check failure in ofsoftswitch13
   // dp_ports_handle_stats_request_port (), we are pointing m_swPort->netdev to
-  // corresponding ns3::CsmaNetDevice, but this pointer must not be used!
-  m_swPort->netdev = (struct netdev*)PeekPointer (csmaDev);
+  // corresponding ns3::NetDevice, but this pointer must not be used!
+  m_swPort->netdev = (struct netdev*)PeekPointer (netDev);
 
   // Creating the OFSwitch13Queue for this switch port
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
   m_swPort->max_queues = OFSwitch13Queue::GetMaxQueues ();
   m_swPort->num_queues = 0;
   m_portQueue = CreateObject<OFSwitch13Queue> (m_swPort);
-  csmaDev->SetQueue (m_portQueue);
+  if (csmaDev)
+    {
+      csmaDev->SetQueue (m_portQueue);
+    }
 
   m_swPort->created = time_msec ();
 
@@ -147,9 +159,18 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<CsmaNetDevice> csmaDev,
   msg.desc = m_swPort->conf;
   dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
 
-  // Register the receive callback to get packets from CsmaNetDevice.
-  csmaDev->SetOpenFlowReceiveCallback (
-    MakeCallback (&OFSwitch13Port::Receive, this));
+  // Register the receive callback to get packets from the NetDevice.
+  if (csmaDev)
+    {
+      csmaDev->SetOpenFlowReceiveCallback (
+        MakeCallback (&OFSwitch13Port::Receive, this));
+    }
+  else
+    {
+      NS_ASSERT (virtDev);
+      virtDev->SetOpenFlowReceiveCallback (
+        MakeCallback (&OFSwitch13Port::Receive, this));
+    }
 }
 
 uint32_t
@@ -164,7 +185,7 @@ OFSwitch13Port::PortUpdateState ()
   NS_LOG_FUNCTION (this);
 
   uint32_t orig_state = m_swPort->conf->state;
-  if (m_csmaDev->IsLinkUp ())
+  if (m_netDev->IsLinkUp ())
     {
       m_swPort->conf->state &= ~OFPPS_LINK_DOWN;
     }
@@ -176,7 +197,7 @@ OFSwitch13Port::PortUpdateState ()
 
   if (orig_state != m_swPort->conf->state)
     {
-      NS_LOG_DEBUG ("Port status has changed. Notifying the controller.");
+      NS_LOG_INFO ("Port status has changed. Notifying the controller.");
       ofl_msg_port_status msg;
       msg.header.type = OFPT_PORT_STATUS;
       msg.reason = OFPPR_MODIFY;
@@ -187,24 +208,23 @@ OFSwitch13Port::PortUpdateState ()
   return false;
 }
 
-Ptr<OFSwitch13Queue>
-OFSwitch13Port::GetOutputQueue ()
-{
-  NS_LOG_FUNCTION (this);
-  return m_portQueue;
-}
-
 uint32_t
 OFSwitch13Port::PortGetFeatures ()
 {
   NS_LOG_FUNCTION (this);
 
-  DataRateValue drv;
   DataRate dr;
-  Ptr<CsmaChannel> channel =
-    DynamicCast<CsmaChannel> (m_csmaDev->GetChannel ());
-  channel->GetAttribute ("DataRate", drv);
-  dr = drv.Get ();
+  Ptr<Channel> channel = m_netDev->GetChannel ();
+  if (channel)
+    {
+      Ptr<CsmaChannel> csmaChannel = channel->GetObject<CsmaChannel> ();
+      if (csmaChannel)
+        {
+          DataRateValue drv;
+          csmaChannel->GetAttribute ("DataRate", drv);
+          dr = drv.Get ();
+        }
+    }
 
   uint32_t feat = 0x00000000;
   feat |= OFPPF_COPPER;
@@ -245,7 +265,7 @@ OFSwitch13Port::PortGetFeatures ()
   return feat;
 }
 
-bool 
+bool
 OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
                          uint16_t protocol, const Address &from,
                          const Address &to, NetDevice::PacketType packetType)
@@ -263,16 +283,31 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   m_swPort->stats->rx_packets++;
   m_swPort->stats->rx_bytes += packet->GetSize ();
 
-  // Fire RX trace source and send the packet to OpenFlow pipeline
+  // Fire RX trace source
   m_rxTrace (packet);
-  m_openflowDev->ReceiveFromSwitchPort (packet->Copy (), m_portNo);
+  NS_LOG_DEBUG ("Pkt " << packet->GetUid () << " received at this port.");
+
+  // Retrieve the tunnel id from packet, if available.
+  Ptr<Packet> localPacket = packet->Copy ();
+  TunnelIdTag tunnelIdTag;
+  uint64_t tunnelId = 0;
+  if (localPacket->RemovePacketTag (tunnelIdTag))
+    {
+      tunnelId = tunnelIdTag.GetTunnelId ();
+      NS_LOG_DEBUG ("Pkt tunnel id is " << tunnelId);
+    }
+
+  // Send the packet to the OpenFlow pipeline
+  NS_LOG_DEBUG ("Pkt copy " << localPacket->GetUid () << " sent to pipeline.");
+  m_openflowDev->ReceiveFromSwitchPort (localPacket, m_portNo, tunnelId);
   return true;
 }
 
 bool
-OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
+OFSwitch13Port::Send (Ptr<const Packet> packet, uint32_t queueNo,
+                      uint64_t tunnelId)
 {
-  NS_LOG_FUNCTION (this << packet << queueNo);
+  NS_LOG_FUNCTION (this << packet << queueNo << tunnelId);
 
   if (m_swPort->conf->config & (OFPPC_PORT_DOWN))
     {
@@ -283,30 +318,50 @@ OFSwitch13Port::Send (Ptr<Packet> packet, uint32_t queueNo)
   // Fire TX trace source (with complete packet)
   m_txTrace (packet);
 
+  Ptr<Packet> packetCopy = packet->Copy ();
+  NS_LOG_DEBUG ("Pkt " << packetCopy->GetUid () <<
+                " will be sent at this port.");
+
   // Removing the Ethernet header and trailer from packet, which will be
   // included again by CsmaNetDevice
   EthernetTrailer trailer;
-  packet->RemoveTrailer (trailer);
+  packetCopy->RemoveTrailer (trailer);
   EthernetHeader header;
-  packet->RemoveHeader (header);
+  packetCopy->RemoveHeader (header);
 
-  // Tagging the packet with queue number
-  QueueTag queueNoTag (queueNo);
-  packet->AddPacketTag (queueNoTag);
-  bool status = m_csmaDev->SendFrom (packet, header.GetSource (),
-                                     header.GetDestination (),
-                                     header.GetLengthType ());
+  // Tagging the packet with queue number only for ports associated to
+  // CsmaNetDevices (note that VirtualNetDevices doesn't have a queue).
+  if (m_netDev->GetObject<CsmaNetDevice> ())
+    {
+      QueueTag queueTag (queueNo);
+      packetCopy->AddPacketTag (queueTag);
+      NS_LOG_DEBUG ("Pkt queue will be " << queueNo);
+    }
+
+  // Tagging the packet with tunnel id only for logical ports associated to
+  // VirtualNetDevices. The logical port implementation should remove the tag.
+  if (m_netDev->GetObject<VirtualNetDevice> ())
+    {
+      TunnelIdTag tunnelIdTag (tunnelId);
+      packetCopy->AddPacketTag (tunnelIdTag);
+      NS_LOG_DEBUG ("Pkt tunnel tag will be " << tunnelId);
+    }
+
+  // Send the packet over the underlying net device.
+  bool status = m_netDev->SendFrom (packetCopy, header.GetSource (),
+                                    header.GetDestination (),
+                                    header.GetLengthType ());
   // Updating port statistics
   if (status)
     {
       m_swPort->stats->tx_packets++;
-      m_swPort->stats->tx_bytes += packet->GetSize ();
+      m_swPort->stats->tx_bytes += packetCopy->GetSize ();
     }
   else
     {
+      NS_LOG_ERROR ("Error while transmitting packet.");
       m_swPort->stats->tx_dropped++;
     }
-
   return status;
 }
 

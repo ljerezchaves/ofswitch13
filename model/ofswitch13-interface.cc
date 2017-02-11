@@ -25,14 +25,119 @@
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 
 namespace ns3 {
+
+SocketReader::SocketReader (Ptr<Socket> socket)
+  : m_socket (socket),
+    m_pendingPacket (0),
+    m_pendingBytes (0)
+{
+  NS_LOG_FUNCTION (this);
+
+  // Set the reader callback
+  socket->SetRecvCallback (MakeCallback (&SocketReader::Read, this));
+}
+
+void
+SocketReader::SetReceiveCallback (MessageCallback cb)
+{
+  NS_LOG_FUNCTION (this);
+
+  m_receivedMsg = cb;
+}
+
+void
+SocketReader::Read (Ptr<Socket> socket)
+{
+  NS_LOG_FUNCTION (this << socket);
+
+  Address from;
+  do
+    {
+      if (!m_pendingBytes)
+        {
+          // Starting with a new OpenFlow message.
+          // At least 8 bytes (OpenFlow header) must be available.
+          uint32_t rxBytesAvailable = socket->GetRxAvailable ();
+          if (rxBytesAvailable < 8)
+            {
+              return; // Wait for more bytes.
+            }
+
+          // Receive the OpenFlow header and get the OpenFlow message size
+          ofp_header header;
+          m_pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
+          m_pendingPacket->CopyData ((uint8_t*)&header, sizeof (ofp_header));
+          m_pendingBytes = ntohs (header.length) - sizeof (ofp_header);
+        }
+
+      // Receive the remaining OpenFlow message
+      if (m_pendingBytes)
+        {
+          if (socket->GetRxAvailable () < m_pendingBytes)
+            {
+              // We need to wait for more bytes
+              return;
+            }
+          m_pendingPacket->AddAtEnd (socket->RecvFrom (m_pendingBytes, 0,
+                                                       from));
+        }
+
+      // Now we have a complete (single) OpenFlow message.
+      // Let's fire the callback before trying to read the next message.
+      if (!m_receivedMsg.IsNull ())
+        {
+          m_receivedMsg (m_pendingPacket, from);
+        }
+
+      // Repeat until socket buffer gets empty
+      m_pendingPacket = 0;
+      m_pendingBytes = 0;
+    }
+  while (socket->GetRxAvailable ());
+}
+
 namespace ofs {
+
+void
+EnableLibraryLog (bool printToFile, std::string prefix,
+                  bool explicitFilename, std::string customLevels)
+{
+  set_program_name ("ns3-ofswitch13");
+  vlog_init ();
+  vlog_set_levels (VLM_ANY_MODULE, VLF_ANY_FACILITY, VLL_EMER);
+  vlog_set_pattern (VLF_ANY_FACILITY, "%d{%ss} [%c|%p] %m");
+
+  if (printToFile)
+    {
+      std::string filename = prefix;
+      if (!explicitFilename)
+        {
+          if (filename.size () && filename.back () != '-')
+            {
+              filename += "-";
+            }
+          filename += "ofsoftswitch13.log";
+        }
+      vlog_set_levels (VLM_ANY_MODULE, VLF_FILE, VLL_DBG);
+      vlog_set_log_file (filename.c_str ());
+    }
+  else
+    {
+      vlog_set_levels (VLM_ANY_MODULE, VLF_CONSOLE, VLL_DBG);
+    }
+
+  if (customLevels.size ())
+    {
+      vlog_set_verbosity (customLevels.c_str ());
+    }
+}
 
 ofpbuf*
 BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
 {
   NS_LOG_FUNCTION_NOARGS ();
-  NS_ASSERT (packet->GetSize () <= bodyRoom);
 
+  NS_ASSERT (packet->GetSize () <= bodyRoom);
   ofpbuf *buffer;
   uint32_t pktSize;
 
@@ -102,6 +207,13 @@ time_msec (void)
 }
 
 /** Overriding ofsoftswitch weak functions using static member functions. */
+void
+send_packet_to_controller (struct pipeline *pl, struct packet *pkt,
+                           uint8_t table_id, uint8_t reason)
+{
+  return OFSwitch13Device::SendPacketToController (pl, pkt, table_id, reason);
+}
+
 int
 send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
 {

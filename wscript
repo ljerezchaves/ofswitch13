@@ -4,13 +4,16 @@ import os
 from waflib import Logs, Options
 from waflib.Errors import WafError
 
-def check_325_prior_version(version):
-    base = (3, 25)
+def check_version_compatibility(version):
+    base = (3, 26)
     try:
         comp = tuple(map(int, (version.split("."))))
-        return comp < base
+        return comp >= base
     except:
-        return False
+        if version == '3-dev':
+            return True
+        else:
+            return False
 
 def options(opt):
     opt.add_option('--with-ofswitch13',
@@ -55,11 +58,12 @@ def configure(conf):
     conf.env.LIB_OFSWITCH13 = ['dl', 'nbee', 'ns3ofswitch13']
     conf.env.LIBPATH_OFSWITCH13 = [os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'udatapath'))]
 
-    if check_325_prior_version(conf.env.VERSION):
-        conf.msg ("Checking for ns-3 version prior than 3.25", "yes")
-        conf.env.DEFINES_OFSWITCH13.append ('NS3_OFSWITCH13_PRIOR_325')
-    else:
-        conf.msg ("Checking for ns-3 version prior than 3.25", "no")
+    if not check_version_compatibility(conf.env.VERSION):
+        conf.msg ("Checking for ns-3 version compatibility", False)
+        conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 Integration", False,
+                                     "Incompatible ns-3 version (must be 3.26 or greater)")
+        conf.env.MODULES_NOT_BUILT.append('ofswitch13')
+        return
 
     conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 Integration",
             conf.env.OFSWITCH13, "ns3ofswitch13 library not found")
@@ -73,7 +77,7 @@ def build(bld):
     if 'ofswitch13' in bld.env.MODULES_NOT_BUILT:
         return
 
-    module = bld.create_ns3_module('ofswitch13', ['internet', 'bridge', 'mpi', 'network', 'core', 'stats', 'csma', 'point-to-point', 'applications'])
+    module = bld.create_ns3_module('ofswitch13', ['core', 'network', 'internet', 'csma', 'point-to-point', 'virtual-net-device', 'applications'])
     module.source = [
         'model/ofswitch13-interface.cc',
         'model/ofswitch13-port.cc',
@@ -82,17 +86,14 @@ def build(bld):
         'model/ofswitch13-learning-controller.cc',
         'model/ofswitch13-queue.cc',
         'model/queue-tag.cc',
+        'model/tunnel-id-tag.cc',
+        'helper/ofswitch13-device-container.cc',
+        'helper/ofswitch13-external-helper.cc',
         'helper/ofswitch13-helper.cc',
-        'helper/ofswitch13-device-container.cc'
+        'helper/ofswitch13-internal-helper.cc',
+        'helper/ofswitch13-stats-calculator.cc'
         ]
     module.use.extend('OFSWITCH13'.split())
-
-    module_test = bld.create_ns3_module_test_library('ofswitch13')
-    module_test.source = [
-        'test/ofswitch13-simple-transmission.cc',
-        'test/ofswitch13-dual-controller.cc'
-        ]
-    module_test.use.extend('OFSWITCH13'.split())
 
     headers = bld(features='ns3header')
     headers.module = 'ofswitch13'
@@ -104,8 +105,12 @@ def build(bld):
         'model/ofswitch13-learning-controller.h',
         'model/ofswitch13-queue.h',
         'model/queue-tag.h',
+        'model/tunnel-id-tag.h',
+        'helper/ofswitch13-device-container.h',
+        'helper/ofswitch13-external-helper.h',
         'helper/ofswitch13-helper.h',
-        'helper/ofswitch13-device-container.h'
+        'helper/ofswitch13-internal-helper.h',
+        'helper/ofswitch13-stats-calculator.h'
         ]
 
     if bld.env['ENABLE_EXAMPLES']:

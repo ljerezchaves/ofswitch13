@@ -36,26 +36,17 @@ namespace ns3 {
  * simple queuing mechanism. One (or more) queues can attach to a port and be
  * used to map flow entries on it. Flow entries mapped to a specific queue will
  * be treated according to that queue's configuration. Queue configuration
- * takes place outside the OpenFlow protocol. This class implements the common
- * queue interface, extending the ns3::Queue class to allow compatibility
- * with the CsmaNetDevice used in OFSwitch13Port. Internally, it can hold a
- * collection of other queues, indentified by an unique id. The ns3::QueueTag
- * is used to identify which internal queue will hold the packet, and the
- * internal schedulling algorithms decides from which queue get the packets
- * to send over the wire.
+ * takes place outside the OpenFlow protocol. This class implements the queue
+ * interface, extending the ns3::Queue class to allow compatibility with the
+ * CsmaNetDevice used by OFSwitch13Port. Internally, it holds a collection of 8
+ * (m_maxQueues) priority queues, indentified by ids ranging from 0 to 7 in
+ * increasing priority. The ns3::QueueTag is used to identify which internal
+ * queue will hold the packet, and the priority algorithms decides from which
+ * queue get the packets to send over the wire.
  */
 class OFSwitch13Queue : public Queue
 {
 public:
-  /**
-   * The output scheduling algorithm, used to select the internal queue for
-   * Peek and Dequeue operations.
-   */
-  enum Scheduling
-  {
-    PRIO = 0    //!< Priority schedulling
-  };
-
   /**
    * \brief Get the type ID.
    * \return the object TypeId.
@@ -93,15 +84,10 @@ protected:
 
 private:
   // Inherited from Queue
-#ifdef NS3_OFSWITCH13_PRIOR_325
-  virtual bool DoEnqueue (Ptr<Packet> p);
-  virtual Ptr<Packet> DoDequeue (void);
-  virtual Ptr<const Packet> DoPeek (void) const;
-#else
   virtual bool DoEnqueue (Ptr<QueueItem> item);
   virtual Ptr<QueueItem> DoDequeue (void);
+  virtual Ptr<QueueItem> DoRemove (void);
   virtual Ptr<const QueueItem> DoPeek (void) const;
-#endif
 
   /**
    * Add a new internal queue to this OpenFlow queue.
@@ -121,13 +107,13 @@ private:
   Ptr<Queue> GetQueue (uint32_t queueId) const;
 
   /**
-   * Return the queue id that will be used by DoPeek and DoDequeue functions
-   * based on selected scheduling output algorithm.
+   * Return the queue id that will be used by DoPeek, DoDequeue, and DoRemove
+   * functions based on priority output algorithm.
    * \internal
    * This function has to keep consistence in its queue decision despite
    * arbitrary calls from peek and dequeue functions. When a peek operation is
    * performed, a output queue must be selected and has to remain the same
-   * until the packet is effectively dequeued from it.
+   * until the packet is effectively dequeued or removed from it.
    * \param peekLock Get the output queue and lock it.
    * \return The queue id.
    */
@@ -139,7 +125,6 @@ private:
   sw_port*              m_swPort;     //!< ofsoftswitch13 struct sw_port
   QueueList_t           m_queues;     //!< Sorted list of available queues
   static const uint16_t m_maxQueues;  //!< Maximum number of queues
-  Scheduling            m_scheduling; //!< Output scheduling strategy
 };
 
 } // namespace ns3

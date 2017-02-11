@@ -18,8 +18,8 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
-#ifndef QUEUE_TAG_H
-#define QUEUE_TAG_H
+#ifndef TUNNEL_ID_TAG_H
+#define TUNNEL_ID_TAG_H
 
 #include <ns3/tag.h>
 
@@ -29,10 +29,10 @@ class Tag;
 
 /**
  * \ingroup ofswitch13
- * Tag used to hold the queue id before enqueueing a packet into
- * OFSwitch13Queue.
+ * Tag used to hold the tunnel metadata information (tunnel ID) when
+ * sending/receiving a packet to/from a logical port device.
  */
-class QueueTag : public Tag
+class TunnelIdTag : public Tag
 {
 public:
   /**
@@ -42,22 +42,22 @@ public:
   static TypeId GetTypeId (void);
   virtual TypeId GetInstanceTypeId (void) const;
 
-  QueueTag ();            //!< Default constructor
+  TunnelIdTag ();            //!< Default constructor
 
   /**
    * Complete constructor.
-   * \param id The queue id.
+   * \param id The tunnel metadata information.
    */
-  QueueTag (uint32_t id);
+  TunnelIdTag (uint64_t id);
 
   /**
-   * Set the internal queue id.
-   * \param id The queue id.
+   * Set the internal tunnel metadata information.
+   * \param id The tunnel metadata information.
    */
-  void SetQueueId (uint32_t id);
+  void SetTunnelId (uint64_t id);
 
-  /** \return The queue id */
-  uint32_t GetQueueId (void) const;
+  /** \return The tunnel metadata information */
+  uint64_t GetTunnelId (void) const;
 
   // Inherited from Tag
   virtual void Serialize (TagBuffer i) const;
@@ -66,9 +66,9 @@ public:
   virtual void Print (std::ostream &os) const;
 
 private:
-  uint32_t m_queueId;   //!< Packet sequence number
+  uint64_t m_tunnelId;      //!< Tunnel metadata information.
 };
 
 };  // namespace ns3
-#endif // QUEUE_TAG_H
+#endif // TUNNEL_ID_TAG_H
 

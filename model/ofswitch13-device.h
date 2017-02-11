@@ -21,11 +21,11 @@
 #ifndef OFSWITCH13_DEVICE_H
 #define OFSWITCH13_DEVICE_H
 
-#include "ns3/socket.h"
-#include "ns3/uinteger.h"
-#include "ns3/inet-socket-address.h"
-#include "ns3/string.h"
-#include "ns3/tcp-header.h"
+#include <ns3/socket.h>
+#include <ns3/uinteger.h>
+#include <ns3/inet-socket-address.h>
+#include <ns3/string.h>
+#include <ns3/tcp-header.h>
 #include "ofswitch13-interface.h"
 #include "ofswitch13-port.h"
 
@@ -50,6 +50,87 @@ class OFSwitch13Port;
  */
 class OFSwitch13Device : public Object
 {
+private:
+  /**
+   * \ingroup ofswitch13
+   * Inner class to save information of a remote active controller connected to
+   * this OpenFlow switch.
+   */
+  class RemoteController : public SimpleRefCount<RemoteController>
+  {
+    friend class OFSwitch13Device;
+
+  public:
+    /** Default (empty) constructor. */
+    RemoteController ();
+
+  private:
+    Ptr<Socket>       m_socket;         //!< TCP socket to controller.
+    Ptr<SocketReader> m_reader;         //!< Socket reader.
+    Address           m_address;        //!< Controller address.
+    struct remote*    m_remote;         //!< ofsoftswitch13 remote structure.
+  }; // Class RemoteController
+
+  /**
+   * \ingroup ofswitch13
+   * Structure to save packet metadata while it is under OpenFlow pipeline.
+   * This structure keeps track of packets under OpenFlow pipeline, including
+   * the ID for each packet copy (notified by the clone callback). Note that
+   * only one packet can be in pipeline at a time, but the packet can have
+   * multiple internal copies (each one will receive an unique packet ID), and
+   * can also be saved into buffer for latter usage.
+   */
+  struct PipelinePacket
+  {
+  public:
+    /** Default (empty) constructor. */
+    PipelinePacket ();
+
+    /**
+     * Save packet metadata.
+     * \param id Packet unique ID.
+     * \param packet The packet pointer.
+     */
+    void SetPacket (uint64_t id, Ptr<Packet> packet);
+
+    /** \return The packet pointer. */
+    Ptr<Packet> GetPacket (void) const;
+
+    /** Invalidate packet metatada.*/
+    void Invalidate (void);
+
+    /**
+     * Check for valid packet metadata.
+     * \return true when valid packet metadata.
+     */
+    bool IsValid (void) const;
+
+    /**
+     * Notify a new copy for this packet, with a new unique ID.
+     * \param id The ns-3 packet id.
+     */
+    void NewCopy (uint64_t id);
+
+    /**
+     * Delete an existing copy for this packet.
+     * \param id The ns-3 packet id.
+     * \return false when the packet metadata becomes invalid.
+     */
+    bool DelCopy (uint64_t id);
+
+    /**
+     * Check for packet id in the internal list of IDs for this packet.
+     * \param id The ns-3 packet id.
+     * \return true when the id is associated with this packet
+     */
+    bool HasId (uint64_t id);
+
+  private:
+    bool                  m_valid;  //!< Valid flag.
+    Ptr<Packet>           m_packet; //!< Packet pointer.
+    std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
+  }; // Struct PipelinePacket
+
 public:
   /**
    * Register this type.
@@ -69,13 +150,13 @@ public:
   virtual ~OFSwitch13Device ();
 
   /**
-   * Add a 'port' to the switch device. This method adds a new switch
-   * port to a OFSwitch13Device, so that the new switch port NetDevice
-   * becomes part of the switch and L2 frames start being forwarded to/from
-   * this OpenFlow device.
-   * \attention The current implementation only supports CsmaNetDevices (as
-   * OpenFlow deals with ethernet frames). Also, the port device that is being
-   * added as switch port must _not_ have an IP address.
+   * Add a 'port' to the switch device. This method adds a new switch port to a
+   * OFSwitch13Device, so that the new switch port NetDevice becomes part of
+   * the switch and L2 frames start being forwarded to/from this OpenFlow
+   * device. The current implementation only supports CsmaNetDevice (for
+   * physical ports) or VirtualNetDevice (for logical ports). Keep in mind that
+   * an OpenFlow switch expects to receive packets with Ethernet header from
+   * port devices).
    * \param portDevice The NetDevice port to add.
    * \return The OFSwitch13Port created.
    */
@@ -86,8 +167,10 @@ public:
    * will schedule the packet for OpenFlow pipeline.
    * \param packet The packet.
    * \param portNo The switch input port number.
+   * \param tunnelId The metadata associated with a logical port.
    */
-  void ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo);
+  void ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
+                              uint64_t tunnelId = 0);
 
   /**
    * \return Number of ports attached to this switch.
@@ -111,23 +194,27 @@ public:
   uint32_t GetNumberFlowEntries (size_t tid) const;
 
   /**
-   * Set the logging level of ofsoftswitch13 library.
-   * \param log String representing library logging level.
+   * Starts the TCP connection between this switch and the target controller
+   * indicated by the address parameter.
+   * \param ctrlAddr The controller address used to open the connection.
    */
-  void SetLibLogLevel (std::string log);
+  void StartControllerConnection (Address ctrlAddr);
 
   /**
-   * Starts the TCP connection between this switch and the controller.
+   * Overriding ofsoftswitch13 send_packet_to_controller weak function
+   * from udatapath/pipeline.c. Sends the given packet to controller(s) in a
+   * packet_in message.
+   * \internal
+   * This function relies on the global map that stores OpenFlow devices to
+   * call the method on the correct object.
+   * \param pl The pipeline structure.
+   * \param pkt The internal packet to send.
+   * \param tableId ID of the table that was looked up.
+   * \param reason Reason packet is being sent (on of OFPR_*).
    */
-  void StartControllerConnection ();
-
-  /**
-   * Get a pointer to the collection of output queues at a specific port on
-   * this switch.
-   * \param portNo The switch output port number.
-   * \return The queue pointer.
-   */
-  Ptr<OFSwitch13Queue> GetOutputQueue (uint32_t portNo);
+  static void
+  SendPacketToController (pipeline *pl, struct packet *pkt, uint8_t tableId,
+                          uint8_t reason);
 
   /**
    * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
@@ -137,11 +224,11 @@ public:
    * This function relies on the global map that stores OpenFlow devices to
    * call the method on the correct object.
    * \param buffer The message buffer to send.
-   * \param ctrl The controller connection information.
+   * \param remote The remote controller connection information.
    * \return 0 if everything's ok, error number otherwise.
    */
   static int
-  SendOpenflowBufferToRemote (ofpbuf *buffer, remote *ctrl);
+  SendOpenflowBufferToRemote (ofpbuf *buffer, remote *remote);
 
   /**
    * Overriding ofsoftswitch13 dp_actions_output_port weak function from
@@ -155,12 +242,12 @@ public:
    * \param pkt The internal packet to send.
    * \param outPort The output switch port number.
    * \param outQueue The output queue number.
-   * \param maxLen Max length of packet to send to controller.
+   * \param maxLength Max length of packet to send to controller.
    * \param cookie Packet cookie to send to controller.
    */
   static void
-  DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
-                       uint32_t outQueue, uint16_t maxLen, uint64_t cookie);
+  DpActionsOutputPort (struct packet *pkt, uint32_t outPort, uint32_t outQueue,
+                       uint16_t maxLength, uint64_t cookie);
 
   /**
    * Callback fired when a new meter entry is created at meter table.
@@ -233,6 +320,19 @@ private:
   Ptr<OFSwitch13Port> GetOFSwitch13Port (uint32_t no);
 
   /**
+   * Create an OpenFlow packet in message and send the packet to all
+   * controllers with open connections.
+   * \param pkt The internal packet to send.
+   * \param tableId ID of the table that was looked up.
+   * \param reason Reason packet is being sent (on of OFPR_*).
+   * \param maxLength Max length of packet to send to controller.
+   * \param cookie Packet cookie to send to controller.
+   */
+  void SendPacketInMessage (struct packet *pkt, uint8_t tableId,
+                            uint8_t reason, uint16_t maxLength,
+                            uint64_t cookie = 0);
+
+  /**
    * Send a message over a specific switch port. Check port configuration,
    * get the ns-3 packet and send the packet over the proper OpenFlow port.
    * \see DpActionsOutputPort ().
@@ -242,14 +342,16 @@ private:
    * \return True if success, false otherwise.
    */
   bool SendToSwitchPort (struct packet *pkt, uint32_t portNo,
-                         uint32_t queueNo);
+                         uint32_t queueNo = 0);
 
   /**
    * Send the packet to the OpenFlow ofsoftswitch13 pipeline.
    * \param packet The packet.
    * \param portNo The switch input port number.
+   * \param tunnelId The metadata associated with a logical port.
    */
-  void SendToPipeline (Ptr<Packet> packet, uint32_t portNo);
+  void SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
+                       uint64_t tunnelId = 0);
 
   /**
    * Send a packet to the controller node.
@@ -258,16 +360,30 @@ private:
    * Use dp_send_message () instead, as it deals with multiple connections and
    * check async config.
    * \param packet The ns-3 packet to send.
+   * \param remoteCtrl The remote controller object to send the packet.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendToController (Ptr<Packet> packet);
+  int SendToController (Ptr<Packet> packet,
+                        Ptr<OFSwitch13Device::RemoteController> remoteCtrl);
 
   /**
-   * Socket callback to receive a openflow packet from controller.
+   * SocketReader callback to receive an OpenFlow packet from controller.
    * \see remote_rconn_run () at udatapath/datapath.c.
-   * \param socket The TCP socket.
+   * \param packet The packet with the OpenFlow message.
+   * \param from The packet sender address.
    */
-  void ReceiveFromController (Ptr<Socket> socket);
+  void ReceiveFromController (Ptr<Packet> packet, Address from);
+
+  /**
+   * Create an OpenFlow error message and send it back to the sender
+   * controller. This function is used only when an error occurred while
+   * processing an OpenFlow message received from the controller.
+   * \param error The error code.
+   * \param buffer The message buffer that originated the error.
+   * \param senderCtrl The origin of a received OpenFlow message.
+   */
+  void ReplyWithErrorMessage (ofl_err error, ofpbuf *buffer,
+                              struct sender *senderCtrl);
 
   /**
    * Socket callback fired when a TCP connection to controller succeed.
@@ -331,6 +447,30 @@ private:
   void BufferPacketDelete (uint64_t packetId);
 
   /**
+   * Get the remote controller for this socket.
+   * \param socket The connection socket.
+   * \return The remote controller.
+   */
+  Ptr<OFSwitch13Device::RemoteController>
+  GetRemoteController (Ptr<Socket> socket);
+
+  /**
+   * Get the remote controller for this address.
+   * \param address The socket address.
+   * \return The remote controller.
+   */
+  Ptr<OFSwitch13Device::RemoteController>
+  GetRemoteController (Address address);
+
+  /**
+   * Get the remote controller for this ofsoftswitch13 remote pointer.
+   * \param remote The ofsoftswitch13 remote pointer.
+   * \return The remote controller.
+   */
+  Ptr<OFSwitch13Device::RemoteController>
+  GetRemoteController (struct remote *remote);
+
+  /**
    * Increase the global packet ID counter and return a new packet ID. This ID
    * is different from the internal ns3::Packet::GetUid (), as we need an
    * unique value even for fragmented or brodcast packets. Its usage is
@@ -369,71 +509,11 @@ private:
    */
   static Ptr<OFSwitch13Device> GetDevice (uint64_t id);
 
-  /** Trace source fired when the OpenFlow meter band drops a packet */
-  TracedCallback<Ptr<const Packet> > m_meterDropTrace;
-
-  /**
-   * \ingroup ofswitch13
-   * Structure to save packet metadata while it is under OpenFlow pipeline.
-   * This structure keeps track of packets under OpenFlow pipeline, including
-   * the ID for each packet copy (notified by the clone callback). Note that
-   * only one packet can be in pipeline at a time, but the packet can have
-   * multiple internal copies (which one will receive an unique packet ID), and
-   * can also be saved into buffer for later usage.
-   */
-  struct PipelinePacket
-  {
-public:
-    /** Default (empty) constructor. */
-    PipelinePacket ();
-
-    /**
-     * Save packet metadata.
-     * \param id Packet unique ID.
-     * \param packet The packet pointer.
-     */
-    void SetPacket (uint64_t id, Ptr<Packet> packet);
-
-    /** \return The packet pointer. */
-    Ptr<Packet> GetPacket (void) const;
-
-    /** Invalidate packet metatada.*/
-    void Invalidate (void);
-
-    /**
-     * Check for valid packet metadata.
-     * \return true when valid packet metadata.
-     */
-    bool IsValid (void) const;
-
-    /**
-     * Notify a new copy for this packet, with a new unique ID.
-     * \param id The ns-3 packet id.
-     */
-    void NewCopy (uint64_t id);
-
-    /**
-     * Delete an existing copy for this packet.
-     * \param id The ns-3 packet id.
-     * \return false when the packet metadata becomes invalid.
-     */
-    bool DelCopy (uint64_t id);
-
-    /**
-     * Check for packet id in the internal list of IDs for this packet.
-     * \param id The ns-3 packet id.
-     * \return true when the id is associated with this packet
-     */
-    bool HasId (uint64_t id);
-
-private:
-    bool                  m_valid;  //!< Valid flag.
-    Ptr<Packet>           m_packet; //!< Packet pointer.
-    std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
-  };
-
   /** Structure to save the list of ports in this datapath. */
   typedef std::vector<Ptr<OFSwitch13Port> > PortList_t;
+
+  /** Structure to save the list of active controllers. */
+  typedef std::vector<Ptr<OFSwitch13Device::RemoteController> > CtrlList_t;
 
   /** Structure to map datapath id to OpenFlow device. */
   typedef std::map<uint64_t, Ptr<OFSwitch13Device> > DpIdDevMap_t;
@@ -441,21 +521,65 @@ private:
   /** Structure to save packets, indexed by its id. */
   typedef std::map<uint64_t, Ptr<Packet> > IdPacketMap_t;
 
+  /** Trace source fired when a packet is sent to pipeline. */
+  TracedCallback<Ptr<const Packet> > m_pipelinePacketTrace;
+
+  /** Trace source fired when a packet is dropped by a meter band. */
+  TracedCallback<Ptr<const Packet> > m_meterDropTrace;
+
+  /** Trace source fired when a packet is saved into buffer. */
+  TracedCallback<Ptr<const Packet> > m_bufferSaveTrace;
+
+  /** Trace source fired when a packet is retrieved from buffer. */
+  TracedCallback<Ptr<const Packet> > m_bufferRetrieveTrace;
+
+  /** Trace source fired when a packet in buffer expires. */
+  TracedCallback<Ptr<const Packet> > m_bufferExpireTrace;
+
+  /** Average pipeline delay for packet processing. */
+  TracedValue<Time> m_pipelineDelay;
+
+  /** Buffer space usage in terms of packets. */
+  TracedValue<double> m_bufferUsage;
+
+  /** Number of entries in pipeline flow tables. */
+  TracedValue<uint32_t> m_flowEntries;
+
+  /** Number of entries in meter table. */
+  TracedValue<uint32_t> m_meterEntries;
+
+  /** Number of entries in group table. */
+  TracedValue<uint32_t> m_groupEntries;
+
+  /** Number of flow-mod messages received by this switch. */
+  TracedValue<uint32_t> m_flowModCounter;
+
+  /** Number of meter-mod messages received by this switch. */
+  TracedValue<uint32_t> m_meterModCounter;
+
+  /** Number of group-mod messages received by this switch. */
+  TracedValue<uint32_t> m_groupModCounter;
+
+  /** Number of packet-in messages sent by this switch. */
+  TracedValue<uint32_t> m_packetInCounter;
+
+  /** Number of packet-out messages received by this switch. */
+  TracedValue<uint32_t> m_packetOutCounter;
+
   uint64_t        m_dpId;         //!< This datapath id.
-  Ptr<Socket>     m_ctrlSocket;   //!< Tcp Socket to controller.
-  Address         m_ctrlAddr;     //!< Controller Address.
   Time            m_timeout;      //!< Datapath timeout interval.
   Time            m_lastTimeout;  //!< Datapath last timeout.
   Time            m_tcamDelay;    //!< Flow Table TCAM lookup delay.
-  Time            m_pipeDelay;    //!< Flow Table average delay.
   std::string     m_libLog;       //!< The ofsoftswitch13 library log levels.
   datapath*       m_datapath;     //!< The OpenFlow datapath.
   PipelinePacket  m_pktPipe;      //!< Packet under switch pipeline.
   PortList_t      m_ports;        //!< List of switch ports.
+  CtrlList_t      m_controllers;  //!< Collection of active controllers.
   IdPacketMap_t   m_pktsBuffer;   //!< Packets saved in switch buffer.
+  uint32_t        m_bufferSize;   //!< Buffer size in terms of packets.
 
-  static uint64_t m_globalDpId;   //!< Global counter for datapath IDs
-  static uint64_t m_globalPktId;  //!< Global counter for packets IDs
+  static uint64_t m_globalDpId;   //!< Global counter for datapath IDs.
+  static uint64_t m_globalPktId;  //!< Global counter for packets IDs.
 
   /**
    * As the integration of ofsoftswitch13 and ns-3 involve overriding some C
