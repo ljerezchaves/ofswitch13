@@ -102,8 +102,8 @@ protected:
 
   public:
     /**
-     * Complete constructor, with the switch IP.
-     * \param ip The switch IP.
+     * Complete constructor, with remote switch.
+     * \param swtch The remote switch.
      */
     EchoInfo (Ptr<const RemoteSwitch> swtch);
 
@@ -130,8 +130,8 @@ protected:
 
   public:
     /**
-     * Complete constructor, with the switch IP.
-     * \param ip The switch IP.
+     * Complete constructor, with remote switch.
+     * \param swtch The remote switch.
      */
     BarrierInfo (Ptr<const RemoteSwitch> swtch);
 
