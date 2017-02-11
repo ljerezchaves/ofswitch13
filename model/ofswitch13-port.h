@@ -114,6 +114,7 @@ private:
    * \param from Address of the correspondant.
    * \param to Address of the destination.
    * \param packetType Type of the packet.
+   * \return true.
    */
   bool Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
                 uint16_t protocol, const Address &from, const Address &to,

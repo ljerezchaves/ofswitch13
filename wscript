@@ -10,7 +10,10 @@ def check_version_compatibility(version):
         comp = tuple(map(int, (version.split("."))))
         return comp >= base
     except:
-        return False
+        if version == '3-dev':
+            return True
+        else:
+            return False
 
 def options(opt):
     opt.add_option('--with-ofswitch13',

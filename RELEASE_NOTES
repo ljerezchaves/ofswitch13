@@ -4,8 +4,8 @@ OFSwitch13 release notes
 
 This file contains OFSwitch13 release notes (most recent releases first).
 
-Release 3.0.0 (Place the date here)
-===================================
+Release 3.0.0 (February 10, 2017)
+=================================
 
 - Starting using the Semantic Versioning (http://semver.org) on this project.
   So, BE AWARE THAT this release brings incompatible API changes in respect to
@@ -64,7 +64,8 @@ Release 3.0.0 (Place the date here)
     into respective nodes (the use of this function is mandatory).
 
 - This code is compatible with ofsoftswitch13 library release v3.0.x and ns-3
-  version 3.26 (including patches).
+  version 3.26 (including patches). No backward compatibility with ns-3.25 or
+  older versions.
 
 
 Release 2.0.3 (September 12, 2016)
