@@ -42,6 +42,7 @@ TunnelController::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::TunnelController")
     .SetParent<OFSwitch13Controller> ()
     .SetGroupName ("OFSwitch13")
+    .AddConstructor<TunnelController> ()
   ;
   return tid;
 }

@@ -49,7 +49,9 @@ TypeId
 QosController::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::QosController")
-    .SetParent (OFSwitch13Controller::GetTypeId ())
+    .SetParent<OFSwitch13Controller> ()
+    .SetGroupName ("OFSwitch13")
+    .AddConstructor<QosController> ()
     .AddAttribute ("EnableMeter",
                    "Enable per-flow mettering.",
                    BooleanValue (false),

@@ -53,6 +53,7 @@ TunnelUserApp::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::TunnelUserApp")
     .SetParent<Application> ()
     .SetGroupName ("OFSwitch13")
+    .AddConstructor<TunnelUserApp> ()
   ;
   return tid;
 }
