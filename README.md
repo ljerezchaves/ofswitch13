@@ -19,7 +19,7 @@ Thanks to the main contributors:
 * *"Your name here"*
 
 # Contact #
-Luciano Jerez Chaves (luciano at lrc dot ic dot unicamp dot br)
+Feel free to subscribe to [our mailing list at Google groups][group] and provide some feedback, give us suggestions, interact with other users, or to just say hello!
 
 [ns-3]: https://www.nsnam.org
 [ofp13]: https://www.opennetworking.org/sdn-resources/technical-library
@@ -28,3 +28,4 @@ Luciano Jerez Chaves (luciano at lrc dot ic dot unicamp dot br)
 [apidoc]: http://www.lrc.ic.unicamp.br/ofswitch13/doc/html/index.html
 [issues]: https://bitbucket.org/ljerezchaves/ofswitch13-module/issues?status=new&status=open
 [gpl]: http://www.gnu.org/copyleft/gpl.html
+[group]: https://groups.google.com/forum/#!forum/ofswitch13-users
