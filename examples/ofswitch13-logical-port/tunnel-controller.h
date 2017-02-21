@@ -41,8 +41,8 @@ namespace ns3 {
 class TunnelController : public OFSwitch13Controller
 {
 public:
-  TunnelController ();           //!< Default constructor
-  virtual ~TunnelController ();  //!< Dummy destructor, see DoDispose
+  TunnelController ();           //!< Default constructor.
+  virtual ~TunnelController ();  //!< Dummy destructor, see DoDispose.
 
   /**
    * Register this type.
@@ -56,6 +56,14 @@ public:
    * \param macAddr The MAC address.
    */
   void SaveArpEntry (Ipv4Address ipAddr, Mac48Address macAddr);
+
+  /**
+   * Save the pair datapath ID + port no / IP address in tunnel endpoint table.
+   * \param dpId The datapath ID.
+   * \param portNo The port number.
+   * \param ipAddr The IPv4 address of tunnel endpoint.
+   */
+  void SaveTunnelEndpoint (uint64_t dpId, uint32_t portNo, Ipv4Address ipAddr);
 
 protected:
   /** Destructor implementation */
@@ -73,6 +81,14 @@ private:
    * \return The MAC address for this ip.
    */
   Mac48Address GetArpEntry (Ipv4Address ip);
+
+  /**
+   * Perform tunnel endpoint resolution.
+   * \param dpId The datapath ID.
+   * \param portNo The port number.
+   * \return The IPv4 address of tunnel endpoint.
+   */
+  Ipv4Address GetTunnelEndpoint (uint64_t dpId, uint32_t portNo);
 
   /**
    * Handle packet-in messages sent from switch with ARP message.
@@ -104,9 +120,17 @@ private:
   Ptr<Packet> CreateArpReply (Mac48Address srcMac, Ipv4Address srcIp,
                               Mac48Address dstMac, Ipv4Address dstIp);
 
+  /** A pair identifying OpenFlow datapath id and port number. */
+  typedef std::pair<uint64_t, uint32_t> DpPortPair_t;
+
+  /** Map saving <DpPortPair_t / IPv4 address> */
+  typedef std::map<DpPortPair_t, Ipv4Address> DpPortIpMap_t;
+
   /** Map saving <IPv4 address / MAC address> */
   typedef std::map<Ipv4Address, Mac48Address> IpMacMap_t;
-  IpMacMap_t          m_arpTable;         //!< ARP resolution table.
+
+  IpMacMap_t      m_arpTable;       //!< ARP resolution table.
+  DpPortIpMap_t   m_endpointTable;  //!< Tunnel endpoint resolution table.
 };
 
 } // namespace ns3

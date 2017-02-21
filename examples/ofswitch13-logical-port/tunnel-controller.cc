@@ -53,7 +53,7 @@ TunnelController::SaveArpEntry (Ipv4Address ipAddr, Mac48Address macAddr)
   NS_LOG_FUNCTION (this << ipAddr << macAddr);
 
   std::pair<Ipv4Address, Mac48Address> entry (ipAddr, macAddr);
-  std::pair <IpMacMap_t::iterator, bool> ret;
+  std::pair<IpMacMap_t::iterator, bool> ret;
   ret = m_arpTable.insert (entry);
   if (ret.second == true)
     {
@@ -64,44 +64,42 @@ TunnelController::SaveArpEntry (Ipv4Address ipAddr, Mac48Address macAddr)
 }
 
 void
+TunnelController::SaveTunnelEndpoint (uint64_t dpId, uint32_t portNo,
+                                      Ipv4Address ipAddr)
+{
+  NS_LOG_FUNCTION (this << dpId << portNo << ipAddr);
+
+  DpPortPair_t key (dpId, portNo);
+  std::pair<DpPortPair_t, Ipv4Address> entry (key, ipAddr);
+  std::pair<DpPortIpMap_t::iterator, bool> ret;
+  ret = m_endpointTable.insert (entry);
+  if (ret.second == true)
+    {
+      NS_LOG_INFO ("New endpoint entry: " << dpId << "/" << portNo <<
+                   " - " << ipAddr);
+      return;
+    }
+  NS_FATAL_ERROR ("This endpoint already exists in tunnel endpoint table.");
+}
+
+void
 TunnelController::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
   m_arpTable.clear ();
+  m_endpointTable.clear ();
 }
 
 void
 TunnelController::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
 {
-  // Send ARP requests to controller
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=16 eth_type=0x0806"
-                " apply:output=ctrl");
+  // Send ARP requests to controller.
+  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=16 eth_type=0x0806 "
+                "apply:output=ctrl");
 
-  // Table miss entry
+  // Table miss entry.
   DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl");
-
-  // IP packets entering the switch from the physical port 1 are coming from
-  // the host node. In this case, set the arbitrary value 0xFFFF for the tunnel
-  // id at table 0 and match this tunnel id at table 1. These packets are
-  // forwarded to the other switch on the logical port 2.
-  DpctlExecute (swtch,
-                "flow-mod cmd=add,table=0,prio=1 "
-                "in_port=1,eth_type=0x0800 "
-                "apply:set_field=tunn_id:0xFFFF goto:1");
-  DpctlExecute (swtch,
-                "flow-mod cmd=add,table=1,prio=1 "
-                "tunn_id=0xFFFF "
-                "write:output=2");
-
-  // IP packets entering the switch from the logical port have already been
-  // de-encapsulated by the logical port operation, and the tunnel id must
-  // match the arbitrary value 0xFFFF. Theses packets are forwarded to the host
-  // on the physical port 1.
-  DpctlExecute (swtch,
-                "flow-mod cmd=add,table=0,prio=1 "
-                "in_port=2,eth_type=0x0800,tunn_id=0xFFFF "
-                "write:output=1");
 }
 
 ofl_err
@@ -117,6 +115,54 @@ TunnelController::HandlePacketIn (
       char *m = ofl_structs_match_to_string (msg->match, 0);
       NS_LOG_INFO ("Packet in match: " << m);
       free (m);
+
+      // Get input port
+      uint32_t inPort;
+      tlv = oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
+      memcpy (&inPort, tlv->value, OXM_LENGTH (OXM_OF_IN_PORT));
+
+      if (inPort == 1)
+        {
+          // IP packets entering the switch from the physical port 1 are coming
+          // from the host node. In this case, identify and set TEID and tunnel
+          // endpoint IPv4 address into tunnel metadata, and output the packet
+          // on the logical port 2.
+          Ipv4Address dstAddr = GetTunnelEndpoint (swtch->GetDpId (), 2);
+          uint64_t tunnelId = (uint64_t)dstAddr.Get () << 32;
+          tunnelId |= 0xFFFF;
+          char tunnelIdStr [12];
+          sprintf (tunnelIdStr, "0x%016lX", tunnelId);
+
+          std::ostringstream cmd;
+          cmd << "flow-mod cmd=add,table=0,prio=11,buffer=" << msg->buffer_id
+              << " in_port=1,eth_type=0x0800 "
+              << "write:set_field=tunn_id:" << tunnelIdStr
+              << ",output=2";
+          DpctlExecute (swtch, cmd.str ());
+          return 0;
+        }
+      else if (inPort == 2)
+        {
+          // IP packets entering the switch from the logical port have already
+          // been de-encapsulated by the logical port operation, and the tunnel
+          // id must match the arbitrary value 0xFFFF defined set above. Theses
+          // packets must be forwarded to the host on the physical port 1. In
+          // this case, the OpenFlow switch is acting as a router, and we need
+          // to set the host destination MAC addresses. Note that the packet
+          // leaving the OpenFlow pipeline will not be sent to the IP layer, so
+          // no ARP resolution is available and we need to do it manually here.
+          Ipv4Address dstIp;
+          dstIp = ExtractIpv4Address (OXM_OF_IPV4_DST, (ofl_match*)msg->match);
+          Mac48Address dstMac = GetArpEntry (dstIp);
+
+          std::ostringstream cmd;
+          cmd << "flow-mod cmd=add,table=0,prio=10,buffer=" << msg->buffer_id
+              << " in_port=2,eth_type=0x0800,tunn_id=0xFFFF "
+              << "write:set_field=eth_dst:" << dstMac
+              << ",output=1";
+          DpctlExecute (swtch, cmd.str ());
+          return 0;
+        }
 
       NS_ABORT_MSG ("This packet in was not supposed to be sent to this "
                     "controller. Aborting...");
@@ -155,6 +201,23 @@ TunnelController::GetArpEntry (Ipv4Address ip)
       return ret->second;
     }
   NS_FATAL_ERROR ("No ARP information for this IP.");
+}
+
+Ipv4Address
+TunnelController::GetTunnelEndpoint (uint64_t dpId, uint32_t portNo)
+{
+  NS_LOG_FUNCTION (this << dpId << portNo);
+
+  DpPortPair_t key (dpId, portNo);
+  DpPortIpMap_t::iterator ret;
+  ret = m_endpointTable.find (key);
+  if (ret != m_endpointTable.end ())
+    {
+      NS_LOG_INFO ("Found endpoint entry: " << dpId << "/" << portNo <<
+                   " - " << ret->second);
+      return ret->second;
+    }
+  NS_FATAL_ERROR ("No tunnel endpoint information for this datapath + port.");
 }
 
 ofl_err
