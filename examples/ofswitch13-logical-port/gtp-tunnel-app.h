@@ -35,7 +35,7 @@ namespace ns3 {
  * It provides the callback implementations that are used by the logical switch
  * port and UDP socket. This application is stateless: it only adds/removes
  * protocols headers over packets leaving/entering the OpenFlow switch based on
- * information that is carried withing packet tags.
+ * information that is carried by packet tags.
  */
 class GtpTunnelApp : public Application
 {

@@ -94,6 +94,8 @@ TunnelController::DoDispose ()
 void
 TunnelController::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
 {
+  NS_LOG_FUNCTION (this << swtch);
+
   // Send ARP requests to controller.
   DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=16 eth_type=0x0806 "
                 "apply:output=ctrl");

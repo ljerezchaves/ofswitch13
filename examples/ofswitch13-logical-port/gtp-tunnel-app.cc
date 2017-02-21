@@ -29,15 +29,19 @@ NS_OBJECT_ENSURE_REGISTERED (GtpTunnelApp);
 
 GtpTunnelApp::GtpTunnelApp ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 GtpTunnelApp::~GtpTunnelApp ()
 {
+  NS_LOG_FUNCTION (this);
 }
 
 GtpTunnelApp::GtpTunnelApp (Ptr<VirtualNetDevice> logicalPort)
   : m_logicalPort (logicalPort)
 {
+  NS_LOG_FUNCTION (this << logicalPort);
+
   m_logicalPort->SetSendCallback (
     MakeCallback (&GtpTunnelApp::RecvFromLogicalPort, this));
 }
