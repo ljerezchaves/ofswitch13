@@ -38,12 +38,10 @@ GtpTunnelApp::~GtpTunnelApp ()
 }
 
 GtpTunnelApp::GtpTunnelApp (Ptr<VirtualNetDevice> logicalPort)
-  : m_logicalPort (logicalPort)
 {
   NS_LOG_FUNCTION (this << logicalPort);
 
-  m_logicalPort->SetSendCallback (
-    MakeCallback (&GtpTunnelApp::RecvFromLogicalPort, this));
+  SetLogicalPort (logicalPort);
 }
 
 TypeId
@@ -58,25 +56,14 @@ GtpTunnelApp::GetTypeId (void)
 }
 
 void
-GtpTunnelApp::DoDispose ()
+GtpTunnelApp::SetLogicalPort (Ptr<VirtualNetDevice> logicalPort)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << logicalPort);
 
-  m_tunnelSocket = 0;
-  m_logicalPort = 0;
-}
-
-void
-GtpTunnelApp::StartApplication ()
-{
-  NS_LOG_FUNCTION (this);
-
-  // Create and open the UDP socket for tunnel.
-  m_tunnelSocket = Socket::CreateSocket (
-      GetNode (), TypeId::LookupByName ("ns3::UdpSocketFactory"));
-  m_tunnelSocket->Bind (InetSocketAddress (Ipv4Address::GetAny (), m_port));
-  m_tunnelSocket->SetRecvCallback (
-    MakeCallback (&GtpTunnelApp::RecvFromTunnelSocket, this));
+  // Save the pointer and set the send callback.
+  m_logicalPort = logicalPort;
+  m_logicalPort->SetSendCallback (
+      MakeCallback (&GtpTunnelApp::RecvFromLogicalPort, this));
 }
 
 bool
@@ -86,7 +73,7 @@ GtpTunnelApp::RecvFromLogicalPort (Ptr<Packet> packet, const Address& source,
 {
   NS_LOG_FUNCTION (this << packet << source << dest << protocolNumber);
 
-  // Retrieve the GTP TEID from TunnelId tag, if available.
+  // Retrieve the GTP TEID from TunnelId tag.
   TunnelIdTag tunnelIdTag;
   bool foud = packet->RemovePacketTag (tunnelIdTag);
   NS_ASSERT_MSG (foud, "Expected TunnelId tag not found.");
@@ -104,8 +91,8 @@ GtpTunnelApp::RecvFromLogicalPort (Ptr<Packet> packet, const Address& source,
   packet->AddHeader (gtpu);
 
   // Send the packet to the tunnel socket.
-  NS_LOG_DEBUG ("Send packet " << packet->GetUid () << " over tunnel " <<
-                teid << " to IP " << address << " port " << m_port);
+  NS_LOG_DEBUG ("Send packet " << packet->GetUid () << " to tunnel " << teid <<
+                " dst IP " << address << " port " << m_port);
   return SentToTunnelSocket (packet, InetSocketAddress (address, m_port));
 }
 
@@ -114,8 +101,15 @@ GtpTunnelApp::SendToLogicalPort (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 
-  // Add the Ethernet header to the packet and send it to the OpenFlow switch.
+  // Add the Ethernet header to the packet, using the logical port MAC address
+  // as source. Note that the original Ethernet frame was removed by the
+  // CsmaNetDevice when this packet arrived at this node, so here we don't now
+  // the original MAC source and destination addresses. The destination address
+  // must be set to the packet by the OpenFlow pipeline, and the source address
+  // we set here using the logical port.
   AddHeader (packet, Mac48Address::ConvertFrom (m_logicalPort->GetAddress ()));
+
+  // Send the packet to the OpenFlow switch over the logical port.
   return m_logicalPort->Receive (packet, Ipv4L3Protocol::PROT_NUMBER,
                                  Mac48Address (), Mac48Address (),
                                  NetDevice::PACKET_HOST);
@@ -149,6 +143,7 @@ GtpTunnelApp::SentToTunnelSocket (Ptr<Packet> packet,
 {
   NS_LOG_FUNCTION (this << packet << dstAddress);
 
+  // Send the packet to tunnel socket and check the return.
   int bytes = m_tunnelSocket->SendTo (packet, 0, dstAddress);
   if (bytes != (int)packet->GetSize ())
     {
@@ -159,16 +154,36 @@ GtpTunnelApp::SentToTunnelSocket (Ptr<Packet> packet,
 }
 
 void
+GtpTunnelApp::DoDispose ()
+{
+  NS_LOG_FUNCTION (this);
+
+  m_tunnelSocket = 0;
+  m_logicalPort = 0;
+}
+
+void
+GtpTunnelApp::StartApplication ()
+{
+  NS_LOG_FUNCTION (this);
+
+  // Create and open the UDP socket for tunnel.
+  m_tunnelSocket = Socket::CreateSocket (
+      GetNode (), TypeId::LookupByName ("ns3::UdpSocketFactory"));
+  m_tunnelSocket->Bind (InetSocketAddress (Ipv4Address::GetAny (), m_port));
+  m_tunnelSocket->SetRecvCallback (
+    MakeCallback (&GtpTunnelApp::RecvFromTunnelSocket, this));
+}
+
+void
 GtpTunnelApp::AddHeader (Ptr<Packet> packet, Mac48Address source,
                          Mac48Address dest, uint16_t protocolNumber)
 {
-  NS_LOG_FUNCTION (packet << source << dest << protocolNumber);
+  NS_LOG_FUNCTION (this << packet << source << dest << protocolNumber);
 
-  //
   // All Ethernet frames must carry a minimum payload of 46 bytes. We need to
   // pad out if we don't have enough bytes. These must be real bytes since they
   // will be written to pcap files and compared in regression trace files.
-  //
   if (packet->GetSize () < 46)
     {
       uint8_t buffer[46];

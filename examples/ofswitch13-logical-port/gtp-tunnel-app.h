@@ -31,8 +31,8 @@ namespace ns3 {
 
 /**
  * This GTP tunnel application is responsible for implementing the logical port
- * operations to encapsulate and de-encapsulated packets withing GTP tunnel.
- * It provides the callback implementations that are used by the logical switch
+ * operations to encapsulate and de-encapsulated packets withing GTP tunnel. It
+ * provides the callback implementations that are used by the logical switch
  * port and UDP socket. This application is stateless: it only adds/removes
  * protocols headers over packets leaving/entering the OpenFlow switch based on
  * information that is carried by packet tags.
@@ -54,6 +54,12 @@ public:
    * \return The object TypeId.
    */
   static TypeId GetTypeId (void);
+
+  /**
+   * Save the logical port and set the send callback.
+   * \param logicalPort The OpenFlow logical port device.
+   */
+  void SetLogicalPort (Ptr<VirtualNetDevice> logicalPort);
 
   /**
    * Method to be assigned to the send callback of the VirtualNetDevice
