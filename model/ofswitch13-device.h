@@ -293,6 +293,13 @@ public:
   static void
   BufferRetrieveCallback (struct packet *pkt);
 
+  /**
+   * Retrieve and existing OpenFlow device object by its datapath ID.
+   * \param id The datapath ID.
+   * \return The OpenFlow OFSwitch13Device pointer.
+   */
+  static Ptr<OFSwitch13Device> GetDevice (uint64_t id);
+
 private:
   // Inherited from Object
   virtual void DoDispose (void);
@@ -501,13 +508,6 @@ private:
    * \param id The datapath id.
    */
   static void UnregisterDatapath (uint64_t id);
-
-  /**
-   * Retrieve and existing OpenFlow device object by its datapath id
-   * \param id The datapath id.
-   * \return The OpenFlow OFSwitch13Device pointer.
-   */
-  static Ptr<OFSwitch13Device> GetDevice (uint64_t id);
 
   /** Structure to save the list of ports in this datapath. */
   typedef std::vector<Ptr<OFSwitch13Port> > PortList_t;

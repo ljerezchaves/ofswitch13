@@ -413,6 +413,21 @@ OFSwitch13Device::BufferRetrieveCallback (struct packet *pkt)
   dev->BufferPacketRetrieve (pkt->ns3_uid);
 }
 
+Ptr<OFSwitch13Device>
+OFSwitch13Device::GetDevice (uint64_t id)
+{
+  DpIdDevMap_t::iterator it;
+  it = OFSwitch13Device::m_globalSwitchMap.find (id);
+  if (it != OFSwitch13Device::m_globalSwitchMap.end ())
+    {
+      return it->second;
+    }
+  else
+    {
+      NS_FATAL_ERROR ("Error retrieving datapath device from global map.");
+      return 0;
+    }
+}
 
 /********** Private methods **********/
 void
@@ -1128,22 +1143,6 @@ OFSwitch13Device::UnregisterDatapath (uint64_t id)
   else
     {
       NS_FATAL_ERROR ("Error removing datapath device from global map.");
-    }
-}
-
-Ptr<OFSwitch13Device>
-OFSwitch13Device::GetDevice (uint64_t id)
-{
-  DpIdDevMap_t::iterator it;
-  it = OFSwitch13Device::m_globalSwitchMap.find (id);
-  if (it != OFSwitch13Device::m_globalSwitchMap.end ())
-    {
-      return it->second;
-    }
-  else
-    {
-      NS_FATAL_ERROR ("Error retrieving datapath device from global map.");
-      return 0;
     }
 }
 
