@@ -63,7 +63,7 @@ GtpTunnelApp::SetLogicalPort (Ptr<VirtualNetDevice> logicalPort)
   // Save the pointer and set the send callback.
   m_logicalPort = logicalPort;
   m_logicalPort->SetSendCallback (
-      MakeCallback (&GtpTunnelApp::RecvFromLogicalPort, this));
+    MakeCallback (&GtpTunnelApp::RecvFromLogicalPort, this));
 }
 
 bool

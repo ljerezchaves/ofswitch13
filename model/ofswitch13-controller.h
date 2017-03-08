@@ -50,7 +50,7 @@ protected:
   {
     friend class OFSwitch13Controller;
 
-  public:
+public:
     /** Default (empty) constructor. */
     RemoteSwitch ();
 
@@ -72,7 +72,7 @@ protected:
      */
     uint64_t GetDpId (void) const;
 
-  private:
+private:
     Ptr<Socket>               m_socket;   //!< TCP connection socket.
     Ptr<SocketReader>         m_reader;   //!< Socket reader.
     Address                   m_address;  //!< Switch connection address.
@@ -100,7 +100,7 @@ protected:
   {
     friend class OFSwitch13Controller;
 
-  public:
+public:
     /**
      * Complete constructor, with remote switch.
      * \param swtch The remote switch.
@@ -113,7 +113,7 @@ protected:
      */
     Time GetRtt (void) const;
 
-  private:
+private:
     bool                    m_waiting;    //!< True when waiting for reply.
     Time                    m_send;       //!< Send time.
     Time                    m_recv;       //!< Received time.
@@ -128,14 +128,14 @@ protected:
   {
     friend class OFSwitch13Controller;
 
-  public:
+public:
     /**
      * Complete constructor, with remote switch.
      * \param swtch The remote switch.
      */
     BarrierInfo (Ptr<const RemoteSwitch> swtch);
 
-  private:
+private:
     bool                    m_waiting;    //!< True when waiting for reply.
     Ptr<const RemoteSwitch> m_swtch;      //!< Remote switch.
   };

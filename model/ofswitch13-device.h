@@ -60,11 +60,11 @@ private:
   {
     friend class OFSwitch13Device;
 
-  public:
+public:
     /** Default (empty) constructor. */
     RemoteController ();
 
-  private:
+private:
     Ptr<Socket>       m_socket;         //!< TCP socket to controller.
     Ptr<SocketReader> m_reader;         //!< Socket reader.
     Address           m_address;        //!< Controller address.
@@ -82,7 +82,7 @@ private:
    */
   struct PipelinePacket
   {
-  public:
+public:
     /** Default (empty) constructor. */
     PipelinePacket ();
 
@@ -125,7 +125,7 @@ private:
      */
     bool HasId (uint64_t id);
 
-  private:
+private:
     bool                  m_valid;  //!< Valid flag.
     Ptr<Packet>           m_packet; //!< Packet pointer.
     std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.

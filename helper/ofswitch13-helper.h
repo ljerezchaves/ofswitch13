@@ -106,7 +106,7 @@ public:
    * \param type The ChannelType to use.
    */
   virtual void SetChannelType (ChannelType type);
- 
+
   /**
    * Set the OpenFlow channel data rate used to create the connections between
    * switches and controllers.
@@ -158,8 +158,8 @@ public:
    * \param ports Container of devices to be added as physical switch ports.
    * \return A container holding the single OpenFlow device created.
    */
-  OFSwitch13DeviceContainer InstallSwitch (Ptr<Node> swNode,
-    NetDeviceContainer ports = NetDeviceContainer ());
+  OFSwitch13DeviceContainer InstallSwitch (
+    Ptr<Node> swNode, NetDeviceContainer ports = NetDeviceContainer ());
 
   /**
    * This method creates and aggregates an OpenFlow device to each switch node
@@ -207,7 +207,7 @@ public:
 
 protected:
   /** Destructor implementation. */
-  virtual void DoDispose () ;
+  virtual void DoDispose ();
 
   ChannelType               m_channelType;      //!< OF channel type.
   DataRate                  m_channelDataRate;  //!< OF channel data rate.
