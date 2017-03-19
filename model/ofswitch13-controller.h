@@ -84,8 +84,8 @@ private:
      * Switch features informed to the controller during handshake procedure.
      */
     //\{
-    uint32_t  m_numBuffers;   //!< Max packets buffered at once.
-    uint8_t   m_numTables;    //!< Number of tables supported by datapath.
+    uint32_t  m_nBuffers;     //!< Max packets buffered at once.
+    uint8_t   m_nTables;      //!< Number of tables supported by datapath.
     uint8_t   m_auxiliaryId;  //!< Identify auxiliary connections.
     uint32_t  m_capabilities; //!< Bitmap of support ofp_capabilities.
     //\}

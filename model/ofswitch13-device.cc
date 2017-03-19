@@ -221,7 +221,7 @@ OFSwitch13Device::GetDatapathId (void) const
 }
 
 uint32_t
-OFSwitch13Device::GetNumberFlowEntries (void) const
+OFSwitch13Device::GetNFlowEntries (void) const
 {
   NS_LOG_FUNCTION (this);
 
@@ -229,13 +229,13 @@ OFSwitch13Device::GetNumberFlowEntries (void) const
   uint32_t entries = 0;
   for (size_t i = 0; i < PIPELINE_TABLES; i++)
     {
-      entries += GetNumberFlowEntries (i);
+      entries += GetNFlowEntries (i);
     }
   return entries;
 }
 
 uint32_t
-OFSwitch13Device::GetNumberFlowEntries (size_t tid) const
+OFSwitch13Device::GetNFlowEntries (size_t tid) const
 {
   NS_LOG_FUNCTION (this << tid);
 
@@ -543,7 +543,7 @@ OFSwitch13Device::DatapathTimeout (datapath* dp)
   // the m_tcamDelay set to the time for a single TCAM operation in a NetFPGA
   // hardware, and 'n' is the current number of entries in flow tables.
   //
-  m_flowEntries = GetNumberFlowEntries ();
+  m_flowEntries = GetNFlowEntries ();
   m_meterEntries = m_datapath->meters->entries_num;
   m_groupEntries = m_datapath->groups->entries_num;
   m_pipelineDelay = m_tcamDelay * (int64_t)ceil (log2 (m_flowEntries));

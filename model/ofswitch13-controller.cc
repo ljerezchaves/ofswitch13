@@ -386,8 +386,8 @@ OFSwitch13Controller::HandleFeaturesReply (
   // We got the features reply message from the switch. Let's save switch
   // features into metadata structure.
   swtch->m_dpId = msg->datapath_id;
-  swtch->m_numBuffers = msg->n_buffers;
-  swtch->m_numTables = msg->n_tables;
+  swtch->m_nBuffers = msg->n_buffers;
+  swtch->m_nTables = msg->n_tables;
   swtch->m_auxiliaryId = msg->auxiliary_id;
   swtch->m_capabilities = msg->capabilities;
   ofl_msg_free ((ofl_msg_header*)msg, 0);

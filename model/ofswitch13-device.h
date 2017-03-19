@@ -185,13 +185,13 @@ public:
   /**
    * \return The current number of flow entries in all pipeline tables.
    */
-  uint32_t GetNumberFlowEntries (void) const;
+  uint32_t GetNFlowEntries (void) const;
 
   /**
    * \param tid Table id.
    * \return The current number of flow entries at a specific table.
    */
-  uint32_t GetNumberFlowEntries (size_t tid) const;
+  uint32_t GetNFlowEntries (size_t tid) const;
 
   /**
    * Starts the TCP connection between this switch and the target controller
