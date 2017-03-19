@@ -178,9 +178,10 @@ OFSwitch13StatsCalculator::NotifyPipelinePacket (Ptr<const Packet> packet)
 }
 
 void
-OFSwitch13StatsCalculator::NotifyMeterDrop (Ptr<const Packet> packet)
+OFSwitch13StatsCalculator::NotifyMeterDrop (Ptr<const Packet> packet,
+                                            uint32_t meterId)
 {
-  NS_LOG_FUNCTION (this << packet);
+  NS_LOG_FUNCTION (this << packet << meterId);
 
   m_droppedPackets++;
 }

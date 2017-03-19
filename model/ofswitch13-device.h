@@ -259,9 +259,10 @@ public:
   /**
    * Callback fired when a packet is dropped by meter band.
    * \param pkt The original internal packet.
+   * \param entry The meter entry that dropped the packet.
    */
   static void
-  MeterDropCallback (struct packet *pkt);
+  MeterDropCallback (struct packet *pkt, struct meter_entry *entry);
 
   /**
    * Callback fired when a packet is cloned.
@@ -299,6 +300,14 @@ public:
    * \return The OpenFlow OFSwitch13Device pointer.
    */
   static Ptr<OFSwitch13Device> GetDevice (uint64_t id);
+
+  /**
+   * TracedCallback signature for packets dropped by meter bands.
+   * \param packet The dropped packet.
+   * \param meterId The meter entry ID that dropped the packet.
+   */
+  typedef void (*MeterDropTracedCallback)(
+    Ptr<const Packet> packet, uint32_t meterId);
 
 private:
   // Inherited from Object
@@ -429,8 +438,9 @@ private:
   /**
    * Notify this device of a packet dropped by OpenFlow meter band.
    * \param pkt The ofsoftswitch13 packet.
+   * \param entry The meter entry that dropped the packet.
    */
-  void NotifyPacketDropped (struct packet *pkt);
+  void NotifyPacketDropped (struct packet *pkt, struct meter_entry *entry);
 
   /**
    * Notify this device of a packet saved into buffer. This method will get the
@@ -525,7 +535,7 @@ private:
   TracedCallback<Ptr<const Packet> > m_pipelinePacketTrace;
 
   /** Trace source fired when a packet is dropped by a meter band. */
-  TracedCallback<Ptr<const Packet> > m_meterDropTrace;
+  TracedCallback<Ptr<const Packet>, uint32_t> m_meterDropTrace;
 
   /** Trace source fired when a packet is saved into buffer. */
   TracedCallback<Ptr<const Packet> > m_bufferSaveTrace;

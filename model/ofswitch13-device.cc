@@ -74,7 +74,7 @@ OFSwitch13Device::GetTypeId (void)
                      "Trace source indicating a packet dropped by meter band.",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_meterDropTrace),
-                     "ns3::Packet::TracedCallback")
+                     "ns3::OFSwitch13Device::MeterDropTracedCallback")
     .AddTraceSource ("BufferSave",
                      "Trace source indicating a packet saved into buffer.",
                      MakeTraceSourceAccessor (
@@ -378,10 +378,11 @@ OFSwitch13Device::MeterCreatedCallback (struct meter_entry *entry)
 }
 
 void
-OFSwitch13Device::MeterDropCallback (struct packet *pkt)
+OFSwitch13Device::MeterDropCallback (struct packet *pkt,
+                                     struct meter_entry *entry)
 {
   Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pkt->dp->id);
-  dev->NotifyPacketDropped (pkt);
+  dev->NotifyPacketDropped (pkt, entry);
 }
 
 void
@@ -956,15 +957,18 @@ OFSwitch13Device::NotifyPacketDestroyed (struct packet *pkt)
 }
 
 void
-OFSwitch13Device::NotifyPacketDropped (struct packet *pkt)
+OFSwitch13Device::NotifyPacketDropped (struct packet *pkt,
+                                       struct meter_entry *entry)
 {
-  NS_LOG_FUNCTION (this << pkt->ns3_uid);
+  NS_LOG_FUNCTION (this << pkt->ns3_uid << entry->stats->meter_id);
 
+  uint32_t meterId = entry->stats->meter_id;
   NS_ASSERT_MSG (m_pktPipe.HasId (pkt->ns3_uid), "Invalid packet ID.");
-  NS_LOG_DEBUG ("OpenFlow meter band dropped packet " << pkt->ns3_uid);
+  NS_LOG_DEBUG ("OpenFlow meter id " << meterId <<
+                " dropped packet " << pkt->ns3_uid);
 
   // Fire drop trace source.
-  m_meterDropTrace (m_pktPipe.GetPacket ());
+  m_meterDropTrace (m_pktPipe.GetPacket (), meterId);
 }
 
 void

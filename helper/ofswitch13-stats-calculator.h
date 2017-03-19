@@ -72,15 +72,17 @@ protected:
 
 private:
   /**
-   * \name Trace sinks for monitoring pipeline packets.
-   * Trace sinks used to monitor for packets sent to the OpenFlow pipeline and
-   * packets dropped by meter bands.
+   * Trace sink used to monitor for packets sent to the OpenFlow pipeline.
    * \param packet The packet.
    */
-  //\{
   void NotifyPipelinePacket (Ptr<const Packet> packet);
-  void NotifyMeterDrop      (Ptr<const Packet> packet);
-  //\}
+
+  /**
+   * Trace sink used to monitor for packets dropped by meter bands.
+   * \param packet The dropped packet.
+   * \param meterId The meter entry ID that dropped the packet.
+   */
+  void NotifyMeterDrop (Ptr<const Packet> packet, uint32_t meterId);
 
   /**
    * \name Trace sinks for monitoring traced values.
