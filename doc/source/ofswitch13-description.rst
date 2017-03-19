@@ -350,12 +350,38 @@ including the |ofs13| when compiling Doxygen and Sphinx documentation. For
 older versions, users can apply the *src* patch and, if necessary, manually
 resolve the conflicts.
 
-Current |ofs13| stable version is 3.0.0. It has been developed and tested
+Current |ofs13| stable version is 3.1.0. It has been developed and tested
 together with |ns3| versions 3.26, and will not compile with older |ns3|
-versions. If you really need to use an older |ns3| releases, you can use the
-|ofs13| version 2.0.3, but keep in mind that this is an old release, with known
+versions. If you really need to use an older |ns3| releases, you can use
+previous |ofs13| versions, but keep in mind that old releases may have known
 bugs and an outdated API. It is strongly recommended to use the latest module
 version for better results.
+
+You can check the following table to identify the best |ofs13| version
+depending on the |ns3| version that you are using. This table also brings the
+compatible |ofslib| library version that must be linked to |ofs13| when
+compiling the module. Note that the first two numbers on |ofs13| and |ofslib|
+versions must match for proper integration.
+
+     +------------------------------------------------------------+
+     |                                                            |
+     |  **Table for version compatibility between source codes**  |
+     |                                                            |
+     +----------------+------------------+------------------------+
+     | |ns3| version  | |ofs13| version  | |ofslib| version       |
+     +================+==================+========================+
+     | XXXX           | 3.1.0            | v3.1.x                 |
+     +----------------+------------------+------------------------+
+     | 3.26           | 3.0.0            | v3.0.x                 |
+     +----------------+------------------+------------------------+
+     | 3.25           |                  |                        |
+     +----------------+                  +                        +
+     | 3.24.1         |                  |                        |
+     +----------------+ 2.0.3            + v2.0.x                 +
+     | 3.23           |                  |                        |
+     +----------------+                  +                        +
+     | 3.22           |                  |                        |
+     +----------------+------------------+------------------------+
 
 References
 ==========

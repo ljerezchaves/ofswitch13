@@ -66,13 +66,13 @@ linker run-time bindings, and copy the include files:
 
 We are done with the *NetBee* library. Now, let's proceed with the |ofslib|
 code. Clone the repository and update to proper (preferably latest) release tag
-at the ``ns3lib`` branch (here, we are using v3.0.x):
+at the ``ns3lib`` branch (here, we are using v3.1.x):
 
 .. code-block:: bash
 
   $ git clone https://github.com/ljerezchaves/ofsoftswitch13
   $ cd ofsoftswitch13
-  $ git checkout v3.0.x
+  $ git checkout v3.1.x
 
 Configure and build the library (don't forget to add the ``--enable-ns3-lib``
 during configuration process):
@@ -99,13 +99,13 @@ It's time to download a recent (preferably stable) |ns3| code into your machine
 
 Before configuring and compiling the simulator, download the |ofs13| code from
 the module repository and place it inside a new ``/src/ofswitch13`` folder.
-Update the code to the latest stable version (here, we are using 3.0.0):
+Update the code to the latest stable version (here, we are using 3.1.0):
 
 .. code-block:: bash
 
   $ hg clone https://bitbucket.org/ljerezchaves/ofswitch13-module src/ofswitch13
   $ cd src/ofswitch13
-  $ hg update 3.0.0
+  $ hg update 3.1.0
   $ cd ../../
 
 Also, you need to patch the |ns3| code with the appropriated patches available

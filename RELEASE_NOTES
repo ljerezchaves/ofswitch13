@@ -9,6 +9,8 @@ Release 3.1.0 (XXXXXXXXXXXXXXXXX)
 
 - Improving the logical port example with a stateless tunnel application.
 
+- Renaming OFSwitch13Device::GetNumberFlowEntries () to GetNFlowEntries ().
+
 - Including the meter ID parameter on OFSwitch13Device::MeterDrop trace source.
 
 - This version is compatible with ofsoftswitch13 library release v3.1.x and
