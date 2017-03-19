@@ -26,6 +26,7 @@
 #include <ns3/internet-module.h>
 #include <ns3/applications-module.h>
 #include <ns3/virtual-net-device-module.h>
+#include <ns3/csma-module.h>
 
 namespace ns3 {
 
@@ -36,30 +37,30 @@ namespace ns3 {
  * port and UDP socket. This application is stateless: it only adds/removes
  * protocols headers over packets leaving/entering the OpenFlow switch based on
  * information that is carried by packet tags.
+ *
+ * When sending a packet to the GTP tunnel, this application expects that the
+ * packet carries the TunnelId tag set with the destination address in the 32
+ * MSB and the TEID in the 32 LSB of packet tag. When a packet is received from
+ * the GTP tunnel, this application attachs the TunnelId tag only with the GTP
+ * TEID value.
  */
 class GtpTunnelApp : public Application
 {
 public:
-  GtpTunnelApp ();           //!< Default constructor.
-  virtual ~GtpTunnelApp ();  //!< Dummy destructor, see DoDispose.
-
   /**
    * Complete constructor.
    * \param logicalPort The OpenFlow logical port device.
+   * \param physicalPort The physical network device on node.
    */
-  GtpTunnelApp (Ptr<VirtualNetDevice> logicalPort);
+  GtpTunnelApp (Ptr<VirtualNetDevice> logicalPort,
+                Ptr<CsmaNetDevice> physicalDev);
+  virtual ~GtpTunnelApp ();  //!< Dummy destructor, see DoDispose.
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
   static TypeId GetTypeId (void);
-
-  /**
-   * Save the logical port and set the send callback.
-   * \param logicalPort The OpenFlow logical port device.
-   */
-  void SetLogicalPort (Ptr<VirtualNetDevice> logicalPort);
 
   /**
    * Method to be assigned to the send callback of the VirtualNetDevice
@@ -70,16 +71,10 @@ public:
    * \param packet The packet received from the logical port.
    * \param source Ethernet source address.
    * \param dst Ethernet destination address.
-   * \param protocolNumber The type of payload contained in this packet.
+   * \param protocolNo The type of payload contained in this packet.
    */
   bool RecvFromLogicalPort (Ptr<Packet> packet, const Address& source,
-                            const Address& dest, uint16_t protocolNumber);
-
-  /**
-   * Send a packet to the logical port.
-   * \param packet The packet to send.
-   */
-  bool SendToLogicalPort (Ptr<Packet>);
+                            const Address& dest, uint16_t protocolNo);
 
   /**
    * Method to be assigned to the receive callback of the UDP tunnel socket. It
@@ -88,13 +83,6 @@ public:
    * \param socket Pointer to the tunnel socket.
    */
   void RecvFromTunnelSocket (Ptr<Socket> socket);
-
-  /**
-   * Send a packet to the UDP tunnel socket.
-   * \param packet The packet to send.
-   * \param dstAddress The address of remote host.
-   */
-  bool SentToTunnelSocket (Ptr<Packet> packet, InetSocketAddress dstAddress);
 
 protected:
   /** Destructor implementation. */
@@ -109,14 +97,15 @@ private:
    * \param packet Packet to which header should be added.
    * \param source MAC source address from which packet should be sent.
    * \param dest MAC destination address to which packet should be sent.
-   * \param protocolNumber The type of payload contained in this packet.
+   * \param protocolNo The type of payload contained in this packet.
    */
   void AddHeader (Ptr<Packet> packet, Mac48Address source = Mac48Address (),
                   Mac48Address dest = Mac48Address (),
-                  uint16_t protocolNumber = Ipv4L3Protocol::PROT_NUMBER);
+                  uint16_t protocolNo = Ipv4L3Protocol::PROT_NUMBER);
 
   Ptr<Socket>           m_tunnelSocket;   //!< UDP tunnel socket.
   Ptr<VirtualNetDevice> m_logicalPort;    //!< OpenFlow logical port device.
+  Ptr<CsmaNetDevice>    m_physicalDev;    //!< Node physical network device.
   const uint16_t        m_port = 2152;    //!< GTP tunnel port.
 };
 
