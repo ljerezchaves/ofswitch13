@@ -161,6 +161,8 @@ main (int argc, char *argv[])
   // on the same node. This VirtualNetDevice will be configured as switch port
   // and will finally interact with the OpenFlow device.
   pairDevs = csmaHelper.Install (NodeContainer (switches.Get (0), switches.Get (1)));
+  Ptr<CsmaNetDevice> physicalDev0 = DynamicCast<CsmaNetDevice> (pairDevs.Get (0));
+  Ptr<CsmaNetDevice> physicalDev1 = DynamicCast<CsmaNetDevice> (pairDevs.Get (1));
 
   // Set IPv4 tunnel endpoint addresses
   Ipv4Address tunnelDomain ("192.168.1.0");
@@ -183,10 +185,10 @@ main (int argc, char *argv[])
   tunnelController->SaveTunnelEndpoint (sw1->GetDatapathId (), port->GetPortNo (), ipIfaces.GetAddress (0));
 
   // Create the tunnel handler applications
-  Ptr<GtpTunnelApp> tunnelApp0 = CreateObject<GtpTunnelApp> (logicalPort0);
+  Ptr<GtpTunnelApp> tunnelApp0 = CreateObject<GtpTunnelApp> (logicalPort0, physicalDev0);
   switches.Get (0)->AddApplication (tunnelApp0);
 
-  Ptr<GtpTunnelApp> tunnelApp1 = CreateObject<GtpTunnelApp> (logicalPort1);
+  Ptr<GtpTunnelApp> tunnelApp1 = CreateObject<GtpTunnelApp> (logicalPort1, physicalDev1);
   switches.Get (1)->AddApplication (tunnelApp1);
 
   // Finally, create the OpenFlow channels
