@@ -359,7 +359,6 @@ OFSwitch13Port::Send (Ptr<const Packet> packet, uint32_t queueNo,
     }
   else
     {
-      NS_LOG_ERROR ("Error while transmitting packet.");
       m_swPort->stats->tx_dropped++;
     }
   return status;
