@@ -112,11 +112,16 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
 {
   NS_LOG_FUNCTION (this);
 
-  // Setting default internal queue configuration
+  // We are using a very large queue size for this queue interface. The real
+  // check for queue space is performed at DoEnqueue () by the internal queues.
+  SetAttribute ("Mode", EnumValue (Queue::QUEUE_MODE_PACKETS));
+  SetAttribute ("MaxPackets", UintegerValue (0xffffffff));
+
+  // Setting default internal queue configuration.
   ObjectFactory queueFactory;
   queueFactory.SetTypeId (DropTailQueue::GetTypeId ());
   queueFactory.Set ("Mode", EnumValue (Queue::QUEUE_MODE_PACKETS));
-  queueFactory.Set ("MaxPackets", UintegerValue (1000));
+  queueFactory.Set ("MaxPackets", UintegerValue (100));
 
   // Adding internal queues. It will create the maximum number of queues
   // allowed to this port, even if they are not used.
@@ -150,15 +155,14 @@ OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
     {
       swQueue->stats->tx_packets++;
       swQueue->stats->tx_bytes += item->GetPacketSize ();
-      return true;
     }
   else
     {
-      NS_LOG_WARN ("Packet enqueue fails for internal queue " << queueNo);
-      Drop (item);
+      NS_LOG_DEBUG ("Packet enqueue dropped by internal queue " << queueNo);
       swQueue->stats->tx_errors++;
-      return false;
+      Drop (item);
     }
+  return retval;
 }
 
 Ptr<QueueItem>
@@ -220,7 +224,7 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
 
   // Inserting the ns3::Queue object into queue list.
   m_queues.push_back (queue);
-  NS_LOG_INFO ("New queue with id " << queueId);
+  NS_LOG_DEBUG ("New queue with id " << queueId);
 
   return queueId;
 }
