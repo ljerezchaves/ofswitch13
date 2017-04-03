@@ -106,11 +106,12 @@ TunnelController::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
 
 ofl_err
 TunnelController::HandlePacketIn (
-  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_match_tlv *tlv;
+  struct ofl_match_tlv *tlv;
   enum ofp_packet_in_reason reason = msg->reason;
   if (reason == OFPR_NO_MATCH)
     {
@@ -120,7 +121,7 @@ TunnelController::HandlePacketIn (
 
       // Get input port
       uint32_t inPort;
-      tlv = oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
+      tlv = oxm_match_lookup (OXM_OF_IN_PORT, (struct ofl_match*)msg->match);
       memcpy (&inPort, tlv->value, OXM_LENGTH (OXM_OF_IN_PORT));
 
       if (inPort == 1)
@@ -153,8 +154,8 @@ TunnelController::HandlePacketIn (
           // to set the host destination MAC addresses. Note that the packet
           // leaving the OpenFlow pipeline will not be sent to the IP layer, so
           // no ARP resolution is available and we need to do it manually here.
-          Ipv4Address dstIp;
-          dstIp = ExtractIpv4Address (OXM_OF_IPV4_DST, (ofl_match*)msg->match);
+          Ipv4Address dstIp = ExtractIpv4Address (
+              OXM_OF_IPV4_DST, (struct ofl_match*)msg->match);
           Mac48Address dstMac = GetArpEntry (dstIp);
 
           std::ostringstream cmd;
@@ -173,7 +174,7 @@ TunnelController::HandlePacketIn (
     {
       // Get Ethernet frame type
       uint16_t ethType;
-      tlv = oxm_match_lookup (OXM_OF_ETH_TYPE, (ofl_match*)msg->match);
+      tlv = oxm_match_lookup (OXM_OF_ETH_TYPE, (struct ofl_match*)msg->match);
       memcpy (&ethType, tlv->value, OXM_LENGTH (OXM_OF_ETH_TYPE));
 
       // Check for ARP packet
@@ -186,7 +187,7 @@ TunnelController::HandlePacketIn (
   NS_LOG_WARN ("Ignoring packet sent to controller.");
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, 0 /*dp->exp*/);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0 /*dp->exp*/);
   return 0;
 }
 
@@ -224,28 +225,29 @@ TunnelController::GetTunnelEndpoint (uint64_t dpId, uint32_t portNo)
 
 ofl_err
 TunnelController::HandleArpPacketIn (
-  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_match_tlv *tlv;
+  struct ofl_match_tlv *tlv;
 
   // Get ARP operation
   uint16_t arpOp;
-  tlv = oxm_match_lookup (OXM_OF_ARP_OP, (ofl_match*)msg->match);
+  tlv = oxm_match_lookup (OXM_OF_ARP_OP, (struct ofl_match*)msg->match);
   memcpy (&arpOp, tlv->value, OXM_LENGTH (OXM_OF_ARP_OP));
 
   // Get input port
   uint32_t inPort;
-  tlv = oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
+  tlv = oxm_match_lookup (OXM_OF_IN_PORT, (struct ofl_match*)msg->match);
   memcpy (&inPort, tlv->value, OXM_LENGTH (OXM_OF_IN_PORT));
 
   // Check for ARP request
   if (arpOp == ArpHeader::ARP_TYPE_REQUEST)
     {
       // Get target IP address
-      Ipv4Address dstIp;
-      dstIp = ExtractIpv4Address (OXM_OF_ARP_TPA, (ofl_match*)msg->match);
+      Ipv4Address dstIp = ExtractIpv4Address (
+          OXM_OF_ARP_TPA, (struct ofl_match*)msg->match);
 
       // Get target MAC address from ARP table
       Mac48Address dstMac = GetArpEntry (dstIp);
@@ -254,11 +256,12 @@ TunnelController::HandleArpPacketIn (
 
       // Get source IP address
       Ipv4Address srcIp;
-      srcIp = ExtractIpv4Address (OXM_OF_ARP_SPA, (ofl_match*)msg->match);
+      srcIp = ExtractIpv4Address (
+          OXM_OF_ARP_SPA, (struct ofl_match*)msg->match);
 
       // Get Source MAC address
       Mac48Address srcMac;
-      tlv = oxm_match_lookup (OXM_OF_ARP_SHA, (ofl_match*)msg->match);
+      tlv = oxm_match_lookup (OXM_OF_ARP_SHA, (struct ofl_match*)msg->match);
       srcMac.CopyFrom (tlv->value);
 
       // Create the ARP reply packet
@@ -267,7 +270,7 @@ TunnelController::HandleArpPacketIn (
       pkt->CopyData (pktData, pkt->GetSize ());
 
       // Send the ARP reply within an OpenFlow PacketOut message
-      ofl_msg_packet_out reply;
+      struct ofl_msg_packet_out reply;
       reply.header.type = OFPT_PACKET_OUT;
       reply.buffer_id = OFP_NO_BUFFER;
       reply.in_port = inPort;
@@ -275,16 +278,16 @@ TunnelController::HandleArpPacketIn (
       reply.data = &pktData[0];
 
       // Send the ARP replay back to the input port
-      ofl_action_output *action;
-      action = (ofl_action_output*)xmalloc (sizeof (ofl_action_output));
+      struct ofl_action_output *action =
+        (struct ofl_action_output*)xmalloc (sizeof (struct ofl_action_output));
       action->header.type = OFPAT_OUTPUT;
       action->port = OFPP_IN_PORT;
       action->max_len = 0;
 
       reply.actions_num = 1;
-      reply.actions = (ofl_action_header**)&action;
+      reply.actions = (struct ofl_action_header**)&action;
 
-      int error = SendToSwitch (swtch, (ofl_msg_header*)&reply, xid);
+      int error = SendToSwitch (swtch, (struct ofl_msg_header*)&reply, xid);
       free (action);
       if (error)
         {
@@ -297,12 +300,12 @@ TunnelController::HandleArpPacketIn (
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, 0 /*dp->exp*/);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0 /*dp->exp*/);
   return 0;
 }
 
 Ipv4Address
-TunnelController::ExtractIpv4Address (uint32_t oxm_of, ofl_match* match)
+TunnelController::ExtractIpv4Address (uint32_t oxm_of, struct ofl_match* match)
 {
   switch (oxm_of)
     {
@@ -313,7 +316,7 @@ TunnelController::ExtractIpv4Address (uint32_t oxm_of, ofl_match* match)
       {
         uint32_t ip;
         int size = OXM_LENGTH (oxm_of);
-        ofl_match_tlv *tlv = oxm_match_lookup (oxm_of, match);
+        struct ofl_match_tlv *tlv = oxm_match_lookup (oxm_of, match);
         memcpy (&ip, tlv->value, size);
         return Ipv4Address (ntohl (ip));
       }

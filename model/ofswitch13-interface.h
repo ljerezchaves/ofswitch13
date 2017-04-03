@@ -149,16 +149,16 @@ void EnableLibraryLog (bool printToFile = false, std::string prefix = "",
 /**
  * \ingroup ofswitch13
  * Create an internal ofsoftswitch13 buffer from ns3::Packet. Takes a
- * Ptr<Packet> and generates a buffer (ofpbuf*) from it, loading the packet
- * data as well as its headers into the buffer.
+ * Ptr<Packet> and generates a buffer (struct ofpbuf*) from it, loading the
+ * packet data as well as its headers into the buffer.
  * \see ofsoftswitch13 function netdev_recv () at lib/netdev.c
  * \param packet The ns-3 packet.
  * \param bodyRoom The size to allocate for data.
  * \param headRoom The size to allocate for headers (left unitialized).
  * \return The OpenFlow Buffer created from the packet.
  */
-ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
-                          size_t headRoom = 0);
+struct ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
+                                 size_t headRoom = 0);
 
 /**
  * \ingroup ofswitch13
@@ -169,17 +169,17 @@ ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
  * \param xid The transaction id to use.
  * \return The ns3::Packet created.
  */
-Ptr<Packet> PacketFromMsg (ofl_msg_header *msg, uint32_t xid = 0);
+Ptr<Packet> PacketFromMsg (struct ofl_msg_header *msg, uint32_t xid = 0);
 
 /**
  * \ingroup ofswitch13
  * Create a new ns3::Packet from internal ofsoftswitch13 buffer. Takes a buffer
- * (ofpbuf*) and generates a Ptr<Packet> from it, load the data as well as its
- * headers into the packet.
+ * (struct ofpbuf*) and generates a Ptr<Packet> from it, load the data as well
+ * as its headers into the packet.
  * \param buffer The internal buffer.
  * \return The ns3::Packet created.
  */
-Ptr<Packet> PacketFromBuffer (ofpbuf* buffer);
+Ptr<Packet> PacketFromBuffer (struct ofpbuf *buffer);
 
 } // namespace ofs
 } // namespace ns3

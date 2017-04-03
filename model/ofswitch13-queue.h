@@ -61,7 +61,7 @@ public:
    * port structure.
    * \param port The ofsoftswitch13 port structure
    */
-  OFSwitch13Queue (sw_port* port);
+  OFSwitch13Queue (struct sw_port *port);
 
   /**
    * Get the maximun number of queues allowed.
@@ -122,7 +122,7 @@ private:
   /** Structure to save the list of internal queues in this port queue. */
   typedef std::vector<Ptr<Queue> > QueueList_t;
 
-  sw_port*              m_swPort;     //!< ofsoftswitch13 struct sw_port
+  struct sw_port*       m_swPort;     //!< ofsoftswitch13 struct sw_port
   QueueList_t           m_queues;     //!< Sorted list of available queues
   static const uint16_t m_maxQueues;  //!< Maximum number of queues
 };

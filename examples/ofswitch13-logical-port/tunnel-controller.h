@@ -72,7 +72,8 @@ protected:
   // Inherited from OFSwitch13Controller
   void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
   virtual ofl_err HandlePacketIn (
-    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
 private:
   /**
@@ -98,7 +99,8 @@ private:
    * \return 0 if everything's ok, otherwise an error number.
    */
   ofl_err HandleArpPacketIn (
-    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   /**
    * Extract an IPv4 address from packet match.
@@ -106,7 +108,7 @@ private:
    * \param match The ofl_match structure pointer.
    * \return The IPv4 address.
    */
-  Ipv4Address ExtractIpv4Address (uint32_t oxm_of, ofl_match* match);
+  Ipv4Address ExtractIpv4Address (uint32_t oxm_of, struct ofl_match* match);
 
   /**
    * Create a Packet with an ARP reply, encapsulated inside of an Ethernet

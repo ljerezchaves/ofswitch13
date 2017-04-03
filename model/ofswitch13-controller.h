@@ -78,7 +78,7 @@ private:
     Address                   m_address;  //!< Switch connection address.
     Ptr<OFSwitch13Controller> m_ctrlApp;  //!< Controller application.
     uint64_t                  m_dpId;     //!< OpenFlow datapath ID.
-    ofp_controller_role       m_role;     //!< Controller role over the switch.
+    enum ofp_controller_role  m_role;     //!< Controller role over the switch.
 
     /**
      * Switch features informed to the controller during handshake procedure.
@@ -189,7 +189,8 @@ public:
    * controller object.
    * \param msg The OFLib message to send.
    */
-  static void DpctlSendAndPrint (vconn *vconn, ofl_msg_header *msg);
+  static void DpctlSendAndPrint (struct vconn *vconn,
+                                 struct ofl_msg_header *msg);
 
 protected:
   // inherited from Application
@@ -224,7 +225,7 @@ protected:
    * \param xid The transaction id to use.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendToSwitch (Ptr<const RemoteSwitch> swtch, ofl_msg_header *msg,
+  int SendToSwitch (Ptr<const RemoteSwitch> swtch, struct ofl_msg_header *msg,
                     uint32_t xid = 0);
 
   /**
@@ -265,48 +266,59 @@ protected:
    */
   //\{
   ofl_err HandleEchoRequest (
-    ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   ofl_err HandleEchoReply (
-    ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   ofl_err HandleBarrierReply (
-    ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   ofl_err HandleHello (
-    ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   ofl_err HandleFeaturesReply (
-    ofl_msg_features_reply *msg, Ptr<RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_features_reply *msg, Ptr<RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandlePacketIn (
-    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandleError (
-    ofl_msg_error *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_error *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandleGetConfigReply (
-    ofl_msg_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
+    struct ofl_msg_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
     uint32_t xid);
 
   virtual ofl_err HandleFlowRemoved (
-    ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandlePortStatus (
-    ofl_msg_port_status *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_port_status *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandleAsyncReply (
-    ofl_msg_async_config *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_async_config *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandleMultipartReply (
-    ofl_msg_multipart_reply_header *msg, Ptr<const RemoteSwitch> swtch,
+    struct ofl_msg_multipart_reply_header *msg, Ptr<const RemoteSwitch> swtch,
     uint32_t xid);
 
   virtual ofl_err HandleRoleReply (
-    ofl_msg_role_request *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_role_request *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandleQueueGetConfigReply (
-    ofl_msg_queue_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
+    struct ofl_msg_queue_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
     uint32_t xid);
   //\}
 
@@ -319,7 +331,7 @@ private:
    * \param xid The transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int HandleSwitchMsg (ofl_msg_header *msg, Ptr<RemoteSwitch> swtch,
+  int HandleSwitchMsg (struct ofl_msg_header *msg, Ptr<RemoteSwitch> swtch,
                        uint32_t xid);
 
   /**

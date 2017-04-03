@@ -59,7 +59,8 @@ OFSwitch13LearningController::DoDispose ()
 
 ofl_err
 OFSwitch13LearningController::HandlePacketIn (
-  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -78,18 +79,18 @@ OFSwitch13LearningController::HandlePacketIn (
       // Let's get necessary information (input port and mac address)
       uint32_t inPort;
       size_t portLen = OXM_LENGTH (OXM_OF_IN_PORT); // (Always 4 bytes)
-      ofl_match_tlv *input =
-        oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
+      struct ofl_match_tlv *input =
+        oxm_match_lookup (OXM_OF_IN_PORT, (struct ofl_match*)msg->match);
       memcpy (&inPort, input->value, portLen);
 
       Mac48Address src48;
-      ofl_match_tlv *ethSrc =
-        oxm_match_lookup (OXM_OF_ETH_SRC, (ofl_match*)msg->match);
+      struct ofl_match_tlv *ethSrc =
+        oxm_match_lookup (OXM_OF_ETH_SRC, (struct ofl_match*)msg->match);
       src48.CopyFrom (ethSrc->value);
 
       Mac48Address dst48;
-      ofl_match_tlv *ethDst =
-        oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->match);
+      struct ofl_match_tlv *ethDst =
+        oxm_match_lookup (OXM_OF_ETH_DST, (struct ofl_match*)msg->match);
       dst48.CopyFrom (ethDst->value);
 
       // Get L2Table for this datapath
@@ -151,7 +152,7 @@ OFSwitch13LearningController::HandlePacketIn (
         }
 
       // Lets send the packet out to switch.
-      ofl_msg_packet_out reply;
+      struct ofl_msg_packet_out reply;
       reply.header.type = OFPT_PACKET_OUT;
       reply.buffer_id = msg->buffer_id;
       reply.in_port = inPort;
@@ -166,16 +167,16 @@ OFSwitch13LearningController::HandlePacketIn (
         }
 
       // Create output action
-      ofl_action_output *a =
-        (ofl_action_output*)xmalloc (sizeof (struct ofl_action_output));
+      struct ofl_action_output *a =
+        (struct ofl_action_output*)xmalloc (sizeof (struct ofl_action_output));
       a->header.type = OFPAT_OUTPUT;
       a->port = outPort;
       a->max_len = 0;
 
       reply.actions_num = 1;
-      reply.actions = (ofl_action_header**)&a;
+      reply.actions = (struct ofl_action_header**)&a;
 
-      SendToSwitch (swtch, (ofl_msg_header*)&reply, xid);
+      SendToSwitch (swtch, (struct ofl_msg_header*)&reply, xid);
       free (a);
     }
   else
@@ -184,13 +185,14 @@ OFSwitch13LearningController::HandlePacketIn (
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
 ofl_err
 OFSwitch13LearningController::HandleFlowRemoved (
-  ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -200,8 +202,8 @@ OFSwitch13LearningController::HandleFlowRemoved (
   if (it != m_learnedInfo.end ())
     {
       Mac48Address mac48;
-      ofl_match_tlv *ethSrc =
-        oxm_match_lookup (OXM_OF_ETH_DST, (ofl_match*)msg->stats->match);
+      struct ofl_match_tlv *ethSrc =
+        oxm_match_lookup (OXM_OF_ETH_DST, (struct ofl_match*)msg->stats->match);
       mac48.CopyFrom (ethSrc->value);
 
       L2Table_t *l2Table = &it->second;

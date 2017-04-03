@@ -62,7 +62,7 @@ OFSwitch13Queue::OFSwitch13Queue ()
   NS_LOG_FUNCTION (this);
 }
 
-OFSwitch13Queue::OFSwitch13Queue (sw_port* port)
+OFSwitch13Queue::OFSwitch13Queue (struct sw_port *port)
   : Queue (),
     m_swPort (port)
 {
@@ -95,7 +95,7 @@ OFSwitch13Queue::DoDispose ()
   // structures for each available queue
   if (m_swPort)
     {
-      sw_queue* swQueue;
+      struct sw_queue *swQueue;
       for (uint32_t i = 0; i < GetNQueues (); i++)
         {
           swQueue = &(m_swPort->queues[i]);
@@ -138,7 +138,7 @@ OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
 {
   NS_LOG_FUNCTION (this << item);
 
-  sw_queue* swQueue;
+  struct sw_queue *swQueue;
   QueueTag queueNoTag;
   uint32_t queueNo = 0;
   if (item->GetPacket ()->RemovePacketTag (queueNoTag))
@@ -205,20 +205,21 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
   NS_ASSERT_MSG (GetNQueues () < GetMaxQueues (), "No more queues available.");
 
   uint32_t queueId = (m_swPort->num_queues)++;
-  sw_queue* swQueue = &(m_swPort->queues[queueId]);
+  struct sw_queue *swQueue = &(m_swPort->queues[queueId]);
   NS_ASSERT_MSG (!swQueue->port, "Queue id already in use.");
 
   // Filling ofsoftswitch13 internal structures for this queue
   swQueue->port = m_swPort;
   swQueue->created = time_msec ();
 
-  swQueue->stats = (ofl_queue_stats*)xmalloc (sizeof (ofl_queue_stats));
-  memset (swQueue->stats, 0x00, sizeof (ofl_queue_stats));
+  size_t oflQueueStatsSize = sizeof (struct ofl_queue_stats);
+  swQueue->stats = (struct ofl_queue_stats*)xmalloc (oflQueueStatsSize);
+  memset (swQueue->stats, 0x00, oflQueueStatsSize);
   swQueue->stats->port_no = m_swPort->conf->port_no;
   swQueue->stats->queue_id = queueId;
 
-  swQueue->props =
-    (ofl_packet_queue*)xmalloc (sizeof (struct ofl_packet_queue));
+  size_t oflPacketQueueSize = sizeof (struct ofl_packet_queue);
+  swQueue->props = (struct ofl_packet_queue*)xmalloc (oflPacketQueueSize);
   swQueue->props->queue_id = queueId;
   swQueue->props->properties_num = 0;
 

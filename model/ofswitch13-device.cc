@@ -293,8 +293,9 @@ OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
 
 // ofsoftswitch13 overriding and callback functions.
 void
-OFSwitch13Device::SendPacketToController (pipeline *pl, struct packet *pkt,
-                                          uint8_t tableId, uint8_t reason)
+OFSwitch13Device::SendPacketToController (struct pipeline *pl,
+                                          struct packet *pkt, uint8_t tableId,
+                                          uint8_t reason)
 {
   Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pl->dp->id);
   dev->SendPacketInMessage (pkt, tableId, reason,
@@ -302,7 +303,8 @@ OFSwitch13Device::SendPacketToController (pipeline *pl, struct packet *pkt,
 }
 
 int
-OFSwitch13Device::SendOpenflowBufferToRemote (ofpbuf *buffer, remote *remote)
+OFSwitch13Device::SendOpenflowBufferToRemote (struct ofpbuf *buffer,
+                                              struct remote *remote)
 {
   Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (remote->dp->id);
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
@@ -346,7 +348,7 @@ OFSwitch13Device::DpActionsOutputPort (struct packet *pkt, uint32_t outPort,
     case (OFPP_FLOOD):
     case (OFPP_ALL):
       {
-        sw_port *p;
+        struct sw_port *p;
         LIST_FOR_EACH (p, struct sw_port, node, &pkt->dp->port_list)
         {
           if ((p->stats->port_no == pkt->in_port)
@@ -457,12 +459,12 @@ OFSwitch13Device::DoDispose ()
   Object::DoDispose ();
 }
 
-datapath*
+struct datapath*
 OFSwitch13Device::DatapathNew ()
 {
   NS_LOG_FUNCTION (this);
 
-  datapath* dp = (datapath*)xmalloc (sizeof (datapath));
+  struct datapath *dp = (struct datapath*)xmalloc (sizeof (struct datapath));
 
   dp->mfr_desc = (char*)xmalloc (DESC_STR_LEN);
   dp->hw_desc = (char*)xmalloc (DESC_STR_LEN);
@@ -518,7 +520,7 @@ OFSwitch13Device::DatapathNew ()
 }
 
 void
-OFSwitch13Device::DatapathTimeout (datapath* dp)
+OFSwitch13Device::DatapathTimeout (struct datapath *dp)
 {
   NS_LOG_FUNCTION (this);
 
@@ -572,10 +574,10 @@ OFSwitch13Device::SendPacketInMessage (struct packet *pkt, uint8_t tableId,
   NS_LOG_FUNCTION (this << pkt->ns3_uid << tableId << reason);
 
   // Create the packet_in message.
-  ofl_msg_packet_in msg;
+  struct ofl_msg_packet_in msg;
   msg.header.type = OFPT_PACKET_IN;
   msg.total_len = pkt->buffer->size;
-  msg.reason = (ofp_packet_in_reason)reason;
+  msg.reason = (enum ofp_packet_in_reason)reason;
   msg.table_id = tableId;
   msg.cookie = cookie;
   msg.data = (uint8_t*)pkt->buffer->data;
@@ -593,11 +595,11 @@ OFSwitch13Device::SendPacketInMessage (struct packet *pkt, uint8_t tableId,
     {
       packet_handle_std_validate (pkt->handle_std);
     }
-  msg.match = (ofl_match_header*) &pkt->handle_std->match;
+  msg.match = (struct ofl_match_header*) &pkt->handle_std->match;
 
   // Increase packet-in counter and send the message.
   m_packetInCounter++;
-  dp_send_message (pkt->dp, (ofl_msg_header *)&msg, 0);
+  dp_send_message (pkt->dp, (struct ofl_msg_header *)&msg, 0);
 }
 
 bool
@@ -670,7 +672,7 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
   // Allocate buffer with some extra space for OpenFlow packet modifications.
   uint32_t headRoom = 128 + 2;
   uint32_t bodyRoom = packet->GetSize () + VLAN_ETH_HEADER_LEN;
-  ofpbuf *buffer = ofs::BufferFromPacket (packet, bodyRoom, headRoom);
+  struct ofpbuf *buffer = ofs::BufferFromPacket (packet, bodyRoom, headRoom);
   struct packet *pkt = packet_create (m_datapath, portNo, buffer,
                                       tunnelId, false);
 
@@ -716,7 +718,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
 {
   NS_LOG_FUNCTION (this << packet << from);
 
-  ofl_msg_header *msg;
+  struct ofl_msg_header *msg;
   ofl_err error;
 
   Ptr<RemoteController> remoteCtrl = GetRemoteController (from);
@@ -727,7 +729,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
   senderCtrl.conn_id = 0; // TODO No support for auxiliary connections
 
   // Get the OpenFlow buffer and unpack the message.
-  ofpbuf *buffer;
+  struct ofpbuf *buffer;
   buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
   error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
                           &senderCtrl.xid, m_datapath->exp);
@@ -746,7 +748,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
       // was sent and the one that was received in the version fields. So, for
       // the OFPT_HELLO message, we will check for advertised version to see if
       // it is higher than ours, in which case we can continue.
-      ofp_header *header = (ofp_header*)buffer->data;
+      struct ofp_header *header = (struct ofp_header*)buffer->data;
       if (header->type != OFPT_HELLO || header->version <= OFP_VERSION)
         {
           // This is not a hello message or the advertised version is lower
@@ -826,23 +828,23 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
 }
 
 void
-OFSwitch13Device::ReplyWithErrorMessage (ofl_err error, ofpbuf *buffer,
+OFSwitch13Device::ReplyWithErrorMessage (ofl_err error, struct ofpbuf *buffer,
                                          struct sender *senderCtrl)
 {
   NS_LOG_FUNCTION (this << error);
 
-  ofl_msg_error err;
+  struct ofl_msg_error err;
   err.header.type = OFPT_ERROR;
-  err.type = (ofp_error_type)ofl_error_type (error);
+  err.type = (enum ofp_error_type)ofl_error_type (error);
   err.code = ofl_error_code (error);
   err.data_length = buffer->size;
   err.data = (uint8_t*)buffer->data;
 
-  char *msg_str = ofl_msg_to_string ((ofl_msg_header*)&err, 0);
+  char *msg_str = ofl_msg_to_string ((struct ofl_msg_header*)&err, 0);
   NS_LOG_ERROR ("Error processing OpenFlow message. Reply with " << msg_str);
   free (msg_str);
 
-  dp_send_message (m_datapath, (ofl_msg_header*)&err, senderCtrl);
+  dp_send_message (m_datapath, (struct ofl_msg_header*)&err, senderCtrl);
 }
 
 void
@@ -864,7 +866,7 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
     MakeCallback (&OFSwitch13Device::ReceiveFromController, this));
 
   // Send the OpenFlow Hello message.
-  ofl_msg_header msg;
+  struct ofl_msg_header msg;
   msg.type = OFPT_HELLO;
 
   struct sender senderCtrl;

@@ -50,6 +50,7 @@ SocketReader::Read (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
 
+  static const size_t ofpHeaderSize = sizeof (struct ofp_header);
   Address from;
   do
     {
@@ -64,10 +65,10 @@ SocketReader::Read (Ptr<Socket> socket)
             }
 
           // Receive the OpenFlow header and get the OpenFlow message size
-          ofp_header header;
-          m_pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
-          m_pendingPacket->CopyData ((uint8_t*)&header, sizeof (ofp_header));
-          m_pendingBytes = ntohs (header.length) - sizeof (ofp_header);
+          struct ofp_header header;
+          m_pendingPacket = socket->RecvFrom (ofpHeaderSize, 0, from);
+          m_pendingPacket->CopyData ((uint8_t*)&header, ofpHeaderSize);
+          m_pendingBytes = ntohs (header.length) - ofpHeaderSize;
         }
 
       // Receive the remaining OpenFlow message
@@ -132,13 +133,13 @@ EnableLibraryLog (bool printToFile, std::string prefix,
     }
 }
 
-ofpbuf*
+struct ofpbuf*
 BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
   NS_ASSERT (packet->GetSize () <= bodyRoom);
-  ofpbuf *buffer;
+  struct ofpbuf *buffer;
   uint32_t pktSize;
 
   pktSize = packet->GetSize ();
@@ -148,7 +149,7 @@ BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
 }
 
 Ptr<Packet>
-PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
+PacketFromMsg (struct ofl_msg_header *msg, uint32_t xid)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -156,7 +157,7 @@ PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
   uint8_t *buf;
   size_t buf_size;
   Ptr<Packet> packet;
-  ofpbuf *buffer;
+  struct ofpbuf *buffer;
 
   buffer = ofpbuf_new (0);
   error = ofl_msg_pack (msg, xid, &buf, &buf_size, 0);
@@ -171,14 +172,11 @@ PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
 }
 
 Ptr<Packet>
-PacketFromBuffer (ofpbuf* buffer)
+PacketFromBuffer (struct ofpbuf *buffer)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
-  Ptr<Packet> packet;
-
-  packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
-  return packet;
+  return Create<Packet> ((uint8_t*)buffer->data, buffer->size);
 }
 
 } // namespace ofs

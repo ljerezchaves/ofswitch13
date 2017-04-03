@@ -213,8 +213,8 @@ public:
    * \param reason Reason packet is being sent (on of OFPR_*).
    */
   static void
-  SendPacketToController (pipeline *pl, struct packet *pkt, uint8_t tableId,
-                          uint8_t reason);
+  SendPacketToController (struct pipeline *pl, struct packet *pkt,
+                          uint8_t tableId, uint8_t reason);
 
   /**
    * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
@@ -228,7 +228,7 @@ public:
    * \return 0 if everything's ok, error number otherwise.
    */
   static int
-  SendOpenflowBufferToRemote (ofpbuf *buffer, remote *remote);
+  SendOpenflowBufferToRemote (struct ofpbuf *buffer, struct remote *remote);
 
   /**
    * Overriding ofsoftswitch13 dp_actions_output_port weak function from
@@ -317,7 +317,7 @@ private:
    * Creates a new datapath.
    * \return The created datapath.
    */
-  datapath* DatapathNew ();
+  struct datapath* DatapathNew ();
 
   /**
    * Check if any flow in any table is timed out and update port status. This
@@ -326,7 +326,7 @@ private:
    * \see ofsoftswitch13 function pipeline_timeout () at udatapath/pipeline.c
    * \param dp The datapath.
    */
-  void DatapathTimeout (datapath* dp);
+  void DatapathTimeout (struct datapath *dp);
 
   /**
    * Get the OFSwitch13Port pointer from its number.
@@ -398,7 +398,7 @@ private:
    * \param buffer The message buffer that originated the error.
    * \param senderCtrl The origin of a received OpenFlow message.
    */
-  void ReplyWithErrorMessage (ofl_err error, ofpbuf *buffer,
+  void ReplyWithErrorMessage (ofl_err error, struct ofpbuf *buffer,
                               struct sender *senderCtrl);
 
   /**
@@ -576,20 +576,20 @@ private:
   /** Number of packet-out messages received by this switch. */
   TracedValue<uint32_t> m_packetOutCounter;
 
-  uint64_t        m_dpId;         //!< This datapath id.
-  Time            m_timeout;      //!< Datapath timeout interval.
-  Time            m_lastTimeout;  //!< Datapath last timeout.
-  Time            m_tcamDelay;    //!< Flow Table TCAM lookup delay.
-  std::string     m_libLog;       //!< The ofsoftswitch13 library log levels.
-  datapath*       m_datapath;     //!< The OpenFlow datapath.
-  PipelinePacket  m_pktPipe;      //!< Packet under switch pipeline.
-  PortList_t      m_ports;        //!< List of switch ports.
-  CtrlList_t      m_controllers;  //!< Collection of active controllers.
-  IdPacketMap_t   m_pktsBuffer;   //!< Packets saved in switch buffer.
-  uint32_t        m_bufferSize;   //!< Buffer size in terms of packets.
+  uint64_t          m_dpId;         //!< This datapath id.
+  Time              m_timeout;      //!< Datapath timeout interval.
+  Time              m_lastTimeout;  //!< Datapath last timeout.
+  Time              m_tcamDelay;    //!< Flow Table TCAM lookup delay.
+  std::string       m_libLog;       //!< The ofsoftswitch13 library log level.
+  struct datapath*  m_datapath;     //!< The OpenFlow datapath.
+  PipelinePacket    m_pktPipe;      //!< Packet under switch pipeline.
+  PortList_t        m_ports;        //!< List of switch ports.
+  CtrlList_t        m_controllers;  //!< Collection of active controllers.
+  IdPacketMap_t     m_pktsBuffer;   //!< Packets saved in switch buffer.
+  uint32_t          m_bufferSize;   //!< Buffer size in terms of packets.
 
-  static uint64_t m_globalDpId;   //!< Global counter for datapath IDs.
-  static uint64_t m_globalPktId;  //!< Global counter for packets IDs.
+  static uint64_t   m_globalDpId;   //!< Global counter for datapath IDs.
+  static uint64_t   m_globalPktId;  //!< Global counter for packets IDs.
 
   /**
    * As the integration of ofsoftswitch13 and ns-3 involve overriding some C

@@ -123,7 +123,8 @@ OFSwitch13Controller::DpctlSchedule (uint64_t dpId, const std::string textCmd)
 }
 
 void
-OFSwitch13Controller::DpctlSendAndPrint (vconn *vconn, ofl_msg_header *msg)
+OFSwitch13Controller::DpctlSendAndPrint (struct vconn *vconn,
+                                         struct ofl_msg_header *msg)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -210,7 +211,7 @@ OFSwitch13Controller::GetRemoteSwitch (uint64_t dpId) const
 
 int
 OFSwitch13Controller::SendToSwitch (Ptr<const RemoteSwitch> swtch,
-                                    ofl_msg_header *msg, uint32_t xid)
+                                    struct ofl_msg_header *msg, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch);
 
@@ -241,7 +242,7 @@ OFSwitch13Controller::SendEchoRequest (Ptr<const RemoteSwitch> swtch,
   NS_LOG_FUNCTION (this << swtch);
 
   // Create the echo request message
-  ofl_msg_echo msg;
+  struct ofl_msg_echo msg;
   msg.header.type = OFPT_ECHO_REQUEST;
   msg.data_length = payloadSize;
   msg.data = 0;
@@ -264,7 +265,7 @@ OFSwitch13Controller::SendEchoRequest (Ptr<const RemoteSwitch> swtch,
     }
 
   // Send the message to the switch
-  int error = SendToSwitch (swtch, (ofl_msg_header*)&msg, xid);
+  int error = SendToSwitch (swtch, (struct ofl_msg_header*)&msg, xid);
 
   // Free the payload
   if (payloadSize)
@@ -280,7 +281,7 @@ OFSwitch13Controller::SendBarrierRequest (Ptr<const RemoteSwitch> swtch)
   NS_LOG_FUNCTION (this << swtch);
 
   // Create the barrier request message
-  ofl_msg_header msg;
+  struct ofl_msg_header msg;
   msg.type = OFPT_BARRIER_REQUEST;
 
   // Create and save the barrier metadata for this request
@@ -300,23 +301,25 @@ OFSwitch13Controller::SendBarrierRequest (Ptr<const RemoteSwitch> swtch)
 // --- BEGIN: Handlers functions -------
 ofl_err
 OFSwitch13Controller::HandleEchoRequest (
-  ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
   // Create the echo reply message
-  ofl_msg_echo reply;
+  struct ofl_msg_echo reply;
   reply.header.type = OFPT_ECHO_REPLY;
   reply.data_length = msg->data_length;
   reply.data = msg->data;
-  SendToSwitch (swtch, (ofl_msg_header*)&reply, xid);
-  ofl_msg_free ((ofl_msg_header*)msg, 0 /*exp*/);
+  SendToSwitch (swtch, (struct ofl_msg_header*)&reply, xid);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0 /*exp*/);
   return 0;
 }
 
 ofl_err
 OFSwitch13Controller::HandleEchoReply (
-  ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -334,13 +337,14 @@ OFSwitch13Controller::HandleEchoReply (
       m_echoMap.erase (it);
     }
 
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
 ofl_err
 OFSwitch13Controller::HandleBarrierReply (
-  ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -361,7 +365,8 @@ OFSwitch13Controller::HandleBarrierReply (
 
 ofl_err
 OFSwitch13Controller::HandleHello (
-  ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -369,7 +374,7 @@ OFSwitch13Controller::HandleHello (
   // and request the switch features.
   ofl_msg_free (msg, 0);
 
-  ofl_msg_header features;
+  struct ofl_msg_header features;
   features.type = OFPT_FEATURES_REQUEST;
   SendToSwitch (swtch, &features);
   SendBarrierRequest (swtch);
@@ -379,7 +384,8 @@ OFSwitch13Controller::HandleHello (
 
 ofl_err
 OFSwitch13Controller::HandleFeaturesReply (
-  ofl_msg_features_reply *msg, Ptr<RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_features_reply *msg, Ptr<RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -390,7 +396,7 @@ OFSwitch13Controller::HandleFeaturesReply (
   swtch->m_nTables = msg->n_tables;
   swtch->m_auxiliaryId = msg->auxiliary_id;
   swtch->m_capabilities = msg->capabilities;
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
 
   // Executing any scheduled commands for this OpenFlow datapath ID
   std::pair <DpIdCmdMap_t::iterator, DpIdCmdMap_t::iterator> ret;
@@ -408,41 +414,45 @@ OFSwitch13Controller::HandleFeaturesReply (
 
 ofl_err
 OFSwitch13Controller::HandlePacketIn (
-  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
 ofl_err
 OFSwitch13Controller::HandleError (
-  ofl_msg_error *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_error *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  char *msg_str = ofl_msg_to_string ((ofl_msg_header*)msg, 0);
+  char *msg_str = ofl_msg_to_string ((struct ofl_msg_header*)msg, 0);
   NS_LOG_ERROR ("OpenFlow error: " << msg_str);
   free (msg_str);
 
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
 ofl_err
 OFSwitch13Controller::HandleGetConfigReply (
-  ofl_msg_get_config_reply *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
 ofl_err
 OFSwitch13Controller::HandleFlowRemoved (
-  ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -452,53 +462,56 @@ OFSwitch13Controller::HandleFlowRemoved (
 
 ofl_err
 OFSwitch13Controller::HandlePortStatus (
-  ofl_msg_port_status *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_port_status *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
 ofl_err
 OFSwitch13Controller::HandleAsyncReply (
-  ofl_msg_async_config *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_async_config *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
 ofl_err
 OFSwitch13Controller::HandleMultipartReply (
-  ofl_msg_multipart_reply_header *msg, Ptr<const RemoteSwitch> swtch,
+  struct ofl_msg_multipart_reply_header *msg, Ptr<const RemoteSwitch> swtch,
   uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
 ofl_err
 OFSwitch13Controller::HandleRoleReply (
-  ofl_msg_role_request *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_role_request *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
 ofl_err
 OFSwitch13Controller::HandleQueueGetConfigReply (
-  ofl_msg_queue_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
+  struct ofl_msg_queue_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
   uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 // --- END: Handlers functions -------
@@ -506,7 +519,7 @@ OFSwitch13Controller::HandleQueueGetConfigReply (
 /********** Private methods **********/
 int
 OFSwitch13Controller::HandleSwitchMsg (
-  ofl_msg_header *msg, Ptr<RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_header *msg, Ptr<RemoteSwitch> swtch, uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
@@ -520,42 +533,52 @@ OFSwitch13Controller::HandleSwitchMsg (
       return HandleBarrierReply (msg, swtch, xid);
 
     case OFPT_PACKET_IN:
-      return HandlePacketIn ((ofl_msg_packet_in*)msg, swtch, xid);
+      return HandlePacketIn (
+               (struct ofl_msg_packet_in*)msg, swtch, xid);
 
     case OFPT_ECHO_REQUEST:
-      return HandleEchoRequest ((ofl_msg_echo*)msg, swtch, xid);
+      return HandleEchoRequest (
+               (struct ofl_msg_echo*)msg, swtch, xid);
 
     case OFPT_ECHO_REPLY:
-      return HandleEchoReply ((ofl_msg_echo*)msg, swtch, xid);
+      return HandleEchoReply (
+               (struct ofl_msg_echo*)msg, swtch, xid);
 
     case OFPT_ERROR:
-      return HandleError ((ofl_msg_error*)msg, swtch, xid);
+      return HandleError (
+               (struct ofl_msg_error*)msg, swtch, xid);
 
     case OFPT_FEATURES_REPLY:
-      return HandleFeaturesReply ((ofl_msg_features_reply*)msg, swtch, xid);
+      return HandleFeaturesReply (
+               (struct ofl_msg_features_reply*)msg, swtch, xid);
 
     case OFPT_GET_CONFIG_REPLY:
-      return HandleGetConfigReply ((ofl_msg_get_config_reply*)msg, swtch, xid);
+      return HandleGetConfigReply (
+               (struct ofl_msg_get_config_reply*)msg, swtch, xid);
 
     case OFPT_FLOW_REMOVED:
-      return HandleFlowRemoved ((ofl_msg_flow_removed*)msg, swtch, xid);
+      return HandleFlowRemoved (
+               (struct ofl_msg_flow_removed*)msg, swtch, xid);
 
     case OFPT_PORT_STATUS:
-      return HandlePortStatus ((ofl_msg_port_status*)msg, swtch, xid);
+      return HandlePortStatus (
+               (struct ofl_msg_port_status*)msg, swtch, xid);
 
     case OFPT_GET_ASYNC_REPLY:
-      return HandleAsyncReply ((ofl_msg_async_config*)msg, swtch, xid);
+      return HandleAsyncReply (
+               (struct ofl_msg_async_config*)msg, swtch, xid);
 
     case OFPT_MULTIPART_REPLY:
-      return HandleMultipartReply ((ofl_msg_multipart_reply_header*)msg,
-                                   swtch, xid);
+      return HandleMultipartReply (
+               (struct ofl_msg_multipart_reply_header*)msg, swtch, xid);
 
     case OFPT_ROLE_REPLY:
-      return HandleRoleReply ((ofl_msg_role_request*)msg, swtch, xid);
+      return HandleRoleReply (
+               (struct ofl_msg_role_request*)msg, swtch, xid);
 
     case OFPT_QUEUE_GET_CONFIG_REPLY:
-      return HandleQueueGetConfigReply ((ofl_msg_queue_get_config_reply*)msg,
-                                        swtch, xid);
+      return HandleQueueGetConfigReply (
+               (struct ofl_msg_queue_get_config_reply*)msg, swtch, xid);
 
     case OFPT_EXPERIMENTER:
     default:
@@ -569,11 +592,11 @@ OFSwitch13Controller::ReceiveFromSwitch (Ptr<Packet> packet, Address from)
   NS_LOG_FUNCTION (this << packet);
 
   uint32_t xid;
-  ofl_msg_header *msg;
+  struct ofl_msg_header *msg;
   ofl_err error;
 
   // Get the openflow buffer, unpack the message and send to message handler
-  ofpbuf *buffer;
+  struct ofpbuf *buffer;
   buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
   error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, &xid, 0);
 
@@ -661,7 +684,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
 
   // Let's send the hello message to the switch and wait for the hello message
   // from the switch to proceed with the handshake procedure.
-  ofl_msg_header hello;
+  struct ofl_msg_header hello;
   hello.type = OFPT_HELLO;
   SendToSwitch (swtch, &hello);
 }

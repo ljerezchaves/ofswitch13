@@ -68,7 +68,7 @@ public:
    * \param netDev The underlying NetDevice.
    * \param openflowDev The OpenFlow device.
    */
-  OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
+  OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
                   Ptr<OFSwitch13Device> openflowDev);
 
   /**
@@ -127,7 +127,7 @@ private:
   TracedCallback<Ptr<const Packet> > m_txTrace;
 
   uint32_t                  m_portNo;       //!< Port number
-  sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port
+  struct sw_port*           m_swPort;       //!< ofsoftswitch13 struct sw_port
   Ptr<NetDevice>            m_netDev;       //!< Underlying NetDevice
   Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue
   Ptr<OFSwitch13Device>     m_openflowDev;  //!< OpenFlow device

@@ -88,7 +88,7 @@ OFSwitch13Port::GetTypeId (void)
   return tid;
 }
 
-OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
+OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
                                 Ptr<OFSwitch13Device> openflowDev)
   : m_swPort (0),
     m_netDev (netDev),
@@ -110,9 +110,12 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
   memset (m_swPort, '\0', sizeof *m_swPort);
 
   // Filling ofsoftswitch13 internal structures for this port.
+  size_t oflPortSize = sizeof (struct ofl_port);
+  size_t oflPortStatsSize = sizeof (struct ofl_port_stats);
+
   m_swPort->dp = dp;
-  m_swPort->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
-  memset (m_swPort->conf, 0x00, sizeof (ofl_port));
+  m_swPort->conf = (struct ofl_port*)xmalloc (oflPortSize);
+  memset (m_swPort->conf, 0x00, oflPortSize);
   m_swPort->conf->port_no = m_portNo;
   m_swPort->conf->name = (char*)xmalloc (OFP_MAX_PORT_NAME_LEN);
   snprintf (m_swPort->conf->name, OFP_MAX_PORT_NAME_LEN, "Port %d", m_portNo);
@@ -128,8 +131,8 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
 
   dp_port_live_update (m_swPort);
 
-  m_swPort->stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
-  memset (m_swPort->stats, 0x00, sizeof (ofl_port_stats));
+  m_swPort->stats = (struct ofl_port_stats*)xmalloc (oflPortStatsSize);
+  memset (m_swPort->stats, 0x00, oflPortStatsSize);
   m_swPort->stats->port_no = m_portNo;
   m_swPort->flags |= SWP_USED;
 
@@ -153,11 +156,11 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
   list_push_back (&dp->port_list, &m_swPort->node);
 
   // Notify the controller that this port has been added/created
-  ofl_msg_port_status msg;
+  struct ofl_msg_port_status msg;
   msg.header.type = OFPT_PORT_STATUS;
   msg.reason = OFPPR_ADD;
   msg.desc = m_swPort->conf;
-  dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
+  dp_send_message (m_swPort->dp, (struct ofl_msg_header*)&msg, 0);
 
   // Register the receive callback to get packets from the NetDevice.
   if (csmaDev)
@@ -198,11 +201,11 @@ OFSwitch13Port::PortUpdateState ()
   if (orig_state != m_swPort->conf->state)
     {
       NS_LOG_INFO ("Port status has changed. Notifying the controller.");
-      ofl_msg_port_status msg;
+      struct ofl_msg_port_status msg;
       msg.header.type = OFPT_PORT_STATUS;
       msg.reason = OFPPR_MODIFY;
       msg.desc = m_swPort->conf;
-      dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
+      dp_send_message (m_swPort->dp, (struct ofl_msg_header*)&msg, 0);
       return true;
     }
   return false;
