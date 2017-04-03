@@ -262,8 +262,8 @@ OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
 
   // Start a TCP connection to this target controller.
   int error = 0;
-  Ptr<Socket> ctrlSocket =
-    Socket::CreateSocket (GetObject<Node> (), TcpSocketFactory::GetTypeId ());
+  TypeId tcpFact = TypeId::LookupByName ("ns3::TcpSocketFactory");
+  Ptr<Socket> ctrlSocket = Socket::CreateSocket (GetObject<Node> (), tcpFact);
   ctrlSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
 
   error = ctrlSocket->Bind ();

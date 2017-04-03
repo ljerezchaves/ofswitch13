@@ -64,23 +64,22 @@ SocketReader::Read (Ptr<Socket> socket)
               return; // Wait for more bytes.
             }
 
-          // Receive the OpenFlow header and get the OpenFlow message size
+          // Receive the OpenFlow header and get the OpenFlow message size.
           struct ofp_header header;
           m_pendingPacket = socket->RecvFrom (ofpHeaderSize, 0, from);
           m_pendingPacket->CopyData ((uint8_t*)&header, ofpHeaderSize);
           m_pendingBytes = ntohs (header.length) - ofpHeaderSize;
         }
 
-      // Receive the remaining OpenFlow message
+      // Receive the remaining OpenFlow message.
       if (m_pendingBytes)
         {
           if (socket->GetRxAvailable () < m_pendingBytes)
             {
-              // We need to wait for more bytes
-              return;
+              return; // Wait for more bytes.
             }
-          m_pendingPacket->AddAtEnd (socket->RecvFrom (m_pendingBytes, 0,
-                                                       from));
+          m_pendingPacket->AddAtEnd (
+            socket->RecvFrom (m_pendingBytes, 0, from));
         }
 
       // Now we have a complete (single) OpenFlow message.
@@ -90,11 +89,10 @@ SocketReader::Read (Ptr<Socket> socket)
           m_receivedMsg (m_pendingPacket, from);
         }
 
-      // Repeat until socket buffer gets empty
       m_pendingPacket = 0;
       m_pendingBytes = 0;
     }
-  while (socket->GetRxAvailable ());
+  while (socket->GetRxAvailable ()); // Repeat until socket buffer gets empty.
 }
 
 namespace ofs {

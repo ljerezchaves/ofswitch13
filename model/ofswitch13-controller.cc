@@ -139,15 +139,11 @@ OFSwitch13Controller::StartApplication ()
   NS_LOG_FUNCTION (this << m_port);
 
   // Create the server listening socket
-  if (!m_serverSocket)
-    {
-      m_serverSocket =
-        Socket::CreateSocket (GetNode (), TcpSocketFactory::GetTypeId ());
-      m_serverSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
-      m_serverSocket->Bind (InetSocketAddress (Ipv4Address::GetAny (),
-                                               m_port));
-      m_serverSocket->Listen ();
-    }
+  TypeId tcpFactory = TypeId::LookupByName ("ns3::TcpSocketFactory");
+  m_serverSocket = Socket::CreateSocket (GetNode (), tcpFactory);
+  m_serverSocket->SetAttribute ("SegmentSize", UintegerValue (8900));
+  m_serverSocket->Bind (InetSocketAddress (Ipv4Address::GetAny (), m_port));
+  m_serverSocket->Listen ();
 
   // Setting socket callbacks
   m_serverSocket->SetAcceptCallback (
@@ -645,8 +641,10 @@ OFSwitch13Controller::SocketRequest (Ptr<Socket> socket, const Address& from)
 
   NS_ASSERT_MSG (InetSocketAddress::IsMatchingType (from),
                  "Invalid address type (only IPv4 supported by now).");
-  NS_LOG_INFO ("Switch request connection from " <<
-               InetSocketAddress::ConvertFrom (from).GetIpv4 ());
+  Ipv4Address ipAddr = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
+  uint16_t port = InetSocketAddress::ConvertFrom (from).GetPort ();
+  NS_LOG_INFO ("Switch request connection from " << ipAddr << ":" << port);
+
   return true;
 }
 
@@ -655,8 +653,9 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
 {
   NS_LOG_FUNCTION (this << socket << from);
 
-  Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
-  NS_LOG_INFO ("Switch request connection accepted from " << ipv4);
+  Ipv4Address ipAddr = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
+  uint16_t port = InetSocketAddress::ConvertFrom (from).GetPort ();
+  NS_LOG_INFO ("Switch connection accepted from " << ipAddr << ":" << port);
 
   // This is a new switch connection to this controller.
   // Let's create the remote switch metadata and save it.
@@ -693,6 +692,10 @@ void
 OFSwitch13Controller::SocketPeerClose (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
+
+  NS_LOG_DEBUG ("Connection successfully closed.");
+  socket->ShutdownSend ();
+  socket->ShutdownRecv ();
 }
 
 void
@@ -701,6 +704,8 @@ OFSwitch13Controller::SocketPeerError (Ptr<Socket> socket)
   NS_LOG_FUNCTION (this << socket);
 
   NS_LOG_ERROR ("Socket peer error " << socket);
+  socket->ShutdownSend ();
+  socket->ShutdownRecv ();
 }
 
 OFSwitch13Controller::RemoteSwitch::RemoteSwitch ()
