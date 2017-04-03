@@ -778,10 +778,10 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
     }
 
   // Print message content.
-  char *msg_str = ofl_msg_to_string (msg, m_datapath->exp);
+  char *msgStr = ofl_msg_to_string (msg, m_datapath->exp);
   Ipv4Address ctrlIp = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
-  NS_LOG_DEBUG ("RX from controller " << ctrlIp << ": " << msg_str);
-  free (msg_str);
+  NS_LOG_DEBUG ("RX from controller " << ctrlIp << ": " << msgStr);
+  free (msgStr);
 
   // Increase internal counters based on message type.
   switch (msg->type)
@@ -840,9 +840,9 @@ OFSwitch13Device::ReplyWithErrorMessage (ofl_err error, struct ofpbuf *buffer,
   err.data_length = buffer->size;
   err.data = (uint8_t*)buffer->data;
 
-  char *msg_str = ofl_msg_to_string ((struct ofl_msg_header*)&err, 0);
-  NS_LOG_ERROR ("Error processing OpenFlow message. Reply with " << msg_str);
-  free (msg_str);
+  char *msgStr = ofl_msg_to_string ((struct ofl_msg_header*)&err, 0);
+  NS_LOG_ERROR ("Error processing OpenFlow message. Reply with " << msgStr);
+  free (msgStr);
 
   dp_send_message (m_datapath, (struct ofl_msg_header*)&err, senderCtrl);
 }

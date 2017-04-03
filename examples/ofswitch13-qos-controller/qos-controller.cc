@@ -93,10 +93,10 @@ QosController::HandlePacketIn (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  char *message =
+  char *msgStr =
     ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, 0);
-  NS_LOG_DEBUG ("Packet in match: " << message);
-  free (message);
+  NS_LOG_DEBUG ("Packet in match: " << msgStr);
+  free (msgStr);
 
   if (msg->reason == OFPR_ACTION)
     {
@@ -300,7 +300,7 @@ QosController::HandleArpPacketIn (
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0 /*dp->exp*/);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
@@ -424,7 +424,7 @@ QosController::HandleConnectionRequest (
   free (action);
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0 /*dp->exp*/);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 

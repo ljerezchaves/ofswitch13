@@ -115,9 +115,9 @@ TunnelController::HandlePacketIn (
   enum ofp_packet_in_reason reason = msg->reason;
   if (reason == OFPR_NO_MATCH)
     {
-      char *m = ofl_structs_match_to_string (msg->match, 0);
-      NS_LOG_INFO ("Packet in match: " << m);
-      free (m);
+      char *msgStr = ofl_structs_match_to_string (msg->match, 0);
+      NS_LOG_INFO ("Packet in match: " << msgStr);
+      free (msgStr);
 
       // Get input port
       uint32_t inPort;
@@ -187,7 +187,7 @@ TunnelController::HandlePacketIn (
   NS_LOG_WARN ("Ignoring packet sent to controller.");
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0 /*dp->exp*/);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
@@ -300,7 +300,7 @@ TunnelController::HandleArpPacketIn (
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0 /*dp->exp*/);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 

@@ -215,10 +215,10 @@ OFSwitch13Controller::SendToSwitch (Ptr<const RemoteSwitch> swtch,
 {
   NS_LOG_FUNCTION (this << swtch);
 
-  char *msg_str = ofl_msg_to_string (msg, 0);
+  char *msgStr = ofl_msg_to_string (msg, 0);
   NS_LOG_DEBUG ("TX to switch " << swtch->GetIpv4 () <<
-                " [dp " << swtch->GetDpId () << "]: " << msg_str);
-  free (msg_str);
+                " [dp " << swtch->GetDpId () << "]: " << msgStr);
+  free (msgStr);
 
   // Set the transaction ID only for unknown values
   if (!xid)
@@ -312,7 +312,7 @@ OFSwitch13Controller::HandleEchoRequest (
   reply.data_length = msg->data_length;
   reply.data = msg->data;
   SendToSwitch (swtch, (struct ofl_msg_header*)&reply, xid);
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0 /*exp*/);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
@@ -430,9 +430,9 @@ OFSwitch13Controller::HandleError (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  char *msg_str = ofl_msg_to_string ((struct ofl_msg_header*)msg, 0);
-  NS_LOG_ERROR ("OpenFlow error: " << msg_str);
-  free (msg_str);
+  char *msgStr = ofl_msg_to_string ((struct ofl_msg_header*)msg, 0);
+  NS_LOG_ERROR ("OpenFlow error: " << msgStr);
+  free (msgStr);
 
   ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
@@ -603,10 +603,10 @@ OFSwitch13Controller::ReceiveFromSwitch (Ptr<Packet> packet, Address from)
   if (!error)
     {
       Ptr<RemoteSwitch> swtch = GetRemoteSwitch (from);
-      char *msg_str = ofl_msg_to_string (msg, 0);
+      char *msgStr = ofl_msg_to_string (msg, 0);
       NS_LOG_DEBUG ("RX from switch " << swtch->GetIpv4 () <<
-                    " [dp " << swtch->GetDpId () << "]: " << msg_str);
-      free (msg_str);
+                    " [dp " << swtch->GetDpId () << "]: " << msgStr);
+      free (msgStr);
 
       error = HandleSwitchMsg (msg, swtch, xid);
       if (error)

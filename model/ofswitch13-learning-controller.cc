@@ -69,10 +69,10 @@ OFSwitch13LearningController::HandlePacketIn (
   uint64_t dpId = swtch->GetDpId ();
   enum ofp_packet_in_reason reason = msg->reason;
 
-  char *m =
+  char *msgStr =
     ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, 0);
-  NS_LOG_DEBUG ("Packet in match: " << m);
-  free (m);
+  NS_LOG_DEBUG ("Packet in match: " << msgStr);
+  free (msgStr);
 
   if (reason == OFPR_NO_MATCH)
     {
