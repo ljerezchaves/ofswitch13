@@ -13,6 +13,9 @@ Release 3.1.0 (XXXXXXXXXXXXXXXXX)
 
 - Including the meter ID parameter on OFSwitch13Device::MeterDrop trace source.
 
+- Adjust the size of queue interface to avoid dropping packets when we still
+  have space on internal queues.
+
 - This version is compatible with ofsoftswitch13 library release v3.1.x and
   ns-3 version 3.26 (including patches). No backward compatibility with older
   ns-3 versions.
