@@ -652,12 +652,7 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
     }
 
   // Send the packet to switch port.
-  bool success = port->Send (packet, queueNo, pkt->tunnel_id);
-  if (!success)
-    {
-      NS_LOG_ERROR ("Error when sending packet to switch port.");
-    }
-  return success;
+  return port->Send (packet, queueNo, pkt->tunnel_id);
 }
 
 void
