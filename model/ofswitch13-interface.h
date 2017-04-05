@@ -84,20 +84,21 @@ namespace ns3 {
 /**
  * \ingroup ofswitch13
  * Class used to read a single OpenFlow message from an open socket. The socket
- * receive callback is connected to the SocketReader::Read () method, which
- * will be responsible for receiving the correct number of bytes of an complete
- * OpenFlow message from the TCP socket.  When the OpenFlow message is
- * completely received, this SocketReader sends it to the connected callback
- * that was previously set using the SetReceiveCallback () method.
+ * receive callback is connected to the OpenFlowSocketHandler::Read () method,
+ * which will be responsible for receiving the correct number of bytes of an
+ * complete OpenFlow message from the TCP socket.  When the OpenFlow message is
+ * completely received, this OpenFlowSocketHandler sends it to the connected
+ * callback that was previously set using the SetReceiveCallback () method.
  */
-class SocketReader : public SimpleRefCount<SocketReader>
+class OpenFlowSocketHandler : public SimpleRefCount<OpenFlowSocketHandler>
 {
 public:
   /**
    * Complete constructor, with the socket pointer.
    * \param socket The socket pointer.
    */
-  SocketReader (Ptr<Socket> socket);
+  OpenFlowSocketHandler (Ptr<Socket> socket);
+  virtual ~OpenFlowSocketHandler ();  //!< Default destructor.
 
   /**
    * \param packet The packet with the received OpenFlow message.
@@ -112,18 +113,25 @@ public:
    */
   void SetReceiveCallback (MessageCallback cb);
 
+  /**
+   * Send an OpenFlow message to the TCP socket.
+   * \param packet The packet with the OpenFlow message.
+   * \return 0 if everything's ok, otherwise the Socket::SocketErrno.
+   */
+  int Send (Ptr<Packet> packet);
+
 private:
   /**
    * Socket callback used to read bytes from the socket.
    * \param socket The TCP socket.
    */
-  void Read (Ptr<Socket> socket);
+  void Recv (Ptr<Socket> socket);
 
   Ptr<Socket>     m_socket;         //!< TCP socket.
   Ptr<Packet>     m_pendingPacket;  //!< Buffer for receiving bytes.
   uint32_t        m_pendingBytes;   //!< Pending bytes for complete message.
   MessageCallback m_receivedMsg;    //!< OpenFlow message callback.
-}; // Class SocketReader
+}; // Class OpenFlowSocketHandler
 
 namespace ofs {
 

@@ -26,7 +26,7 @@ NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 
 namespace ns3 {
 
-SocketReader::SocketReader (Ptr<Socket> socket)
+OpenFlowSocketHandler::OpenFlowSocketHandler (Ptr<Socket> socket)
   : m_socket (socket),
     m_pendingPacket (0),
     m_pendingBytes (0)
@@ -34,19 +34,51 @@ SocketReader::SocketReader (Ptr<Socket> socket)
   NS_LOG_FUNCTION (this);
 
   // Set the reader callback
-  socket->SetRecvCallback (MakeCallback (&SocketReader::Read, this));
+  socket->SetRecvCallback (MakeCallback (&OpenFlowSocketHandler::Recv, this));
+}
+
+OpenFlowSocketHandler::~OpenFlowSocketHandler ()
+{
+  NS_LOG_FUNCTION (this);
+
+  m_socket = 0;
+  m_pendingPacket = 0;
 }
 
 void
-SocketReader::SetReceiveCallback (MessageCallback cb)
+OpenFlowSocketHandler::SetReceiveCallback (MessageCallback cb)
 {
   NS_LOG_FUNCTION (this);
 
   m_receivedMsg = cb;
 }
 
+int
+OpenFlowSocketHandler::Send (Ptr<Packet> packet)
+{
+  NS_LOG_FUNCTION (this << packet);
+
+  // Check for available space in TCP buffer before sending the packet.
+  if (m_socket->GetTxAvailable () < packet->GetSize ())
+    {
+      NS_LOG_WARN ("Unavailable space to send message now. Will retry.");
+      Simulator::Schedule (MilliSeconds (100), &OpenFlowSocketHandler::Send,
+                           this, packet);
+      return 0;
+    }
+
+  // Send the packet and check for error.
+  int retval = m_socket->Send (packet);
+  if (retval == -1)
+    {
+      NS_LOG_ERROR ("Error while sending the message.");
+      return (int)m_socket->GetErrno ();
+    }
+  return 0;
+}
+
 void
-SocketReader::Read (Ptr<Socket> socket)
+OpenFlowSocketHandler::Recv (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
 

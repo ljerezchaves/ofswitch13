@@ -65,10 +65,10 @@ public:
     RemoteController ();
 
 private:
-    Ptr<Socket>       m_socket;         //!< TCP socket to controller.
-    Ptr<SocketReader> m_reader;         //!< Socket reader.
-    Address           m_address;        //!< Controller address.
-    struct remote*    m_remote;         //!< ofsoftswitch13 remote structure.
+    Ptr<Socket>                 m_socket;   //!< TCP socket to controller.
+    Ptr<OpenFlowSocketHandler>  m_handler;  //!< Socket handler.
+    Address                     m_address;  //!< Controller address.
+    struct remote*              m_remote;   //!< ofsoftswitch13 remote struct.
   }; // Class RemoteController
 
   /**
@@ -383,7 +383,7 @@ private:
                         Ptr<OFSwitch13Device::RemoteController> remoteCtrl);
 
   /**
-   * SocketReader callback to receive an OpenFlow packet from controller.
+   * Receive an OpenFlow packet from controller.
    * \see remote_rconn_run () at udatapath/datapath.c.
    * \param packet The packet with the OpenFlow message.
    * \param from The packet sender address.

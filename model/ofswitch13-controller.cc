@@ -77,7 +77,6 @@ OFSwitch13Controller::DpctlExecute (Ptr<const RemoteSwitch> swtch,
 {
   NS_LOG_FUNCTION (this << swtch << textCmd);
 
-  int error = 0;
   char **argv;
   size_t argc;
 
@@ -96,7 +95,7 @@ OFSwitch13Controller::DpctlExecute (Ptr<const RemoteSwitch> swtch,
     }
 
   wordfree (&cmd);
-  return error;
+  return 0;
 }
 
 int
@@ -163,15 +162,16 @@ OFSwitch13Controller::StopApplication ()
        it != m_switchesMap.end (); it++)
     {
       Ptr<RemoteSwitch> swtch = it->second;
-      swtch->m_socket->Close ();
+      swtch->m_handler = 0;
     }
+  m_switchesMap.clear ();
+
   if (m_serverSocket)
     {
       m_serverSocket->Close ();
       m_serverSocket->SetRecvCallback (
         MakeNullCallback<void, Ptr<Socket> > ());
     }
-  m_switchesMap.clear ();
 }
 
 uint32_t
@@ -222,16 +222,11 @@ OFSwitch13Controller::SendToSwitch (Ptr<const RemoteSwitch> swtch,
       xid = GetNextXid ();
     }
 
-  // Create the packet and check for available space in TCP buffer
-  Ptr<Packet> pkt = ofs::PacketFromMsg (msg, xid);
-  if (swtch->m_socket->GetTxAvailable () < pkt->GetSize ())
-    {
-      NS_FATAL_ERROR ("Unavailable space to send OpenFlow message.");
-    }
-  return !(swtch->m_socket->Send (pkt));
+  // Create the packet from the OpenFlow message and send it to the switch.
+  return swtch->m_handler->Send (ofs::PacketFromMsg (msg, xid));
 }
 
-int
+void
 OFSwitch13Controller::SendEchoRequest (Ptr<const RemoteSwitch> swtch,
                                        size_t payloadSize)
 {
@@ -261,17 +256,16 @@ OFSwitch13Controller::SendEchoRequest (Ptr<const RemoteSwitch> swtch,
     }
 
   // Send the message to the switch
-  int error = SendToSwitch (swtch, (struct ofl_msg_header*)&msg, xid);
+  SendToSwitch (swtch, (struct ofl_msg_header*)&msg, xid);
 
   // Free the payload
   if (payloadSize)
     {
       free (msg.data);
     }
-  return error;
 }
 
-int
+void
 OFSwitch13Controller::SendBarrierRequest (Ptr<const RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
@@ -291,7 +285,7 @@ OFSwitch13Controller::SendBarrierRequest (Ptr<const RemoteSwitch> swtch)
     }
 
   // Send the message to the switch
-  return SendToSwitch (swtch, &msg, xid);
+  SendToSwitch (swtch, &msg, xid);
 }
 
 // --- BEGIN: Handlers functions -------
@@ -513,7 +507,7 @@ OFSwitch13Controller::HandleQueueGetConfigReply (
 // --- END: Handlers functions -------
 
 /********** Private methods **********/
-int
+ofl_err
 OFSwitch13Controller::HandleSwitchMsg (
   struct ofl_msg_header *msg, Ptr<RemoteSwitch> swtch, uint32_t xid)
 {
@@ -661,16 +655,14 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
   // Let's create the remote switch metadata and save it.
   Ptr<RemoteSwitch> swtch = Create<RemoteSwitch> ();
   swtch->m_address = from;
-  swtch->m_ctrlApp = this;
-  swtch->m_socket = socket;
+  swtch->m_ctrlApp = Ptr<OFSwitch13Controller> (this);
 
   // As we have more than one socket that is used for communication between
-  // this OpenFlow controller and switches, we need to handle the processing of
-  // receiving messages from sockets in an independent way. So, each socket has
-  // its own socket reader for receiving bytes and extracting OpenFlow
-  // messages.
-  swtch->m_reader = Create<SocketReader> (socket);
-  swtch->m_reader->SetReceiveCallback (
+  // this OpenFlow controller and switches, we need to handle the process of
+  // sending/receiving OpenFlow messages to/from sockets in an independent way.
+  // So, each socket has its own socket handler to this end.
+  swtch->m_handler = Create<OpenFlowSocketHandler> (socket);
+  swtch->m_handler->SetReceiveCallback (
     MakeCallback (&OFSwitch13Controller::ReceiveFromSwitch, this));
 
   std::pair <Address, Ptr<RemoteSwitch> > entry (swtch->m_address, swtch);
@@ -709,8 +701,7 @@ OFSwitch13Controller::SocketPeerError (Ptr<Socket> socket)
 }
 
 OFSwitch13Controller::RemoteSwitch::RemoteSwitch ()
-  : m_socket (0),
-    m_reader (0),
+  : m_handler (0),
     m_ctrlApp (0),
     m_dpId (0),
     m_role (OFPCR_ROLE_EQUAL)

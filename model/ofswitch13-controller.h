@@ -73,12 +73,11 @@ public:
     uint64_t GetDpId (void) const;
 
 private:
-    Ptr<Socket>               m_socket;   //!< TCP connection socket.
-    Ptr<SocketReader>         m_reader;   //!< Socket reader.
-    Address                   m_address;  //!< Switch connection address.
-    Ptr<OFSwitch13Controller> m_ctrlApp;  //!< Controller application.
-    uint64_t                  m_dpId;     //!< OpenFlow datapath ID.
-    enum ofp_controller_role  m_role;     //!< Controller role over the switch.
+    Ptr<OpenFlowSocketHandler>  m_handler;  //!< Socket handler.
+    Address                     m_address;  //!< Switch connection address.
+    Ptr<OFSwitch13Controller>   m_ctrlApp;  //!< Controller application.
+    uint64_t                    m_dpId;     //!< OpenFlow datapath ID.
+    enum ofp_controller_role    m_role;     //!< Controller role over switch.
 
     /**
      * Switch features informed to the controller during handshake procedure.
@@ -223,7 +222,7 @@ protected:
    * \param swtch The remote switch to receive the message.
    * \param msg The OFLib message to send.
    * \param xid The transaction id to use.
-   * \return 0 if everything's ok, otherwise an error number.
+   * \return 0 if everything's ok, otherwise the Socket::SocketErrno.
    */
   int SendToSwitch (Ptr<const RemoteSwitch> swtch, struct ofl_msg_header *msg,
                     uint32_t xid = 0);
@@ -232,9 +231,8 @@ protected:
    * Send an echo request message to switch, and wait for a non-blocking reply.
    * \param swtch The remote switch to receive the message.
    * \param payloadSize The ammount of dummy bytes in echo message.
-   * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendEchoRequest (Ptr<const RemoteSwitch> swtch, size_t payloadSize = 0);
+  void SendEchoRequest (Ptr<const RemoteSwitch> swtch, size_t payloadSize = 0);
 
   /**
    * Send a barrier request message to switch, and wait for a non-blocking
@@ -242,9 +240,8 @@ protected:
    * and messages are processed in the same order that are received from the
    * controller, so a barrier request will simply be replied by the switch.
    * \param swtch The remote switch to receive the message.
-   * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendBarrierRequest (Ptr<const RemoteSwitch> swtch);
+  void SendBarrierRequest (Ptr<const RemoteSwitch> swtch);
 
   /**
    * \name OpenFlow message handlers
@@ -331,11 +328,11 @@ private:
    * \param xid The transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int HandleSwitchMsg (struct ofl_msg_header *msg, Ptr<RemoteSwitch> swtch,
-                       uint32_t xid);
+  ofl_err HandleSwitchMsg (struct ofl_msg_header *msg, Ptr<RemoteSwitch> swtch,
+                           uint32_t xid);
 
   /**
-   * SocketReader callback to receive an OpenFlow packet from switch.
+   * Receive an OpenFlow packet from switch.
    * \param packet The packet with the OpenFlow message.
    * \param from The packet sender address.
    */

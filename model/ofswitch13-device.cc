@@ -692,20 +692,7 @@ OFSwitch13Device::SendToController (Ptr<Packet> packet,
     }
 
   // TODO: No support for auxiliary connections.
-  // Check for available space in TCP buffer before sending the packet.
-  if (remoteCtrl->m_socket->GetTxAvailable () < packet->GetSize ())
-    {
-      NS_LOG_WARN ("Unavailable space to send message now. Will retry.");
-      Simulator::Schedule (m_timeout, &OFSwitch13Device::SendToController,
-                           this, packet, remoteCtrl);
-    }
-
-  uint32_t bytes = remoteCtrl->m_socket->Send (packet);
-  if (bytes != packet->GetSize ())
-    {
-      NS_LOG_ERROR ("Error while sending the message.");
-    }
-  return (int)!bytes;
+  return remoteCtrl->m_handler->Send (packet);
 }
 
 void
@@ -852,12 +839,11 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
   remoteCtrl->m_remote = remote_create (m_datapath, 0, 0);
 
   // As we have more than one socket that is used for communication between
-  // this OpenFlow switch device and controllers, we need to handle the
-  // processing of receiving messages from sockets in an independent way. So,
-  // each socket has its own socket reader for receiving bytes and extracting
-  // OpenFlow messages.
-  remoteCtrl->m_reader = Create<SocketReader> (socket);
-  remoteCtrl->m_reader->SetReceiveCallback (
+  // this OpenFlow switch device and controllers, we need to handle the process
+  // of sending/receiving OpenFlow messages to/from sockets in an independent
+  // way. So, each socket has its own socket handler to this end.
+  remoteCtrl->m_handler = Create<OpenFlowSocketHandler> (socket);
+  remoteCtrl->m_handler->SetReceiveCallback (
     MakeCallback (&OFSwitch13Device::ReceiveFromController, this));
 
   // Send the OpenFlow Hello message.
@@ -1149,7 +1135,7 @@ OFSwitch13Device::UnregisterDatapath (uint64_t id)
 
 OFSwitch13Device::RemoteController::RemoteController ()
   : m_socket (0),
-    m_reader (0),
+    m_handler (0),
     m_remote (0)
 {
   m_address = Address ();
