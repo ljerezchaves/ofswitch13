@@ -52,47 +52,48 @@ SocketReader::Read (Ptr<Socket> socket)
 
   static const size_t ofpHeaderSize = sizeof (struct ofp_header);
   Address from;
-  do
+
+  // Repeat the loop until socket buffer gets empty.
+  while (socket->GetRxAvailable ())
     {
+      // If we don't have pending bytes from an incomplete OpenFlow messages it
+      // means that this is the start of a new message.
       if (!m_pendingBytes)
         {
-          // Starting with a new OpenFlow message.
-          // At least 8 bytes (OpenFlow header) must be available.
-          uint32_t rxBytesAvailable = socket->GetRxAvailable ();
-          if (rxBytesAvailable < 8)
+          // At least 8 bytes from the OpenFlow header must be available.
+          if (socket->GetRxAvailable () < 8)
             {
               return; // Wait for more bytes.
             }
 
-          // Receive the OpenFlow header and get the OpenFlow message size.
+          // Read the OpenFlow header and get the OpenFlow message size.
           struct ofp_header header;
           m_pendingPacket = socket->RecvFrom (ofpHeaderSize, 0, from);
           m_pendingPacket->CopyData ((uint8_t*)&header, ofpHeaderSize);
           m_pendingBytes = ntohs (header.length) - ofpHeaderSize;
         }
 
-      // Receive the remaining OpenFlow message.
+      // If we have pending bytes from an incomplete OpenFlow message let's
+      // read it now.
       if (m_pendingBytes)
         {
-          if (socket->GetRxAvailable () < m_pendingBytes)
-            {
-              return; // Wait for more bytes.
-            }
-          m_pendingPacket->AddAtEnd (
-            socket->RecvFrom (m_pendingBytes, 0, from));
+          uint32_t read = std::min (m_pendingBytes, socket->GetRxAvailable ());
+          m_pendingPacket->AddAtEnd (socket->RecvFrom (read, 0, from));
+          m_pendingBytes -= read;
         }
 
-      // Now we have a complete (single) OpenFlow message.
-      // Let's fire the callback before trying to read the next message.
-      if (!m_receivedMsg.IsNull ())
+      // If we don't have pending bytes anymore it means that now we have a
+      // complete OpenFlow message.
+      if (!m_pendingBytes)
         {
-          m_receivedMsg (m_pendingPacket, from);
+          // Let's send the message to the registered callback.
+          if (!m_receivedMsg.IsNull ())
+            {
+              m_receivedMsg (m_pendingPacket, from);
+            }
+          m_pendingPacket = 0;
         }
-
-      m_pendingPacket = 0;
-      m_pendingBytes = 0;
     }
-  while (socket->GetRxAvailable ()); // Repeat until socket buffer gets empty.
 }
 
 namespace ofs {

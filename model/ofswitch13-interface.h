@@ -83,7 +83,12 @@ namespace ns3 {
 
 /**
  * \ingroup ofswitch13
- * Class used to read a single complete OpenFlow messages from an open socket.
+ * Class used to read a single OpenFlow message from an open socket. The socket
+ * receive callback is connected to the SocketReader::Read () method, which
+ * will be responsible for receiving the correct number of bytes of an complete
+ * OpenFlow message from the TCP socket.  When the OpenFlow message is
+ * completely received, this SocketReader sends it to the connected callback
+ * that was previously set using the SetReceiveCallback () method.
  */
 class SocketReader : public SimpleRefCount<SocketReader>
 {
