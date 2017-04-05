@@ -105,11 +105,11 @@ OpenFlowSocketHandler::Recv (Ptr<Socket> socket)
           m_pendingBytes = ntohs (header.length) - ofpHeaderSize;
         }
 
-      // If we have pending bytes from an incomplete OpenFlow message let's
-      // read it now.
-      if (m_pendingBytes)
+      // If we have pending bytes from an incomplete OpenFlow message and we
+      // also have bytes available to read at socket, let's read them now.
+      uint32_t read = std::min (m_pendingBytes, socket->GetRxAvailable ());
+      if (read)
         {
-          uint32_t read = std::min (m_pendingBytes, socket->GetRxAvailable ());
           m_pendingPacket->AddAtEnd (socket->RecvFrom (read, 0, from));
           m_pendingBytes -= read;
         }
