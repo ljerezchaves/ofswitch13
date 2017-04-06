@@ -28,6 +28,7 @@
 #include <ns3/tcp-header.h>
 #include "ofswitch13-interface.h"
 #include "ofswitch13-port.h"
+#include "ofswitch13-socket-handler.h"
 
 namespace ns3 {
 
@@ -65,10 +66,10 @@ public:
     RemoteController ();
 
 private:
-    Ptr<Socket>                 m_socket;   //!< TCP socket to controller.
-    Ptr<OpenFlowSocketHandler>  m_handler;  //!< Socket handler.
-    Address                     m_address;  //!< Controller address.
-    struct remote*              m_remote;   //!< ofsoftswitch13 remote struct.
+    Ptr<Socket>                   m_socket;   //!< TCP socket to controller.
+    Ptr<OFSwitch13SocketHandler>  m_handler;  //!< Socket handler.
+    Address                       m_address;  //!< Controller address.
+    struct remote*                m_remote;   //!< Library remote struct.
   }; // Class RemoteController
 
   /**

@@ -661,7 +661,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
   // this OpenFlow controller and switches, we need to handle the process of
   // sending/receiving OpenFlow messages to/from sockets in an independent way.
   // So, each socket has its own socket handler to this end.
-  swtch->m_handler = Create<OpenFlowSocketHandler> (socket);
+  swtch->m_handler = CreateObject<OFSwitch13SocketHandler> (socket);
   swtch->m_handler->SetReceiveCallback (
     MakeCallback (&OFSwitch13Controller::ReceiveFromSwitch, this));
 

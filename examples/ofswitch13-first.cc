@@ -58,6 +58,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Port", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Queue", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13SocketHandler", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);

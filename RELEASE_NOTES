@@ -16,8 +16,8 @@ Release 3.1.0 (XXXXXXXXXXXXXXXXX)
 - Adjust the size of queue interface to avoid dropping packets when we still
   have space on internal queues.
 
-- Improving the way the switch and controller deals with TCP sockets on
-  OpenFlow channel.
+- Improving the way switches and controllers deals with TCP sockets from
+  OpenFlow channels using the new OFSwitch13SocketHandler classe.
 
 - This version is compatible with ofsoftswitch13 library release v3.1.x and
   ns-3 version 3.26 (including patches). No backward compatibility with older
@@ -48,7 +48,7 @@ Release 3.0.0 (February 10, 2017)
   connection start.
 
 - Removing the controller address attribute from the OpenFlow device. It now
-  must be indicated by the helper as a parameter to the 
+  must be indicated by the helper as a parameter to the
   StartControllerConnection () device method.
 
 - Creating the OFSwitch13StatsCalculator for switch performance monitoring.

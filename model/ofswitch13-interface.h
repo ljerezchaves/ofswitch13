@@ -80,59 +80,6 @@ uint32_t port_speed (uint32_t conf);
 }
 
 namespace ns3 {
-
-/**
- * \ingroup ofswitch13
- * Class used to read a single OpenFlow message from an open socket. The socket
- * receive callback is connected to the OpenFlowSocketHandler::Read () method,
- * which will be responsible for receiving the correct number of bytes of an
- * complete OpenFlow message from the TCP socket.  When the OpenFlow message is
- * completely received, this OpenFlowSocketHandler sends it to the connected
- * callback that was previously set using the SetReceiveCallback () method.
- */
-class OpenFlowSocketHandler : public SimpleRefCount<OpenFlowSocketHandler>
-{
-public:
-  /**
-   * Complete constructor, with the socket pointer.
-   * \param socket The socket pointer.
-   */
-  OpenFlowSocketHandler (Ptr<Socket> socket);
-  virtual ~OpenFlowSocketHandler ();  //!< Default destructor.
-
-  /**
-   * \param packet The packet with the received OpenFlow message.
-   * \param sender The address of the sender.
-   */
-  typedef Callback <void, Ptr<Packet>, Address > MessageCallback;
-
-  /**
-   * Set the callback to invoke whenever an OpenFlow message has been received
-   * at the associated socket.
-   * \param cb The callback to invoke.
-   */
-  void SetReceiveCallback (MessageCallback cb);
-
-  /**
-   * Send an OpenFlow message to the TCP socket.
-   * \param packet The packet with the OpenFlow message.
-   * \return 0 if everything's ok, otherwise the Socket::SocketErrno.
-   */
-  int Send (Ptr<Packet> packet);
-
-private:
-  /**
-   * Socket callback used to read bytes from the socket.
-   * \param socket The TCP socket.
-   */
-  void Recv (Ptr<Socket> socket);
-
-  Ptr<Socket>     m_socket;         //!< TCP socket.
-  Ptr<Packet>     m_pendingPacket;  //!< Buffer for receiving bytes.
-  uint32_t        m_pendingBytes;   //!< Pending bytes for complete message.
-  MessageCallback m_receivedMsg;    //!< OpenFlow message callback.
-}; // Class OpenFlowSocketHandler
-
 namespace ofs {
 
 /**

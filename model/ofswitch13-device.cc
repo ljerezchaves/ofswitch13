@@ -842,7 +842,7 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
   // this OpenFlow switch device and controllers, we need to handle the process
   // of sending/receiving OpenFlow messages to/from sockets in an independent
   // way. So, each socket has its own socket handler to this end.
-  remoteCtrl->m_handler = Create<OpenFlowSocketHandler> (socket);
+  remoteCtrl->m_handler = CreateObject<OFSwitch13SocketHandler> (socket);
   remoteCtrl->m_handler->SetReceiveCallback (
     MakeCallback (&OFSwitch13Device::ReceiveFromController, this));
 

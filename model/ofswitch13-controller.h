@@ -24,6 +24,7 @@
 #include <ns3/application.h>
 #include <ns3/socket.h>
 #include "ofswitch13-interface.h"
+#include "ofswitch13-socket-handler.h"
 #include <string>
 
 namespace ns3 {
@@ -73,11 +74,11 @@ public:
     uint64_t GetDpId (void) const;
 
 private:
-    Ptr<OpenFlowSocketHandler>  m_handler;  //!< Socket handler.
-    Address                     m_address;  //!< Switch connection address.
-    Ptr<OFSwitch13Controller>   m_ctrlApp;  //!< Controller application.
-    uint64_t                    m_dpId;     //!< OpenFlow datapath ID.
-    enum ofp_controller_role    m_role;     //!< Controller role over switch.
+    Ptr<OFSwitch13SocketHandler>  m_handler;  //!< Socket handler.
+    Address                       m_address;  //!< Switch connection address.
+    Ptr<OFSwitch13Controller>     m_ctrlApp;  //!< Controller application.
+    uint64_t                      m_dpId;     //!< OpenFlow datapath ID.
+    enum ofp_controller_role      m_role;     //!< Controller role over switch.
 
     /**
      * Switch features informed to the controller during handshake procedure.
