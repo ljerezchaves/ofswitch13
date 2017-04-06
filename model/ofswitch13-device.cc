@@ -566,7 +566,7 @@ OFSwitch13Device::GetOFSwitch13Port (uint32_t no)
   return m_ports.at (no - 1);
 }
 
-void
+int
 OFSwitch13Device::SendPacketInMessage (struct packet *pkt, uint8_t tableId,
                                        uint8_t reason, uint16_t maxLength,
                                        uint64_t cookie)
@@ -599,7 +599,7 @@ OFSwitch13Device::SendPacketInMessage (struct packet *pkt, uint8_t tableId,
 
   // Increase packet-in counter and send the message.
   m_packetInCounter++;
-  dp_send_message (pkt->dp, (struct ofl_msg_header *)&msg, 0);
+  return dp_send_message (pkt->dp, (struct ofl_msg_header *)&msg, 0);
 }
 
 bool
@@ -809,7 +809,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
   ofpbuf_delete (buffer);
 }
 
-void
+int
 OFSwitch13Device::ReplyWithErrorMessage (ofl_err error, struct ofpbuf *buffer,
                                          struct sender *senderCtrl)
 {
@@ -826,7 +826,8 @@ OFSwitch13Device::ReplyWithErrorMessage (ofl_err error, struct ofpbuf *buffer,
   NS_LOG_ERROR ("Error processing OpenFlow message. Reply with " << msgStr);
   free (msgStr);
 
-  dp_send_message (m_datapath, (struct ofl_msg_header*)&err, senderCtrl);
+  return dp_send_message (m_datapath, (struct ofl_msg_header*)&err,
+                          senderCtrl);
 }
 
 void

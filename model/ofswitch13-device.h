@@ -122,7 +122,7 @@ public:
     /**
      * Check for packet id in the internal list of IDs for this packet.
      * \param id The ns-3 packet id.
-     * \return true when the id is associated with this packet
+     * \return true when the id is associated with this packet.
      */
     bool HasId (uint64_t id);
 
@@ -226,7 +226,7 @@ public:
    * call the method on the correct object.
    * \param buffer The message buffer to send.
    * \param remote The remote controller connection information.
-   * \return 0 if everything's ok, error number otherwise.
+   * \return 0 if everything's ok, otherwise an error number.
    */
   static int
   SendOpenflowBufferToRemote (struct ofpbuf *buffer, struct remote *remote);
@@ -344,10 +344,11 @@ private:
    * \param reason Reason packet is being sent (on of OFPR_*).
    * \param maxLength Max length of packet to send to controller.
    * \param cookie Packet cookie to send to controller.
+   * \return 0 if everything's ok, otherwise an error number.
    */
-  void SendPacketInMessage (struct packet *pkt, uint8_t tableId,
-                            uint8_t reason, uint16_t maxLength,
-                            uint64_t cookie = 0);
+  int SendPacketInMessage (struct packet *pkt, uint8_t tableId,
+                           uint8_t reason, uint16_t maxLength,
+                           uint64_t cookie = 0);
 
   /**
    * Send a message over a specific switch port. Check port configuration,
@@ -378,7 +379,7 @@ private:
    * check async config.
    * \param packet The ns-3 packet to send.
    * \param remoteCtrl The remote controller object to send the packet.
-   * \return 0 if everything's ok, otherwise an error number.
+   * \return 0 if everything's ok, otherwise the Socket::SocketErrno.
    */
   int SendToController (Ptr<Packet> packet,
                         Ptr<OFSwitch13Device::RemoteController> remoteCtrl);
@@ -398,9 +399,10 @@ private:
    * \param error The error code.
    * \param buffer The message buffer that originated the error.
    * \param senderCtrl The origin of a received OpenFlow message.
+   * \return 0 if everything's ok, otherwise an error number.
    */
-  void ReplyWithErrorMessage (ofl_err error, struct ofpbuf *buffer,
-                              struct sender *senderCtrl);
+  int ReplyWithErrorMessage (ofl_err error, struct ofpbuf *buffer,
+                             struct sender *senderCtrl);
 
   /**
    * Socket callback fired when a TCP connection to controller succeed.
