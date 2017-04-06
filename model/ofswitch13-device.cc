@@ -692,7 +692,7 @@ OFSwitch13Device::SendToController (Ptr<Packet> packet,
     }
 
   // TODO: No support for auxiliary connections.
-  return remoteCtrl->m_handler->Send (packet);
+  return remoteCtrl->m_handler->SendMessage (packet);
 }
 
 void

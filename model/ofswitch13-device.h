@@ -379,7 +379,7 @@ private:
    * check async config.
    * \param packet The ns-3 packet to send.
    * \param remoteCtrl The remote controller object to send the packet.
-   * \return 0 if everything's ok, otherwise the Socket::SocketErrno.
+   * \return 0 if everything's ok, otherwise an error number.
    */
   int SendToController (Ptr<Packet> packet,
                         Ptr<OFSwitch13Device::RemoteController> remoteCtrl);

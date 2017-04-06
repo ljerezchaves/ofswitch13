@@ -223,7 +223,7 @@ protected:
    * \param swtch The remote switch to receive the message.
    * \param msg The OFLib message to send.
    * \param xid The transaction id to use.
-   * \return 0 if everything's ok, otherwise the Socket::SocketErrno.
+   * \return 0 if everything's ok, otherwise an error number.
    */
   int SendToSwitch (Ptr<const RemoteSwitch> swtch, struct ofl_msg_header *msg,
                     uint32_t xid = 0);

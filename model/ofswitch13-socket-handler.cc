@@ -38,11 +38,14 @@ OFSwitch13SocketHandler::GetTypeId (void)
 OFSwitch13SocketHandler::OFSwitch13SocketHandler (Ptr<Socket> socket)
   : m_socket (socket),
     m_pendingPacket (0),
-    m_pendingBytes (0)
+    m_pendingBytes (0),
+    m_txQueue ()
 {
   NS_LOG_FUNCTION (this << socket);
 
-  // Set the reader callback
+  // Setup socket callbacks.
+  socket->SetSendCallback (
+    MakeCallback (&OFSwitch13SocketHandler::Send, this));
   socket->SetRecvCallback (
     MakeCallback (&OFSwitch13SocketHandler::Recv, this));
 }
@@ -61,26 +64,13 @@ OFSwitch13SocketHandler::SetReceiveCallback (MessageCallback cb)
 }
 
 int
-OFSwitch13SocketHandler::Send (Ptr<Packet> packet)
+OFSwitch13SocketHandler::SendMessage (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 
-  // Check for available space in TCP buffer before sending the packet.
-  if (m_socket->GetTxAvailable () < packet->GetSize ())
-    {
-      NS_LOG_WARN ("Unavailable space to send message now. Will retry.");
-      Simulator::Schedule (MilliSeconds (100), &OFSwitch13SocketHandler::Send,
-                           this, packet);
-      return 0;
-    }
-
-  // Send the packet and check for error.
-  int retval = m_socket->Send (packet);
-  if (retval == -1)
-    {
-      NS_LOG_ERROR ("Error while sending the message.");
-      return (int)m_socket->GetErrno ();
-    }
+  // Insert this message into tx queue and try to forward it to the socket.
+  m_txQueue.push (packet);
+  Send (m_socket, m_socket->GetTxAvailable ());
   return 0;
 }
 
@@ -91,6 +81,33 @@ OFSwitch13SocketHandler::DoDispose ()
 
   m_socket = 0;
   m_pendingPacket = 0;
+}
+
+void
+OFSwitch13SocketHandler::Send (Ptr<Socket> socket, uint32_t available)
+{
+  NS_LOG_FUNCTION (this << socket << available);
+
+  while (!m_txQueue.empty ())
+    {
+      // Get a reference for the next packet in the queue and check for
+      // available space in socket tx buffer.
+      Ptr<Packet> packet = m_txQueue.front ();
+      if (socket->GetTxAvailable () < packet->GetSize ())
+        {
+          NS_LOG_WARN ("No space available to send message now.");
+          return;
+        }
+
+      // Remove the packet from the queue and send it to the socket.
+      m_txQueue.pop ();
+      int retval = socket->Send (packet);
+      if (retval == -1)
+        {
+          NS_LOG_ERROR ("Error while sending OpenFlow message to socket. " <<
+                        "Discarding. Socket error: " << socket->GetErrno ());
+        }
+    }
 }
 
 void

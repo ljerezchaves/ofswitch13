@@ -223,7 +223,7 @@ OFSwitch13Controller::SendToSwitch (Ptr<const RemoteSwitch> swtch,
     }
 
   // Create the packet from the OpenFlow message and send it to the switch.
-  return swtch->m_handler->Send (ofs::PacketFromMsg (msg, xid));
+  return swtch->m_handler->SendMessage (ofs::PacketFromMsg (msg, xid));
 }
 
 void

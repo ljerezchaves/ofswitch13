@@ -26,19 +26,21 @@
 #include <ns3/packet.h>
 #include <ns3/socket.h>
 #include "ofswitch13-interface.h"
+#include <queue>
 
 namespace ns3 {
 
 /**
  * \ingroup ofswitch13
- * Class used to read a single OpenFlow message from an open socket. The TCP
- * socket receive callback is connected to the Recv () method, which will be
- * responsible for reading the correct number of bytes of an complete OpenFlow
- * message. When the OpenFlow message is completely received it is sent to the
+ * Class used to read/send single OpenFlow message from/to an open socket.
+ * The TCP socket receive callback is connected to the Recv () method, which is
+ * responsible for reading the correct number of bytes of a complete OpenFlow
+ * message. When the OpenFlow message is completely received, it is sent to the
  * connected callback that was previously set using the SetReceiveCallback ()
- * method. On the other direction, the Send () method can be used to send an
- * OpenFlow message to the socket in safe way, respecting the order of
- * messages.
+ * method. On the other direction, the TCP socket send callback is connected to
+ * the Send () method that forwards OpenFlow message received by the
+ * SendMessage () method to the open socket, respecting the original order of
+ * the messages.
  */
 class OFSwitch13SocketHandler : public Object
 {
@@ -72,9 +74,9 @@ public:
   /**
    * Send an OpenFlow message to the TCP socket.
    * \param packet The packet with the OpenFlow message.
-   * \return 0 if everything's ok, otherwise the Socket::SocketErrno.
+   * \return 0 if everything's ok, otherwise an error number.
    */
-  int Send (Ptr<Packet> packet);
+  int SendMessage (Ptr<Packet> packet);
 
 protected:
   /** Destructor implementation */
@@ -82,15 +84,23 @@ protected:
 
 private:
   /**
-   * Socket callback used to read bytes from the socket.
-   * \param socket The TCP socket.
+   * Callback for bytes available in tx buffer.
+   * \param socket The connected socket.
+   * \param available The number of bytes available into tx buffer.
+   */
+  void Send (Ptr<Socket> socket, uint32_t available);
+
+  /**
+   * Callback for bytes available in rx buffer.
+   * \param socket The connected socket.
    */
   void Recv (Ptr<Socket> socket);
 
-  Ptr<Socket>     m_socket;         //!< TCP socket.
-  Ptr<Packet>     m_pendingPacket;  //!< Buffer for receiving bytes.
-  uint32_t        m_pendingBytes;   //!< Pending bytes for complete message.
-  MessageCallback m_receivedMsg;    //!< OpenFlow message callback.
+  Ptr<Socket>               m_socket;         //!< TCP socket.
+  Ptr<Packet>               m_pendingPacket;  //!< Buffer for receiving bytes.
+  uint32_t                  m_pendingBytes;   //!< Pending bytes for message.
+  MessageCallback           m_receivedMsg;    //!< OpenFlow message callback.
+  std::queue<Ptr<Packet> >  m_txQueue;        //!< TX queue.
 };
 
 } // namespace ns3
