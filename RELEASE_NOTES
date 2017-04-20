@@ -19,6 +19,9 @@ Release 3.1.0 (XXXXXXXXXXXXXXXXX)
 - Improving the way switches and controllers deals with TCP sockets from
   OpenFlow channels using the new OFSwitch13SocketHandler classe.
 
+- Updating the ofsoftswitch13 library to allow up to 65535 entries on each
+  datapth table (flow, meter, and group).
+
 - This version is compatible with ofsoftswitch13 library release v3.1.x and
   ns-3 version 3.26 (including patches). No backward compatibility with older
   ns-3 versions.
