@@ -502,7 +502,7 @@ OFSwitch13Device::DatapathNew ()
 
   list_init (&dp->port_list);
   dp->ports_num = 0;
-  dp->max_queues = OFSwitch13Queue::GetMaxQueues ();
+  dp->max_queues = NETDEV_MAX_QUEUES;
   dp->exp = 0;
 
   dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling

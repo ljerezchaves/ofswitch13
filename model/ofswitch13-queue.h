@@ -39,8 +39,8 @@ namespace ns3 {
  * takes place outside the OpenFlow protocol. This class implements the queue
  * interface, extending the ns3::Queue class to allow compatibility with the
  * CsmaNetDevice used by OFSwitch13Port. Internally, it holds a collection of 8
- * (m_maxQueues) priority queues, indentified by ids ranging from 0 to 7 in
- * increasing priority. The ns3::QueueTag is used to identify which internal
+ * (NETDEV_MAX_QUEUES) priority queues, indentified by ids ranging from 0 to 7
+ * in increasing priority. The ns3::QueueTag is used to identify which internal
  * queue will hold the packet, and the priority algorithms decides from which
  * queue get the packets to send over the wire.
  */
@@ -62,12 +62,6 @@ public:
    * \param port The ofsoftswitch13 port structure
    */
   OFSwitch13Queue (struct sw_port *port);
-
-  /**
-   * Get the maximun number of queues allowed.
-   * \return The number of allowed queues.
-   */
-  static uint16_t GetMaxQueues (void);
 
   /**
    * Get the current number of queues.
@@ -124,7 +118,6 @@ private:
 
   struct sw_port*       m_swPort;     //!< ofsoftswitch13 struct sw_port
   QueueList_t           m_queues;     //!< Sorted list of available queues
-  static const uint16_t m_maxQueues;  //!< Maximum number of queues
 };
 
 } // namespace ns3

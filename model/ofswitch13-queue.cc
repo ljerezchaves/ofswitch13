@@ -34,11 +34,6 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Queue");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Queue);
 
-// m_maxQueues must be less or equal to ofsoftswitch13 NETDEV_MAX_QUEUES
-// constant, which is currently set to 8. To increase this value, update
-// dp_ports.h sw_port.queues structure.
-const uint16_t OFSwitch13Queue::m_maxQueues = 8;
-
 TypeId
 OFSwitch13Queue::GetTypeId (void)
 {
@@ -72,12 +67,6 @@ OFSwitch13Queue::OFSwitch13Queue (struct sw_port *port)
 OFSwitch13Queue::~OFSwitch13Queue ()
 {
   NS_LOG_FUNCTION (this);
-}
-
-uint16_t
-OFSwitch13Queue::GetMaxQueues (void)
-{
-  return m_maxQueues;
 }
 
 uint16_t
@@ -125,7 +114,7 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
 
   // Adding internal queues. It will create the maximum number of queues
   // allowed to this port, even if they are not used.
-  for (uint32_t i = 0; i < GetMaxQueues (); i++)
+  for (uint32_t i = 0; i < NETDEV_MAX_QUEUES; i++)
     {
       AddQueue (queueFactory.Create<Queue> ());
     }
@@ -202,7 +191,7 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
 
   NS_ASSERT_MSG (queue, "Invalid queue pointer.");
   NS_ASSERT_MSG (m_swPort, "Invalid OpenFlow port metadata.");
-  NS_ASSERT_MSG (GetNQueues () < GetMaxQueues (), "No more queues available.");
+  NS_ASSERT_MSG (GetNQueues () < NETDEV_MAX_QUEUES, "No more queues available.");
 
   uint32_t queueId = (m_swPort->num_queues)++;
   struct sw_queue *swQueue = &(m_swPort->queues[queueId]);
