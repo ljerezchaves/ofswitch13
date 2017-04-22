@@ -222,8 +222,6 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
 Ptr<Queue>
 OFSwitch13Queue::GetQueue (uint32_t queueId) const
 {
-  NS_LOG_FUNCTION (this << queueId);
-
   NS_ASSERT_MSG (queueId < GetNQueues (), "Queue is out of range.");
   return m_queues.at (queueId);
 }

@@ -185,8 +185,6 @@ OFSwitch13Port::GetPortNo (void) const
 bool
 OFSwitch13Port::PortUpdateState ()
 {
-  NS_LOG_FUNCTION (this);
-
   uint32_t orig_state = m_swPort->conf->state;
   if (m_netDev->IsLinkUp ())
     {

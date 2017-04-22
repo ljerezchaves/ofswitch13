@@ -223,8 +223,6 @@ OFSwitch13Device::GetDatapathId (void) const
 uint32_t
 OFSwitch13Device::GetNFlowEntries (void) const
 {
-  NS_LOG_FUNCTION (this);
-
   NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
   uint32_t entries = 0;
   for (size_t i = 0; i < PIPELINE_TABLES; i++)
@@ -237,8 +235,6 @@ OFSwitch13Device::GetNFlowEntries (void) const
 uint32_t
 OFSwitch13Device::GetNFlowEntries (size_t tid) const
 {
-  NS_LOG_FUNCTION (this << tid);
-
   NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
   uint32_t entries = 0;
   struct flow_table *table = m_datapath->pipeline->tables[tid];
@@ -522,8 +518,6 @@ OFSwitch13Device::DatapathNew ()
 void
 OFSwitch13Device::DatapathTimeout (struct datapath *dp)
 {
-  NS_LOG_FUNCTION (this);
-
   meter_table_add_tokens (dp->meters);
   pipeline_timeout (dp->pipeline);
 
