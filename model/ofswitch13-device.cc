@@ -163,8 +163,6 @@ OFSwitch13Device::OFSwitch13Device ()
   m_dpId = ++m_globalDpId;
   m_datapath = DatapathNew ();
   OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
-  Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout, this,
-                       m_datapath);
 }
 
 OFSwitch13Device::~OFSwitch13Device ()
@@ -428,7 +426,7 @@ OFSwitch13Device::GetDevice (uint64_t id)
     }
 }
 
-/********** Private methods **********/
+/********** Protected methods **********/
 void
 OFSwitch13Device::DoDispose ()
 {
@@ -455,6 +453,16 @@ OFSwitch13Device::DoDispose ()
   Object::DoDispose ();
 }
 
+void
+OFSwitch13Device::NotifyConstructionCompleted ()
+{
+  NS_LOG_FUNCTION (this);
+
+  Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout, this,
+                       m_datapath);
+}
+
+/********** Private methods **********/
 struct datapath*
 OFSwitch13Device::DatapathNew ()
 {

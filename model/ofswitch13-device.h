@@ -310,10 +310,14 @@ public:
   typedef void (*MeterDropTracedCallback)(
     Ptr<const Packet> packet, uint32_t meterId);
 
-private:
+protected:
   // Inherited from Object
   virtual void DoDispose (void);
 
+  // Inherited from ObjectBase.
+  virtual void NotifyConstructionCompleted (void);
+
+private:
   /**
    * Creates a new datapath.
    * \return The created datapath.
