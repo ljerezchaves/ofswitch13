@@ -177,8 +177,6 @@ OFSwitch13Controller::StopApplication ()
 uint32_t
 OFSwitch13Controller::GetNextXid ()
 {
-  NS_LOG_FUNCTION (this);
-
   return ++m_xid;
 }
 
