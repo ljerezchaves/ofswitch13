@@ -42,6 +42,8 @@ OFSwitch13Device::GetTypeId (void)
     .SetParent<Object> ()
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Device> ()
+
+    // Attributes.
     .AddAttribute ("DatapathId",
                    "The unique identification of this OpenFlow switch.",
                    TypeId::ATTR_GET,
@@ -65,6 +67,7 @@ OFSwitch13Device::GetTypeId (void)
                    MakeTimeAccessor (&OFSwitch13Device::m_timeout),
                    MakeTimeChecker ())
 
+    // Trace sources.
     .AddTraceSource ("PipelinePacket",
                      "Trace source indicating a packet sent to pipeline.",
                      MakeTraceSourceAccessor (
@@ -90,10 +93,11 @@ OFSwitch13Device::GetTypeId (void)
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_bufferExpireTrace),
                      "ns3::Packet::TracedCallback")
+
+    // Traced values.
     .AddTraceSource ("PipelineDelay",
-                     "Traced value indicating the average pipeline delay for "
-                     "packet processing (periodically updated on datapath "
-                     "timeout operations).",
+                     "Traced value indicating the avg pipeline lookup delay "
+                     "(periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_pipelineDelay),
                      "ns3::TracedValueCallback::Time")
@@ -103,59 +107,36 @@ OFSwitch13Device::GetTypeId (void)
                        &OFSwitch13Device::m_bufferUsage),
                      "ns3::TracedValueCallback::Double")
     .AddTraceSource ("FlowEntries",
-                     "Traced value indicating the number of flow entries in "
-                     "all pipeline flow tables (periodically updated on "
-                     "datapath timeout operations).",
+                     "Traced value indicating the number of flow entries "
+                     "(periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_flowEntries),
                      "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("MeterEntries",
                      "Traced value indicating the number of meter entries "
-                     "(periodically updated on datapath timeout operations).",
+                     "(periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_meterEntries),
                      "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("GroupEntries",
                      "Traced value indicating the number of group entries "
-                     "(periodically updated on datapath timeout operations).",
+                     "(periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_groupEntries),
-                     "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("FlowModCounter",
-                     "Traced value indicating the number of flow-mod "
-                     "messages received by this switch so far.",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_flowModCounter),
-                     "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("MeterModCounter",
-                     "Traced value indicating the number of meter-mod "
-                     "messages received by this switch so far.",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_meterModCounter),
-                     "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("GroupModCounter",
-                     "Traced value indicating the number of group-mod "
-                     "messages received by this switch so far.",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_groupModCounter),
-                     "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("PacketInCounter",
-                     "Traced value indicating the number of packet-in "
-                     "messages sent by this switch so far.",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_packetInCounter),
-                     "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("PacketOutCounter",
-                     "Traced value indicating the number of packet-out "
-                     "messages received by this switch so far.",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_packetOutCounter),
                      "ns3::TracedValueCallback::Uint32")
   ;
   return tid;
 }
 
 OFSwitch13Device::OFSwitch13Device ()
+  : m_packetCounter (0),
+    m_byteCounter (0),
+    m_dropCounter (0),
+    m_flowModCounter (0),
+    m_meterModCounter (0),
+    m_groupModCounter (0),
+    m_packetInCounter (0),
+    m_packetOutCounter (0)
 {
   NS_LOG_FUNCTION (this);
 
@@ -168,6 +149,115 @@ OFSwitch13Device::OFSwitch13Device ()
 OFSwitch13Device::~OFSwitch13Device ()
 {
   NS_LOG_FUNCTION (this);
+}
+
+uint64_t
+OFSwitch13Device::GetDatapathId (void) const
+{
+  return m_dpId;
+}
+
+Time
+OFSwitch13Device::GetPipelineDelay (void) const
+{
+  return m_pipelineDelay;
+}
+
+double
+OFSwitch13Device::GetBufferUsage (void) const
+{
+  return m_bufferUsage;
+}
+
+uint32_t
+OFSwitch13Device::GetPacketCounter (void) const
+{
+  return m_packetCounter;
+}
+
+uint32_t
+OFSwitch13Device::GetByteCounter (void) const
+{
+  return m_byteCounter;
+}
+
+uint32_t
+OFSwitch13Device::GetDropCounter (void) const
+{
+  return m_dropCounter;
+}
+
+uint32_t
+OFSwitch13Device::GetFlowModCounter (void) const
+{
+  return m_flowModCounter;
+}
+
+uint32_t
+OFSwitch13Device::GetMeterModCounter (void) const
+{
+  return m_meterModCounter;
+}
+
+uint32_t
+OFSwitch13Device::GetGroupModCounter (void) const
+{
+  return m_groupModCounter;
+}
+
+uint32_t
+OFSwitch13Device::GetPacketInCounter (void) const
+{
+  return m_packetInCounter;
+}
+
+uint32_t
+OFSwitch13Device::GetPacketOutCounter (void) const
+{
+  return m_packetOutCounter;
+}
+
+uint32_t
+OFSwitch13Device::GetNSwitchPorts (void) const
+{
+  return m_datapath->ports_num;
+}
+
+uint32_t
+OFSwitch13Device::GetNMeterEntries (void) const
+{
+  return m_datapath->meters->entries_num;
+}
+
+uint32_t
+OFSwitch13Device::GetNGroupEntries (void) const
+{
+  return m_datapath->groups->entries_num;
+}
+
+uint32_t
+OFSwitch13Device::GetNFlowEntries (void) const
+{
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+  uint32_t entries = 0;
+  for (size_t i = 0; i < PIPELINE_TABLES; i++)
+    {
+      entries += GetNFlowEntries (i);
+    }
+  return entries;
+}
+
+uint32_t
+OFSwitch13Device::GetNFlowEntries (size_t tableId) const
+{
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+  uint32_t entries = 0;
+  struct flow_table *table = m_datapath->pipeline->tables [tableId];
+  if (!(table->disabled))
+    {
+      entries = table->stats->active_count;
+    }
+  return entries;
 }
 
 Ptr<OFSwitch13Port>
@@ -202,51 +292,10 @@ OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
                        this, packet, portNo, tunnelId);
 }
 
-uint32_t
-OFSwitch13Device::GetNSwitchPorts (void) const
-{
-  NS_LOG_FUNCTION (this);
-
-  return m_datapath->ports_num;
-}
-
-uint64_t
-OFSwitch13Device::GetDatapathId (void) const
-{
-  NS_LOG_FUNCTION (this);
-
-  return m_dpId;
-}
-
-uint32_t
-OFSwitch13Device::GetNFlowEntries (void) const
-{
-  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
-  uint32_t entries = 0;
-  for (size_t i = 0; i < PIPELINE_TABLES; i++)
-    {
-      entries += GetNFlowEntries (i);
-    }
-  return entries;
-}
-
-uint32_t
-OFSwitch13Device::GetNFlowEntries (size_t tid) const
-{
-  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
-  uint32_t entries = 0;
-  struct flow_table *table = m_datapath->pipeline->tables[tid];
-  if (!(table->disabled))
-    {
-      entries = table->stats->active_count;
-    }
-  return entries;
-}
-
 void
 OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << ctrlAddr);
 
   NS_ASSERT (!ctrlAddr.IsInvalid ());
   NS_ASSERT_MSG (InetSocketAddress::IsMatchingType (ctrlAddr),
@@ -548,8 +597,8 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
   // hardware, and 'n' is the current number of entries in flow tables.
   //
   m_flowEntries = GetNFlowEntries ();
-  m_meterEntries = m_datapath->meters->entries_num;
-  m_groupEntries = m_datapath->groups->entries_num;
+  m_meterEntries = GetNMeterEntries ();
+  m_groupEntries = GetNGroupEntries ();
   m_pipelineDelay = m_tcamDelay * (int64_t)ceil (log2 (m_flowEntries));
 
   dp->last_timeout = time_now ();
@@ -678,7 +727,9 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
   pkt->ns3_uid = OFSwitch13Device::GetNewPacketId ();
   m_pktPipe.SetPacket (pkt->ns3_uid, packet);
 
-  // Fire trace source and send the packet to ofsoftswitch13 pipeline.
+  // Increase counters, fire trace source and send the packet to pipeline.
+  m_packetCounter++;
+  m_byteCounter += packet->GetSize ();
   m_pipelinePacketTrace (packet);
   pipeline_process_packet (m_datapath->pipeline, pkt);
 }
@@ -953,7 +1004,8 @@ OFSwitch13Device::NotifyPacketDropped (struct packet *pkt,
   NS_LOG_DEBUG ("OpenFlow meter id " << meterId <<
                 " dropped packet " << pkt->ns3_uid);
 
-  // Fire drop trace source.
+  // Increase counter and fire drop trace source.
+  m_dropCounter++;
   m_meterDropTrace (m_pktPipe.GetPacket (), meterId);
 }
 

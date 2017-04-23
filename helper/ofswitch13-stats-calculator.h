@@ -72,41 +72,23 @@ protected:
 
 private:
   /**
-   * Trace sink used to monitor for packets sent to the OpenFlow pipeline.
-   * \param packet The packet.
-   */
-  void NotifyPipelinePacket (Ptr<const Packet> packet);
-
-  /**
-   * Trace sink used to monitor for packets dropped by meter bands.
-   * \param packet The dropped packet.
-   * \param meterId The meter entry ID that dropped the packet.
-   */
-  void NotifyMeterDrop (Ptr<const Packet> packet, uint32_t meterId);
-
-  /**
    * \name Trace sinks for monitoring traced values.
    * Trace sinks used to monitor traced values on the OpenFlow switch datapath.
    * \param oldValue The old value.
    * \param newValue The new just updated value.
    */
   //\{
-  void NotifyPipelineDelay    (Time     oldValue, Time     newValue);
-  void NotifyBufferUsage      (double   oldValue, double   newValue);
-  void NotifyFlowEntries      (uint32_t oldValue, uint32_t newValue);
-  void NotifyMeterEntries     (uint32_t oldValue, uint32_t newValue);
-  void NotifyGroupEntries     (uint32_t oldValue, uint32_t newValue);
-  void NotifyFlowModCounter   (uint32_t oldValue, uint32_t newValue);
-  void NotifyMeterModCounter  (uint32_t oldValue, uint32_t newValue);
-  void NotifyGroupModCounter  (uint32_t oldValue, uint32_t newValue);
-  void NotifyPacketInCounter  (uint32_t oldValue, uint32_t newValue);
-  void NotifyPacketOutCounter (uint32_t oldValue, uint32_t newValue);
+  void NotifyPipelineDelay  (Time     oldValue, Time     newValue);
+  void NotifyBufferUsage    (double   oldValue, double   newValue);
+  void NotifyFlowEntries    (uint32_t oldValue, uint32_t newValue);
+  void NotifyMeterEntries   (uint32_t oldValue, uint32_t newValue);
+  void NotifyGroupEntries   (uint32_t oldValue, uint32_t newValue);
   //\}
 
   /**
    * \name Statistics calculators.
    * Functions used to calculate average metric values based on data collected
-   * since the last dump operation.
+   * since the last update operation.
    * \return The requested average metric value.
    */
   //\{
@@ -126,42 +108,49 @@ private:
   //\}
 
   /**
-   * Dump statistics into file.
+   * Read statistics from switch, update internal counters,
+   * and dump data into output file.
    */
-  void DumpStatistics ();
+  void UpdateAndDumpStatistics ();
 
   /**
-   * Reset internal counters.
-   */
-  void ResetCounters ();
-
-  /**
-   * Get the elapsed time since last dump.
+   * Get the elapsed time since last update.
    * \return The elapsed time, in seconds.
    */
   double GetElapsedSeconds (void) const;
 
-  Ptr<OutputStreamWrapper>  m_wrapper;      //!< Output file wrapper
-  std::string               m_filename;     //!< Output file name
-  Time                      m_timeout;      //!< Dump timeout
-  Time                      m_lastDump;     //!< Last dump time
-  double                    m_alpha;        //!< EWMA alpha parameter
+  Ptr<OFSwitch13Device>     m_device;       //!< OpenFlow switch device.
+  Ptr<OutputStreamWrapper>  m_wrapper;      //!< Output file wrapper.
+  std::string               m_filename;     //!< Output file name.
+  Time                      m_timeout;      //!< Update timeout.
+  Time                      m_lastUpdate;   //!< Last update time.
+  double                    m_alpha;        //!< EWMA alpha parameter.
 
   /** \name Internal counters. */
   //\{
-  uint32_t m_pipelinePackets;
-  uint32_t m_pipelineBytes;
-  uint32_t m_droppedPackets;
-  double   m_avgPipelineDelay;
-  double   m_avgBufferUsage;
-  double   m_avgFlowEntries;
-  double   m_avgMeterEntries;
-  double   m_avgGroupEntries;
-  uint32_t m_flowModCounter;
-  uint32_t m_meterModCounter;
-  uint32_t m_groupModCounter;
-  uint32_t m_packetInCounter;
-  uint32_t m_packetOutCounter;
+  double    m_avgPipelineDelay;
+  double    m_avgBufferUsage;
+  double    m_avgFlowEntries;
+  double    m_avgMeterEntries;
+  double    m_avgGroupEntries;
+
+  uint32_t  m_packetCounter;
+  uint32_t  m_byteCounter;
+  uint32_t  m_dropCounter;
+  uint32_t  m_flowModCounter;
+  uint32_t  m_meterModCounter;
+  uint32_t  m_groupModCounter;
+  uint32_t  m_packetInCounter;
+  uint32_t  m_packetOutCounter;
+
+  uint32_t  m_lastPacketCounter;
+  uint32_t  m_lastByteCounter;
+  uint32_t  m_lastDropCounter;
+  uint32_t  m_lastFlowModCounter;
+  uint32_t  m_lastMeterModCounter;
+  uint32_t  m_lastGroupModCounter;
+  uint32_t  m_lastPacketInCounter;
+  uint32_t  m_lastPacketOutCounter;
   //\}
 };
 

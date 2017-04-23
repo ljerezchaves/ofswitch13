@@ -140,7 +140,7 @@ public:
   static TypeId GetTypeId (void);
 
   /**
-   * Default constructor. Initialize structures.
+   * Default constructor.
    * \see ofsoftswitch dp_new () at udatapath/datapath.c
    */
   OFSwitch13Device ();
@@ -149,6 +149,29 @@ public:
    * Dummy destructor, see DoDispose.
    */
   virtual ~OFSwitch13Device ();
+
+  /**
+   * \name Private member accessors.
+   * \return The requested value.
+   */
+  //\{
+  uint64_t GetDatapathId        (void) const;
+  Time     GetPipelineDelay     (void) const;
+  double   GetBufferUsage       (void) const;
+  uint32_t GetPacketCounter     (void) const;
+  uint32_t GetByteCounter       (void) const;
+  uint32_t GetDropCounter       (void) const;
+  uint32_t GetFlowModCounter    (void) const;
+  uint32_t GetMeterModCounter   (void) const;
+  uint32_t GetGroupModCounter   (void) const;
+  uint32_t GetPacketInCounter   (void) const;
+  uint32_t GetPacketOutCounter  (void) const;
+  uint32_t GetNSwitchPorts      (void) const;
+  uint32_t GetNMeterEntries     (void) const;
+  uint32_t GetNGroupEntries     (void) const;
+  uint32_t GetNFlowEntries      (void) const;
+  uint32_t GetNFlowEntries      (size_t tableId) const;
+  //\}
 
   /**
    * Add a 'port' to the switch device. This method adds a new switch port to a
@@ -172,27 +195,6 @@ public:
    */
   void ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
                               uint64_t tunnelId = 0);
-
-  /**
-   * \return Number of ports attached to this switch.
-   */
-  uint32_t GetNSwitchPorts (void) const;
-
-  /**
-   * \return The datapath ID.
-   */
-  uint64_t GetDatapathId (void) const;
-
-  /**
-   * \return The current number of flow entries in all pipeline tables.
-   */
-  uint32_t GetNFlowEntries (void) const;
-
-  /**
-   * \param tid Table id.
-   * \return The current number of flow entries at a specific table.
-   */
-  uint32_t GetNFlowEntries (size_t tid) const;
 
   /**
    * Starts the TCP connection between this switch and the target controller
@@ -568,20 +570,19 @@ private:
   /** Number of entries in group table. */
   TracedValue<uint32_t> m_groupEntries;
 
-  /** Number of flow-mod messages received by this switch. */
-  TracedValue<uint32_t> m_flowModCounter;
-
-  /** Number of meter-mod messages received by this switch. */
-  TracedValue<uint32_t> m_meterModCounter;
-
-  /** Number of group-mod messages received by this switch. */
-  TracedValue<uint32_t> m_groupModCounter;
-
-  /** Number of packet-in messages sent by this switch. */
-  TracedValue<uint32_t> m_packetInCounter;
-
-  /** Number of packet-out messages received by this switch. */
-  TracedValue<uint32_t> m_packetOutCounter;
+  /**
+   * \name Internal counters for datapath statistics.
+   */
+  //\{
+  uint32_t  m_packetCounter;
+  uint32_t  m_byteCounter;
+  uint32_t  m_dropCounter;
+  uint32_t  m_flowModCounter;
+  uint32_t  m_meterModCounter;
+  uint32_t  m_groupModCounter;
+  uint32_t  m_packetInCounter;
+  uint32_t  m_packetOutCounter;
+  //\}
 
   uint64_t          m_dpId;         //!< This datapath id.
   Time              m_timeout;      //!< Datapath timeout interval.
