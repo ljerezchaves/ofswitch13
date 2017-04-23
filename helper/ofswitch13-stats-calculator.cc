@@ -125,94 +125,6 @@ OFSwitch13StatsCalculator::HookSinks (Ptr<OFSwitch13Device> device)
       Ptr<OFSwitch13StatsCalculator> (this)));
 }
 
-void
-OFSwitch13StatsCalculator::DoDispose ()
-{
-  NS_LOG_FUNCTION (this);
-  m_wrapper = 0;
-}
-
-void
-OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
-{
-  NS_LOG_FUNCTION (this);
-
-  // Open output file and print header line.
-  m_wrapper = Create<OutputStreamWrapper> (m_filename, std::ios::out);
-  *m_wrapper->GetStream ()
-  << fixed << setprecision (2)
-  << left
-  << setw (10) << "Time_s"
-  << right
-  << setw (12) << "Pkts/s"
-  << setw (12) << "Drops/s"
-  << setw (12) << "Kbits/s"
-  << setw (12) << "FlowMod/s"
-  << setw (12) << "MeterMod/s"
-  << setw (12) << "GroupMod/s"
-  << setw (12) << "PktIn/s"
-  << setw (12) << "PktOut/s"
-  << setw (12) << "Buffer_%"
-  << setw (12) << "AvgFlows"
-  << setw (12) << "AvgMeters"
-  << setw (12) << "AvgGroups"
-  << setw (12) << "AvgDelay_ns"
-  << std::endl;
-
-  // Scheduling first update and dump.
-  Simulator::Schedule (
-    m_timeout, &OFSwitch13StatsCalculator::UpdateAndDumpStatistics, this);
-
-  // Chain up.
-  Object::NotifyConstructionCompleted ();
-}
-
-void
-OFSwitch13StatsCalculator::NotifyPipelineDelay (Time oldValue,
-                                                Time newValue)
-{
-  NS_LOG_FUNCTION (this << oldValue << newValue);
-
-  m_avgPipelineDelay = newValue.GetDouble () * m_alpha
-    + m_avgPipelineDelay * (1 - m_alpha);
-}
-
-void
-OFSwitch13StatsCalculator::NotifyBufferUsage (double oldValue,
-                                              double newValue)
-{
-  NS_LOG_FUNCTION (this << oldValue << newValue);
-
-  m_avgBufferUsage = newValue * m_alpha + m_avgBufferUsage * (1 - m_alpha);
-}
-
-void
-OFSwitch13StatsCalculator::NotifyFlowEntries (uint32_t oldValue,
-                                              uint32_t newValue)
-{
-  NS_LOG_FUNCTION (this << oldValue << newValue);
-
-  m_avgFlowEntries = newValue * m_alpha + m_avgFlowEntries * (1 - m_alpha);
-}
-
-void
-OFSwitch13StatsCalculator::NotifyMeterEntries (uint32_t oldValue,
-                                               uint32_t newValue)
-{
-  NS_LOG_FUNCTION (this << oldValue << newValue);
-
-  m_avgMeterEntries = newValue * m_alpha + m_avgMeterEntries * (1 - m_alpha);
-}
-
-void
-OFSwitch13StatsCalculator::NotifyGroupEntries (uint32_t oldValue,
-                                               uint32_t newValue)
-{
-  NS_LOG_FUNCTION (this << oldValue << newValue);
-
-  m_avgGroupEntries = newValue * m_alpha + m_avgGroupEntries * (1 - m_alpha);
-}
-
 double
 OFSwitch13StatsCalculator::GetPktsPerSec (void) const
 {
@@ -323,6 +235,94 @@ OFSwitch13StatsCalculator::GetAvgPipelineDelay (void) const
   NS_LOG_FUNCTION (this);
 
   return (Time (m_avgPipelineDelay)).GetNanoSeconds ();
+}
+
+void
+OFSwitch13StatsCalculator::DoDispose ()
+{
+  NS_LOG_FUNCTION (this);
+  m_wrapper = 0;
+}
+
+void
+OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
+{
+  NS_LOG_FUNCTION (this);
+
+  // Open output file and print header line.
+  m_wrapper = Create<OutputStreamWrapper> (m_filename, std::ios::out);
+  *m_wrapper->GetStream ()
+  << fixed << setprecision (2)
+  << left
+  << setw (10) << "Time_s"
+  << right
+  << setw (12) << "Pkts/s"
+  << setw (12) << "Drops/s"
+  << setw (12) << "Kbits/s"
+  << setw (12) << "FlowMod/s"
+  << setw (12) << "MeterMod/s"
+  << setw (12) << "GroupMod/s"
+  << setw (12) << "PktIn/s"
+  << setw (12) << "PktOut/s"
+  << setw (12) << "Buffer_%"
+  << setw (12) << "AvgFlows"
+  << setw (12) << "AvgMeters"
+  << setw (12) << "AvgGroups"
+  << setw (12) << "AvgDelay_ns"
+  << std::endl;
+
+  // Scheduling first update and dump.
+  Simulator::Schedule (
+    m_timeout, &OFSwitch13StatsCalculator::UpdateAndDumpStatistics, this);
+
+  // Chain up.
+  Object::NotifyConstructionCompleted ();
+}
+
+void
+OFSwitch13StatsCalculator::NotifyPipelineDelay (Time oldValue,
+                                                Time newValue)
+{
+  NS_LOG_FUNCTION (this << oldValue << newValue);
+
+  m_avgPipelineDelay = newValue.GetDouble () * m_alpha
+    + m_avgPipelineDelay * (1 - m_alpha);
+}
+
+void
+OFSwitch13StatsCalculator::NotifyBufferUsage (double oldValue,
+                                              double newValue)
+{
+  NS_LOG_FUNCTION (this << oldValue << newValue);
+
+  m_avgBufferUsage = newValue * m_alpha + m_avgBufferUsage * (1 - m_alpha);
+}
+
+void
+OFSwitch13StatsCalculator::NotifyFlowEntries (uint32_t oldValue,
+                                              uint32_t newValue)
+{
+  NS_LOG_FUNCTION (this << oldValue << newValue);
+
+  m_avgFlowEntries = newValue * m_alpha + m_avgFlowEntries * (1 - m_alpha);
+}
+
+void
+OFSwitch13StatsCalculator::NotifyMeterEntries (uint32_t oldValue,
+                                               uint32_t newValue)
+{
+  NS_LOG_FUNCTION (this << oldValue << newValue);
+
+  m_avgMeterEntries = newValue * m_alpha + m_avgMeterEntries * (1 - m_alpha);
+}
+
+void
+OFSwitch13StatsCalculator::NotifyGroupEntries (uint32_t oldValue,
+                                               uint32_t newValue)
+{
+  NS_LOG_FUNCTION (this << oldValue << newValue);
+
+  m_avgGroupEntries = newValue * m_alpha + m_avgGroupEntries * (1 - m_alpha);
 }
 
 void

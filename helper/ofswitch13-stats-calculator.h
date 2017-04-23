@@ -63,28 +63,6 @@ public:
    */
   void HookSinks (Ptr<OFSwitch13Device> device);
 
-protected:
-  /** Destructor implementation. */
-  virtual void DoDispose ();
-
-  // Inherited from ObjectBase.
-  virtual void NotifyConstructionCompleted (void);
-
-private:
-  /**
-   * \name Trace sinks for monitoring traced values.
-   * Trace sinks used to monitor traced values on the OpenFlow switch datapath.
-   * \param oldValue The old value.
-   * \param newValue The new just updated value.
-   */
-  //\{
-  void NotifyPipelineDelay  (Time     oldValue, Time     newValue);
-  void NotifyBufferUsage    (double   oldValue, double   newValue);
-  void NotifyFlowEntries    (uint32_t oldValue, uint32_t newValue);
-  void NotifyMeterEntries   (uint32_t oldValue, uint32_t newValue);
-  void NotifyGroupEntries   (uint32_t oldValue, uint32_t newValue);
-  //\}
-
   /**
    * \name Statistics calculators.
    * Functions used to calculate average metric values based on data collected
@@ -105,6 +83,28 @@ private:
   uint32_t GetAvgMeterEntries   (void) const;
   uint32_t GetAvgGroupEntries   (void) const;
   uint32_t GetAvgPipelineDelay  (void) const;
+  //\}
+
+protected:
+  /** Destructor implementation. */
+  virtual void DoDispose ();
+
+  // Inherited from ObjectBase.
+  virtual void NotifyConstructionCompleted (void);
+
+private:
+  /**
+   * \name Trace sinks for monitoring traced values.
+   * Trace sinks used to monitor traced values on the OpenFlow switch datapath.
+   * \param oldValue The old value.
+   * \param newValue The new just updated value.
+   */
+  //\{
+  void NotifyPipelineDelay  (Time     oldValue, Time     newValue);
+  void NotifyBufferUsage    (double   oldValue, double   newValue);
+  void NotifyFlowEntries    (uint32_t oldValue, uint32_t newValue);
+  void NotifyMeterEntries   (uint32_t oldValue, uint32_t newValue);
+  void NotifyGroupEntries   (uint32_t oldValue, uint32_t newValue);
   //\}
 
   /**
