@@ -122,9 +122,9 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
   m_netDev->GetAddress ().CopyTo (m_swPort->conf->hw_addr);
   m_swPort->conf->config = 0x00000000;
   m_swPort->conf->state = 0x00000000 | OFPPS_LIVE;
-  m_swPort->conf->curr = PortGetFeatures ();
-  m_swPort->conf->advertised = PortGetFeatures ();
-  m_swPort->conf->supported = PortGetFeatures ();
+  m_swPort->conf->curr = GetPortFeatures ();
+  m_swPort->conf->advertised = GetPortFeatures ();
+  m_swPort->conf->supported = GetPortFeatures ();
   m_swPort->conf->peer = 0x00000000; // FIXME no information about peer port
   m_swPort->conf->curr_speed = port_speed (m_swPort->conf->curr);
   m_swPort->conf->max_speed = port_speed (m_swPort->conf->supported);
@@ -210,7 +210,7 @@ OFSwitch13Port::PortUpdateState ()
 }
 
 uint32_t
-OFSwitch13Port::PortGetFeatures ()
+OFSwitch13Port::GetPortFeatures ()
 {
   NS_LOG_FUNCTION (this);
 

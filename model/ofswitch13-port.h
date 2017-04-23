@@ -101,7 +101,7 @@ private:
    * \see ofsoftswitch netdev_get_features () at lib/netdev.c
    * \return Port features bitmap.
    */
-  uint32_t PortGetFeatures ();
+  uint32_t GetPortFeatures ();
 
   /**
    * Called when a packet is received on this OpenFlow switch port by the
