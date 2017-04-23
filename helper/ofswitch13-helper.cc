@@ -191,6 +191,7 @@ OFSwitch13Helper::EnableDatapathStats (std::string prefix, bool useNodeNames)
 
       statsFactory.Set ("OutputFilename", StringValue (filename));
       statsCalculator = statsFactory.Create<OFSwitch13StatsCalculator> ();
+      statsCalculator->AggregateObject (dev);
       statsCalculator->HookSinks (dev);
     }
 }
