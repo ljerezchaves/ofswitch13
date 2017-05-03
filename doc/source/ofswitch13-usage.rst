@@ -341,12 +341,6 @@ OFSwitch13Device
   This is a read-only attribute, automatically assigned by the object
   constructor.
 
-* ``PortList``: The list of ports available in this switch.
-
-* ``TcamDelay``: Average time to perform a TCAM operation in pipeline. This
-  value will be used to calculate the average pipeline delay based on the
-  number of flow entries in the tables, as described in :ref:`switch-device`.
-
 * ``DatapathTimeout``: The interval time interval between timeout operations on
   pipeline. At each internal, the device checks if any flow in any table is
   timed out and update port status.
@@ -354,6 +348,12 @@ OFSwitch13Device
 * ``PipelineCapacity``: The data rate used to model the pipeline processing
   capacity in terms of throughput. Packets exceeding the capacity will be
   discarded.
+
+* ``PortList``: The list of ports available in this switch.
+
+* ``TcamDelay``: Average time to perform a TCAM operation in pipeline. This
+  value will be used to calculate the average pipeline delay based on the
+  number of flow entries in the tables, as described in :ref:`switch-device`.
 
 OFSwitch13Port
 ##############
@@ -374,11 +374,11 @@ OFSwitch13Queue
 OFSwitch13Helper
 ################
 
+* ``ChannelDataRate``: The data rate to be used for the OpenFlow channel links.
+
 * ``ChannelType``: The configuration used to create the OpenFlow channel. Users
   can select between a single shared CSMA connection, or dedicated connection
   between the controller and each switch, using CSMA or point-to-point links.
-
-* ``ChannelDataRate``: The data rate to be used for the OpenFlow channel links.
 
 OFSwitch13ExternalHelper
 ########################
@@ -390,13 +390,13 @@ OFSwitch13ExternalHelper
 OFSwitch13StatsCalculator
 #########################
 
-* ``OutputFilename``: The filename used to save OpenFlow switch datapath
-  performance statistics.
+* ``EwmaAlpha``: The EWMA alpha parameter, which is the weight given to the
+  most recent measured value when updating average metrics.
 
 * ``DumpTimeout``: The interval between successive dump operations.
 
-* ``EwmaAlpha``: The EWMA alpha parameter, which is the weight given to the
-  most recent measured value when updating average metrics.
+* ``OutputFilename``: The filename used to save OpenFlow switch datapath
+  performance statistics.
 
 .. _output:
 
