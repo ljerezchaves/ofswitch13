@@ -82,21 +82,25 @@ promiscuous protocol handler, the packet sent to this callback includes all the
 headers, which are necessary by OpenFlow pipeline processing. This is the only
 required modification to the |ns3| source code for |ofs13| usage.
 
+The incoming packet will be checked for conformance to the pipeline processing
+capacity defined by the ``OFSwitch13Device::PipelineCapacity`` attribute,
+measured in terms of throughput. Packets exceeding processing capacity are
+dropped, while conformant packets are sent to the pipeline at the |ofslib|
+library.
+
 To model OpenFlow hardware operations, the module considers the concept of
 *virtual TCAM* (Ternary Content-Addressable Memory) to estimate the average
-flow table search time. This search time is used to postpone the pipeline
-processing at the library. To provide a more realistic delay, the module
-considers that real OpenFlow implementations use sophisticated search
-algorithms for packet matching such as hierarchical hash tables or binary
-search trees. Because of that, the following equation is used to estimate the
-delay:
+flow table search time. To provide a more realistic delay, the module considers
+that real OpenFlow implementations use sophisticated search algorithms for
+packet matching such as hierarchical hash tables or binary search trees.
+Because of that, the following equation is used to estimate the delay:
 
 .. math::
   K * log_2 (n)
 
 where *K* is the ``OFSwitch13Device::TcamDelay`` attribute set to the time for
-a single TCAM operation, and *n* is the current number of entries on flow
-tables.
+a single TCAM operation, and *n* is the current number of entries on pipeline
+flow tables.
 
 Packets coming back from the library for output action are sent to the
 specialized ``OFSwitch13Queue`` provided by the module. An OpenFlow switch

@@ -65,6 +65,11 @@ OFSwitch13Device::GetTypeId (void)
                    TimeValue (MilliSeconds (100)),
                    MakeTimeAccessor (&OFSwitch13Device::m_timeout),
                    MakeTimeChecker ())
+    .AddAttribute ("PipelineCapacity",
+                   "Pipeline processing capacity in terms of throughput.",
+                   DataRateValue (DataRate ("100Gb/s")),
+                   MakeDataRateAccessor (&OFSwitch13Device::m_prlDataRate),
+                   MakeDataRateChecker ())
 
     // Trace sources.
     .AddTraceSource ("PipelinePacket",
@@ -287,6 +292,17 @@ OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
 {
   NS_LOG_FUNCTION (this << packet << portNo << tunnelId);
 
+  // Check the packet for conformance to the pipeline capacity.
+  uint32_t pktSizeBits = packet->GetSize () * 8;
+  if (m_prlTokens < pktSizeBits)
+    {
+      // The packet will be discarded.
+      NS_LOG_DEBUG ("Discarding packet due to pipeline processing capacity.");
+      return;
+    }
+
+  // Consume tokens and send the packet to the pipeline.
+  m_prlTokens -= pktSizeBits;
   Simulator::Schedule (m_pipelineDelay, &OFSwitch13Device::SendToPipeline,
                        this, packet, portNo, tunnelId);
 }
@@ -594,6 +610,13 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
   // m_tcamDelay set to the time for a single TCAM operation, and 'n' is the
   // current number of entries on all flow tables.
   m_pipelineDelay = m_tcamDelay * (int64_t)ceil (log2 (m_flowEntries));
+
+  // Refill the pipeline bucket with tokens based on elapsed time. The bucket
+  // capacity is set to the number of tokens for an entire second.
+  Time elapsedTime = Simulator::Now () - m_lastTimeout;
+  uint32_t addTokens = m_prlDataRate.GetBitRate () * elapsedTime.GetSeconds ();
+  uint32_t maxTokens = m_prlDataRate.GetBitRate ();
+  m_prlTokens = std::min (m_prlTokens + addTokens, maxTokens);
 
   dp->last_timeout = time_now ();
   m_lastTimeout = Simulator::Now ();

@@ -351,6 +351,10 @@ OFSwitch13Device
   pipeline. At each internal, the device checks if any flow in any table is
   timed out and update port status.
 
+* ``PipelineCapacity``: The data rate used to model the pipeline processing
+  capacity in terms of throughput. Packets exceeding the capacity will be
+  discarded.
+
 OFSwitch13Port
 ##############
 

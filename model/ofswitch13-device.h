@@ -595,6 +595,8 @@ private:
   CtrlList_t        m_controllers;  //!< Collection of active controllers.
   IdPacketMap_t     m_pktsBuffer;   //!< Packets saved in switch buffer.
   uint32_t          m_bufferSize;   //!< Buffer size in terms of packets.
+  DataRate          m_prlDataRate;  //!< Pipeline rate limiter value.
+  uint32_t          m_prlTokens;    //!< Pipeline rate limiter tokens.
 
   static uint64_t   m_globalDpId;   //!< Global counter for datapath IDs.
   static uint64_t   m_globalPktId;  //!< Global counter for packets IDs.
