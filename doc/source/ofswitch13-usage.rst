@@ -343,10 +343,9 @@ OFSwitch13Device
 
 * ``PortList``: The list of ports available in this switch.
 
-* ``TcamDelay``: Average time to perform a TCAM operation in pipeline. The
-  default value of 30 nanoseconds is the standard TCAM on a NetFPGA. This value
-  will be used to calculate the average pipeline delay for packets, based on
-  the number of flow entries in the tables.
+* ``TcamDelay``: Average time to perform a TCAM operation in pipeline. This
+  value will be used to calculate the average pipeline delay based on the
+  number of flow entries in the tables, as described in :ref:`switch-device`.
 
 * ``DatapathTimeout``: The interval time interval between timeout operations on
   pipeline. At each internal, the device checks if any flow in any table is

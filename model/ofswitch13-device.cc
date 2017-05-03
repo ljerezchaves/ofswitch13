@@ -56,9 +56,8 @@ OFSwitch13Device::GetTypeId (void)
                    MakeObjectVectorAccessor (&OFSwitch13Device::m_ports),
                    MakeObjectVectorChecker<OFSwitch13Port> ())
     .AddAttribute ("TcamDelay",
-                   "Average time to perform a TCAM operation in pipeline "
-                   "(Default: standard TCAM on a NetFPGA).",
-                   TimeValue (NanoSeconds (30)),
+                   "Average time to perform a TCAM operation in pipeline.",
+                   TimeValue (MicroSeconds (30)),
                    MakeTimeAccessor (&OFSwitch13Device::m_tcamDelay),
                    MakeTimeChecker ())
     .AddAttribute ("DatapathTimeout",
@@ -586,19 +585,14 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
       port->PortUpdateState ();
     }
 
-  //
-  // To provide a more realistic OpenFlow switch model, specially with respect
-  // to flow table search time, we are considering that in real OpenFlow
-  // implementations, packet classification can use sophisticated search
-  // algorithms, as the HyperSplit (DOI 10.1109/FPT.2010.5681492). As most of
-  // theses algorithms classifies the packet based on binary search trees, we
-  // are estimating the pipeline average time to a k * log (n), where 'k' is
-  // the m_tcamDelay set to the time for a single TCAM operation in a NetFPGA
-  // hardware, and 'n' is the current number of entries in flow tables.
-  //
+  // Update entries traced values.
   m_flowEntries = GetNFlowEntries ();
   m_meterEntries = GetNMeterEntries ();
   m_groupEntries = GetNGroupEntries ();
+
+  // The average pipeline delay is estimated as k * log (n), where 'k' is the
+  // m_tcamDelay set to the time for a single TCAM operation, and 'n' is the
+  // current number of entries on all flow tables.
   m_pipelineDelay = m_tcamDelay * (int64_t)ceil (log2 (m_flowEntries));
 
   dp->last_timeout = time_now ();

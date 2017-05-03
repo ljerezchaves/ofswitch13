@@ -17,10 +17,13 @@ Release 3.1.0 (XXXXXXXXXXXXXXXXX)
   have space on internal queues.
 
 - Improving the way switches and controllers deals with TCP sockets from
-  OpenFlow channels using the new OFSwitch13SocketHandler classe.
+  OpenFlow channels using the new OFSwitch13SocketHandler class.
 
 - Updating the ofsoftswitch13 library to allow up to 65535 entries on each
-  datapth table (flow, meter, and group).
+  datapath table (flow, meter, and group).
+
+- Updating the default TCAM delay attribute on switch device to better reflect
+  real hardware operation.
 
 - This version is compatible with ofsoftswitch13 library release v3.1.x and
   ns-3 version 3.26 (including patches). No backward compatibility with older

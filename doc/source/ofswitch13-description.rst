@@ -48,6 +48,8 @@ source code for the |ofs13| module lives in the directory ``src/ofswitch13``.
 Design
 ======
 
+.. _switch-device:
+
 OpenFlow 1.3 Switch Device
 ##########################
 
@@ -85,16 +87,16 @@ To model OpenFlow hardware operations, the module considers the concept of
 flow table search time. This search time is used to postpone the pipeline
 processing at the library. To provide a more realistic delay, the module
 considers that real OpenFlow implementations use sophisticated search
-algorithms for packet classification and matching. As most of these algorithms
-are based on binary search trees, the following equation is used to estimate
-the delay:
+algorithms for packet matching such as hierarchical hash tables or binary
+search trees. Because of that, the following equation is used to estimate the
+delay:
 
 .. math::
   K * log_2 (n)
 
 where *K* is the ``OFSwitch13Device::TcamDelay`` attribute set to the time for
-a TCAM operation in a NetFPGA hardware, and *n* is the current number of
-entries in the flow tables.
+a single TCAM operation, and *n* is the current number of entries on flow
+tables.
 
 Packets coming back from the library for output action are sent to the
 specialized ``OFSwitch13Queue`` provided by the module. An OpenFlow switch
