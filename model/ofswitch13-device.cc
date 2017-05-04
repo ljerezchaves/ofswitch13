@@ -518,8 +518,7 @@ OFSwitch13Device::NotifyConstructionCompleted ()
 {
   NS_LOG_FUNCTION (this);
 
-  Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout, this,
-                       m_datapath);
+  OFSwitch13Device::DatapathTimeout (m_datapath);
 }
 
 /********** Private methods **********/
@@ -605,7 +604,11 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
   // The average pipeline delay is estimated as k * log (n), where 'k' is the
   // m_tcamDelay set to the time for a single TCAM operation, and 'n' is the
   // current number of entries on all flow tables.
-  m_pipelineDelay = m_tcamDelay * (int64_t)ceil (log2 (m_flowEntries));
+  m_pipelineDelay = m_tcamDelay;
+  if (m_flowEntries >= 1)
+    {
+      m_pipelineDelay = m_tcamDelay * (int64_t)ceil (log2 (m_flowEntries));
+    }
 
   // Refill the pipeline bucket with tokens based on elapsed time. The bucket
   // capacity is set to the number of tokens for an entire second.
