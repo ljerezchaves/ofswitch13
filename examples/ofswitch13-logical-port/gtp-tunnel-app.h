@@ -50,7 +50,7 @@ public:
   /**
    * Complete constructor.
    * \param logicalPort The OpenFlow logical port device.
-   * \param physicalPort The physical network device on node.
+   * \param physicalDev The physical network device on node.
    */
   GtpTunnelApp (Ptr<VirtualNetDevice> logicalPort,
                 Ptr<CsmaNetDevice> physicalDev);
@@ -70,8 +70,9 @@ public:
    * it to the UDP tunnel socket.
    * \param packet The packet received from the logical port.
    * \param source Ethernet source address.
-   * \param dst Ethernet destination address.
+   * \param dest Ethernet destination address.
    * \param protocolNo The type of payload contained in this packet.
+   * \return Whether the operation succeeded.
    */
   bool RecvFromLogicalPort (Ptr<Packet> packet, const Address& source,
                             const Address& dest, uint16_t protocolNo);

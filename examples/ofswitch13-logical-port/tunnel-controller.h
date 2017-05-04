@@ -71,6 +71,15 @@ protected:
 
   // Inherited from OFSwitch13Controller
   void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
+  
+  /**
+   * Handle a packet in message sent by the switch to this controller.
+   * \note Inherited from OFSwitch13Controller.
+   * \param msg The OpenFlow received message.
+   * \param swtch The remote switch metadata.
+   * \param xid The transaction id from the request message.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
   virtual ofl_err HandlePacketIn (
     struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
     uint32_t xid);
@@ -114,9 +123,9 @@ private:
    * Create a Packet with an ARP reply, encapsulated inside of an Ethernet
    * frame (with header and trailer.
    * \param srcMac Source MAC address.
-   * \param srcIP Source IP address.
+   * \param srcIp Source IP address.
    * \param dstMac Destination MAC address.
-   * \param dstMac Destination IP address.
+   * \param dstIp Destination IP address.
    * \return The ns3 Ptr<Packet> with the ARP reply.
    */
   Ptr<Packet> CreateArpReply (Mac48Address srcMac, Ipv4Address srcIp,
