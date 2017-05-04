@@ -74,22 +74,22 @@ OFSwitch13StatsCalculator::GetTypeId (void)
     .SetParent<Object> ()
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13StatsCalculator> ()
+    .AddAttribute ("EwmaAlpha",
+                   "The EWMA alpha parameter for averaging statistics.",
+                   DoubleValue (0.85),
+                   MakeDoubleAccessor (&OFSwitch13StatsCalculator::m_alpha),
+                   MakeDoubleChecker<double> (0.0, 1.0))
+    .AddAttribute ("DumpTimeout",
+                   "The interval to update and dump switch statistics.",
+                   TimeValue (Seconds (1)),
+                   MakeTimeAccessor (&OFSwitch13StatsCalculator::m_timeout),
+                   MakeTimeChecker (Seconds (1)))
     .AddAttribute ("OutputFilename",
                    "Filename for dumping switch statistics.",
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    StringValue ("ofswitch_stats.log"),
                    MakeStringAccessor (&OFSwitch13StatsCalculator::m_filename),
                    MakeStringChecker ())
-    .AddAttribute ("DumpTimeout",
-                   "The interval to update and dump switch statistics.",
-                   TimeValue (Seconds (1)),
-                   MakeTimeAccessor (&OFSwitch13StatsCalculator::m_timeout),
-                   MakeTimeChecker (Seconds (1)))
-    .AddAttribute ("EwmaAlpha",
-                   "The EWMA alpha parameter for averaging statistics.",
-                   DoubleValue (0.85),
-                   MakeDoubleAccessor (&OFSwitch13StatsCalculator::m_alpha),
-                   MakeDoubleChecker<double> (0.0, 1.0))
   ;
   return tid;
 }

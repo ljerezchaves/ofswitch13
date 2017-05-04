@@ -76,6 +76,7 @@ OFSwitch13Port::GetTypeId (void)
                    PointerValue (),
                    MakePointerAccessor (&OFSwitch13Port::m_portQueue),
                    MakePointerChecker<OFSwitch13Queue> ())
+
     .AddTraceSource ("SwitchPortRx",
                      "Trace source indicating a packet received at this port.",
                      MakeTraceSourceAccessor (&OFSwitch13Port::m_rxTrace),

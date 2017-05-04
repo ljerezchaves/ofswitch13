@@ -42,24 +42,12 @@ OFSwitch13Device::GetTypeId (void)
     .SetParent<Object> ()
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Device> ()
-
-    // Attributes.
     .AddAttribute ("DatapathId",
                    "The unique identification of this OpenFlow switch.",
                    TypeId::ATTR_GET,
                    UintegerValue (0),
                    MakeUintegerAccessor (&OFSwitch13Device::m_dpId),
                    MakeUintegerChecker<uint64_t> ())
-    .AddAttribute ("PortList",
-                   "The list of ports associated to this switch.",
-                   ObjectVectorValue (),
-                   MakeObjectVectorAccessor (&OFSwitch13Device::m_ports),
-                   MakeObjectVectorChecker<OFSwitch13Port> ())
-    .AddAttribute ("TcamDelay",
-                   "Average time to perform a TCAM operation in pipeline.",
-                   TimeValue (MicroSeconds (30)),
-                   MakeTimeAccessor (&OFSwitch13Device::m_tcamDelay),
-                   MakeTimeChecker ())
     .AddAttribute ("DatapathTimeout",
                    "The interval between timeout operations on pipeline.",
                    TimeValue (MilliSeconds (100)),
@@ -70,18 +58,22 @@ OFSwitch13Device::GetTypeId (void)
                    DataRateValue (DataRate ("100Gb/s")),
                    MakeDataRateAccessor (&OFSwitch13Device::m_prlDataRate),
                    MakeDataRateChecker ())
+    .AddAttribute ("PortList",
+                   "The list of ports associated to this switch.",
+                   ObjectVectorValue (),
+                   MakeObjectVectorAccessor (&OFSwitch13Device::m_ports),
+                   MakeObjectVectorChecker<OFSwitch13Port> ())
+    .AddAttribute ("TcamDelay",
+                   "Average time to perform a TCAM operation in pipeline.",
+                   TimeValue (MicroSeconds (30)),
+                   MakeTimeAccessor (&OFSwitch13Device::m_tcamDelay),
+                   MakeTimeChecker ())
 
-    // Trace sources.
-    .AddTraceSource ("PipelinePacket",
-                     "Trace source indicating a packet sent to pipeline.",
+    .AddTraceSource ("BufferExpire",
+                     "Trace source indicating an expired packet in buffer.",
                      MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_pipelinePacketTrace),
+                       &OFSwitch13Device::m_bufferExpireTrace),
                      "ns3::Packet::TracedCallback")
-    .AddTraceSource ("MeterDrop",
-                     "Trace source indicating a packet dropped by meter band.",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_meterDropTrace),
-                     "ns3::OFSwitch13Device::MeterDropTracedCallback")
     .AddTraceSource ("BufferSave",
                      "Trace source indicating a packet saved into buffer.",
                      MakeTraceSourceAccessor (
@@ -92,19 +84,17 @@ OFSwitch13Device::GetTypeId (void)
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_bufferRetrieveTrace),
                      "ns3::Packet::TracedCallback")
-    .AddTraceSource ("BufferExpire",
-                     "Trace source indicating an expired packet in buffer.",
+    .AddTraceSource ("MeterDrop",
+                     "Trace source indicating a packet dropped by meter band.",
                      MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_bufferExpireTrace),
+                       &OFSwitch13Device::m_meterDropTrace),
+                     "ns3::OFSwitch13Device::MeterDropTracedCallback")
+    .AddTraceSource ("PipelinePacket",
+                     "Trace source indicating a packet sent to pipeline.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_pipelinePacketTrace),
                      "ns3::Packet::TracedCallback")
 
-    // Traced values.
-    .AddTraceSource ("PipelineDelay",
-                     "Traced value indicating the avg pipeline lookup delay "
-                     "(periodically updated on datapath timeout operation).",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_pipelineDelay),
-                     "ns3::TracedValueCallback::Time")
     .AddTraceSource ("BufferUsage",
                      "Traced value indicating the buffer space usage.",
                      MakeTraceSourceAccessor (
@@ -116,18 +106,24 @@ OFSwitch13Device::GetTypeId (void)
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_flowEntries),
                      "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("MeterEntries",
-                     "Traced value indicating the number of meter entries "
-                     "(periodically updated on datapath timeout operation).",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_meterEntries),
-                     "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("GroupEntries",
                      "Traced value indicating the number of group entries "
                      "(periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_groupEntries),
                      "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("MeterEntries",
+                     "Traced value indicating the number of meter entries "
+                     "(periodically updated on datapath timeout operation).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_meterEntries),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("PipelineDelay",
+                     "Traced value indicating the avg pipeline lookup delay "
+                     "(periodically updated on datapath timeout operation).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_pipelineDelay),
+                     "ns3::TracedValueCallback::Time")
   ;
   return tid;
 }
