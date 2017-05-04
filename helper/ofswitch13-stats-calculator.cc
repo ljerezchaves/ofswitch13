@@ -234,7 +234,7 @@ OFSwitch13StatsCalculator::GetAvgPipelineDelay (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  return (Time (m_avgPipelineDelay)).GetNanoSeconds ();
+  return (Time (m_avgPipelineDelay)).GetMicroSeconds ();
 }
 
 void
@@ -264,11 +264,11 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
   << setw (12) << "GroupMod/s"
   << setw (12) << "PktIn/s"
   << setw (12) << "PktOut/s"
-  << setw (12) << "Buffer_%"
+  << setw (12) << "Buffer(%)"
   << setw (12) << "AvgFlows"
   << setw (12) << "AvgMeters"
   << setw (12) << "AvgGroups"
-  << setw (12) << "AvgDelay_ns"
+  << setw (13) << "AvgDelay(us)"
   << std::endl;
 
   // Scheduling first update and dump.
@@ -366,7 +366,7 @@ OFSwitch13StatsCalculator::UpdateAndDumpStatistics ()
   << setw (11) << GetAvgFlowEntries ()            << " "
   << setw (11) << GetAvgMeterEntries ()           << " "
   << setw (11) << GetAvgGroupEntries ()           << " "
-  << setw (11) << GetAvgPipelineDelay ()          << " "
+  << setw (12) << GetAvgPipelineDelay ()          << " "
   << std::endl;
 
   // Scheduling next update and dump.
