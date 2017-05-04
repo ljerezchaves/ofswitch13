@@ -65,7 +65,7 @@ OFSwitch13Device::GetTypeId (void)
                    MakeObjectVectorChecker<OFSwitch13Port> ())
     .AddAttribute ("TcamDelay",
                    "Average time to perform a TCAM operation in pipeline.",
-                   TimeValue (MicroSeconds (30)),
+                   TimeValue (MicroSeconds (20)),
                    MakeTimeAccessor (&OFSwitch13Device::m_tcamDelay),
                    MakeTimeChecker ())
 
