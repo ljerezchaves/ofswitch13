@@ -135,21 +135,21 @@ OFSwitch13StatsCalculator::GetPktsPerSec (void) const
 }
 
 double
-OFSwitch13StatsCalculator::GetDropsPerSec (void) const
-{
-  NS_LOG_FUNCTION (this);
-
-  uint32_t drops = m_dropCounter - m_lastDropCounter;
-  return (double)drops / GetElapsedSeconds ();
-}
-
-double
 OFSwitch13StatsCalculator::GetKbitsPerSec (void) const
 {
   NS_LOG_FUNCTION (this);
 
   uint32_t bytes = m_byteCounter - m_lastByteCounter;
   return (double)bytes * 8 / 1000 / GetElapsedSeconds ();
+}
+
+double
+OFSwitch13StatsCalculator::GetDropsPerSec (void) const
+{
+  NS_LOG_FUNCTION (this);
+
+  uint32_t drops = m_dropCounter - m_lastDropCounter;
+  return (double)drops / GetElapsedSeconds ();
 }
 
 double
@@ -257,8 +257,8 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
   << setw (10) << "Time_s"
   << right
   << setw (12) << "Pkts/s"
-  << setw (12) << "Drops/s"
   << setw (12) << "Kbits/s"
+  << setw (12) << "Drops/s"
   << setw (12) << "FlowMod/s"
   << setw (12) << "MeterMod/s"
   << setw (12) << "GroupMod/s"
@@ -355,8 +355,8 @@ OFSwitch13StatsCalculator::UpdateAndDumpStatistics ()
   << setw (10) << Simulator::Now ().GetSeconds () << " "
   << right
   << setw (11) << GetPktsPerSec ()                << " "
-  << setw (11) << GetDropsPerSec ()               << " "
   << setw (11) << GetKbitsPerSec ()               << " "
+  << setw (11) << GetDropsPerSec ()               << " "
   << setw (11) << GetFlowModsPerSec ()            << " "
   << setw (11) << GetMeterModsPerSec ()           << " "
   << setw (11) << GetGroupModsPerSec ()           << " "

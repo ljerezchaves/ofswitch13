@@ -32,8 +32,8 @@ namespace ns3 {
  * connects to a collection of trace sources in the OpenFlow switch device to
  * monitor the following metrics:
  *  -# Packets per second sent to the pipeline;
- *  -# Packets per second dropped by meter bands;
  *  -# Kbits per second of data processed by the pipeline;
+ *  -# Packets per second dropped by meter bands;
  *  -# Flow-mod per second operations executed by the switch;
  *  -# Meter-mod per second operations executed by the switch;
  *  -# Group-mod per second operations executed by the OpenFlow switch;
@@ -71,8 +71,8 @@ public:
    */
   //\{
   double   GetPktsPerSec        (void) const;
-  double   GetDropsPerSec       (void) const;
   double   GetKbitsPerSec       (void) const;
+  double   GetDropsPerSec       (void) const;
   double   GetFlowModsPerSec    (void) const;
   double   GetMeterModsPerSec   (void) const;
   double   GetGroupModsPerSec   (void) const;
