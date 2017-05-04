@@ -56,7 +56,7 @@ OFSwitch13Device::GetTypeId (void)
     .AddAttribute ("PipelineCapacity",
                    "Pipeline processing capacity in terms of throughput.",
                    DataRateValue (DataRate ("100Gb/s")),
-                   MakeDataRateAccessor (&OFSwitch13Device::m_prlDataRate),
+                   MakeDataRateAccessor (&OFSwitch13Device::m_pipeCapacity),
                    MakeDataRateChecker ())
     .AddAttribute ("PortList",
                    "The list of ports associated to this switch.",
@@ -290,7 +290,7 @@ OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
 
   // Check the packet for conformance to the pipeline capacity.
   uint32_t pktSizeBits = packet->GetSize () * 8;
-  if (m_prlTokens < pktSizeBits)
+  if (m_rlTokens < pktSizeBits)
     {
       // The packet will be discarded.
       NS_LOG_DEBUG ("Discarding packet due to pipeline processing capacity.");
@@ -298,7 +298,7 @@ OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
     }
 
   // Consume tokens and send the packet to the pipeline.
-  m_prlTokens -= pktSizeBits;
+  m_rlTokens -= pktSizeBits;
   Simulator::Schedule (m_pipelineDelay, &OFSwitch13Device::SendToPipeline,
                        this, packet, portNo, tunnelId);
 }
@@ -609,10 +609,10 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
 
   // Refill the pipeline bucket with tokens based on elapsed time. The bucket
   // capacity is set to the number of tokens for an entire second.
-  Time elapsedTime = Simulator::Now () - m_lastTimeout;
-  uint32_t addTokens = m_prlDataRate.GetBitRate () * elapsedTime.GetSeconds ();
-  uint32_t maxTokens = m_prlDataRate.GetBitRate ();
-  m_prlTokens = std::min (m_prlTokens + addTokens, maxTokens);
+  Time elapTime = Simulator::Now () - m_lastTimeout;
+  uint64_t addTokens = m_pipeCapacity.GetBitRate () * elapTime.GetSeconds ();
+  uint64_t maxTokens = m_pipeCapacity.GetBitRate ();
+  m_rlTokens = std::min (m_rlTokens + addTokens, maxTokens);
 
   dp->last_timeout = time_now ();
   m_lastTimeout = Simulator::Now ();
