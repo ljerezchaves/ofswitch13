@@ -420,18 +420,18 @@ to a collection of trace sources in the switch device and periodically dumps
 the following datapath metrics on the output file:
 
 #. Packets per second sent to the pipeline;
-#. Packets per second dropped by meter bands;
 #. Kbits per second of data processed by the pipeline;
+#. Packets per second dropped by meter bands;
 #. Flow-mod per second operations executed by the switch;
 #. Meter-mod per second operations executed by the switch;
-#. Group-mod per second operations executed by the OpenFlow switch;
+#. Group-mod per second operations executed by the switch;
 #. Packets-in per second sent from the switch to the controller;
 #. Packets-out per second sent from the controller to the switch;
 #. Average switch buffer space usage (percent);
 #. Average number of flow entries in pipeline tables;
 #. Average number of meter entries in meter table;
 #. Average number of group entries in group table;
-#. Average pipeline lookup delay for packet processing (nanoseconds).
+#. Average pipeline lookup delay for packet processing (microseconds).
 
 To enable performance monitoring, just call the ``EnableDatapathStats()``
 helper member function *after* configuring the switches and creating the
