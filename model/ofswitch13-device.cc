@@ -605,7 +605,7 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
   // m_tcamDelay set to the time for a single TCAM operation, and 'n' is the
   // current number of entries on all flow tables.
   m_pipelineDelay = m_tcamDelay;
-  if (m_flowEntries >= 1)
+  if (m_flowEntries > 1U)
     {
       m_pipelineDelay = m_tcamDelay * (int64_t)ceil (log2 (m_flowEntries));
     }
