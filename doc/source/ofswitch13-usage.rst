@@ -32,7 +32,7 @@ Before starting, install the following packages on your system:
 .. code-block:: bash
 
   $ sudo apt-get install build-essential gcc g++ python git mercurial unzip cmake
-  $ sudo apt-get install libpcap-dev libxerces-c2-dev libpcre3-dev flex bison
+  $ sudo apt-get install libpcap-dev libxerces-c-dev libpcre3-dev flex bison
   $ sudo apt-get install pkg-config autoconf libtool libboost-dev
 
 First, it is necessary to compile the |ofslib| as a static library. The
