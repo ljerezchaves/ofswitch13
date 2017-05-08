@@ -53,15 +53,16 @@ OFSwitch13Port::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_netDev = 0;
-  m_openflowDev = 0;
-
-  // Calling Dispose on internal port, so it can use m_swPort pointer to free
-  // internal strucutures first.
   m_portQueue->Dispose ();
-  ofl_structs_free_port (m_swPort->conf);
-  free (m_swPort->stats);
+  if (m_swPort)
+    {
+      ofl_structs_free_port (m_swPort->conf);
+      free (m_swPort->stats);
+    }
+
   m_swPort = 0;
+  m_openflowDev = 0;
+  m_netDev = 0;
 }
 
 TypeId
