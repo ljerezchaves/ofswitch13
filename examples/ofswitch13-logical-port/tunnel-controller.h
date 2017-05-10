@@ -71,7 +71,7 @@ protected:
 
   // Inherited from OFSwitch13Controller
   void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
-  
+
   /**
    * Handle a packet in message sent by the switch to this controller.
    * \note Inherited from OFSwitch13Controller.
