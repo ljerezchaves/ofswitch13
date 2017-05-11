@@ -162,7 +162,9 @@ public:
   uint64_t GetFlowModCounter    (void) const;
   uint32_t GetFlowTableSize     (void) const;
   uint64_t GetGroupModCounter   (void) const;
+  uint64_t GetGroupTableSize    (void) const;
   uint64_t GetMeterModCounter   (void) const;
+  uint64_t GetMeterTableSize    (void) const;
   uint32_t GetNFlowEntries      (void) const;
   uint32_t GetNFlowEntries      (size_t tableId) const;
   uint32_t GetNGroupEntries     (void) const;
@@ -584,7 +586,9 @@ private:
   struct datapath*  m_datapath;     //!< The OpenFlow datapath.
   PortList_t        m_ports;        //!< List of switch ports.
   CtrlList_t        m_controllers;  //!< Collection of active controllers.
-  uint32_t          m_fTableSize;   //!< Flow table maximum entries.
+  uint32_t          m_flowTabSize;  //!< Flow table maximum entries.
+  uint32_t          m_groupTabSize; //!< Group table maximum entries.
+  uint32_t          m_meterTabSize; //!< Meter table maximum entries.
   IdPacketMap_t     m_bufferPkts;   //!< Packets saved in switch buffer.
   uint32_t          m_bufferSize;   //!< Buffer size in terms of packets.
   PipelinePacket    m_pipePkt;      //!< Packet under switch pipeline.

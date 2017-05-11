@@ -57,8 +57,20 @@ OFSwitch13Device::GetTypeId (void)
                    "The maximum number of entries allowed on each flow table.",
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    UintegerValue (FLOW_TABLE_MAX_ENTRIES),
-                   MakeUintegerAccessor (&OFSwitch13Device::m_fTableSize),
+                   MakeUintegerAccessor (&OFSwitch13Device::m_flowTabSize),
                    MakeUintegerChecker<uint32_t> (0, FLOW_TABLE_MAX_ENTRIES))
+    .AddAttribute ("GroupTableSize",
+                   "The maximum number of entries allowed on group table.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                   UintegerValue (GROUP_TABLE_MAX_ENTRIES),
+                   MakeUintegerAccessor (&OFSwitch13Device::m_groupTabSize),
+                   MakeUintegerChecker<uint32_t> ())
+    .AddAttribute ("MeterTableSize",
+                   "The maximum number of entries allowed on meter table.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                   UintegerValue (METER_TABLE_MAX_ENTRIES),
+                   MakeUintegerAccessor (&OFSwitch13Device::m_meterTabSize),
+                   MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("PipelineCapacity",
                    "Pipeline processing capacity in terms of throughput.",
                    DataRateValue (DataRate ("100Gb/s")),
@@ -196,7 +208,7 @@ OFSwitch13Device::GetFlowModCounter (void) const
 uint32_t
 OFSwitch13Device::GetFlowTableSize (void) const
 {
-  return m_fTableSize;
+  return m_flowTabSize;
 }
 
 uint64_t
@@ -206,9 +218,21 @@ OFSwitch13Device::GetGroupModCounter (void) const
 }
 
 uint64_t
+OFSwitch13Device::GetGroupTableSize (void) const
+{
+  return m_groupTabSize;
+}
+
+uint64_t
 OFSwitch13Device::GetMeterModCounter (void) const
 {
   return m_cMeterMod;
+}
+
+uint64_t
+OFSwitch13Device::GetMeterTableSize (void) const
+{
+  return m_meterTabSize;
 }
 
 uint32_t
@@ -600,12 +624,16 @@ OFSwitch13Device::DatapathNew ()
 
   m_bufferSize = dp_buffers_size (dp->buffers);
 
-  // Adjust the flow table sizes.
+  // Adjust table sizes based on attribute values.
   for (size_t i = 0; i < PIPELINE_TABLES; i++)
     {
-      struct flow_table *table = dp->pipeline->tables [i];
-      table->features->max_entries = m_fTableSize;
+      dp->pipeline->tables [i]->features->max_entries = m_flowTabSize;
     }
+  for (size_t i = 0; i < 4; i++)
+    {
+      dp->groups->features->max_groups [i] = m_groupTabSize;
+    }
+  dp->meters->features->max_meter = m_meterTabSize;
 
   list_init (&dp->port_list);
   dp->ports_num = 0;

@@ -345,8 +345,11 @@ OFSwitch13Device
   pipeline. At each internal, the device checks if any flow in any table is
   timed out and update port status.
 
-* ``FlowTableSize``: The maximum number of flow entries allowed on each
-  pipeline flow table.
+* ``FlowTableSize``: The maximum number of entries allowed on each flow table.
+
+* ``GroupTableSize``: The maximum number of entries allowed on group table.
+
+* ``MeterTableSize``: The maximum number of entries allowed on meter table.
 
 * ``PipelineCapacity``: The data rate used to model the pipeline processing
   capacity in terms of throughput. Packets exceeding the capacity will be
