@@ -368,8 +368,7 @@ OFSwitch13Queue
 
 * ``QueueList``: The list of internal queues associated to this port queue.
 
-* ``Scheduling``: The output queue scheduling algorithm. Currently, only the
-  priority algorithm is available.
+* ``NumQueues``: The number of internal queues associated to this port queue.
 
 OFSwitch13Helper
 ################

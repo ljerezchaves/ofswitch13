@@ -40,7 +40,12 @@ OFSwitch13Queue::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::OFSwitch13Queue")
     .SetParent<Queue> ()
     .SetGroupName ("OFSwitch13")
-    .AddConstructor<OFSwitch13Queue> ()
+    .AddAttribute ("NumQueues",
+                   "The number of internal queues available on this queue.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                   UintegerValue (NETDEV_MAX_QUEUES),
+                   MakeUintegerAccessor (&OFSwitch13Queue::m_intQueues),
+                   MakeUintegerChecker<uint32_t> (1, NETDEV_MAX_QUEUES))
     .AddAttribute ("QueueList",
                    "The list of internal queues available to the port.",
                    ObjectVectorValue (),
@@ -48,13 +53,6 @@ OFSwitch13Queue::GetTypeId (void)
                    MakeObjectVectorChecker<Queue> ())
   ;
   return tid;
-}
-
-OFSwitch13Queue::OFSwitch13Queue ()
-  : Queue (),
-    m_swPort (0)
-{
-  NS_LOG_FUNCTION (this);
 }
 
 OFSwitch13Queue::OFSwitch13Queue (struct sw_port *port)
@@ -69,10 +67,10 @@ OFSwitch13Queue::~OFSwitch13Queue ()
   NS_LOG_FUNCTION (this);
 }
 
-uint16_t
+uint32_t
 OFSwitch13Queue::GetNQueues (void) const
 {
-  return m_queues.size ();
+  return m_intQueues;
 }
 
 void
@@ -114,11 +112,12 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
 
   // Adding internal queues. It will create the maximum number of queues
   // allowed to this port, even if they are not used.
-  for (uint32_t i = 0; i < NETDEV_MAX_QUEUES; i++)
+  for (uint32_t i = 0; i < GetNQueues (); i++)
     {
       AddQueue (queueFactory.Create<Queue> ());
     }
 
+  // Chain up.
   Queue::NotifyConstructionCompleted ();
 }
 
@@ -191,7 +190,6 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
 
   NS_ASSERT_MSG (queue, "Invalid queue pointer.");
   NS_ASSERT_MSG (m_swPort, "Invalid OpenFlow port metadata.");
-  NS_ASSERT_MSG (GetNQueues () < NETDEV_MAX_QUEUES, "No more queues available.");
 
   uint32_t queueId = (m_swPort->num_queues)++;
   struct sw_queue *swQueue = &(m_swPort->queues[queueId]);

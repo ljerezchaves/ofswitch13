@@ -38,11 +38,11 @@ namespace ns3 {
  * be treated according to that queue's configuration. Queue configuration
  * takes place outside the OpenFlow protocol. This class implements the queue
  * interface, extending the ns3::Queue class to allow compatibility with the
- * CsmaNetDevice used by OFSwitch13Port. Internally, it holds a collection of 8
- * (NETDEV_MAX_QUEUES) priority queues, indentified by ids ranging from 0 to 7
- * in increasing priority. The ns3::QueueTag is used to identify which internal
- * queue will hold the packet, and the priority algorithms decides from which
- * queue get the packets to send over the wire.
+ * CsmaNetDevice used by OFSwitch13Port. Internally, it holds a collection of N
+ * priority queues, indentified by ids ranging from 0 to N in increasing
+ * priority. The ns3::QueueTag is used to identify which internal queue will
+ * hold the packet, and the priority algorithms decides from which queue get
+ * the packets to send over the wire.
  */
 class OFSwitch13Queue : public Queue
 {
@@ -53,31 +53,29 @@ public:
    */
   static TypeId GetTypeId (void);
 
-  OFSwitch13Queue ();           //!< Default constructor
-  virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
-
   /**
-   * Complete constructor, including the pointer to the ofsoftswitch13 internal
-   * port structure.
-   * \param port The ofsoftswitch13 port structure
+   * Complete constructor.
+   * \param port The the pointer to the ofsoftswitch13 internal port
+   *        structure.
    */
   OFSwitch13Queue (struct sw_port *port);
+  virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
 
   /**
    * Get the current number of queues.
    * \return The current number of queues.
    */
-  uint16_t GetNQueues (void) const;
+  uint32_t GetNQueues (void) const;
 
 protected:
-  /** Destructor implementation */
+  /** Destructor implementation. */
   virtual void DoDispose ();
 
-  // Inherited from ObjectBase
+  // Inherited from ObjectBase.
   virtual void NotifyConstructionCompleted (void);
 
 private:
-  // Inherited from Queue
+  // Inherited from Queue.
   virtual bool DoEnqueue (Ptr<QueueItem> item);
   virtual Ptr<QueueItem> DoDequeue (void);
   virtual Ptr<QueueItem> DoRemove (void);
@@ -94,20 +92,19 @@ private:
    * Get a pointer to internal queue with specific id.
    * \param queueId The queue id.
    * \return The queue pointer.
-   * \internal
-   * This function is marked as const to allow its usage inside DoPeek ()
-   * member function.
+   * \internal This function is marked as const to allow its usage inside
+   *           DoPeek () member function.
    */
   Ptr<Queue> GetQueue (uint32_t queueId) const;
 
   /**
    * Return the queue id that will be used by DoPeek, DoDequeue, and DoRemove
    * functions based on priority output algorithm.
-   * \internal
-   * This function has to keep consistence in its queue decision despite
-   * arbitrary calls from peek and dequeue functions. When a peek operation is
-   * performed, a output queue must be selected and has to remain the same
-   * until the packet is effectively dequeued or removed from it.
+   * \internal This function has to keep consistence in its queue decision
+   *           despite arbitrary calls from peek and dequeue functions. When a
+   *           peek operation is performed, a output queue must be selected and
+   *           has to remain the same until the packet is effectively dequeued
+   *           or removed from it.
    * \param peekLock Get the output queue and lock it.
    * \return The queue id.
    */
@@ -116,8 +113,9 @@ private:
   /** Structure to save the list of internal queues in this port queue. */
   typedef std::vector<Ptr<Queue> > QueueList_t;
 
-  struct sw_port*       m_swPort;     //!< ofsoftswitch13 struct sw_port
-  QueueList_t           m_queues;     //!< Sorted list of available queues
+  struct sw_port*       m_swPort;     //!< ofsoftswitch13 struct sw_port.
+  uint32_t              m_intQueues;  //!< The number of internal queues.
+  QueueList_t           m_queues;     //!< Sorted list of available queues.
 };
 
 } // namespace ns3

@@ -145,7 +145,7 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
 
   // Creating the OFSwitch13Queue for this switch port
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
-  m_swPort->max_queues = NETDEV_MAX_QUEUES;
+  m_swPort->max_queues = dp->max_queues;
   m_swPort->num_queues = 0;
   m_portQueue = CreateObject<OFSwitch13Queue> (m_swPort);
   if (csmaDev)

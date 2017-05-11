@@ -40,7 +40,7 @@ class OFSwitch13Device;
  * the ofsoftswitch13 internal sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
  * \attention Each underlying NetDevice used as port must only be assigned
- * a Mac Address. Adding an Ipv4 or Ipv6 layer to it may cause an error.
+ *            a MAC Address. Adding an Ipv4/IPv6 layer to it may cause error.
  */
 class OFSwitch13Port : public Object
 {
@@ -126,11 +126,11 @@ private:
   /** Trace source fired when a packet will be sent over this switch port. */
   TracedCallback<Ptr<const Packet> > m_txTrace;
 
-  uint32_t                  m_portNo;       //!< Port number
-  struct sw_port*           m_swPort;       //!< ofsoftswitch13 struct sw_port
-  Ptr<NetDevice>            m_netDev;       //!< Underlying NetDevice
-  Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue
-  Ptr<OFSwitch13Device>     m_openflowDev;  //!< OpenFlow device
+  uint32_t                  m_portNo;       //!< Port number.
+  struct sw_port*           m_swPort;       //!< ofsoftswitch13 struct sw_port.
+  Ptr<NetDevice>            m_netDev;       //!< Underlying NetDevice.
+  Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue.
+  Ptr<OFSwitch13Device>     m_openflowDev;  //!< OpenFlow device.
 };
 
 } // namespace ns3
