@@ -53,6 +53,12 @@ OFSwitch13Device::GetTypeId (void)
                    TimeValue (MilliSeconds (100)),
                    MakeTimeAccessor (&OFSwitch13Device::m_timeout),
                    MakeTimeChecker ())
+    .AddAttribute ("FlowTableSize",
+                   "The maximum number of entries allowed on each flow table.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                   UintegerValue (FLOW_TABLE_MAX_ENTRIES),
+                   MakeUintegerAccessor (&OFSwitch13Device::m_fTableSize),
+                   MakeUintegerChecker<uint32_t> (0, FLOW_TABLE_MAX_ENTRIES))
     .AddAttribute ("PipelineCapacity",
                    "Pipeline processing capacity in terms of throughput.",
                    DataRateValue (DataRate ("100Gb/s")),
@@ -150,8 +156,6 @@ OFSwitch13Device::OFSwitch13Device ()
 
   NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
   m_dpId = ++m_globalDpId;
-  m_datapath = DatapathNew ();
-  OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
 }
 
 OFSwitch13Device::~OFSwitch13Device ()
@@ -187,6 +191,12 @@ uint64_t
 OFSwitch13Device::GetFlowModCounter (void) const
 {
   return m_cFlowMod;
+}
+
+uint32_t
+OFSwitch13Device::GetFlowTableSize (void) const
+{
+  return m_fTableSize;
 }
 
 uint64_t
@@ -539,7 +549,13 @@ OFSwitch13Device::NotifyConstructionCompleted ()
 {
   NS_LOG_FUNCTION (this);
 
-  OFSwitch13Device::DatapathTimeout (m_datapath);
+  // Create the datapath.
+  m_datapath = DatapathNew ();
+  DatapathTimeout (m_datapath);
+  OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
+
+  // Chain up.
+  Object::NotifyConstructionCompleted ();
 }
 
 /********** Private methods **********/
@@ -583,6 +599,13 @@ OFSwitch13Device::DatapathNew ()
   dp->meters = meter_table_create (dp);
 
   m_bufferSize = dp_buffers_size (dp->buffers);
+
+  // Adjust the flow table sizes.
+  for (size_t i = 0; i < PIPELINE_TABLES; i++)
+    {
+      struct flow_table *table = dp->pipeline->tables [i];
+      table->features->max_entries = m_fTableSize;
+    }
 
   list_init (&dp->port_list);
   dp->ports_num = 0;

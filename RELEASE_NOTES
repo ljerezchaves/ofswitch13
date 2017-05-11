@@ -20,6 +20,9 @@ Release 3.1.0 (XXXXXXXXXXXXXXXXX)
 - Including the OFSwitch13Queue::NumQueues attribute allowing users to define
   the number of output queues available for use.
 
+- Including the OFSwitch13Device::FlowTableSize attribute allowing users to
+  define the maximum number of flow entries on pipeline flow tables.
+
 - Adjust the size of queue interface to avoid dropping packets when we still
   have space on internal queues.
 
