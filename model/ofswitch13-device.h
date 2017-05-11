@@ -155,22 +155,24 @@ public:
    * \return The requested value.
    */
   //\{
-  uint64_t GetDatapathId        (void) const;
-  Time     GetPipelineDelay     (void) const;
   double   GetBufferUsage       (void) const;
-  uint32_t GetPacketCounter     (void) const;
-  uint32_t GetByteCounter       (void) const;
-  uint32_t GetDropCounter       (void) const;
-  uint32_t GetFlowModCounter    (void) const;
-  uint32_t GetMeterModCounter   (void) const;
-  uint32_t GetGroupModCounter   (void) const;
-  uint32_t GetPacketInCounter   (void) const;
-  uint32_t GetPacketOutCounter  (void) const;
-  uint32_t GetNSwitchPorts      (void) const;
-  uint32_t GetNMeterEntries     (void) const;
-  uint32_t GetNGroupEntries     (void) const;
+  uint64_t GetByteCounter       (void) const;
+  uint64_t GetDatapathId        (void) const;
+  uint64_t GetDropCounter       (void) const;
+  uint64_t GetFlowModCounter    (void) const;
+  uint64_t GetGroupModCounter   (void) const;
+  uint64_t GetMeterModCounter   (void) const;
   uint32_t GetNFlowEntries      (void) const;
   uint32_t GetNFlowEntries      (size_t tableId) const;
+  uint32_t GetNGroupEntries     (void) const;
+  uint32_t GetNMeterEntries     (void) const;
+  uint32_t GetNSwitchPorts      (void) const;
+  uint64_t GetPacketCounter     (void) const;
+  uint64_t GetPacketInCounter   (void) const;
+  uint64_t GetPacketOutCounter  (void) const;
+  Time     GetPipelineDelay     (void) const;
+  DataRate GetPipelineCapacity  (void) const;
+  DataRate GetPipelineLoad      (void) const;
   //\}
 
   /**
@@ -540,11 +542,8 @@ private:
   /** Structure to save packets, indexed by its id. */
   typedef std::map<uint64_t, Ptr<Packet> > IdPacketMap_t;
 
-  /** Trace source fired when a packet is sent to pipeline. */
-  TracedCallback<Ptr<const Packet> > m_pipelinePacketTrace;
-
-  /** Trace source fired when a packet is dropped by a meter band. */
-  TracedCallback<Ptr<const Packet>, uint32_t> m_meterDropTrace;
+  /** Trace source fired when a packet in buffer expires. */
+  TracedCallback<Ptr<const Packet> > m_bufferExpireTrace;
 
   /** Trace source fired when a packet is saved into buffer. */
   TracedCallback<Ptr<const Packet> > m_bufferSaveTrace;
@@ -552,37 +551,29 @@ private:
   /** Trace source fired when a packet is retrieved from buffer. */
   TracedCallback<Ptr<const Packet> > m_bufferRetrieveTrace;
 
-  /** Trace source fired when a packet in buffer expires. */
-  TracedCallback<Ptr<const Packet> > m_bufferExpireTrace;
+  /** Trace source fired when a packet is dropped by a meter band. */
+  TracedCallback<Ptr<const Packet>, uint32_t> m_meterDropTrace;
 
-  /** Average pipeline delay for packet processing. */
-  TracedValue<Time> m_pipelineDelay;
+  /** Trace source fired when a packet is sent to pipeline. */
+  TracedCallback<Ptr<const Packet> > m_pipePacketTrace;
 
   /** Buffer space usage in terms of packets. */
   TracedValue<double> m_bufferUsage;
 
-  /** Number of entries in pipeline flow tables. */
+  /** Number of entries in all flow tables. */
   TracedValue<uint32_t> m_flowEntries;
-
-  /** Number of entries in meter table. */
-  TracedValue<uint32_t> m_meterEntries;
 
   /** Number of entries in group table. */
   TracedValue<uint32_t> m_groupEntries;
 
-  /**
-   * \name Internal counters for datapath statistics.
-   */
-  //\{
-  uint32_t  m_packetCounter;
-  uint32_t  m_byteCounter;
-  uint32_t  m_dropCounter;
-  uint32_t  m_flowModCounter;
-  uint32_t  m_meterModCounter;
-  uint32_t  m_groupModCounter;
-  uint32_t  m_packetInCounter;
-  uint32_t  m_packetOutCounter;
-  //\}
+  /** Number of entries in meter table. */
+  TracedValue<uint32_t> m_meterEntries;
+
+  /** Average pipeline delay for packet processing. */
+  TracedValue<Time> m_pipeDelay;
+
+  /** Average pipeline load in terms of throughput. */
+  TracedValue<DataRate> m_pipeLoad;
 
   uint64_t          m_dpId;         //!< This datapath id.
   Time              m_timeout;      //!< Datapath timeout interval.
@@ -590,13 +581,22 @@ private:
   Time              m_tcamDelay;    //!< Flow Table TCAM lookup delay.
   std::string       m_libLog;       //!< The ofsoftswitch13 library log level.
   struct datapath*  m_datapath;     //!< The OpenFlow datapath.
-  PipelinePacket    m_pktPipe;      //!< Packet under switch pipeline.
   PortList_t        m_ports;        //!< List of switch ports.
   CtrlList_t        m_controllers;  //!< Collection of active controllers.
-  IdPacketMap_t     m_pktsBuffer;   //!< Packets saved in switch buffer.
+  IdPacketMap_t     m_bufferPkts;   //!< Packets saved in switch buffer.
   uint32_t          m_bufferSize;   //!< Buffer size in terms of packets.
+  PipelinePacket    m_pipePkt;      //!< Packet under switch pipeline.
   DataRate          m_pipeCapacity; //!< Pipeline throughput capacity.
-  uint64_t          m_rlTokens;     //!< Pipeline rate limiter tokens.
+  uint64_t          m_pipeTokens;   //!< Pipeline capacity available tokens.
+  uint64_t          m_pipeConsumed; //!< Pipeline capacity consumed tokens.
+  uint64_t          m_cPacket;      //!< Pipeline packet counter.
+  uint64_t          m_cByte;        //!< Pipeline byte counter.
+  uint64_t          m_cDrop;        //!< Pipeline meter drop counter.
+  uint64_t          m_cFlowMod;     //!< Pipeline flow mod counter.
+  uint64_t          m_cMeterMod;    //!< Pipeline meter mod counter.
+  uint64_t          m_cGroupMod;    //!< Pipeline group mod counter.
+  uint64_t          m_cPacketIn;    //!< Pipeline packet in counter.
+  uint64_t          m_cPacketOut;   //!< Pipeline packet out counter.
 
   static uint64_t   m_globalDpId;   //!< Global counter for datapath IDs.
   static uint64_t   m_globalPktId;  //!< Global counter for packets IDs.

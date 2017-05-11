@@ -130,7 +130,7 @@ OFSwitch13StatsCalculator::GetPktsPerSec (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t packets = m_packetCounter - m_lastPacketCounter;
+  uint64_t packets = m_packetCounter - m_lastPacketCounter;
   return (double)packets / GetElapsedSeconds ();
 }
 
@@ -139,7 +139,7 @@ OFSwitch13StatsCalculator::GetKbitsPerSec (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t bytes = m_byteCounter - m_lastByteCounter;
+  uint64_t bytes = m_byteCounter - m_lastByteCounter;
   return (double)bytes * 8 / 1000 / GetElapsedSeconds ();
 }
 
@@ -148,7 +148,7 @@ OFSwitch13StatsCalculator::GetDropsPerSec (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t drops = m_dropCounter - m_lastDropCounter;
+  uint64_t drops = m_dropCounter - m_lastDropCounter;
   return (double)drops / GetElapsedSeconds ();
 }
 
@@ -157,7 +157,7 @@ OFSwitch13StatsCalculator::GetFlowModsPerSec (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t mods = m_flowModCounter - m_lastFlowModCounter;
+  uint64_t mods = m_flowModCounter - m_lastFlowModCounter;
   return (double)mods / GetElapsedSeconds ();
 }
 
@@ -166,7 +166,7 @@ OFSwitch13StatsCalculator::GetMeterModsPerSec (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t mods = m_meterModCounter - m_lastMeterModCounter;
+  uint64_t mods = m_meterModCounter - m_lastMeterModCounter;
   return (double)mods / GetElapsedSeconds ();
 }
 
@@ -175,7 +175,7 @@ OFSwitch13StatsCalculator::GetGroupModsPerSec (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t mods = m_groupModCounter - m_lastGroupModCounter;
+  uint64_t mods = m_groupModCounter - m_lastGroupModCounter;
   return (double)mods / GetElapsedSeconds ();
 }
 
@@ -184,7 +184,7 @@ OFSwitch13StatsCalculator::GetPktsInPerSec (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t packets = m_packetInCounter - m_lastPacketInCounter;
+  uint64_t packets = m_packetInCounter - m_lastPacketInCounter;
   return (double)packets / GetElapsedSeconds ();
 }
 
@@ -193,7 +193,7 @@ OFSwitch13StatsCalculator::GetPktsOutPerSec (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t packets = m_packetOutCounter - m_lastPacketOutCounter;
+  uint64_t packets = m_packetOutCounter - m_lastPacketOutCounter;
   return (double)packets / GetElapsedSeconds ();
 }
 

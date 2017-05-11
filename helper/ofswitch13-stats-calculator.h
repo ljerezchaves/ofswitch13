@@ -134,23 +134,23 @@ private:
   double    m_avgMeterEntries;
   double    m_avgGroupEntries;
 
-  uint32_t  m_packetCounter;
-  uint32_t  m_byteCounter;
-  uint32_t  m_dropCounter;
-  uint32_t  m_flowModCounter;
-  uint32_t  m_meterModCounter;
-  uint32_t  m_groupModCounter;
-  uint32_t  m_packetInCounter;
-  uint32_t  m_packetOutCounter;
+  uint64_t  m_packetCounter;
+  uint64_t  m_byteCounter;
+  uint64_t  m_dropCounter;
+  uint64_t  m_flowModCounter;
+  uint64_t  m_meterModCounter;
+  uint64_t  m_groupModCounter;
+  uint64_t  m_packetInCounter;
+  uint64_t  m_packetOutCounter;
 
-  uint32_t  m_lastPacketCounter;
-  uint32_t  m_lastByteCounter;
-  uint32_t  m_lastDropCounter;
-  uint32_t  m_lastFlowModCounter;
-  uint32_t  m_lastMeterModCounter;
-  uint32_t  m_lastGroupModCounter;
-  uint32_t  m_lastPacketInCounter;
-  uint32_t  m_lastPacketOutCounter;
+  uint64_t  m_lastPacketCounter;
+  uint64_t  m_lastByteCounter;
+  uint64_t  m_lastDropCounter;
+  uint64_t  m_lastFlowModCounter;
+  uint64_t  m_lastMeterModCounter;
+  uint64_t  m_lastGroupModCounter;
+  uint64_t  m_lastPacketInCounter;
+  uint64_t  m_lastPacketOutCounter;
   //\}
 };
 

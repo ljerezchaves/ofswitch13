@@ -92,17 +92,18 @@ OFSwitch13Device::GetTypeId (void)
     .AddTraceSource ("PipelinePacket",
                      "Trace source indicating a packet sent to pipeline.",
                      MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_pipelinePacketTrace),
+                       &OFSwitch13Device::m_pipePacketTrace),
                      "ns3::Packet::TracedCallback")
 
     .AddTraceSource ("BufferUsage",
-                     "Traced value indicating the buffer space usage.",
+                     "Traced value indicating the buffer space usage "
+                     "(periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_bufferUsage),
                      "ns3::TracedValueCallback::Double")
     .AddTraceSource ("FlowEntries",
-                     "Traced value indicating the number of flow entries "
-                     "(periodically updated on datapath timeout operation).",
+                     "Traced value indicating the total number of flow entries"
+                     " (periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_flowEntries),
                      "ns3::TracedValueCallback::Uint32")
@@ -119,24 +120,31 @@ OFSwitch13Device::GetTypeId (void)
                        &OFSwitch13Device::m_meterEntries),
                      "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("PipelineDelay",
-                     "Traced value indicating the avg pipeline lookup delay "
+                     "Traced value indicating the avg. pipeline lookup delay "
                      "(periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_pipelineDelay),
+                       &OFSwitch13Device::m_pipeDelay),
                      "ns3::TracedValueCallback::Time")
+    .AddTraceSource ("PipelineLoad",
+                     "Traced value indicating the avg. pipeline load "
+                     "(periodically updated on datapath timeout operation).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_pipeLoad),
+                     "ns3::TracedValueCallback::DataRate")
   ;
   return tid;
 }
 
 OFSwitch13Device::OFSwitch13Device ()
-  : m_packetCounter (0),
-    m_byteCounter (0),
-    m_dropCounter (0),
-    m_flowModCounter (0),
-    m_meterModCounter (0),
-    m_groupModCounter (0),
-    m_packetInCounter (0),
-    m_packetOutCounter (0)
+  : m_pipeConsumed (0),
+    m_cPacket (0),
+    m_cByte (0),
+    m_cDrop (0),
+    m_cFlowMod (0),
+    m_cMeterMod (0),
+    m_cGroupMod (0),
+    m_cPacketIn (0),
+    m_cPacketOut (0)
 {
   NS_LOG_FUNCTION (this);
 
@@ -151,88 +159,46 @@ OFSwitch13Device::~OFSwitch13Device ()
   NS_LOG_FUNCTION (this);
 }
 
-uint64_t
-OFSwitch13Device::GetDatapathId (void) const
-{
-  return m_dpId;
-}
-
-Time
-OFSwitch13Device::GetPipelineDelay (void) const
-{
-  return m_pipelineDelay;
-}
-
 double
 OFSwitch13Device::GetBufferUsage (void) const
 {
   return m_bufferUsage;
 }
 
-uint32_t
-OFSwitch13Device::GetPacketCounter (void) const
-{
-  return m_packetCounter;
-}
-
-uint32_t
+uint64_t
 OFSwitch13Device::GetByteCounter (void) const
 {
-  return m_byteCounter;
+  return m_cByte;
 }
 
-uint32_t
+uint64_t
+OFSwitch13Device::GetDatapathId (void) const
+{
+  return m_dpId;
+}
+
+uint64_t
 OFSwitch13Device::GetDropCounter (void) const
 {
-  return m_dropCounter;
+  return m_cDrop;
 }
 
-uint32_t
+uint64_t
 OFSwitch13Device::GetFlowModCounter (void) const
 {
-  return m_flowModCounter;
+  return m_cFlowMod;
 }
 
-uint32_t
-OFSwitch13Device::GetMeterModCounter (void) const
-{
-  return m_meterModCounter;
-}
-
-uint32_t
+uint64_t
 OFSwitch13Device::GetGroupModCounter (void) const
 {
-  return m_groupModCounter;
+  return m_cGroupMod;
 }
 
-uint32_t
-OFSwitch13Device::GetPacketInCounter (void) const
+uint64_t
+OFSwitch13Device::GetMeterModCounter (void) const
 {
-  return m_packetInCounter;
-}
-
-uint32_t
-OFSwitch13Device::GetPacketOutCounter (void) const
-{
-  return m_packetOutCounter;
-}
-
-uint32_t
-OFSwitch13Device::GetNSwitchPorts (void) const
-{
-  return m_datapath->ports_num;
-}
-
-uint32_t
-OFSwitch13Device::GetNMeterEntries (void) const
-{
-  return m_datapath->meters->entries_num;
-}
-
-uint32_t
-OFSwitch13Device::GetNGroupEntries (void) const
-{
-  return m_datapath->groups->entries_num;
+  return m_cMeterMod;
 }
 
 uint32_t
@@ -258,6 +224,60 @@ OFSwitch13Device::GetNFlowEntries (size_t tableId) const
       entries = table->stats->active_count;
     }
   return entries;
+}
+
+uint32_t
+OFSwitch13Device::GetNGroupEntries (void) const
+{
+  return m_datapath->groups->entries_num;
+}
+
+uint32_t
+OFSwitch13Device::GetNMeterEntries (void) const
+{
+  return m_datapath->meters->entries_num;
+}
+
+uint32_t
+OFSwitch13Device::GetNSwitchPorts (void) const
+{
+  return m_datapath->ports_num;
+}
+
+uint64_t
+OFSwitch13Device::GetPacketCounter (void) const
+{
+  return m_cPacket;
+}
+
+uint64_t
+OFSwitch13Device::GetPacketInCounter (void) const
+{
+  return m_cPacketIn;
+}
+
+uint64_t
+OFSwitch13Device::GetPacketOutCounter (void) const
+{
+  return m_cPacketOut;
+}
+
+Time
+OFSwitch13Device::GetPipelineDelay (void) const
+{
+  return m_pipeDelay;
+}
+
+DataRate
+OFSwitch13Device::GetPipelineCapacity (void) const
+{
+  return m_pipeCapacity;
+}
+
+DataRate
+OFSwitch13Device::GetPipelineLoad (void) const
+{
+  return m_pipeLoad;
 }
 
 Ptr<OFSwitch13Port>
@@ -290,7 +310,7 @@ OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
 
   // Check the packet for conformance to the pipeline capacity.
   uint32_t pktSizeBits = packet->GetSize () * 8;
-  if (m_rlTokens < pktSizeBits)
+  if (m_pipeTokens < pktSizeBits)
     {
       // The packet will be discarded.
       NS_LOG_DEBUG ("Discarding packet due to pipeline processing capacity.");
@@ -298,8 +318,9 @@ OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
     }
 
   // Consume tokens and send the packet to the pipeline.
-  m_rlTokens -= pktSizeBits;
-  Simulator::Schedule (m_pipelineDelay, &OFSwitch13Device::SendToPipeline,
+  m_pipeTokens -= pktSizeBits;
+  m_pipeConsumed += pktSizeBits;
+  Simulator::Schedule (m_pipeDelay, &OFSwitch13Device::SendToPipeline,
                        this, packet, portNo, tunnelId);
 }
 
@@ -502,7 +523,7 @@ OFSwitch13Device::DoDispose ()
       *it = 0;
     }
   m_ports.clear ();
-  m_pktsBuffer.clear ();
+  m_bufferPkts.clear ();
   m_controllers.clear ();
 
   pipeline_destroy (m_datapath->pipeline);
@@ -596,26 +617,32 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
       port->PortUpdateState ();
     }
 
-  // Update entries traced values.
+  // Update traced values.
+  m_bufferUsage = (double)m_bufferPkts.size () / m_bufferSize;
   m_flowEntries = GetNFlowEntries ();
-  m_meterEntries = GetNMeterEntries ();
   m_groupEntries = GetNGroupEntries ();
+  m_meterEntries = GetNMeterEntries ();
 
-  // The average pipeline delay is estimated as k * log (n), where 'k' is the
+  // The pipeline delay is estimated as k * log (n), where 'k' is the
   // m_tcamDelay set to the time for a single TCAM operation, and 'n' is the
   // current number of entries on all flow tables.
-  m_pipelineDelay = m_tcamDelay;
+  m_pipeDelay = m_tcamDelay;
   if (m_flowEntries > 1U)
     {
-      m_pipelineDelay = m_tcamDelay * (int64_t)ceil (log2 (m_flowEntries));
+      m_pipeDelay = m_tcamDelay * (int64_t)ceil (log2 (m_flowEntries));
     }
 
-  // Refill the pipeline bucket with tokens based on elapsed time. The bucket
-  // capacity is set to the number of tokens for an entire second.
+  // The pipeline load is estimated based on the tokens removed from pipeline
+  // bucket since last timeout operation.
+  m_pipeLoad = DataRate (m_pipeConsumed / m_timeout.GetSeconds ());
+  m_pipeConsumed = 0;
+
+  // Refill the pipeline bucket with tokens based on elapsed time
+  // (bucket capacity is set to the number of tokens for an entire second).
   Time elapTime = Simulator::Now () - m_lastTimeout;
   uint64_t addTokens = m_pipeCapacity.GetBitRate () * elapTime.GetSeconds ();
   uint64_t maxTokens = m_pipeCapacity.GetBitRate ();
-  m_rlTokens = std::min (m_rlTokens + addTokens, maxTokens);
+  m_pipeTokens = std::min (m_pipeTokens + addTokens, maxTokens);
 
   dp->last_timeout = time_now ();
   m_lastTimeout = Simulator::Now ();
@@ -665,7 +692,7 @@ OFSwitch13Device::SendPacketInMessage (struct packet *pkt, uint8_t tableId,
   msg.match = (struct ofl_match_header*) &pkt->handle_std->match;
 
   // Increase packet-in counter and send the message.
-  m_packetInCounter++;
+  m_cPacketIn++;
   return dp_send_message (pkt->dp, (struct ofl_msg_header *)&msg, 0);
 }
 
@@ -691,9 +718,9 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
   // than the previous one, but is far more simple than identifying which
   // changes were performed in the packet to modify the original ns3::Packet.
   Ptr<Packet> packet;
-  if (m_pktPipe.IsValid ())
+  if (m_pipePkt.IsValid ())
     {
-      NS_ASSERT_MSG (m_pktPipe.HasId (pkt->ns3_uid), "Invalid packet ID.");
+      NS_ASSERT_MSG (m_pipePkt.HasId (pkt->ns3_uid), "Invalid packet ID.");
       if (pkt->changes)
         {
           // The original ns-3 packet was modified by OpenFlow switch.
@@ -701,12 +728,12 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
           // original packet.
           NS_LOG_DEBUG ("Packet " << pkt->ns3_uid << " modified by switch.");
           packet = ofs::PacketFromBuffer (pkt->buffer);
-          OFSwitch13Device::CopyTags (m_pktPipe.GetPacket (), packet);
+          OFSwitch13Device::CopyTags (m_pipePkt.GetPacket (), packet);
         }
       else
         {
           // Using the original ns-3 packet.
-          packet = m_pktPipe.GetPacket ();
+          packet = m_pipePkt.GetPacket ();
         }
     }
   else
@@ -728,7 +755,7 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
 {
   NS_LOG_FUNCTION (this << packet << portNo << tunnelId);
 
-  NS_ASSERT_MSG (!m_pktPipe.IsValid (), "Another packet in pipeline.");
+  NS_ASSERT_MSG (!m_pipePkt.IsValid (), "Another packet in pipeline.");
 
   // Creating the internal OpenFlow packet structure from ns-3 packet
   // Allocate buffer with some extra space for OpenFlow packet modifications.
@@ -741,12 +768,12 @@ OFSwitch13Device::SendToPipeline (Ptr<Packet> packet, uint32_t portNo,
   // Save the ns-3 packet into pipeline structure. Note that we are using a
   // private packet uid to avoid conflicts with ns3::Packet uid.
   pkt->ns3_uid = OFSwitch13Device::GetNewPacketId ();
-  m_pktPipe.SetPacket (pkt->ns3_uid, packet);
+  m_pipePkt.SetPacket (pkt->ns3_uid, packet);
 
   // Increase counters, fire trace source and send the packet to pipeline.
-  m_packetCounter++;
-  m_byteCounter += packet->GetSize ();
-  m_pipelinePacketTrace (packet);
+  m_cPacket++;
+  m_cByte += packet->GetSize ();
+  m_pipePacketTrace (packet);
   pipeline_process_packet (m_datapath->pipeline, pkt);
 }
 
@@ -839,22 +866,22 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
     {
     case (OFPT_PACKET_OUT):
       {
-        m_packetOutCounter++;
+        m_cPacketOut++;
         break;
       }
     case (OFPT_FLOW_MOD):
       {
-        m_flowModCounter++;
+        m_cFlowMod++;
         break;
       }
     case (OFPT_METER_MOD):
       {
-        m_meterModCounter++;
+        m_cMeterMod++;
         break;
       }
     case (OFPT_GROUP_MOD):
       {
-        m_groupModCounter++;
+        m_cGroupMod++;
         break;
       }
     default:
@@ -969,7 +996,7 @@ OFSwitch13Device::NotifyPacketCloned (struct packet *pkt, struct packet *clone)
 
   // Assigning a new unique ID for this cloned packet.
   clone->ns3_uid = OFSwitch13Device::GetNewPacketId ();
-  m_pktPipe.NewCopy (clone->ns3_uid);
+  m_pipePkt.NewCopy (clone->ns3_uid);
 }
 
 void
@@ -978,9 +1005,9 @@ OFSwitch13Device::NotifyPacketDestroyed (struct packet *pkt)
   NS_LOG_FUNCTION (this << pkt->ns3_uid);
 
   // This is the packet current under pipeline. Let's delete this copy.
-  if (m_pktPipe.IsValid () && m_pktPipe.HasId (pkt->ns3_uid))
+  if (m_pipePkt.IsValid () && m_pipePkt.HasId (pkt->ns3_uid))
     {
-      bool valid = m_pktPipe.DelCopy (pkt->ns3_uid);
+      bool valid = m_pipePkt.DelCopy (pkt->ns3_uid);
       if (!valid)
         {
           NS_LOG_DEBUG ("Packet " << pkt->ns3_uid << " done at this switch.");
@@ -998,8 +1025,8 @@ OFSwitch13Device::NotifyPacketDestroyed (struct packet *pkt)
     }
 
   // If we got here, this packet must not be valid on the pipeline structure.
-  NS_ASSERT_MSG ((m_pktPipe.IsValid () && !m_pktPipe.HasId (pkt->ns3_uid))
-                 || !m_pktPipe.IsValid (), "Packet still valid in pipeline.");
+  NS_ASSERT_MSG ((m_pipePkt.IsValid () && !m_pipePkt.HasId (pkt->ns3_uid))
+                 || !m_pipePkt.IsValid (), "Packet still valid in pipeline.");
 
   // This destroyed packet is probably an old packet that was previously saved
   // into buffer and will be deleted now, freeing up space for a new packet at
@@ -1016,13 +1043,13 @@ OFSwitch13Device::NotifyPacketDropped (struct packet *pkt,
   NS_LOG_FUNCTION (this << pkt->ns3_uid << entry->stats->meter_id);
 
   uint32_t meterId = entry->stats->meter_id;
-  NS_ASSERT_MSG (m_pktPipe.HasId (pkt->ns3_uid), "Invalid packet ID.");
+  NS_ASSERT_MSG (m_pipePkt.HasId (pkt->ns3_uid), "Invalid packet ID.");
   NS_LOG_DEBUG ("OpenFlow meter id " << meterId <<
                 " dropped packet " << pkt->ns3_uid);
 
   // Increase counter and fire drop trace source.
-  m_dropCounter++;
-  m_meterDropTrace (m_pktPipe.GetPacket (), meterId);
+  m_cDrop++;
+  m_meterDropTrace (m_pipePkt.GetPacket (), meterId);
 }
 
 void
@@ -1030,24 +1057,23 @@ OFSwitch13Device::BufferPacketSave (uint64_t packetId, time_t timeout)
 {
   NS_LOG_FUNCTION (this << packetId);
 
-  NS_ASSERT_MSG (m_pktPipe.HasId (packetId), "Invalid packet ID.");
+  NS_ASSERT_MSG (m_pipePkt.HasId (packetId), "Invalid packet ID.");
 
   // Remove from pipeline and save into buffer.
-  std::pair <uint64_t, Ptr<Packet> > entry (packetId, m_pktPipe.GetPacket ());
+  std::pair <uint64_t, Ptr<Packet> > entry (packetId, m_pipePkt.GetPacket ());
   std::pair <IdPacketMap_t::iterator, bool> ret;
-  ret = m_pktsBuffer.insert (entry);
+  ret = m_bufferPkts.insert (entry);
   if (ret.second == true)
     {
       NS_LOG_DEBUG ("Packet " << packetId << " saved into buffer.");
-      m_bufferSaveTrace (m_pktPipe.GetPacket ());
-      m_bufferUsage = (double)m_pktsBuffer.size () / m_bufferSize;
+      m_bufferSaveTrace (m_pipePkt.GetPacket ());
     }
   else
     {
       NS_LOG_WARN ("Packet " << packetId << " already in buffer.");
     }
-  m_pktPipe.DelCopy (packetId);
-  NS_ASSERT_MSG (!m_pktPipe.IsValid (), "Packet copy still in pipeline.");
+  m_pipePkt.DelCopy (packetId);
+  NS_ASSERT_MSG (!m_pipePkt.IsValid (), "Packet copy still in pipeline.");
 
   // Scheduling the buffer remove for expired packet. Since packet timeout
   // resolution is expressed in seconds, let's double it to avoid rounding
@@ -1061,20 +1087,19 @@ OFSwitch13Device::BufferPacketRetrieve (uint64_t packetId)
 {
   NS_LOG_FUNCTION (this << packetId);
 
-  NS_ASSERT_MSG (!m_pktPipe.IsValid (), "Another packet in pipeline.");
+  NS_ASSERT_MSG (!m_pipePkt.IsValid (), "Another packet in pipeline.");
 
   // Find packet in buffer.
-  IdPacketMap_t::iterator it = m_pktsBuffer.find (packetId);
-  NS_ASSERT_MSG (it != m_pktsBuffer.end (), "Packet not found in buffer.");
+  IdPacketMap_t::iterator it = m_bufferPkts.find (packetId);
+  NS_ASSERT_MSG (it != m_bufferPkts.end (), "Packet not found in buffer.");
 
   // Save packet into pipeline structure.
-  m_pktPipe.SetPacket (it->first, it->second);
-  m_bufferRetrieveTrace (m_pktPipe.GetPacket ());
+  m_pipePkt.SetPacket (it->first, it->second);
+  m_bufferRetrieveTrace (m_pipePkt.GetPacket ());
 
   // Delete packet from buffer.
   NS_LOG_DEBUG ("Packet " << packetId << " removed from buffer.");
-  m_pktsBuffer.erase (it);
-  m_bufferUsage = (double)m_pktsBuffer.size () / m_bufferSize;
+  m_bufferPkts.erase (it);
 }
 
 void
@@ -1083,13 +1108,12 @@ OFSwitch13Device::BufferPacketDelete (uint64_t packetId)
   NS_LOG_FUNCTION (this << packetId);
 
   // Delete from buffer map.
-  IdPacketMap_t::iterator it = m_pktsBuffer.find (packetId);
-  if (it != m_pktsBuffer.end ())
+  IdPacketMap_t::iterator it = m_bufferPkts.find (packetId);
+  if (it != m_bufferPkts.end ())
     {
       NS_LOG_DEBUG ("Expired packet " << packetId << " deleted from buffer.");
       m_bufferExpireTrace (it->second);
-      m_pktsBuffer.erase (it);
-      m_bufferUsage = (double)m_pktsBuffer.size () / m_bufferSize;
+      m_bufferPkts.erase (it);
     }
 }
 
