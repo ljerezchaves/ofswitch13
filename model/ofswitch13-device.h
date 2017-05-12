@@ -332,6 +332,16 @@ private:
   struct datapath* DatapathNew ();
 
   /**
+   * \name Private attributes acessors.
+   * \param value The value to set.
+   */
+  //\{
+  void SetFlowTableSize  (uint32_t value);
+  void SetGroupTableSize (uint32_t value);
+  void SetMeterTableSize (uint32_t value);
+  //\}
+
+  /**
    * Check if any flow in any table is timed out and update port status. This
    * method reschedules itself at every m_timout interval, to constantly check
    * the pipeline for timed out flow entries and update port status.
