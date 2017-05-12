@@ -162,9 +162,9 @@ public:
   uint64_t GetFlowModCounter    (void) const;
   uint32_t GetFlowTableSize     (void) const;
   uint64_t GetGroupModCounter   (void) const;
-  uint64_t GetGroupTableSize    (void) const;
+  uint32_t GetGroupTableSize    (void) const;
   uint64_t GetMeterModCounter   (void) const;
-  uint64_t GetMeterTableSize    (void) const;
+  uint32_t GetMeterTableSize    (void) const;
   uint32_t GetNFlowEntries      (void) const;
   uint32_t GetNFlowEntries      (size_t tableId) const;
   uint32_t GetNGroupEntries     (void) const;

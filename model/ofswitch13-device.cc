@@ -217,7 +217,7 @@ OFSwitch13Device::GetGroupModCounter (void) const
   return m_cGroupMod;
 }
 
-uint64_t
+uint32_t
 OFSwitch13Device::GetGroupTableSize (void) const
 {
   return m_groupTabSize;
@@ -229,7 +229,7 @@ OFSwitch13Device::GetMeterModCounter (void) const
   return m_cMeterMod;
 }
 
-uint64_t
+uint32_t
 OFSwitch13Device::GetMeterTableSize (void) const
 {
   return m_meterTabSize;
