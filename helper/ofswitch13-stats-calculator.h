@@ -28,23 +28,22 @@ namespace ns3 {
 /**
  * \ingroup ofswitch13
  * \brief This class monitors a single OpenFlow switch device to collect
- * statistics and save write them to an output file. This stats calculator
- * connects to a collection of trace sources in the OpenFlow switch device to
- * monitor the following metrics:
- *  -# Packets per second sent to the pipeline;
- *  -# Kbits per second of data processed by the pipeline;
- *  -# Packets per second dropped by meter bands;
- *  -# Packets per second dropped while exceeding pipeline load capacity;
- *  -# Flow-mod per second operations executed by the switch;
- *  -# Meter-mod per second operations executed by the switch;
- *  -# Group-mod per second operations executed by the OpenFlow switch;
- *  -# Packets-in per second sent from the switch to the controller;
- *  -# Packets-out per second sent from the controller to the switch;
+ * statistics and write them to an output file. This stats calculator connects
+ * to a collection of trace sources in the OpenFlow switch device to monitor
+ * the following metrics:
+ *  -# Pipeline load in terms of throughput (Kbits);
+ *  -# Packets dropped while exceeding pipeline load capacity;
+ *  -# Packets dropped by meter bands;
+ *  -# Flow-mod operations executed by the switch;
+ *  -# Meter-mod operations executed by the switch;
+ *  -# Group-mod operations executed by the switch;
+ *  -# Packets-in sent from the switch to the controller;
+ *  -# Packets-out sent from the controller to the switch;
  *  -# Average switch buffer space usage (percent);
  *  -# Average number of flow entries in pipeline tables;
  *  -# Average number of meter entries in meter table;
  *  -# Average number of group entries in group table;
- *  -# Average pipeline lookup delay for packet processing (nanoseconds).
+ *  -# Average pipeline lookup delay for packet processing (microseconds).
  */
 class OFSwitch13StatsCalculator : public Object
 {
@@ -68,23 +67,23 @@ public:
    * \name Statistics calculators.
    * Functions used to calculate average metric values based on data collected
    * since the last update operation.
-   * \return The requested average metric value.
+   * \return The requested metric value.
    */
   //\{
-  double   GetPktsPerSec        (void) const;
-  double   GetKbitsPerSec       (void) const;
-  double   GetMeterDropsPerSec  (void) const;
-  double   GetLoadDropsPerSec   (void) const;
-  double   GetFlowModsPerSec    (void) const;
-  double   GetMeterModsPerSec   (void) const;
-  double   GetGroupModsPerSec   (void) const;
-  double   GetPktsInPerSec      (void) const;
-  double   GetPktsOutPerSec     (void) const;
-  uint32_t GetAvgBufferUsage    (void) const;
-  uint32_t GetAvgFlowEntries    (void) const;
-  uint32_t GetAvgMeterEntries   (void) const;
-  uint32_t GetAvgGroupEntries   (void) const;
-  uint32_t GetAvgPipelineDelay  (void) const;
+  Time     GetElapsedTime       (void) const;
+  uint32_t GetEwmaBufferUsage   (void) const;
+  uint32_t GetEwmaFlowEntries   (void) const;
+  uint32_t GetEwmaGroupEntries  (void) const;
+  uint32_t GetEwmaMeterEntries  (void) const;
+  Time     GetEwmaPipelineDelay (void) const;
+  uint64_t GetFlowMods          (void) const;
+  uint64_t GetGroupMods         (void) const;
+  uint64_t GetLoadDrops         (void) const;
+  uint64_t GetMeterDrops        (void) const;
+  uint64_t GetMeterMods         (void) const;
+  double   GetPipelineLoad      (void) const;
+  uint64_t GetPktsIn            (void) const;
+  uint64_t GetPktsOut           (void) const;
   //\}
 
 protected:
@@ -96,17 +95,36 @@ protected:
 
 private:
   /**
+   * Notify when a packet is dropped due to pipeline load.
+   * \param packet The packet.
+   */
+  void NotifyLoadDrop (Ptr<const Packet> packet);
+
+  /**
+   * Notify when a packet is dropped by a meter band.
+   * \param packet The packet.
+   * \param meterId The meter ID.
+   */
+  void NotifyMeterDrop (Ptr<const Packet> packet, uint32_t meterId);
+
+  /**
+   * Notify when a packet is sent to pipeline.
+   * \param packet The packet.
+   */
+  void NotifyPipelinePacket (Ptr<const Packet> packet);
+
+  /**
    * \name Trace sinks for monitoring traced values.
    * Trace sinks used to monitor traced values on the OpenFlow switch datapath.
    * \param oldValue The old value.
    * \param newValue The new just updated value.
    */
   //\{
-  void NotifyPipelineDelay  (Time     oldValue, Time     newValue);
   void NotifyBufferUsage    (double   oldValue, double   newValue);
   void NotifyFlowEntries    (uint32_t oldValue, uint32_t newValue);
-  void NotifyMeterEntries   (uint32_t oldValue, uint32_t newValue);
   void NotifyGroupEntries   (uint32_t oldValue, uint32_t newValue);
+  void NotifyMeterEntries   (uint32_t oldValue, uint32_t newValue);
+  void NotifyPipelineDelay  (Time     oldValue, Time     newValue);
   //\}
 
   /**
@@ -115,12 +133,6 @@ private:
    */
   void UpdateAndDumpStatistics ();
 
-  /**
-   * Get the elapsed time since last update.
-   * \return The elapsed time, in seconds.
-   */
-  double GetElapsedSeconds (void) const;
-
   Ptr<OFSwitch13Device>     m_device;       //!< OpenFlow switch device.
   Ptr<OutputStreamWrapper>  m_wrapper;      //!< Output file wrapper.
   std::string               m_filename;     //!< Output file name.
@@ -128,31 +140,33 @@ private:
   Time                      m_lastUpdate;   //!< Last update time.
   double                    m_alpha;        //!< EWMA alpha parameter.
 
-  /** \name Internal counters. */
+  /** \name Internal counters, average values, and updated flags. */
   //\{
-  double    m_avgPipelineDelay;
   double    m_avgBufferUsage;
   double    m_avgFlowEntries;
-  double    m_avgMeterEntries;
   double    m_avgGroupEntries;
+  double    m_avgMeterEntries;
+  double    m_avgPipelineDelay;
 
-  uint64_t  m_packetCounter;
+  bool      m_bufferUsageUp;
+  bool      m_flowEntriesUp;
+  bool      m_groupEntriesUp;
+  bool      m_meterEntriesUp;
+  bool      m_pipelineDelayUp;
+
   uint64_t  m_byteCounter;
   uint64_t  m_loadDropCounter;
   uint64_t  m_meterDropCounter;
+
   uint64_t  m_flowModCounter;
-  uint64_t  m_meterModCounter;
   uint64_t  m_groupModCounter;
+  uint64_t  m_meterModCounter;
   uint64_t  m_packetInCounter;
   uint64_t  m_packetOutCounter;
 
-  uint64_t  m_lastPacketCounter;
-  uint64_t  m_lastByteCounter;
-  uint64_t  m_lastLoadDropCounter;
-  uint64_t  m_lastMeterDropCounter;
   uint64_t  m_lastFlowModCounter;
-  uint64_t  m_lastMeterModCounter;
   uint64_t  m_lastGroupModCounter;
+  uint64_t  m_lastMeterModCounter;
   uint64_t  m_lastPacketInCounter;
   uint64_t  m_lastPacketOutCounter;
   //\}

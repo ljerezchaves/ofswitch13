@@ -156,26 +156,22 @@ public:
    */
   //\{
   double   GetBufferUsage       (void) const;
-  uint64_t GetByteCounter       (void) const;
   uint64_t GetDatapathId        (void) const;
+  uint32_t GetFlowEntries       (void) const;
+  uint32_t GetFlowEntries       (size_t tableId) const;
   uint64_t GetFlowModCounter    (void) const;
   uint32_t GetFlowTableSize     (void) const;
+  uint32_t GetGroupEntries      (void) const;
   uint64_t GetGroupModCounter   (void) const;
   uint32_t GetGroupTableSize    (void) const;
-  uint64_t GetLoadDropCounter   (void) const;
-  uint64_t GetMeterDropCounter  (void) const;
+  uint32_t GetMeterEntries      (void) const;
   uint64_t GetMeterModCounter   (void) const;
   uint32_t GetMeterTableSize    (void) const;
-  uint32_t GetNFlowEntries      (void) const;
-  uint32_t GetNFlowEntries      (size_t tableId) const;
-  uint32_t GetNGroupEntries     (void) const;
-  uint32_t GetNMeterEntries     (void) const;
   uint32_t GetNSwitchPorts      (void) const;
-  uint64_t GetPacketCounter     (void) const;
   uint64_t GetPacketInCounter   (void) const;
   uint64_t GetPacketOutCounter  (void) const;
-  Time     GetPipelineDelay     (void) const;
   DataRate GetPipelineCapacity  (void) const;
+  Time     GetPipelineDelay     (void) const;
   DataRate GetPipelineLoad      (void) const;
   //\}
 
@@ -610,13 +606,9 @@ private:
   DataRate          m_pipeCapacity; //!< Pipeline throughput capacity.
   uint64_t          m_pipeTokens;   //!< Pipeline capacity available tokens.
   uint64_t          m_pipeConsumed; //!< Pipeline capacity consumed tokens.
-  uint64_t          m_cByte;        //!< Pipeline byte counter.
   uint64_t          m_cFlowMod;     //!< Pipeline flow mod counter.
   uint64_t          m_cGroupMod;    //!< Pipeline group mod counter.
-  uint64_t          m_cLoadDrop;    //!< Pipeline load drop counter.
-  uint64_t          m_cMeterDrop;   //!< Pipeline meter drop counter.
   uint64_t          m_cMeterMod;    //!< Pipeline meter mod counter.
-  uint64_t          m_cPacket;      //!< Pipeline packet counter.
   uint64_t          m_cPacketIn;    //!< Pipeline packet in counter.
   uint64_t          m_cPacketOut;   //!< Pipeline packet out counter.
 

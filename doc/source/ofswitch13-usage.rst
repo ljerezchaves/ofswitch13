@@ -424,15 +424,14 @@ statistics of an OpenFlow switch datapath. The instances of this class connect
 to a collection of trace sources in the switch device and periodically dumps
 the following datapath metrics on the output file:
 
-#. Packets per second sent to the pipeline;
-#. Kbits per second of data processed by the pipeline;
-#. Packets per second dropped by meter bands;
-#. Packets per second dropped while exceeding pipeline load capacity;
-#. Flow-mod per second operations executed by the switch;
-#. Meter-mod per second operations executed by the switch;
-#. Group-mod per second operations executed by the switch;
-#. Packets-in per second sent from the switch to the controller;
-#. Packets-out per second sent from the controller to the switch;
+#. Pipeline load in terms of throughput (Kbits);
+#. Packets dropped while exceeding pipeline load capacity;
+#. Packets dropped by meter bands;
+#. Flow-mod operations executed by the switch;
+#. Meter-mod operations executed by the switch;
+#. Group-mod operations executed by the switch;
+#. Packets-in sent from the switch to the controller;
+#. Packets-out sent from the controller to the switch;
 #. Average switch buffer space usage (percent);
 #. Average number of flow entries in pipeline tables;
 #. Average number of meter entries in meter table;

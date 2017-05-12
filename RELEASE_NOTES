@@ -26,7 +26,9 @@ Release 3.1.0 (XXXXXXXXXXXXXXXXX)
 - Including new trace sources and private member accessors on OFSwitch13Device
   that can be used for monitoring datapath performance.
 
-- Renaming OFSwitch13Device::GetNumberFlowEntries () to GetNFlowEntries ().
+- Renaming some OFSwitch13Device private member accessors.
+
+- Refactoring the OFSwitch13StatsCalculator to dump statistics in a better way.
 
 - Improving the logical port example with a stateless tunnel application.
 
