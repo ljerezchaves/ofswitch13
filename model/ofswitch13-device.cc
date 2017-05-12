@@ -64,13 +64,13 @@ OFSwitch13Device::GetTypeId (void)
                    UintegerValue (GROUP_TABLE_MAX_ENTRIES),
                    MakeUintegerAccessor (&OFSwitch13Device::SetGroupTableSize,
                                          &OFSwitch13Device::GetGroupTableSize),
-                   MakeUintegerChecker<uint32_t> ())
+                   MakeUintegerChecker<uint32_t> (0, GROUP_TABLE_MAX_ENTRIES))
     .AddAttribute ("MeterTableSize",
                    "The maximum number of entries allowed on meter table.",
                    UintegerValue (METER_TABLE_MAX_ENTRIES),
                    MakeUintegerAccessor (&OFSwitch13Device::SetMeterTableSize,
                                          &OFSwitch13Device::GetMeterTableSize),
-                   MakeUintegerChecker<uint32_t> ())
+                   MakeUintegerChecker<uint32_t> (0, METER_TABLE_MAX_ENTRIES))
     .AddAttribute ("PipelineCapacity",
                    "Pipeline processing capacity in terms of throughput.",
                    DataRateValue (DataRate ("100Gb/s")),
@@ -92,15 +92,20 @@ OFSwitch13Device::GetTypeId (void)
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_bufferExpireTrace),
                      "ns3::Packet::TracedCallback")
+    .AddTraceSource ("BufferRetrieve",
+                     "Trace source indicating a packet retrieved from buffer.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_bufferRetrieveTrace),
+                     "ns3::Packet::TracedCallback")
     .AddTraceSource ("BufferSave",
                      "Trace source indicating a packet saved into buffer.",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_bufferSaveTrace),
                      "ns3::Packet::TracedCallback")
-    .AddTraceSource ("BufferRetrieve",
-                     "Trace source indicating a packet retrieved from buffer.",
+    .AddTraceSource ("LoadDrop",
+                     "Trace source indicating a packet dropped by pipe load.",
                      MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_bufferRetrieveTrace),
+                       &OFSwitch13Device::m_loadDropTrace),
                      "ns3::Packet::TracedCallback")
     .AddTraceSource ("MeterDrop",
                      "Trace source indicating a packet dropped by meter band.",
@@ -155,12 +160,13 @@ OFSwitch13Device::GetTypeId (void)
 
 OFSwitch13Device::OFSwitch13Device ()
   : m_pipeConsumed (0),
-    m_cPacket (0),
     m_cByte (0),
-    m_cDrop (0),
     m_cFlowMod (0),
-    m_cMeterMod (0),
     m_cGroupMod (0),
+    m_cLoadDrop (0),
+    m_cMeterDrop (0),
+    m_cMeterMod (0),
+    m_cPacket (0),
     m_cPacketIn (0),
     m_cPacketOut (0)
 {
@@ -196,12 +202,6 @@ OFSwitch13Device::GetDatapathId (void) const
 }
 
 uint64_t
-OFSwitch13Device::GetDropCounter (void) const
-{
-  return m_cDrop;
-}
-
-uint64_t
 OFSwitch13Device::GetFlowModCounter (void) const
 {
   return m_cFlowMod;
@@ -223,6 +223,18 @@ uint32_t
 OFSwitch13Device::GetGroupTableSize (void) const
 {
   return m_groupTabSize;
+}
+
+uint64_t
+OFSwitch13Device::GetLoadDropCounter (void) const
+{
+  return m_cLoadDrop;
+}
+
+uint64_t
+OFSwitch13Device::GetMeterDropCounter (void) const
+{
+  return m_cMeterDrop;
 }
 
 uint64_t
@@ -348,8 +360,10 @@ OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
   uint32_t pktSizeBits = packet->GetSize () * 8;
   if (m_pipeTokens < pktSizeBits)
     {
-      // The packet will be discarded.
-      NS_LOG_DEBUG ("Discarding packet due to pipeline processing capacity.");
+      // Packet will be dropped. Increase counter and fire drop trace source.
+      NS_LOG_DEBUG ("Drop packet due to pipeline max processing capacity.");
+      m_cLoadDrop++;
+      m_loadDropTrace (packet);
       return;
     }
 
@@ -495,7 +509,7 @@ OFSwitch13Device::MeterDropCallback (struct packet *pkt,
                                      struct meter_entry *entry)
 {
   Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pkt->dp->id);
-  dev->NotifyPacketDropped (pkt, entry);
+  dev->NotifyPacketDroppedByMeter (pkt, entry);
 }
 
 void
@@ -1120,8 +1134,8 @@ OFSwitch13Device::NotifyPacketDestroyed (struct packet *pkt)
 }
 
 void
-OFSwitch13Device::NotifyPacketDropped (struct packet *pkt,
-                                       struct meter_entry *entry)
+OFSwitch13Device::NotifyPacketDroppedByMeter (struct packet *pkt,
+                                              struct meter_entry *entry)
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid << entry->stats->meter_id);
 
@@ -1131,7 +1145,7 @@ OFSwitch13Device::NotifyPacketDropped (struct packet *pkt,
                 " dropped packet " << pkt->ns3_uid);
 
   // Increase counter and fire drop trace source.
-  m_cDrop++;
+  m_cMeterDrop++;
   m_meterDropTrace (m_pipePkt.GetPacket (), meterId);
 }
 

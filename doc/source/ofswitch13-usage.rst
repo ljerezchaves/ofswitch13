@@ -427,6 +427,7 @@ the following datapath metrics on the output file:
 #. Packets per second sent to the pipeline;
 #. Kbits per second of data processed by the pipeline;
 #. Packets per second dropped by meter bands;
+#. Packets per second dropped while exceeding pipeline load capacity;
 #. Flow-mod per second operations executed by the switch;
 #. Meter-mod per second operations executed by the switch;
 #. Group-mod per second operations executed by the switch;

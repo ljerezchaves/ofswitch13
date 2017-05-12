@@ -11,27 +11,30 @@ Release 3.1.0 (XXXXXXXXXXXXXXXXX)
   be used to limit the traffic throughput within the pipeline to a specific
   data rate.
 
-- Improving the logical port example with a stateless tunnel application.
+- Improving the OFSwitch13Device with the FlowTableSize, GroupTableSize and
+  MeterTableSize attributes, that can be used to define the maximum number of
+  entries on pipeline tables.
 
-- Renaming OFSwitch13Device::GetNumberFlowEntries () to GetNFlowEntries ().
+- Improving the OFSwitch13Queue with the NumQueues attribute that can be used
+  to define the number of output queues available for use.
+
+- Updating the ofsoftswitch13 library to allow up to 65535 entries on each
+  datapath table (flow, meter, and group).
 
 - Including the meter ID parameter on OFSwitch13Device::MeterDrop trace source.
 
-- Including the OFSwitch13Queue::NumQueues attribute allowing users to define
-  the number of output queues available for use.
+- Including new trace sources and private member accessors on OFSwitch13Device
+  that can be used for monitoring datapath performance.
 
-- Including the OFSwitch13Device::FlowTableSize, GroupTableSize and
-  MeterTableSize attributes, allowing users to define the maximum number of
-  entries on pipeline tables.
+- Renaming OFSwitch13Device::GetNumberFlowEntries () to GetNFlowEntries ().
+
+- Improving the logical port example with a stateless tunnel application.
 
 - Adjust the size of queue interface to avoid dropping packets when we still
   have space on internal queues.
 
 - Improving the way switches and controllers deals with TCP sockets from
   OpenFlow channels using the new OFSwitch13SocketHandler class.
-
-- Updating the ofsoftswitch13 library to allow up to 65535 entries on each
-  datapath table (flow, meter, and group).
 
 - Updating the default TCAM delay attribute on switch device to better reflect
   real hardware operation.

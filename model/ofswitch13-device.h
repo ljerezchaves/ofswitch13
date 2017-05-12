@@ -158,11 +158,12 @@ public:
   double   GetBufferUsage       (void) const;
   uint64_t GetByteCounter       (void) const;
   uint64_t GetDatapathId        (void) const;
-  uint64_t GetDropCounter       (void) const;
   uint64_t GetFlowModCounter    (void) const;
   uint32_t GetFlowTableSize     (void) const;
   uint64_t GetGroupModCounter   (void) const;
   uint32_t GetGroupTableSize    (void) const;
+  uint64_t GetLoadDropCounter   (void) const;
+  uint64_t GetMeterDropCounter  (void) const;
   uint64_t GetMeterModCounter   (void) const;
   uint32_t GetMeterTableSize    (void) const;
   uint32_t GetNFlowEntries      (void) const;
@@ -464,7 +465,8 @@ private:
    * \param pkt The ofsoftswitch13 packet.
    * \param entry The meter entry that dropped the packet.
    */
-  void NotifyPacketDropped (struct packet *pkt, struct meter_entry *entry);
+  void NotifyPacketDroppedByMeter (struct packet *pkt,
+                                   struct meter_entry *entry);
 
   /**
    * Notify this device of a packet saved into buffer. This method will get the
@@ -558,11 +560,14 @@ private:
   /** Trace source fired when a packet in buffer expires. */
   TracedCallback<Ptr<const Packet> > m_bufferExpireTrace;
 
+  /** Trace source fired when a packet is retrieved from buffer. */
+  TracedCallback<Ptr<const Packet> > m_bufferRetrieveTrace;
+
   /** Trace source fired when a packet is saved into buffer. */
   TracedCallback<Ptr<const Packet> > m_bufferSaveTrace;
 
-  /** Trace source fired when a packet is retrieved from buffer. */
-  TracedCallback<Ptr<const Packet> > m_bufferRetrieveTrace;
+  /** Trace source fired when a packet is dropped due to pipeline load. */
+  TracedCallback<Ptr<const Packet> > m_loadDropTrace;
 
   /** Trace source fired when a packet is dropped by a meter band. */
   TracedCallback<Ptr<const Packet>, uint32_t> m_meterDropTrace;
@@ -605,12 +610,13 @@ private:
   DataRate          m_pipeCapacity; //!< Pipeline throughput capacity.
   uint64_t          m_pipeTokens;   //!< Pipeline capacity available tokens.
   uint64_t          m_pipeConsumed; //!< Pipeline capacity consumed tokens.
-  uint64_t          m_cPacket;      //!< Pipeline packet counter.
   uint64_t          m_cByte;        //!< Pipeline byte counter.
-  uint64_t          m_cDrop;        //!< Pipeline meter drop counter.
   uint64_t          m_cFlowMod;     //!< Pipeline flow mod counter.
-  uint64_t          m_cMeterMod;    //!< Pipeline meter mod counter.
   uint64_t          m_cGroupMod;    //!< Pipeline group mod counter.
+  uint64_t          m_cLoadDrop;    //!< Pipeline load drop counter.
+  uint64_t          m_cMeterDrop;   //!< Pipeline meter drop counter.
+  uint64_t          m_cMeterMod;    //!< Pipeline meter mod counter.
+  uint64_t          m_cPacket;      //!< Pipeline packet counter.
   uint64_t          m_cPacketIn;    //!< Pipeline packet in counter.
   uint64_t          m_cPacketOut;   //!< Pipeline packet out counter.
 

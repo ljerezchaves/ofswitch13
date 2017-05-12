@@ -34,6 +34,7 @@ namespace ns3 {
  *  -# Packets per second sent to the pipeline;
  *  -# Kbits per second of data processed by the pipeline;
  *  -# Packets per second dropped by meter bands;
+ *  -# Packets per second dropped while exceeding pipeline load capacity;
  *  -# Flow-mod per second operations executed by the switch;
  *  -# Meter-mod per second operations executed by the switch;
  *  -# Group-mod per second operations executed by the OpenFlow switch;
@@ -72,7 +73,8 @@ public:
   //\{
   double   GetPktsPerSec        (void) const;
   double   GetKbitsPerSec       (void) const;
-  double   GetDropsPerSec       (void) const;
+  double   GetMeterDropsPerSec  (void) const;
+  double   GetLoadDropsPerSec   (void) const;
   double   GetFlowModsPerSec    (void) const;
   double   GetMeterModsPerSec   (void) const;
   double   GetGroupModsPerSec   (void) const;
@@ -136,7 +138,8 @@ private:
 
   uint64_t  m_packetCounter;
   uint64_t  m_byteCounter;
-  uint64_t  m_dropCounter;
+  uint64_t  m_loadDropCounter;
+  uint64_t  m_meterDropCounter;
   uint64_t  m_flowModCounter;
   uint64_t  m_meterModCounter;
   uint64_t  m_groupModCounter;
@@ -145,7 +148,8 @@ private:
 
   uint64_t  m_lastPacketCounter;
   uint64_t  m_lastByteCounter;
-  uint64_t  m_lastDropCounter;
+  uint64_t  m_lastLoadDropCounter;
+  uint64_t  m_lastMeterDropCounter;
   uint64_t  m_lastFlowModCounter;
   uint64_t  m_lastMeterModCounter;
   uint64_t  m_lastGroupModCounter;

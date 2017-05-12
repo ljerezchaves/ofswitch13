@@ -44,7 +44,8 @@ OFSwitch13StatsCalculator::OFSwitch13StatsCalculator ()
     m_avgGroupEntries (0),
     m_packetCounter (0),
     m_byteCounter (0),
-    m_dropCounter (0),
+    m_loadDropCounter (0),
+    m_meterDropCounter (0),
     m_flowModCounter (0),
     m_meterModCounter (0),
     m_groupModCounter (0),
@@ -52,7 +53,8 @@ OFSwitch13StatsCalculator::OFSwitch13StatsCalculator ()
     m_packetOutCounter (0),
     m_lastPacketCounter (0),
     m_lastByteCounter (0),
-    m_lastDropCounter (0),
+    m_lastLoadDropCounter (0),
+    m_lastMeterDropCounter (0),
     m_lastFlowModCounter (0),
     m_lastMeterModCounter (0),
     m_lastGroupModCounter (0),
@@ -144,11 +146,20 @@ OFSwitch13StatsCalculator::GetKbitsPerSec (void) const
 }
 
 double
-OFSwitch13StatsCalculator::GetDropsPerSec (void) const
+OFSwitch13StatsCalculator::GetLoadDropsPerSec (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  uint64_t drops = m_dropCounter - m_lastDropCounter;
+  uint64_t drops = m_loadDropCounter - m_lastLoadDropCounter;
+  return (double)drops / GetElapsedSeconds ();
+}
+
+double
+OFSwitch13StatsCalculator::GetMeterDropsPerSec (void) const
+{
+  NS_LOG_FUNCTION (this);
+
+  uint64_t drops = m_meterDropCounter - m_lastMeterDropCounter;
   return (double)drops / GetElapsedSeconds ();
 }
 
@@ -258,7 +269,8 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
   << right
   << setw (12) << "Pkts/s"
   << setw (12) << "Kbits/s"
-  << setw (12) << "Drops/s"
+  << setw (12) << "LoadDrops/s"
+  << setw (13) << "MeterDrops/s"
   << setw (12) << "FlowMod/s"
   << setw (12) << "MeterMod/s"
   << setw (12) << "GroupMod/s"
@@ -333,7 +345,8 @@ OFSwitch13StatsCalculator::UpdateAndDumpStatistics ()
   // Update counters.
   m_lastPacketCounter     = m_packetCounter;
   m_lastByteCounter       = m_byteCounter;
-  m_lastDropCounter       = m_dropCounter;
+  m_lastLoadDropCounter   = m_loadDropCounter;
+  m_lastMeterDropCounter  = m_meterDropCounter;
   m_lastFlowModCounter    = m_flowModCounter;
   m_lastMeterModCounter   = m_meterModCounter;
   m_lastGroupModCounter   = m_groupModCounter;
@@ -342,7 +355,8 @@ OFSwitch13StatsCalculator::UpdateAndDumpStatistics ()
 
   m_packetCounter     = m_device->GetPacketCounter ();
   m_byteCounter       = m_device->GetByteCounter ();
-  m_dropCounter       = m_device->GetDropCounter ();
+  m_loadDropCounter   = m_device->GetLoadDropCounter ();
+  m_meterDropCounter  = m_device->GetMeterDropCounter ();
   m_flowModCounter    = m_device->GetFlowModCounter ();
   m_meterModCounter   = m_device->GetMeterModCounter ();
   m_groupModCounter   = m_device->GetGroupModCounter ();
@@ -356,7 +370,8 @@ OFSwitch13StatsCalculator::UpdateAndDumpStatistics ()
   << right
   << setw (11) << GetPktsPerSec ()                << " "
   << setw (11) << GetKbitsPerSec ()               << " "
-  << setw (11) << GetDropsPerSec ()               << " "
+  << setw (11) << GetLoadDropsPerSec ()           << " "
+  << setw (12) << GetMeterDropsPerSec ()          << " "
   << setw (11) << GetFlowModsPerSec ()            << " "
   << setw (11) << GetMeterModsPerSec ()           << " "
   << setw (11) << GetGroupModsPerSec ()           << " "
