@@ -387,21 +387,21 @@ OFSwitch13StatsCalculator::UpdateAndDumpStatistics ()
   // Print statistics to file.
   *m_wrapper->GetStream ()
   << left
-  << setw (10) << Simulator::Now ().GetSeconds ()             << " "
+  << setw (10) << Simulator::Now ().GetSeconds ()
   << right
-  << setw (11) << GetPipelineLoad ()                          << " "
-  << setw (10) << GetLoadDrops ()                             << " "
-  << setw (10) << GetMeterDrops ()                            << " "
-  << setw (10) << GetFlowMods ()                              << " "
-  << setw (10) << GetMeterMods ()                             << " "
-  << setw (10) << GetGroupMods ()                             << " "
-  << setw (10) << GetPktsIn ()                                << " "
-  << setw (10) << GetPktsOut ()                               << " "
-  << setw (10) << GetEwmaBufferUsage ()                       << " "
-  << setw (10) << GetEwmaFlowEntries ()                       << " "
-  << setw (10) << GetEwmaMeterEntries ()                      << " "
-  << setw (10) << GetEwmaGroupEntries ()                      << " "
-  << setw (12) << GetEwmaPipelineDelay ().GetMicroSeconds ()  << " "
+  << " " << setw (11) << GetPipelineLoad ()
+  << " " << setw (10) << GetLoadDrops ()
+  << " " << setw (10) << GetMeterDrops ()
+  << " " << setw (10) << GetFlowMods ()
+  << " " << setw (10) << GetMeterMods ()
+  << " " << setw (10) << GetGroupMods ()
+  << " " << setw (10) << GetPktsIn ()
+  << " " << setw (10) << GetPktsOut ()
+  << " " << setw (10) << GetEwmaBufferUsage ()
+  << " " << setw (10) << GetEwmaFlowEntries ()
+  << " " << setw (10) << GetEwmaMeterEntries ()
+  << " " << setw (10) << GetEwmaGroupEntries ()
+  << " " << setw (12) << GetEwmaPipelineDelay ().GetMicroSeconds ()
   << std::endl;
 
   // Reset counters and flags.
