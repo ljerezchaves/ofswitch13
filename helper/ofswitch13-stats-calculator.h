@@ -39,10 +39,10 @@ namespace ns3 {
  *  -# Group-mod operations executed by the switch;
  *  -# Packets-in sent from the switch to the controller;
  *  -# Packets-out sent from the controller to the switch;
- *  -# Average switch buffer space usage (percent);
  *  -# Average number of flow entries in pipeline tables;
  *  -# Average number of meter entries in meter table;
  *  -# Average number of group entries in group table;
+ *  -# Average switch buffer space usage (percent);
  *  -# Average pipeline lookup delay for packet processing (microseconds).
  */
 class OFSwitch13StatsCalculator : public Object
@@ -64,26 +64,18 @@ public:
   void HookSinks (Ptr<OFSwitch13Device> device);
 
   /**
-   * \name Statistics calculators.
-   * Functions used to calculate average metric values based on data collected
-   * since the last update operation.
+   * \name EWMA statistics calculators.
+   * Get the average metric values that are updated at every datapath timeout
+   * operation using an Exponentially Weighted Moving Average.
    * \return The requested metric value.
    */
   //\{
-  Time     GetElapsedTime       (void) const;
   uint32_t GetEwmaBufferUsage   (void) const;
   uint32_t GetEwmaFlowEntries   (void) const;
   uint32_t GetEwmaGroupEntries  (void) const;
   uint32_t GetEwmaMeterEntries  (void) const;
   Time     GetEwmaPipelineDelay (void) const;
-  uint64_t GetFlowMods          (void) const;
-  uint64_t GetGroupMods         (void) const;
-  uint64_t GetLoadDrops         (void) const;
-  uint64_t GetMeterDrops        (void) const;
-  uint64_t GetMeterMods         (void) const;
-  double   GetPipelineLoad      (void) const;
-  uint64_t GetPktsIn            (void) const;
-  uint64_t GetPktsOut           (void) const;
+  DataRate GetEwmaPipelineLoad  (void) const;
   //\}
 
 protected:
@@ -94,6 +86,11 @@ protected:
   virtual void NotifyConstructionCompleted (void);
 
 private:
+  /**
+   * Notify when a datapath timeout operation is completed.
+   */
+  void NotifyDatapathTimeout (void);
+
   /**
    * Notify when a packet is dropped due to pipeline load.
    * \param packet The packet.
@@ -114,24 +111,10 @@ private:
   void NotifyPipelinePacket (Ptr<const Packet> packet);
 
   /**
-   * \name Trace sinks for monitoring traced values.
-   * Trace sinks used to monitor traced values on the OpenFlow switch datapath.
-   * \param oldValue The old value.
-   * \param newValue The new just updated value.
-   */
-  //\{
-  void NotifyBufferUsage    (double   oldValue, double   newValue);
-  void NotifyFlowEntries    (uint32_t oldValue, uint32_t newValue);
-  void NotifyGroupEntries   (uint32_t oldValue, uint32_t newValue);
-  void NotifyMeterEntries   (uint32_t oldValue, uint32_t newValue);
-  void NotifyPipelineDelay  (Time     oldValue, Time     newValue);
-  //\}
-
-  /**
    * Read statistics from switch, update internal counters,
    * and dump data into output file.
    */
-  void UpdateAndDumpStatistics ();
+  void DumpStatistics (void);
 
   Ptr<OFSwitch13Device>     m_device;       //!< OpenFlow switch device.
   Ptr<OutputStreamWrapper>  m_wrapper;      //!< Output file wrapper.
@@ -147,28 +130,23 @@ private:
   double    m_avgGroupEntries;
   double    m_avgMeterEntries;
   double    m_avgPipelineDelay;
+  double    m_avgPipelineLoad;
 
-  bool      m_bufferUsageUp;
-  bool      m_flowEntriesUp;
-  bool      m_groupEntriesUp;
-  bool      m_meterEntriesUp;
-  bool      m_pipelineDelayUp;
+  uint64_t  m_bytes;
+  uint64_t  m_loadDrops;
+  uint64_t  m_meterDrops;
 
-  uint64_t  m_byteCounter;
-  uint64_t  m_loadDropCounter;
-  uint64_t  m_meterDropCounter;
+  uint64_t  m_flowMods;
+  uint64_t  m_groupMods;
+  uint64_t  m_meterMods;
+  uint64_t  m_packetsIn;
+  uint64_t  m_packetsOut;
 
-  uint64_t  m_flowModCounter;
-  uint64_t  m_groupModCounter;
-  uint64_t  m_meterModCounter;
-  uint64_t  m_packetInCounter;
-  uint64_t  m_packetOutCounter;
-
-  uint64_t  m_lastFlowModCounter;
-  uint64_t  m_lastGroupModCounter;
-  uint64_t  m_lastMeterModCounter;
-  uint64_t  m_lastPacketInCounter;
-  uint64_t  m_lastPacketOutCounter;
+  uint64_t  m_lastFlowMods;
+  uint64_t  m_lastGroupMods;
+  uint64_t  m_lastMeterMods;
+  uint64_t  m_lastPacketsIn;
+  uint64_t  m_lastPacketsOut;
   //\}
 };
 

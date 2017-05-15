@@ -42,24 +42,20 @@ OFSwitch13StatsCalculator::OFSwitch13StatsCalculator ()
     m_avgGroupEntries (0),
     m_avgMeterEntries (0),
     m_avgPipelineDelay (0),
-    m_bufferUsageUp (false),
-    m_flowEntriesUp (false),
-    m_groupEntriesUp (false),
-    m_meterEntriesUp (false),
-    m_pipelineDelayUp (false),
-    m_byteCounter (0),
-    m_loadDropCounter (0),
-    m_meterDropCounter (0),
-    m_flowModCounter (0),
-    m_groupModCounter (0),
-    m_meterModCounter (0),
-    m_packetInCounter (0),
-    m_packetOutCounter (0),
-    m_lastFlowModCounter (0),
-    m_lastGroupModCounter (0),
-    m_lastMeterModCounter (0),
-    m_lastPacketInCounter (0),
-    m_lastPacketOutCounter (0)
+    m_avgPipelineLoad (0),
+    m_bytes (0),
+    m_loadDrops (0),
+    m_meterDrops (0),
+    m_flowMods (0),
+    m_groupMods (0),
+    m_meterMods (0),
+    m_packetsIn (0),
+    m_packetsOut (0),
+    m_lastFlowMods (0),
+    m_lastGroupMods (0),
+    m_lastMeterMods (0),
+    m_lastPacketsIn (0),
+    m_lastPacketsOut (0)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -78,7 +74,7 @@ OFSwitch13StatsCalculator::GetTypeId (void)
     .AddConstructor<OFSwitch13StatsCalculator> ()
     .AddAttribute ("EwmaAlpha",
                    "The EWMA alpha parameter for averaging statistics.",
-                   DoubleValue (0.9),
+                   DoubleValue (0.25),
                    MakeDoubleAccessor (&OFSwitch13StatsCalculator::m_alpha),
                    MakeDoubleChecker<double> (0.0, 1.0))
     .AddAttribute ("DumpTimeout",
@@ -106,6 +102,10 @@ OFSwitch13StatsCalculator::HookSinks (Ptr<OFSwitch13Device> device)
 
   // Hook sinks.
   device->TraceConnectWithoutContext (
+    "DatapathTimeout", MakeCallback (
+      &OFSwitch13StatsCalculator::NotifyDatapathTimeout,
+      Ptr<OFSwitch13StatsCalculator> (this)));
+  device->TraceConnectWithoutContext (
     "LoadDrop", MakeCallback (
       &OFSwitch13StatsCalculator::NotifyLoadDrop,
       Ptr<OFSwitch13StatsCalculator> (this)));
@@ -117,32 +117,6 @@ OFSwitch13StatsCalculator::HookSinks (Ptr<OFSwitch13Device> device)
     "PipelinePacket", MakeCallback (
       &OFSwitch13StatsCalculator::NotifyPipelinePacket,
       Ptr<OFSwitch13StatsCalculator> (this)));
-  device->TraceConnectWithoutContext (
-    "BufferUsage", MakeCallback (
-      &OFSwitch13StatsCalculator::NotifyBufferUsage,
-      Ptr<OFSwitch13StatsCalculator> (this)));
-  device->TraceConnectWithoutContext (
-    "FlowEntries", MakeCallback (
-      &OFSwitch13StatsCalculator::NotifyFlowEntries,
-      Ptr<OFSwitch13StatsCalculator> (this)));
-  device->TraceConnectWithoutContext (
-    "GroupEntries", MakeCallback (
-      &OFSwitch13StatsCalculator::NotifyGroupEntries,
-      Ptr<OFSwitch13StatsCalculator> (this)));
-  device->TraceConnectWithoutContext (
-    "MeterEntries", MakeCallback (
-      &OFSwitch13StatsCalculator::NotifyMeterEntries,
-      Ptr<OFSwitch13StatsCalculator> (this)));
-  device->TraceConnectWithoutContext (
-    "PipelineDelay", MakeCallback (
-      &OFSwitch13StatsCalculator::NotifyPipelineDelay,
-      Ptr<OFSwitch13StatsCalculator> (this)));
-}
-
-Time
-OFSwitch13StatsCalculator::GetElapsedTime () const
-{
-  return Simulator::Now () - m_lastUpdate;
 }
 
 uint32_t
@@ -175,53 +149,10 @@ OFSwitch13StatsCalculator::GetEwmaPipelineDelay (void) const
   return Time (m_avgPipelineDelay);
 }
 
-uint64_t
-OFSwitch13StatsCalculator::GetFlowMods (void) const
+DataRate
+OFSwitch13StatsCalculator::GetEwmaPipelineLoad (void) const
 {
-  return m_flowModCounter - m_lastFlowModCounter;
-}
-
-uint64_t
-OFSwitch13StatsCalculator::GetGroupMods (void) const
-{
-  return m_groupModCounter - m_lastGroupModCounter;
-}
-
-uint64_t
-OFSwitch13StatsCalculator::GetLoadDrops (void) const
-{
-  return m_loadDropCounter;
-}
-
-uint64_t
-OFSwitch13StatsCalculator::GetMeterDrops (void) const
-{
-  return m_meterDropCounter;
-}
-
-uint64_t
-OFSwitch13StatsCalculator::GetMeterMods (void) const
-{
-  return m_meterModCounter - m_lastMeterModCounter;
-}
-
-double
-OFSwitch13StatsCalculator::GetPipelineLoad (void) const
-{
-  double seconds = GetElapsedTime ().GetSeconds ();
-  return (double)m_byteCounter * 8 / 1000 / seconds;
-}
-
-uint64_t
-OFSwitch13StatsCalculator::GetPktsIn (void) const
-{
-  return m_packetInCounter - m_lastPacketInCounter;
-}
-
-uint64_t
-OFSwitch13StatsCalculator::GetPktsOut (void) const
-{
-  return m_packetOutCounter - m_lastPacketOutCounter;
+  return DataRate (std::round (m_avgPipelineLoad));
 }
 
 void
@@ -243,29 +174,48 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
   *m_wrapper->GetStream ()
   << fixed << setprecision (2)
   << left
-  << setw (10) << "Time(s)"
+  << setw (12) << "Time(s)"
   << right
   << setw (12) << "Load(Kbps)"
-  << setw (11) << "LoadDrops"
-  << setw (11) << "MeterDrops"
-  << setw (11) << "FlowMods"
-  << setw (11) << "MeterMods"
-  << setw (11) << "GroupMods"
-  << setw (11) << "PktsIn"
-  << setw (11) << "PktsOut"
-  << setw (11) << "BuffUse(%)"
-  << setw (11) << "AvgFlows"
-  << setw (11) << "AvgMeters"
-  << setw (11) << "AvgGroups"
-  << setw (13) << "AvgDelay(us)"
+  << setw (8)  << "LdDrops"
+  << setw (8)  << "MtDrops"
+  << setw (8)  << "FloMods"
+  << setw (8)  << "MetMods"
+  << setw (8)  << "GroMods"
+  << setw (8)  << "PktsIn"
+  << setw (8)  << "PktsOut"
+  << setw (8)  << "NFlows"
+  << setw (8)  << "NMeters"
+  << setw (8)  << "NGroups"
+  << setw (8)  << "Buff(%)"
+  << setw (8)  << "Dly(us)"
   << std::endl;
 
   // Scheduling first update and dump.
-  Simulator::Schedule (
-    m_timeout, &OFSwitch13StatsCalculator::UpdateAndDumpStatistics, this);
+  Simulator::Schedule (m_timeout,
+                       &OFSwitch13StatsCalculator::DumpStatistics, this);
 
   // Chain up.
   Object::NotifyConstructionCompleted ();
+}
+
+void
+OFSwitch13StatsCalculator::NotifyDatapathTimeout (void)
+{
+  NS_LOG_FUNCTION (this);
+
+  m_avgBufferUsage = m_alpha * m_device->GetBufferUsage ()
+    + (1 - m_alpha) * m_avgBufferUsage;
+  m_avgFlowEntries = m_alpha * m_device->GetFlowEntries ()
+    + (1 - m_alpha) * m_avgFlowEntries;
+  m_avgGroupEntries = m_alpha * m_device->GetGroupEntries ()
+    + (1 - m_alpha) * m_avgGroupEntries;
+  m_avgMeterEntries = m_alpha * m_device->GetMeterEntries ()
+    + (1 - m_alpha) * m_avgMeterEntries;
+  m_avgPipelineDelay = m_alpha * m_device->GetPipelineDelay ().GetDouble ()
+    + (1 - m_alpha) * m_avgPipelineDelay;
+  m_avgPipelineLoad = m_alpha * m_device->GetPipelineLoad ().GetBitRate ()
+    + (1 - m_alpha) * m_avgPipelineLoad;
 }
 
 void
@@ -273,7 +223,7 @@ OFSwitch13StatsCalculator::NotifyLoadDrop (Ptr<const Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 
-  m_loadDropCounter++;
+  m_loadDrops++;
 }
 
 void
@@ -282,7 +232,7 @@ OFSwitch13StatsCalculator::NotifyMeterDrop (Ptr<const Packet> packet,
 {
   NS_LOG_FUNCTION (this << packet << meterId);
 
-  m_meterDropCounter++;
+  m_meterDrops++;
 }
 
 void
@@ -290,134 +240,58 @@ OFSwitch13StatsCalculator::NotifyPipelinePacket (Ptr<const Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 
-  m_byteCounter += packet->GetSize ();
+  m_bytes += packet->GetSize ();
 }
 
 void
-OFSwitch13StatsCalculator::NotifyBufferUsage (double oldValue,
-                                              double newValue)
-{
-  NS_LOG_FUNCTION (this << oldValue << newValue);
-
-  m_bufferUsageUp = true;
-  m_avgBufferUsage = newValue * m_alpha + m_avgBufferUsage * (1 - m_alpha);
-}
-
-void
-OFSwitch13StatsCalculator::NotifyFlowEntries (uint32_t oldValue,
-                                              uint32_t newValue)
-{
-  NS_LOG_FUNCTION (this << oldValue << newValue);
-
-  m_flowEntriesUp = true;
-  m_avgFlowEntries = newValue * m_alpha + m_avgFlowEntries * (1 - m_alpha);
-}
-
-void
-OFSwitch13StatsCalculator::NotifyGroupEntries (uint32_t oldValue,
-                                               uint32_t newValue)
-{
-  NS_LOG_FUNCTION (this << oldValue << newValue);
-
-  m_groupEntriesUp = true;
-  m_avgGroupEntries = newValue * m_alpha + m_avgGroupEntries * (1 - m_alpha);
-}
-
-void
-OFSwitch13StatsCalculator::NotifyMeterEntries (uint32_t oldValue,
-                                               uint32_t newValue)
-{
-  NS_LOG_FUNCTION (this << oldValue << newValue);
-
-  m_meterEntriesUp = true;
-  m_avgMeterEntries = newValue * m_alpha + m_avgMeterEntries * (1 - m_alpha);
-}
-
-void
-OFSwitch13StatsCalculator::NotifyPipelineDelay (Time oldValue,
-                                                Time newValue)
-{
-  NS_LOG_FUNCTION (this << oldValue << newValue);
-
-  m_pipelineDelayUp = true;
-  m_avgPipelineDelay = newValue.GetDouble () * m_alpha
-    + m_avgPipelineDelay * (1 - m_alpha);
-}
-
-void
-OFSwitch13StatsCalculator::UpdateAndDumpStatistics ()
+OFSwitch13StatsCalculator::DumpStatistics (void)
 {
   NS_LOG_FUNCTION (this);
 
   // Update counters.
-  m_lastFlowModCounter    = m_flowModCounter;
-  m_lastGroupModCounter   = m_groupModCounter;
-  m_lastMeterModCounter   = m_meterModCounter;
-  m_lastPacketInCounter   = m_packetInCounter;
-  m_lastPacketOutCounter  = m_packetOutCounter;
+  m_lastFlowMods   = m_flowMods;
+  m_lastGroupMods  = m_groupMods;
+  m_lastMeterMods  = m_meterMods;
+  m_lastPacketsIn  = m_packetsIn;
+  m_lastPacketsOut = m_packetsOut;
 
-  m_flowModCounter    = m_device->GetFlowModCounter ();
-  m_groupModCounter   = m_device->GetGroupModCounter ();
-  m_meterModCounter   = m_device->GetMeterModCounter ();
-  m_packetInCounter   = m_device->GetPacketInCounter ();
-  m_packetOutCounter  = m_device->GetPacketOutCounter ();
+  m_flowMods   = m_device->GetFlowModCounter ();
+  m_groupMods  = m_device->GetGroupModCounter ();
+  m_meterMods  = m_device->GetMeterModCounter ();
+  m_packetsIn  = m_device->GetPacketInCounter ();
+  m_packetsOut = m_device->GetPacketOutCounter ();
 
-  // Check for metrics without updates during the last interval.
-  if (!m_bufferUsageUp)
-    {
-      m_avgBufferUsage = m_device->GetBufferUsage ();
-    }
-  if (!m_flowEntriesUp)
-    {
-      m_avgFlowEntries = m_device->GetFlowEntries ();
-    }
-  if (!m_groupEntriesUp)
-    {
-      m_avgGroupEntries = m_device->GetGroupEntries ();
-    }
-  if (!m_meterEntriesUp)
-    {
-      m_avgMeterEntries = m_device->GetMeterEntries ();
-    }
-  if (!m_pipelineDelayUp)
-    {
-      m_avgPipelineDelay = m_device->GetPipelineDelay ().GetDouble ();
-    }
+  double elapSeconds = (Simulator::Now () - m_lastUpdate).GetSeconds ();
 
   // Print statistics to file.
   *m_wrapper->GetStream ()
   << left
-  << setw (10) << Simulator::Now ().GetSeconds ()
+  << setw (11) << Simulator::Now ().GetSeconds ()
   << right
-  << " " << setw (11) << GetPipelineLoad ()
-  << " " << setw (10) << GetLoadDrops ()
-  << " " << setw (10) << GetMeterDrops ()
-  << " " << setw (10) << GetFlowMods ()
-  << " " << setw (10) << GetMeterMods ()
-  << " " << setw (10) << GetGroupMods ()
-  << " " << setw (10) << GetPktsIn ()
-  << " " << setw (10) << GetPktsOut ()
-  << " " << setw (10) << GetEwmaBufferUsage ()
-  << " " << setw (10) << GetEwmaFlowEntries ()
-  << " " << setw (10) << GetEwmaMeterEntries ()
-  << " " << setw (10) << GetEwmaGroupEntries ()
-  << " " << setw (12) << GetEwmaPipelineDelay ().GetMicroSeconds ()
+  << " " << setw (12) << (double)m_bytes * 8 / 1000 / elapSeconds
+  << " " << setw (7)  << m_loadDrops
+  << " " << setw (7)  << m_meterDrops
+  << " " << setw (7)  << m_flowMods - m_lastFlowMods
+  << " " << setw (7)  << m_meterMods - m_lastMeterMods
+  << " " << setw (7)  << m_groupMods - m_lastGroupMods
+  << " " << setw (7)  << m_packetsIn - m_lastPacketsIn
+  << " " << setw (7)  << m_packetsOut - m_lastPacketsOut
+  << " " << setw (7)  << GetEwmaFlowEntries ()
+  << " " << setw (7)  << GetEwmaMeterEntries ()
+  << " " << setw (7)  << GetEwmaGroupEntries ()
+  << " " << setw (7)  << GetEwmaBufferUsage ()
+  << " " << setw (7)  << GetEwmaPipelineDelay ().GetMicroSeconds ()
   << std::endl;
 
   // Reset counters and flags.
-  m_byteCounter = 0;
-  m_loadDropCounter = 0;
-  m_meterDropCounter = 0;
-  m_bufferUsageUp = false;
-  m_flowEntriesUp = false;
-  m_groupEntriesUp = false;
-  m_meterEntriesUp = false;
-  m_pipelineDelayUp = false;
+  m_bytes = 0;
+  m_loadDrops = 0;
+  m_meterDrops = 0;
 
   // Scheduling next update.
   m_lastUpdate = Simulator::Now ();
-  Simulator::Schedule (
-    m_timeout, &OFSwitch13StatsCalculator::UpdateAndDumpStatistics, this);
+  Simulator::Schedule (m_timeout,
+                       &OFSwitch13StatsCalculator::DumpStatistics, this);
 }
 
 } // Namespace ns3

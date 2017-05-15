@@ -432,10 +432,10 @@ the following datapath metrics on the output file:
 #. Group-mod operations executed by the switch;
 #. Packets-in sent from the switch to the controller;
 #. Packets-out sent from the controller to the switch;
-#. Average switch buffer space usage (percent);
 #. Average number of flow entries in pipeline tables;
 #. Average number of meter entries in meter table;
 #. Average number of group entries in group table;
+#. Average switch buffer space usage (percent);
 #. Average pipeline lookup delay for packet processing (microseconds).
 
 To enable performance monitoring, just call the ``EnableDatapathStats()``
