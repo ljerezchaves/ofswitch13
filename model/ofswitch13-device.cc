@@ -198,13 +198,7 @@ OFSwitch13Device::GetDatapathId (void) const
 uint32_t
 OFSwitch13Device::GetFlowEntries (void) const
 {
-  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
-  uint32_t entries = 0;
-  for (size_t i = 0; i < PIPELINE_TABLES; i++)
-    {
-      entries += GetFlowEntries (i);
-    }
-  return entries;
+  return m_flowEntries;
 }
 
 uint32_t
@@ -235,7 +229,7 @@ OFSwitch13Device::GetFlowTableSize (void) const
 uint32_t
 OFSwitch13Device::GetGroupEntries (void) const
 {
-  return m_datapath->groups->entries_num;
+  return m_groupEntries;
 }
 
 uint64_t
@@ -253,7 +247,7 @@ OFSwitch13Device::GetGroupTableSize (void) const
 uint32_t
 OFSwitch13Device::GetMeterEntries (void) const
 {
-  return m_datapath->meters->entries_num;
+  return m_meterEntries;
 }
 
 uint64_t
@@ -693,9 +687,14 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
 
   // Update traced values.
   m_bufferUsage = (double)m_bufferPkts.size () / m_bufferSize;
-  m_flowEntries = GetFlowEntries ();
-  m_groupEntries = GetGroupEntries ();
-  m_meterEntries = GetMeterEntries ();
+  m_groupEntries =  m_datapath->groups->entries_num;
+  m_meterEntries = m_datapath->meters->entries_num;
+  uint32_t flowEntries = 0;
+  for (size_t i = 0; i < PIPELINE_TABLES; i++)
+    {
+      flowEntries += GetFlowEntries (i);
+    }
+  m_flowEntries = flowEntries;
 
   // The pipeline delay is estimated as k * log (n), where 'k' is the
   // m_tcamDelay set to the time for a single TCAM operation, and 'n' is the
