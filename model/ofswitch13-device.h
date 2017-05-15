@@ -562,6 +562,9 @@ private:
   /** Trace source fired when a packet is saved into buffer. */
   TracedCallback<Ptr<const Packet> > m_bufferSaveTrace;
 
+  /** Trace source fired when the datapath timeout operation is completed. */
+  TracedCallback<> m_datapathTimeoutTrace;
+
   /** Trace source fired when a packet is dropped due to pipeline load. */
   TracedCallback<Ptr<const Packet> > m_loadDropTrace;
 

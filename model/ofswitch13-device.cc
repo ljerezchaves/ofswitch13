@@ -48,11 +48,6 @@ OFSwitch13Device::GetTypeId (void)
                    UintegerValue (0),
                    MakeUintegerAccessor (&OFSwitch13Device::m_dpId),
                    MakeUintegerChecker<uint64_t> ())
-    .AddAttribute ("DatapathTimeout",
-                   "The interval between timeout operations on pipeline.",
-                   TimeValue (MilliSeconds (100)),
-                   MakeTimeAccessor (&OFSwitch13Device::m_timeout),
-                   MakeTimeChecker ())
     .AddAttribute ("FlowTableSize",
                    "The maximum number of entries allowed on each flow table.",
                    UintegerValue (FLOW_TABLE_MAX_ENTRIES),
@@ -86,6 +81,11 @@ OFSwitch13Device::GetTypeId (void)
                    TimeValue (MicroSeconds (20)),
                    MakeTimeAccessor (&OFSwitch13Device::m_tcamDelay),
                    MakeTimeChecker ())
+    .AddAttribute ("TimeoutInterval",
+                   "The interval between timeout operations on datapath.",
+                   TimeValue (MilliSeconds (100)),
+                   MakeTimeAccessor (&OFSwitch13Device::m_timeout),
+                   MakeTimeChecker ())
 
     .AddTraceSource ("BufferExpire",
                      "Trace source indicating an expired packet in buffer.",
@@ -117,6 +117,10 @@ OFSwitch13Device::GetTypeId (void)
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_pipePacketTrace),
                      "ns3::Packet::TracedCallback")
+    .AddTraceSource ("DatapathTimeout",
+                     "Trace source indicating a datapath timeout operation.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_datapathTimeoutTrace))
 
     .AddTraceSource ("BufferUsage",
                      "Traced value indicating the buffer space usage "
@@ -713,6 +717,7 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
 
   dp->last_timeout = time_now ();
   m_lastTimeout = Simulator::Now ();
+  m_datapathTimeoutTrace ();
   Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout,
                        this, m_datapath);
 }

@@ -341,10 +341,6 @@ OFSwitch13Device
   This is a read-only attribute, automatically assigned by the object
   constructor.
 
-* ``DatapathTimeout``: The interval time interval between timeout operations on
-  pipeline. At each internal, the device checks if any flow in any table is
-  timed out and update port status.
-
 * ``FlowTableSize``: The maximum number of entries allowed on each flow table.
 
 * ``GroupTableSize``: The maximum number of entries allowed on group table.
@@ -360,6 +356,10 @@ OFSwitch13Device
 * ``TcamDelay``: Average time to perform a TCAM operation in pipeline. This
   value will be used to calculate the average pipeline delay based on the
   number of flow entries in the tables, as described in :ref:`switch-device`.
+
+* ``TimeoutInterval``: The time between timeout operations on pipeline. At
+  each internal, the device checks if any flow in any table is timed out and
+  update port status.
 
 OFSwitch13Port
 ##############
