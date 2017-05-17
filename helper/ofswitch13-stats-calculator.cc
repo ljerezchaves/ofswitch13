@@ -44,18 +44,13 @@ OFSwitch13StatsCalculator::OFSwitch13StatsCalculator ()
     m_avgPipelineDelay (0),
     m_avgPipelineLoad (0),
     m_bytes (0),
-    m_loadDrops (0),
-    m_meterDrops (0),
-    m_flowMods (0),
-    m_groupMods (0),
-    m_meterMods (0),
-    m_packetsIn (0),
-    m_packetsOut (0),
     m_lastFlowMods (0),
     m_lastGroupMods (0),
     m_lastMeterMods (0),
     m_lastPacketsIn (0),
-    m_lastPacketsOut (0)
+    m_lastPacketsOut (0),
+    m_loadDrops (0),
+    m_meterDrops (0)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -248,18 +243,12 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
 {
   NS_LOG_FUNCTION (this);
 
-  // Update counters.
-  m_lastFlowMods   = m_flowMods;
-  m_lastGroupMods  = m_groupMods;
-  m_lastMeterMods  = m_meterMods;
-  m_lastPacketsIn  = m_packetsIn;
-  m_lastPacketsOut = m_packetsOut;
-
-  m_flowMods   = m_device->GetFlowModCounter ();
-  m_groupMods  = m_device->GetGroupModCounter ();
-  m_meterMods  = m_device->GetMeterModCounter ();
-  m_packetsIn  = m_device->GetPacketInCounter ();
-  m_packetsOut = m_device->GetPacketOutCounter ();
+  // Collect statistics from switch device.
+  uint64_t flowMods   = m_device->GetFlowModCounter ();
+  uint64_t groupMods  = m_device->GetGroupModCounter ();
+  uint64_t meterMods  = m_device->GetMeterModCounter ();
+  uint64_t packetsIn  = m_device->GetPacketInCounter ();
+  uint64_t packetsOut = m_device->GetPacketOutCounter ();
 
   double elapSeconds = (Simulator::Now () - m_lastUpdate).GetSeconds ();
 
@@ -271,11 +260,11 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
   << " " << setw (12) << (double)m_bytes * 8 / 1000 / elapSeconds
   << " " << setw (7)  << m_loadDrops
   << " " << setw (7)  << m_meterDrops
-  << " " << setw (7)  << m_flowMods - m_lastFlowMods
-  << " " << setw (7)  << m_meterMods - m_lastMeterMods
-  << " " << setw (7)  << m_groupMods - m_lastGroupMods
-  << " " << setw (7)  << m_packetsIn - m_lastPacketsIn
-  << " " << setw (7)  << m_packetsOut - m_lastPacketsOut
+  << " " << setw (7)  << flowMods - m_lastFlowMods
+  << " " << setw (7)  << meterMods - m_lastMeterMods
+  << " " << setw (7)  << groupMods - m_lastGroupMods
+  << " " << setw (7)  << packetsIn - m_lastPacketsIn
+  << " " << setw (7)  << packetsOut - m_lastPacketsOut
   << " " << setw (7)  << GetEwmaFlowEntries ()
   << " " << setw (7)  << GetEwmaMeterEntries ()
   << " " << setw (7)  << GetEwmaGroupEntries ()
@@ -283,8 +272,13 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
   << " " << setw (7)  << GetEwmaPipelineDelay ().GetMicroSeconds ()
   << std::endl;
 
-  // Reset counters and flags.
+  // Update internal counters.
   m_bytes = 0;
+  m_lastFlowMods   = flowMods;
+  m_lastGroupMods  = groupMods;
+  m_lastMeterMods  = meterMods;
+  m_lastPacketsIn  = packetsIn;
+  m_lastPacketsOut = packetsOut;
   m_loadDrops = 0;
   m_meterDrops = 0;
 

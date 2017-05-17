@@ -133,20 +133,13 @@ private:
   double    m_avgPipelineLoad;
 
   uint64_t  m_bytes;
-  uint64_t  m_loadDrops;
-  uint64_t  m_meterDrops;
-
-  uint64_t  m_flowMods;
-  uint64_t  m_groupMods;
-  uint64_t  m_meterMods;
-  uint64_t  m_packetsIn;
-  uint64_t  m_packetsOut;
-
   uint64_t  m_lastFlowMods;
   uint64_t  m_lastGroupMods;
   uint64_t  m_lastMeterMods;
   uint64_t  m_lastPacketsIn;
   uint64_t  m_lastPacketsOut;
+  uint64_t  m_loadDrops;
+  uint64_t  m_meterDrops;
   //\}
 };
 
