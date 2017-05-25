@@ -195,10 +195,11 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
 }
 
 void
-OFSwitch13StatsCalculator::NotifyDatapathTimeout (void)
+OFSwitch13StatsCalculator::NotifyDatapathTimeout (Ptr<const OFSwitch13Device> device)
 {
   NS_LOG_FUNCTION (this);
 
+  NS_ASSERT_MSG (m_device == device, "Invalid device pointer.");
   m_avgBufferUsage = m_alpha * m_device->GetBufferUsage ()
     + (1 - m_alpha) * m_avgBufferUsage;
   m_avgFlowEntries = m_alpha * m_device->GetFlowEntries ()

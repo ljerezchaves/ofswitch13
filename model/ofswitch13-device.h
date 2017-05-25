@@ -314,6 +314,12 @@ public:
   typedef void (*MeterDropTracedCallback)(
     Ptr<const Packet> packet, uint32_t meterId);
 
+  /**
+   * TracedCallback signature for OpenFlow switch device.
+   * \param deve The OpenFlow switch device pointer.
+   */
+  typedef void (*DeviceTracedCallback)(Ptr<const OFSwitch13Device> dev);
+
 protected:
   // Inherited from Object
   virtual void DoDispose (void);
@@ -563,7 +569,7 @@ private:
   TracedCallback<Ptr<const Packet> > m_bufferSaveTrace;
 
   /** Trace source fired when the datapath timeout operation is completed. */
-  TracedCallback<> m_datapathTimeoutTrace;
+  TracedCallback<Ptr<const OFSwitch13Device> > m_datapathTimeoutTrace;
 
   /** Trace source fired when a packet is dropped due to pipeline load. */
   TracedCallback<Ptr<const Packet> > m_loadDropTrace;

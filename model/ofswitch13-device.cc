@@ -120,7 +120,8 @@ OFSwitch13Device::GetTypeId (void)
     .AddTraceSource ("DatapathTimeout",
                      "Trace source indicating a datapath timeout operation.",
                      MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_datapathTimeoutTrace))
+                       &OFSwitch13Device::m_datapathTimeoutTrace),
+                     "ns3::OFSwitch13Device::DeviceTracedCallback")
 
     .AddTraceSource ("BufferUsage",
                      "Traced value indicating the buffer space usage "
@@ -716,7 +717,7 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
 
   dp->last_timeout = time_now ();
   m_lastTimeout = Simulator::Now ();
-  m_datapathTimeoutTrace ();
+  m_datapathTimeoutTrace (this);
   Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout,
                        this, m_datapath);
 }

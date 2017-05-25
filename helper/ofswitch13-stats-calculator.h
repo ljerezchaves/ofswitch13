@@ -88,8 +88,9 @@ protected:
 private:
   /**
    * Notify when a datapath timeout operation is completed.
+   * \param device The OpenFlow device pointer.
    */
-  void NotifyDatapathTimeout (void);
+  void NotifyDatapathTimeout (Ptr<const OFSwitch13Device> device);
 
   /**
    * Notify when a packet is dropped due to pipeline load.
