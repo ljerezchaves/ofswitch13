@@ -119,10 +119,11 @@ transmission by the ``CsmaNetDevice`` are expected to carry the ``QueueTag``,
 which is used to identify the internal queue that will hold the packet. Then,
 the output scheduling algorithm decides from which queue to get packets during
 dequeue procedures. Currently, only a priority scheduling algorithm is
-available for use (with lowest priority id set to 0). By default, the maximum
-number of queues allowed per port (8) are created at constructor, and can not
-be removed.  These queues are of the type ``DropTailQueue``, operating in
-packet mode with maximum number of packets set to 1000.
+available for use (with lowest priority id set to 0). The number of queues
+indicated by the ``OFSwitch13Queue::NumQueues`` attribute are created at
+constructor, and can not be removed.  These queues are of the type
+``DropTailQueue``, operating in packet mode with maximum number of packets set
+to 1000.
 
 .. _fig-ofswitch13-queue:
 
