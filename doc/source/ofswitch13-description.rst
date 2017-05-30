@@ -357,7 +357,7 @@ including the |ofs13| when compiling Doxygen and Sphinx documentation. For
 older versions, users can apply the *src* patch and, if necessary, manually
 resolve the conflicts.
 
-Current |ofs13| stable version is 3.1.0. It has been developed and tested
+Current |ofs13| stable version is 3.X.X. It has been developed and tested
 together with |ns3| versions 3.26, and will not compile with older |ns3|
 versions. If you really need to use an older |ns3| releases, you can check for
 previous |ofs13| versions, but keep in mind that old releases may have known

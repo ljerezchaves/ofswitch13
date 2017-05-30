@@ -99,7 +99,7 @@ It's time to download a recent (preferably stable) |ns3| code into your machine
 
 Before configuring and compiling the simulator, download the |ofs13| code from
 the module repository and place it inside a new ``/src/ofswitch13`` folder.
-Update the code to the latest stable version (here, we are using 3.1.0):
+Update the code to the latest stable version (here, we are using 3.X.X):
 
 .. code-block:: bash
 
