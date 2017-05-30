@@ -40,7 +40,7 @@
 #include <ns3/ofswitch13-module.h>
 #include <ns3/internet-apps-module.h>
 #include "tunnel-controller.h"
-#include "tunnel-user-app.h"
+#include "gtp-tunnel-app.h"
 
 using namespace ns3;
 
@@ -65,11 +65,12 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13Device", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Port", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Queue", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13SocketHandler", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
-      LogComponentEnable ("TunnelController", LOG_LEVEL_ALL);
-      LogComponentEnable ("TunnelUserApp", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
+      LogComponentEnable ("TunnelController", LOG_LEVEL_ALL);
+      LogComponentEnable ("GtpTunnelApp", LOG_LEVEL_ALL);
     }
 
   // Enable checksum computations (required by OFSwitch13 module)
@@ -123,73 +124,72 @@ main (int argc, char *argv[])
   Ipv4InterfaceContainer hostIpIfaces;
   Ipv4InterfaceContainer ipIfaces;
   Ipv4AddressHelper ipv4Helper;
+  Ipv4Address ipDomain1 ("10.1.1.0");
+  Ipv4Address ipDomain2 ("10.2.2.0");
+  Ipv4Mask mask24 ("255.255.255.0");
   Ipv4Address sw0GatewayIp, sw1GatewayIp;
 
-  ipv4Helper.SetBase ("10.1.1.0", "255.255.255.0");
+  ipv4Helper.SetBase (ipDomain1, mask24);
   ipIfaces = ipv4Helper.Assign (NetDeviceContainer (hostDevices.Get (0)));
   hostIpIfaces.Add (ipIfaces.Get (0));
-  sw0GatewayIp = ipv4Helper.NewAddress ();    // 10.1.1.2
+  sw0GatewayIp = ipv4Helper.NewAddress ();
 
-  ipv4Helper.SetBase ("10.2.2.0", "255.255.255.0");
+  ipv4Helper.SetBase (ipDomain2, mask24);
   ipIfaces = ipv4Helper.Assign (NetDeviceContainer (hostDevices.Get (1)));
   hostIpIfaces.Add (ipIfaces.Get (0));
-  sw1GatewayIp = ipv4Helper.NewAddress ();    // 10.2.2.2
+  sw1GatewayIp = ipv4Helper.NewAddress ();
 
   // Save ARP entries on the controller, so it can respond to ARP requests
-  tunnelController->SaveArpEntry (
-    sw0GatewayIp, Mac48Address::ConvertFrom (hostSwitchDevices.Get (0)->GetAddress ()));
-  tunnelController->SaveArpEntry (
-    sw1GatewayIp, Mac48Address::ConvertFrom (hostSwitchDevices.Get (1)->GetAddress ()));
-  tunnelController->SaveArpEntry (
-    hostIpIfaces.GetAddress (0), Mac48Address::ConvertFrom (hostDevices.Get (0)->GetAddress ()));
-  tunnelController->SaveArpEntry (
-    hostIpIfaces.GetAddress (1), Mac48Address::ConvertFrom (hostDevices.Get (1)->GetAddress ()));
+  tunnelController->SaveArpEntry (sw0GatewayIp, Mac48Address::ConvertFrom (hostSwitchDevices.Get (0)->GetAddress ()));
+  tunnelController->SaveArpEntry (sw1GatewayIp, Mac48Address::ConvertFrom (hostSwitchDevices.Get (1)->GetAddress ()));
+  tunnelController->SaveArpEntry (hostIpIfaces.GetAddress (0), Mac48Address::ConvertFrom (hostDevices.Get (0)->GetAddress ()));
+  tunnelController->SaveArpEntry (hostIpIfaces.GetAddress (1), Mac48Address::ConvertFrom (hostDevices.Get (1)->GetAddress ()));
 
   // Configure static routes on host nodes
   Ipv4StaticRoutingHelper ipv4RoutingHelper;
   Ptr<Ipv4StaticRouting> hostStaticRouting;
   hostStaticRouting = ipv4RoutingHelper.GetStaticRouting (hosts.Get (0)->GetObject<Ipv4> ());
-  hostStaticRouting->AddNetworkRouteTo (Ipv4Address ("10.2.2.0"), Ipv4Mask ("255.255.255.0"),
-                                        Ipv4Address ("10.1.1.2"), 1);
+  hostStaticRouting->AddNetworkRouteTo (ipDomain2, mask24, sw0GatewayIp, 1);
   hostStaticRouting = ipv4RoutingHelper.GetStaticRouting (hosts.Get (1)->GetObject<Ipv4> ());
-  hostStaticRouting->AddNetworkRouteTo (Ipv4Address ("10.1.1.0"), Ipv4Mask ("255.255.255.0"),
-                                        Ipv4Address ("10.2.2.2"), 1);
+  hostStaticRouting->AddNetworkRouteTo (ipDomain1, mask24, sw1GatewayIp, 1);
 
   // Connect switch 0 to switch 1. These CSMA devices will not be added as
   // switch ports. Instead, each one will be configured as standard ns-3 device
   // (with IP address and an UDP socket binded to it). They will be used to
-  // implement the UDP/IP tunneling process. The TunnelUserApp application
-  // running on top of the UDP socket will be in change of adding and removing
+  // implement the UDP/IP tunneling process. The GtpTunnelApp application
+  // running on top of the UDP socket will be in charge of adding and removing
   // the GTP headers, and forwarding the packets to a VirtualNetDevice device
   // on the same node. This VirtualNetDevice will be configured as switch port
   // and will finally interact with the OpenFlow device.
   pairDevs = csmaHelper.Install (NodeContainer (switches.Get (0), switches.Get (1)));
+  Ptr<CsmaNetDevice> physicalDev0 = DynamicCast<CsmaNetDevice> (pairDevs.Get (0));
+  Ptr<CsmaNetDevice> physicalDev1 = DynamicCast<CsmaNetDevice> (pairDevs.Get (1));
 
   // Set IPv4 tunnel endpoint addresses
-  ipv4Helper.SetBase ("192.168.1.0", "255.255.255.0");
-  ipv4Helper.Assign (pairDevs);
+  Ipv4Address tunnelDomain ("192.168.1.0");
+  ipv4Helper.SetBase (tunnelDomain, mask24);
+  ipIfaces = ipv4Helper.Assign (pairDevs);
 
   // Create the virtual net devices to work as logical ports on the switches.
   // These logical ports will connect to the tunnel handler application.
+  Ptr<OFSwitch13Port> port;
   Ptr<VirtualNetDevice> logicalPort0 = CreateObject<VirtualNetDevice> ();
   logicalPort0->SetAttribute ("Mtu", UintegerValue (1500));
   logicalPort0->SetAddress (Mac48Address::Allocate ());
-  sw0->AddSwitchPort (logicalPort0);  // Port #2 on switch 0
+  port = sw0->AddSwitchPort (logicalPort0);  // Port #2 on switch 0
+  tunnelController->SaveTunnelEndpoint (sw0->GetDatapathId (), port->GetPortNo (), ipIfaces.GetAddress (1));
 
   Ptr<VirtualNetDevice> logicalPort1 = CreateObject<VirtualNetDevice> ();
   logicalPort1->SetAttribute ("Mtu", UintegerValue (1500));
   logicalPort1->SetAddress (Mac48Address::Allocate ());
-  sw1->AddSwitchPort (logicalPort1);  // Port #2 on switch 1
+  port = sw1->AddSwitchPort (logicalPort1);  // Port #2 on switch 1
+  tunnelController->SaveTunnelEndpoint (sw1->GetDatapathId (), port->GetPortNo (), ipIfaces.GetAddress (0));
 
   // Create the tunnel handler applications
-  Ptr<TunnelUserApp> tunnelApp0 = CreateObject<TunnelUserApp> (
-      logicalPort0, hostIpIfaces.GetAddress (0), hostDevices.Get (0)->GetAddress (),
-      hostSwitchDevices.Get (0)->GetAddress (), Ipv4Address ("192.168.1.2"));
+  Ptr<GtpTunnelApp> tunnelApp0 = CreateObject<GtpTunnelApp> (logicalPort0, physicalDev0);
   switches.Get (0)->AddApplication (tunnelApp0);
 
-  Ptr<TunnelUserApp> tunnelApp1 = CreateObject<TunnelUserApp> (
-      logicalPort1, hostIpIfaces.GetAddress (1), hostDevices.Get (1)->GetAddress (),
-      hostSwitchDevices.Get (1)->GetAddress (), Ipv4Address ("192.168.1.1"));
+  Ptr<GtpTunnelApp> tunnelApp1 = CreateObject<GtpTunnelApp> (logicalPort1, physicalDev1);
   switches.Get (1)->AddApplication (tunnelApp1);
 
   // Finally, create the OpenFlow channels

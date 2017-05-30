@@ -28,22 +28,22 @@ namespace ns3 {
 /**
  * \ingroup ofswitch13
  * \brief This class monitors a single OpenFlow switch device to collect
- * statistics and save write them to an output file. This stats calculator
- * connects to a collection of trace sources in the OpenFlow switch device to
- * monitor the following metrics:
- *  -# Packets per second sent to the pipeline;
- *  -# Packets per second dropped by meter bands;
- *  -# Kbits per second of data processed by the pipeline;
- *  -# Flow-mod per second operations executed by the switch;
- *  -# Meter-mod per second operations executed by the switch;
- *  -# Group-mod per second operations executed by the OpenFlow switch;
- *  -# Packets-in per second sent from the switch to the controller;
- *  -# Packets-out per second sent from the controller to the switch;
- *  -# Average switch buffer space usage (percent);
+ * statistics and write them to an output file. This stats calculator connects
+ * to a collection of trace sources in the OpenFlow switch device to monitor
+ * the following metrics:
+ *  -# Pipeline load in terms of throughput (Kbits);
+ *  -# Packets dropped while exceeding pipeline load capacity;
+ *  -# Packets dropped by meter bands;
+ *  -# Flow-mod operations executed by the switch;
+ *  -# Meter-mod operations executed by the switch;
+ *  -# Group-mod operations executed by the switch;
+ *  -# Packets-in sent from the switch to the controller;
+ *  -# Packets-out sent from the controller to the switch;
  *  -# Average number of flow entries in pipeline tables;
  *  -# Average number of meter entries in meter table;
  *  -# Average number of group entries in group table;
- *  -# Average pipeline lookup delay for packet processing (nanoseconds).
+ *  -# Average switch buffer space usage (percent);
+ *  -# Average pipeline lookup delay for packet processing (microseconds).
  */
 class OFSwitch13StatsCalculator : public Object
 {
@@ -63,6 +63,21 @@ public:
    */
   void HookSinks (Ptr<OFSwitch13Device> device);
 
+  /**
+   * \name EWMA statistics calculators.
+   * Get the average metric values that are updated at every datapath timeout
+   * operation using an Exponentially Weighted Moving Average.
+   * \return The requested metric value.
+   */
+  //\{
+  uint32_t GetEwmaBufferUsage   (void) const;
+  uint32_t GetEwmaFlowEntries   (void) const;
+  uint32_t GetEwmaGroupEntries  (void) const;
+  uint32_t GetEwmaMeterEntries  (void) const;
+  Time     GetEwmaPipelineDelay (void) const;
+  DataRate GetEwmaPipelineLoad  (void) const;
+  //\}
+
 protected:
   /** Destructor implementation. */
   virtual void DoDispose ();
@@ -72,94 +87,60 @@ protected:
 
 private:
   /**
-   * \name Trace sinks for monitoring pipeline packets.
-   * Trace sinks used to monitor for packets sent to the OpenFlow pipeline and
-   * packets dropped by meter bands.
+   * Notify when a datapath timeout operation is completed.
+   * \param device The OpenFlow device pointer.
+   */
+  void NotifyDatapathTimeout (Ptr<const OFSwitch13Device> device);
+
+  /**
+   * Notify when a packet is dropped due to pipeline load.
    * \param packet The packet.
    */
-  //\{
+  void NotifyLoadDrop (Ptr<const Packet> packet);
+
+  /**
+   * Notify when a packet is dropped by a meter band.
+   * \param packet The packet.
+   * \param meterId The meter ID.
+   */
+  void NotifyMeterDrop (Ptr<const Packet> packet, uint32_t meterId);
+
+  /**
+   * Notify when a packet is sent to pipeline.
+   * \param packet The packet.
+   */
   void NotifyPipelinePacket (Ptr<const Packet> packet);
-  void NotifyMeterDrop      (Ptr<const Packet> packet);
-  //\}
 
   /**
-   * \name Trace sinks for monitoring traced values.
-   * Trace sinks used to monitor traced values on the OpenFlow switch datapath.
-   * \param oldValue The old value.
-   * \param newValue The new just updated value.
+   * Read statistics from switch, update internal counters,
+   * and dump data into output file.
    */
+  void DumpStatistics (void);
+
+  Ptr<OFSwitch13Device>     m_device;       //!< OpenFlow switch device.
+  Ptr<OutputStreamWrapper>  m_wrapper;      //!< Output file wrapper.
+  std::string               m_filename;     //!< Output file name.
+  Time                      m_timeout;      //!< Update timeout.
+  Time                      m_lastUpdate;   //!< Last update time.
+  double                    m_alpha;        //!< EWMA alpha parameter.
+
+  /** \name Internal counters, average values, and updated flags. */
   //\{
-  void NotifyPipelineDelay    (Time     oldValue, Time     newValue);
-  void NotifyBufferUsage      (double   oldValue, double   newValue);
-  void NotifyFlowEntries      (uint32_t oldValue, uint32_t newValue);
-  void NotifyMeterEntries     (uint32_t oldValue, uint32_t newValue);
-  void NotifyGroupEntries     (uint32_t oldValue, uint32_t newValue);
-  void NotifyFlowModCounter   (uint32_t oldValue, uint32_t newValue);
-  void NotifyMeterModCounter  (uint32_t oldValue, uint32_t newValue);
-  void NotifyGroupModCounter  (uint32_t oldValue, uint32_t newValue);
-  void NotifyPacketInCounter  (uint32_t oldValue, uint32_t newValue);
-  void NotifyPacketOutCounter (uint32_t oldValue, uint32_t newValue);
-  //\}
+  double    m_avgBufferUsage;
+  double    m_avgFlowEntries;
+  double    m_avgGroupEntries;
+  double    m_avgMeterEntries;
+  double    m_avgPipelineDelay;
+  double    m_avgPipelineLoad;
 
-  /**
-   * \name Statistics calculators.
-   * Functions used to calculate average metric values based on data collected
-   * since the last dump operation.
-   * \return The requested average metric value.
-   */
-  //\{
-  double   GetPktsPerSec        (void) const;
-  double   GetDropsPerSec       (void) const;
-  double   GetKbitsPerSec       (void) const;
-  double   GetFlowModsPerSec    (void) const;
-  double   GetMeterModsPerSec   (void) const;
-  double   GetGroupModsPerSec   (void) const;
-  double   GetPktsInPerSec      (void) const;
-  double   GetPktsOutPerSec     (void) const;
-  uint32_t GetAvgBufferUsage    (void) const;
-  uint32_t GetAvgFlowEntries    (void) const;
-  uint32_t GetAvgMeterEntries   (void) const;
-  uint32_t GetAvgGroupEntries   (void) const;
-  uint32_t GetAvgPipelineDelay  (void) const;
-  //\}
-
-  /**
-   * Dump statistics into file.
-   */
-  void DumpStatistics ();
-
-  /**
-   * Reset internal counters.
-   */
-  void ResetCounters ();
-
-  /**
-   * Get the elapsed time since last dump.
-   * \return The elapsed time, in seconds.
-   */
-  double GetElapsedSeconds (void) const;
-
-  Ptr<OutputStreamWrapper>  m_wrapper;      //!< Output file wrapper
-  std::string               m_filename;     //!< Output file name
-  Time                      m_timeout;      //!< Dump timeout
-  Time                      m_lastDump;     //!< Last dump time
-  double                    m_alpha;        //!< EWMA alpha parameter
-
-  /** \name Internal counters. */
-  //\{
-  uint32_t m_pipelinePackets;
-  uint32_t m_pipelineBytes;
-  uint32_t m_droppedPackets;
-  double   m_avgPipelineDelay;
-  double   m_avgBufferUsage;
-  double   m_avgFlowEntries;
-  double   m_avgMeterEntries;
-  double   m_avgGroupEntries;
-  uint32_t m_flowModCounter;
-  uint32_t m_meterModCounter;
-  uint32_t m_groupModCounter;
-  uint32_t m_packetInCounter;
-  uint32_t m_packetOutCounter;
+  uint64_t  m_bytes;
+  uint64_t  m_lastFlowMods;
+  uint64_t  m_lastGroupMods;
+  uint64_t  m_lastMeterMods;
+  uint64_t  m_lastPacketsIn;
+  uint64_t  m_lastPacketsOut;
+  uint64_t  m_loadDrops;
+  uint64_t  m_meterDrops;
   //\}
 };
 

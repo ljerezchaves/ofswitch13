@@ -24,6 +24,7 @@
 #include <ns3/application.h>
 #include <ns3/socket.h>
 #include "ofswitch13-interface.h"
+#include "ofswitch13-socket-handler.h"
 #include <string>
 
 namespace ns3 {
@@ -50,7 +51,7 @@ protected:
   {
     friend class OFSwitch13Controller;
 
-  public:
+public:
     /** Default (empty) constructor. */
     RemoteSwitch ();
 
@@ -72,20 +73,19 @@ protected:
      */
     uint64_t GetDpId (void) const;
 
-  private:
-    Ptr<Socket>               m_socket;   //!< TCP connection socket.
-    Ptr<SocketReader>         m_reader;   //!< Socket reader.
-    Address                   m_address;  //!< Switch connection address.
-    Ptr<OFSwitch13Controller> m_ctrlApp;  //!< Controller application.
-    uint64_t                  m_dpId;     //!< OpenFlow datapath ID.
-    ofp_controller_role       m_role;     //!< Controller role over the switch.
+private:
+    Ptr<OFSwitch13SocketHandler>  m_handler;  //!< Socket handler.
+    Address                       m_address;  //!< Switch connection address.
+    Ptr<OFSwitch13Controller>     m_ctrlApp;  //!< Controller application.
+    uint64_t                      m_dpId;     //!< OpenFlow datapath ID.
+    enum ofp_controller_role      m_role;     //!< Controller role over switch.
 
     /**
      * Switch features informed to the controller during handshake procedure.
      */
     //\{
-    uint32_t  m_numBuffers;   //!< Max packets buffered at once.
-    uint8_t   m_numTables;    //!< Number of tables supported by datapath.
+    uint32_t  m_nBuffers;     //!< Max packets buffered at once.
+    uint8_t   m_nTables;      //!< Number of tables supported by datapath.
     uint8_t   m_auxiliaryId;  //!< Identify auxiliary connections.
     uint32_t  m_capabilities; //!< Bitmap of support ofp_capabilities.
     //\}
@@ -100,7 +100,7 @@ protected:
   {
     friend class OFSwitch13Controller;
 
-  public:
+public:
     /**
      * Complete constructor, with remote switch.
      * \param swtch The remote switch.
@@ -113,7 +113,7 @@ protected:
      */
     Time GetRtt (void) const;
 
-  private:
+private:
     bool                    m_waiting;    //!< True when waiting for reply.
     Time                    m_send;       //!< Send time.
     Time                    m_recv;       //!< Received time.
@@ -128,14 +128,14 @@ protected:
   {
     friend class OFSwitch13Controller;
 
-  public:
+public:
     /**
      * Complete constructor, with remote switch.
      * \param swtch The remote switch.
      */
     BarrierInfo (Ptr<const RemoteSwitch> swtch);
 
-  private:
+private:
     bool                    m_waiting;    //!< True when waiting for reply.
     Ptr<const RemoteSwitch> m_swtch;      //!< Remote switch.
   };
@@ -189,7 +189,8 @@ public:
    * controller object.
    * \param msg The OFLib message to send.
    */
-  static void DpctlSendAndPrint (vconn *vconn, ofl_msg_header *msg);
+  static void DpctlSendAndPrint (struct vconn *vconn,
+                                 struct ofl_msg_header *msg);
 
 protected:
   // inherited from Application
@@ -224,16 +225,15 @@ protected:
    * \param xid The transaction id to use.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendToSwitch (Ptr<const RemoteSwitch> swtch, ofl_msg_header *msg,
+  int SendToSwitch (Ptr<const RemoteSwitch> swtch, struct ofl_msg_header *msg,
                     uint32_t xid = 0);
 
   /**
    * Send an echo request message to switch, and wait for a non-blocking reply.
    * \param swtch The remote switch to receive the message.
    * \param payloadSize The ammount of dummy bytes in echo message.
-   * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendEchoRequest (Ptr<const RemoteSwitch> swtch, size_t payloadSize = 0);
+  void SendEchoRequest (Ptr<const RemoteSwitch> swtch, size_t payloadSize = 0);
 
   /**
    * Send a barrier request message to switch, and wait for a non-blocking
@@ -241,9 +241,8 @@ protected:
    * and messages are processed in the same order that are received from the
    * controller, so a barrier request will simply be replied by the switch.
    * \param swtch The remote switch to receive the message.
-   * \return 0 if everything's ok, otherwise an error number.
    */
-  int SendBarrierRequest (Ptr<const RemoteSwitch> swtch);
+  void SendBarrierRequest (Ptr<const RemoteSwitch> swtch);
 
   /**
    * \name OpenFlow message handlers
@@ -265,48 +264,59 @@ protected:
    */
   //\{
   ofl_err HandleEchoRequest (
-    ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   ofl_err HandleEchoReply (
-    ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_echo *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   ofl_err HandleBarrierReply (
-    ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   ofl_err HandleHello (
-    ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_header *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   ofl_err HandleFeaturesReply (
-    ofl_msg_features_reply *msg, Ptr<RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_features_reply *msg, Ptr<RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandlePacketIn (
-    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandleError (
-    ofl_msg_error *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_error *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandleGetConfigReply (
-    ofl_msg_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
+    struct ofl_msg_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
     uint32_t xid);
 
   virtual ofl_err HandleFlowRemoved (
-    ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandlePortStatus (
-    ofl_msg_port_status *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_port_status *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandleAsyncReply (
-    ofl_msg_async_config *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_async_config *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandleMultipartReply (
-    ofl_msg_multipart_reply_header *msg, Ptr<const RemoteSwitch> swtch,
+    struct ofl_msg_multipart_reply_header *msg, Ptr<const RemoteSwitch> swtch,
     uint32_t xid);
 
   virtual ofl_err HandleRoleReply (
-    ofl_msg_role_request *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_role_request *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   virtual ofl_err HandleQueueGetConfigReply (
-    ofl_msg_queue_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
+    struct ofl_msg_queue_get_config_reply *msg, Ptr<const RemoteSwitch> swtch,
     uint32_t xid);
   //\}
 
@@ -319,11 +329,11 @@ private:
    * \param xid The transaction id.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  int HandleSwitchMsg (ofl_msg_header *msg, Ptr<RemoteSwitch> swtch,
-                       uint32_t xid);
+  ofl_err HandleSwitchMsg (struct ofl_msg_header *msg, Ptr<RemoteSwitch> swtch,
+                           uint32_t xid);
 
   /**
-   * SocketReader callback to receive an OpenFlow packet from switch.
+   * Receive an OpenFlow packet from switch.
    * \param packet The packet with the OpenFlow message.
    * \param from The packet sender address.
    */

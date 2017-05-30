@@ -40,7 +40,7 @@ class OFSwitch13Device;
  * the ofsoftswitch13 internal sw_port structure.
  * \see ofsoftswitch13 udatapath/dp_ports.h
  * \attention Each underlying NetDevice used as port must only be assigned
- * a Mac Address. Adding an Ipv4 or Ipv6 layer to it may cause an error.
+ *            a MAC Address. Adding an Ipv4/IPv6 layer to it may cause error.
  */
 class OFSwitch13Port : public Object
 {
@@ -68,7 +68,7 @@ public:
    * \param netDev The underlying NetDevice.
    * \param openflowDev The OpenFlow device.
    */
-  OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
+  OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
                   Ptr<OFSwitch13Device> openflowDev);
 
   /**
@@ -101,7 +101,7 @@ private:
    * \see ofsoftswitch netdev_get_features () at lib/netdev.c
    * \return Port features bitmap.
    */
-  uint32_t PortGetFeatures ();
+  uint32_t GetPortFeatures ();
 
   /**
    * Called when a packet is received on this OpenFlow switch port by the
@@ -126,11 +126,11 @@ private:
   /** Trace source fired when a packet will be sent over this switch port. */
   TracedCallback<Ptr<const Packet> > m_txTrace;
 
-  uint32_t                  m_portNo;       //!< Port number
-  sw_port*                  m_swPort;       //!< ofsoftswitch13 struct sw_port
-  Ptr<NetDevice>            m_netDev;       //!< Underlying NetDevice
-  Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue
-  Ptr<OFSwitch13Device>     m_openflowDev;  //!< OpenFlow device
+  uint32_t                  m_portNo;       //!< Port number.
+  struct sw_port*           m_swPort;       //!< ofsoftswitch13 struct sw_port.
+  Ptr<NetDevice>            m_netDev;       //!< Underlying NetDevice.
+  Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue.
+  Ptr<OFSwitch13Device>     m_openflowDev;  //!< OpenFlow device.
 };
 
 } // namespace ns3

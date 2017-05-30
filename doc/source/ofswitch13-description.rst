@@ -48,6 +48,8 @@ source code for the |ofs13| module lives in the directory ``src/ofswitch13``.
 Design
 ======
 
+.. _switch-device:
+
 OpenFlow 1.3 Switch Device
 ##########################
 
@@ -80,21 +82,25 @@ promiscuous protocol handler, the packet sent to this callback includes all the
 headers, which are necessary by OpenFlow pipeline processing. This is the only
 required modification to the |ns3| source code for |ofs13| usage.
 
+The incoming packet will be checked for conformance to the pipeline processing
+capacity defined by the ``OFSwitch13Device::PipelineCapacity`` attribute,
+measured in terms of throughput. Packets exceeding processing capacity are
+dropped, while conformant packets are sent to the pipeline at the |ofslib|
+library.
+
 To model OpenFlow hardware operations, the module considers the concept of
 *virtual TCAM* (Ternary Content-Addressable Memory) to estimate the average
-flow table search time. This search time is used to postpone the pipeline
-processing at the library. To provide a more realistic delay, the module
-considers that real OpenFlow implementations use sophisticated search
-algorithms for packet classification and matching. As most of these algorithms
-are based on binary search trees, the following equation is used to estimate
-the delay:
+flow table search time. To provide a more realistic delay, the module considers
+that real OpenFlow implementations use sophisticated search algorithms for
+packet matching such as hierarchical hash tables or binary search trees.
+Because of that, the following equation is used to estimate the delay:
 
 .. math::
   K * log_2 (n)
 
 where *K* is the ``OFSwitch13Device::TcamDelay`` attribute set to the time for
-a TCAM operation in a NetFPGA hardware, and *n* is the current number of
-entries in the flow tables.
+a single TCAM operation, and *n* is the current number of entries on pipeline
+flow tables.
 
 Packets coming back from the library for output action are sent to the
 specialized ``OFSwitch13Queue`` provided by the module. An OpenFlow switch
@@ -113,10 +119,11 @@ transmission by the ``CsmaNetDevice`` are expected to carry the ``QueueTag``,
 which is used to identify the internal queue that will hold the packet. Then,
 the output scheduling algorithm decides from which queue to get packets during
 dequeue procedures. Currently, only a priority scheduling algorithm is
-available for use (with lowest priority id set to 0). By default, the maximum
-number of queues allowed per port (8) are created at constructor, and can not
-be removed.  These queues are of the type ``DropTailQueue``, operating in
-packet mode with maximum number of packets set to 1000.
+available for use (with lowest priority id set to 0). The number of queues
+indicated by the ``OFSwitch13Queue::NumQueues`` attribute are created at
+constructor, and can not be removed.  These queues are of the type
+``DropTailQueue``, operating in packet mode with maximum number of packets set
+to 1000.
 
 .. _fig-ofswitch13-queue:
 
@@ -350,10 +357,10 @@ including the |ofs13| when compiling Doxygen and Sphinx documentation. For
 older versions, users can apply the *src* patch and, if necessary, manually
 resolve the conflicts.
 
-Current |ofs13| stable version is 3.0.0. It has been developed and tested
+Current |ofs13| stable version is 3.1.0. It has been developed and tested
 together with |ns3| versions 3.26, and will not compile with older |ns3|
-versions. If you really need to use an older |ns3| releases, you can use the
-|ofs13| version 2.0.3, but keep in mind that this is an old release, with known
+versions. If you really need to use an older |ns3| releases, you can check for
+previous |ofs13| versions, but keep in mind that old releases may have known
 bugs and an outdated API. It is strongly recommended to use the latest module
 version for better results.
 

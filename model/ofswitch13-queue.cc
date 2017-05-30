@@ -34,18 +34,18 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Queue");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Queue);
 
-// m_maxQueues must be less or equal to ofsoftswitch13 NETDEV_MAX_QUEUES
-// constant, which is currently set to 8. To increase this value, update
-// dp_ports.h sw_port.queues structure.
-const uint16_t OFSwitch13Queue::m_maxQueues = 8;
-
 TypeId
 OFSwitch13Queue::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Queue")
     .SetParent<Queue> ()
     .SetGroupName ("OFSwitch13")
-    .AddConstructor<OFSwitch13Queue> ()
+    .AddAttribute ("NumQueues",
+                   "The number of internal queues available on this queue.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                   UintegerValue (NETDEV_MAX_QUEUES),
+                   MakeUintegerAccessor (&OFSwitch13Queue::m_intQueues),
+                   MakeUintegerChecker<uint32_t> (1, NETDEV_MAX_QUEUES))
     .AddAttribute ("QueueList",
                    "The list of internal queues available to the port.",
                    ObjectVectorValue (),
@@ -55,14 +55,7 @@ OFSwitch13Queue::GetTypeId (void)
   return tid;
 }
 
-OFSwitch13Queue::OFSwitch13Queue ()
-  : Queue (),
-    m_swPort (0)
-{
-  NS_LOG_FUNCTION (this);
-}
-
-OFSwitch13Queue::OFSwitch13Queue (sw_port* port)
+OFSwitch13Queue::OFSwitch13Queue (struct sw_port *port)
   : Queue (),
     m_swPort (port)
 {
@@ -74,16 +67,10 @@ OFSwitch13Queue::~OFSwitch13Queue ()
   NS_LOG_FUNCTION (this);
 }
 
-uint16_t
-OFSwitch13Queue::GetMaxQueues (void)
-{
-  return m_maxQueues;
-}
-
-uint16_t
+uint32_t
 OFSwitch13Queue::GetNQueues (void) const
 {
-  return m_queues.size ();
+  return m_intQueues;
 }
 
 void
@@ -95,7 +82,7 @@ OFSwitch13Queue::DoDispose ()
   // structures for each available queue
   if (m_swPort)
     {
-      sw_queue* swQueue;
+      struct sw_queue *swQueue;
       for (uint32_t i = 0; i < GetNQueues (); i++)
         {
           swQueue = &(m_swPort->queues[i]);
@@ -112,19 +99,25 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
 {
   NS_LOG_FUNCTION (this);
 
-  // Setting default internal queue configuration
+  // We are using a very large queue size for this queue interface. The real
+  // check for queue space is performed at DoEnqueue () by the internal queues.
+  SetAttribute ("Mode", EnumValue (Queue::QUEUE_MODE_PACKETS));
+  SetAttribute ("MaxPackets", UintegerValue (0xffffffff));
+
+  // Setting default internal queue configuration.
   ObjectFactory queueFactory;
   queueFactory.SetTypeId (DropTailQueue::GetTypeId ());
   queueFactory.Set ("Mode", EnumValue (Queue::QUEUE_MODE_PACKETS));
-  queueFactory.Set ("MaxPackets", UintegerValue (1000));
+  queueFactory.Set ("MaxPackets", UintegerValue (100));
 
   // Adding internal queues. It will create the maximum number of queues
   // allowed to this port, even if they are not used.
-  for (uint32_t i = 0; i < GetMaxQueues (); i++)
+  for (uint32_t i = 0; i < GetNQueues (); i++)
     {
       AddQueue (queueFactory.Create<Queue> ());
     }
 
+  // Chain up.
   Queue::NotifyConstructionCompleted ();
 }
 
@@ -133,7 +126,7 @@ OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
 {
   NS_LOG_FUNCTION (this << item);
 
-  sw_queue* swQueue;
+  struct sw_queue *swQueue;
   QueueTag queueNoTag;
   uint32_t queueNo = 0;
   if (item->GetPacket ()->RemovePacketTag (queueNoTag))
@@ -150,15 +143,14 @@ OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
     {
       swQueue->stats->tx_packets++;
       swQueue->stats->tx_bytes += item->GetPacketSize ();
-      return true;
     }
   else
     {
-      NS_LOG_WARN ("Packet enqueue fails for internal queue " << queueNo);
-      Drop (item);
+      NS_LOG_DEBUG ("Packet enqueue dropped by internal queue " << queueNo);
       swQueue->stats->tx_errors++;
-      return false;
+      Drop (item);
     }
+  return retval;
 }
 
 Ptr<QueueItem>
@@ -198,29 +190,29 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
 
   NS_ASSERT_MSG (queue, "Invalid queue pointer.");
   NS_ASSERT_MSG (m_swPort, "Invalid OpenFlow port metadata.");
-  NS_ASSERT_MSG (GetNQueues () < GetMaxQueues (), "No more queues available.");
 
   uint32_t queueId = (m_swPort->num_queues)++;
-  sw_queue* swQueue = &(m_swPort->queues[queueId]);
+  struct sw_queue *swQueue = &(m_swPort->queues[queueId]);
   NS_ASSERT_MSG (!swQueue->port, "Queue id already in use.");
 
   // Filling ofsoftswitch13 internal structures for this queue
   swQueue->port = m_swPort;
   swQueue->created = time_msec ();
 
-  swQueue->stats = (ofl_queue_stats*)xmalloc (sizeof (ofl_queue_stats));
-  memset (swQueue->stats, 0x00, sizeof (ofl_queue_stats));
+  size_t oflQueueStatsSize = sizeof (struct ofl_queue_stats);
+  swQueue->stats = (struct ofl_queue_stats*)xmalloc (oflQueueStatsSize);
+  memset (swQueue->stats, 0x00, oflQueueStatsSize);
   swQueue->stats->port_no = m_swPort->conf->port_no;
   swQueue->stats->queue_id = queueId;
 
-  swQueue->props =
-    (ofl_packet_queue*)xmalloc (sizeof (struct ofl_packet_queue));
+  size_t oflPacketQueueSize = sizeof (struct ofl_packet_queue);
+  swQueue->props = (struct ofl_packet_queue*)xmalloc (oflPacketQueueSize);
   swQueue->props->queue_id = queueId;
   swQueue->props->properties_num = 0;
 
   // Inserting the ns3::Queue object into queue list.
   m_queues.push_back (queue);
-  NS_LOG_INFO ("New queue with id " << queueId);
+  NS_LOG_DEBUG ("New queue with id " << queueId);
 
   return queueId;
 }
@@ -228,8 +220,6 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
 Ptr<Queue>
 OFSwitch13Queue::GetQueue (uint32_t queueId) const
 {
-  NS_LOG_FUNCTION (this << queueId);
-
   NS_ASSERT_MSG (queueId < GetNQueues (), "Queue is out of range.");
   return m_queues.at (queueId);
 }

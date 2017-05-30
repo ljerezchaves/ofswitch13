@@ -63,8 +63,8 @@ public:
    * \param controller The controller application to install into cNode
    * \return The installed controller application.
    */
-  Ptr<OFSwitch13Controller> InstallController (Ptr<Node> cNode,
-    Ptr<OFSwitch13Controller> controller =
+  Ptr<OFSwitch13Controller> InstallController (
+    Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller =
       CreateObject<OFSwitch13LearningController> ());
 
 protected:

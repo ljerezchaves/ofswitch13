@@ -53,15 +53,16 @@ OFSwitch13Port::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_netDev = 0;
-  m_openflowDev = 0;
-
-  // Calling Dispose on internal port, so it can use m_swPort pointer to free
-  // internal strucutures first.
   m_portQueue->Dispose ();
-  ofl_structs_free_port (m_swPort->conf);
-  free (m_swPort->stats);
+  if (m_swPort)
+    {
+      ofl_structs_free_port (m_swPort->conf);
+      free (m_swPort->stats);
+    }
+
   m_swPort = 0;
+  m_openflowDev = 0;
+  m_netDev = 0;
 }
 
 TypeId
@@ -76,6 +77,7 @@ OFSwitch13Port::GetTypeId (void)
                    PointerValue (),
                    MakePointerAccessor (&OFSwitch13Port::m_portQueue),
                    MakePointerChecker<OFSwitch13Queue> ())
+
     .AddTraceSource ("SwitchPortRx",
                      "Trace source indicating a packet received at this port.",
                      MakeTraceSourceAccessor (&OFSwitch13Port::m_rxTrace),
@@ -88,7 +90,7 @@ OFSwitch13Port::GetTypeId (void)
   return tid;
 }
 
-OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
+OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
                                 Ptr<OFSwitch13Device> openflowDev)
   : m_swPort (0),
     m_netDev (netDev),
@@ -110,26 +112,29 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
   memset (m_swPort, '\0', sizeof *m_swPort);
 
   // Filling ofsoftswitch13 internal structures for this port.
+  size_t oflPortSize = sizeof (struct ofl_port);
+  size_t oflPortStatsSize = sizeof (struct ofl_port_stats);
+
   m_swPort->dp = dp;
-  m_swPort->conf = (ofl_port*)xmalloc (sizeof (ofl_port));
-  memset (m_swPort->conf, 0x00, sizeof (ofl_port));
+  m_swPort->conf = (struct ofl_port*)xmalloc (oflPortSize);
+  memset (m_swPort->conf, 0x00, oflPortSize);
   m_swPort->conf->port_no = m_portNo;
   m_swPort->conf->name = (char*)xmalloc (OFP_MAX_PORT_NAME_LEN);
   snprintf (m_swPort->conf->name, OFP_MAX_PORT_NAME_LEN, "Port %d", m_portNo);
   m_netDev->GetAddress ().CopyTo (m_swPort->conf->hw_addr);
   m_swPort->conf->config = 0x00000000;
   m_swPort->conf->state = 0x00000000 | OFPPS_LIVE;
-  m_swPort->conf->curr = PortGetFeatures ();
-  m_swPort->conf->advertised = PortGetFeatures ();
-  m_swPort->conf->supported = PortGetFeatures ();
+  m_swPort->conf->curr = GetPortFeatures ();
+  m_swPort->conf->advertised = GetPortFeatures ();
+  m_swPort->conf->supported = GetPortFeatures ();
   m_swPort->conf->peer = 0x00000000; // FIXME no information about peer port
   m_swPort->conf->curr_speed = port_speed (m_swPort->conf->curr);
   m_swPort->conf->max_speed = port_speed (m_swPort->conf->supported);
 
   dp_port_live_update (m_swPort);
 
-  m_swPort->stats = (ofl_port_stats*)xmalloc (sizeof (ofl_port_stats));
-  memset (m_swPort->stats, 0x00, sizeof (ofl_port_stats));
+  m_swPort->stats = (struct ofl_port_stats*)xmalloc (oflPortStatsSize);
+  memset (m_swPort->stats, 0x00, oflPortStatsSize);
   m_swPort->stats->port_no = m_portNo;
   m_swPort->flags |= SWP_USED;
 
@@ -140,7 +145,7 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
 
   // Creating the OFSwitch13Queue for this switch port
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
-  m_swPort->max_queues = OFSwitch13Queue::GetMaxQueues ();
+  m_swPort->max_queues = dp->max_queues;
   m_swPort->num_queues = 0;
   m_portQueue = CreateObject<OFSwitch13Queue> (m_swPort);
   if (csmaDev)
@@ -153,11 +158,11 @@ OFSwitch13Port::OFSwitch13Port (datapath *dp, Ptr<NetDevice> netDev,
   list_push_back (&dp->port_list, &m_swPort->node);
 
   // Notify the controller that this port has been added/created
-  ofl_msg_port_status msg;
+  struct ofl_msg_port_status msg;
   msg.header.type = OFPT_PORT_STATUS;
   msg.reason = OFPPR_ADD;
   msg.desc = m_swPort->conf;
-  dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
+  dp_send_message (m_swPort->dp, (struct ofl_msg_header*)&msg, 0);
 
   // Register the receive callback to get packets from the NetDevice.
   if (csmaDev)
@@ -182,8 +187,6 @@ OFSwitch13Port::GetPortNo (void) const
 bool
 OFSwitch13Port::PortUpdateState ()
 {
-  NS_LOG_FUNCTION (this);
-
   uint32_t orig_state = m_swPort->conf->state;
   if (m_netDev->IsLinkUp ())
     {
@@ -198,18 +201,18 @@ OFSwitch13Port::PortUpdateState ()
   if (orig_state != m_swPort->conf->state)
     {
       NS_LOG_INFO ("Port status has changed. Notifying the controller.");
-      ofl_msg_port_status msg;
+      struct ofl_msg_port_status msg;
       msg.header.type = OFPT_PORT_STATUS;
       msg.reason = OFPPR_MODIFY;
       msg.desc = m_swPort->conf;
-      dp_send_message (m_swPort->dp, (ofl_msg_header*)&msg, 0);
+      dp_send_message (m_swPort->dp, (struct ofl_msg_header*)&msg, 0);
       return true;
     }
   return false;
 }
 
 uint32_t
-OFSwitch13Port::PortGetFeatures ()
+OFSwitch13Port::GetPortFeatures ()
 {
   NS_LOG_FUNCTION (this);
 
@@ -359,7 +362,6 @@ OFSwitch13Port::Send (Ptr<const Packet> packet, uint32_t queueNo,
     }
   else
     {
-      NS_LOG_ERROR ("Error while transmitting packet.");
       m_swPort->stats->tx_dropped++;
     }
   return status;

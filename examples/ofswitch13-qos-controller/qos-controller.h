@@ -31,7 +31,7 @@ using namespace ns3;
 class QosController : public OFSwitch13Controller
 {
 public:
-  QosController ();          //!< Default constructor
+  QosController ();          //!< Default constructor.
   virtual ~QosController (); //!< Dummy destructor.
 
   /** Destructor implementation */
@@ -43,9 +43,17 @@ public:
    */
   static TypeId GetTypeId (void);
 
-  // Inherited from OFSwitch13Controller
+  /**
+   * Handle a packet in message sent by the switch to this controller.
+   * \note Inherited from OFSwitch13Controller.
+   * \param msg The OpenFlow received message.
+   * \param swtch The remote switch metadata.
+   * \param xid The transaction id from the request message.
+   * \return 0 if everything's ok, otherwise an error number.
+   */
   ofl_err HandlePacketIn (
-    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
 protected:
   // Inherited from OFSwitch13Controller
@@ -72,7 +80,8 @@ private:
    * \return 0 if everything's ok, otherwise an error number.
    */
   ofl_err HandleArpPacketIn (
-    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   /**
    * Handle TCP connection request
@@ -82,7 +91,8 @@ private:
    * \return 0 if everything's ok, otherwise an error number.
    */
   ofl_err HandleConnectionRequest (
-    ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid);
+    struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+    uint32_t xid);
 
   /**
    * Extract an IPv4 address from packet match.
@@ -90,13 +100,13 @@ private:
    * \param match The ofl_match structure pointer.
    * \return The IPv4 address.
    */
-  Ipv4Address ExtractIpv4Address (uint32_t oxm_of, ofl_match* match);
+  Ipv4Address ExtractIpv4Address (uint32_t oxm_of, struct ofl_match* match);
 
   /**
    * Create an ARP request packet, encapsulated inside of an Ethernet frame.
    * \param srcMac Source MAC address.
-   * \param srcIP Source IP address.
-   * \param dstMac Destination IP address.
+   * \param srcIp Source IP address.
+   * \param dstIp Destination IP address.
    * \return The ns3 Ptr<Packet> with the ARP request.
    */
   Ptr<Packet> CreateArpRequest (Mac48Address srcMac, Ipv4Address srcIp,
@@ -105,9 +115,9 @@ private:
   /**
    * Create an ARP reply packet, encapsulated inside of an Ethernet frame.
    * \param srcMac Source MAC address.
-   * \param srcIP Source IP address.
+   * \param srcIp Source IP address.
    * \param dstMac Destination MAC address.
-   * \param dstMac Destination IP address.
+   * \param dstIp Destination IP address.
    * \return The ns3 Ptr<Packet> with the ARP reply.
    */
   Ptr<Packet> CreateArpReply (Mac48Address srcMac, Ipv4Address srcIp,

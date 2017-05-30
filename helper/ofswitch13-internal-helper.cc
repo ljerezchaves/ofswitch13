@@ -121,7 +121,7 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels (void)
         m_csmaHelper.SetDeviceAttribute ("Mtu", UintegerValue (9000));
         m_p2pHelper.SetDeviceAttribute ("Mtu", UintegerValue (9000));
 
-        // Using large queues on devices to avoid loosing packets.
+        // Using large queues on devices to avoid losing packets.
         m_csmaHelper.SetQueue ("ns3::DropTailQueue",
                                "MaxPackets", UintegerValue (65536));
         m_p2pHelper.SetQueue ("ns3::DropTailQueue",

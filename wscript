@@ -79,12 +79,13 @@ def build(bld):
 
     module = bld.create_ns3_module('ofswitch13', ['core', 'network', 'internet', 'csma', 'point-to-point', 'virtual-net-device', 'applications'])
     module.source = [
-        'model/ofswitch13-interface.cc',
-        'model/ofswitch13-port.cc',
-        'model/ofswitch13-device.cc',
         'model/ofswitch13-controller.cc',
+        'model/ofswitch13-device.cc',
+        'model/ofswitch13-interface.cc',
         'model/ofswitch13-learning-controller.cc',
+        'model/ofswitch13-port.cc',
         'model/ofswitch13-queue.cc',
+        'model/ofswitch13-socket-handler.cc',
         'model/queue-tag.cc',
         'model/tunnel-id-tag.cc',
         'helper/ofswitch13-device-container.cc',
@@ -98,12 +99,13 @@ def build(bld):
     headers = bld(features='ns3header')
     headers.module = 'ofswitch13'
     headers.source = [
-        'model/ofswitch13-interface.h',
-        'model/ofswitch13-port.h',
-        'model/ofswitch13-device.h',
         'model/ofswitch13-controller.h',
+        'model/ofswitch13-device.h',
+        'model/ofswitch13-interface.h',
         'model/ofswitch13-learning-controller.h',
+        'model/ofswitch13-port.h',
         'model/ofswitch13-queue.h',
+        'model/ofswitch13-socket-handler.h',
         'model/queue-tag.h',
         'model/tunnel-id-tag.h',
         'helper/ofswitch13-device-container.h',

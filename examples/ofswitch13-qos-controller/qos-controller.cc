@@ -49,7 +49,9 @@ TypeId
 QosController::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::QosController")
-    .SetParent (OFSwitch13Controller::GetTypeId ())
+    .SetParent<OFSwitch13Controller> ()
+    .SetGroupName ("OFSwitch13")
+    .AddConstructor<QosController> ()
     .AddAttribute ("EnableMeter",
                    "Enable per-flow mettering.",
                    BooleanValue (false),
@@ -86,21 +88,22 @@ QosController::GetTypeId (void)
 
 ofl_err
 QosController::HandlePacketIn (
-  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  char *message =
+  char *msgStr =
     ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, 0);
-  NS_LOG_DEBUG ("Packet in match: " << message);
-  free (message);
+  NS_LOG_DEBUG ("Packet in match: " << msgStr);
+  free (msgStr);
 
   if (msg->reason == OFPR_ACTION)
     {
       // Get Ethernet frame type
       uint16_t ethType;
-      ofl_match_tlv *tlv =
-        oxm_match_lookup (OXM_OF_ETH_TYPE, (ofl_match*)msg->match);
+      struct ofl_match_tlv *tlv;
+      tlv = oxm_match_lookup (OXM_OF_ETH_TYPE, (struct ofl_match*)msg->match);
       memcpy (&ethType, tlv->value, OXM_LENGTH (OXM_OF_ETH_TYPE));
 
       if (ethType == ArpL3Protocol::PROT_NUMBER)
@@ -116,7 +119,7 @@ QosController::HandlePacketIn (
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
@@ -222,34 +225,35 @@ QosController::ConfigureAggregationSwitch (Ptr<const RemoteSwitch> swtch)
 
 ofl_err
 QosController::HandleArpPacketIn (
-  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_match_tlv *tlv;
+  struct ofl_match_tlv *tlv;
   Ipv4Address serverIp = Ipv4Address::ConvertFrom (m_serverIpAddress);
   Mac48Address serverMac = Mac48Address::ConvertFrom (m_serverMacAddress);
 
   // Get ARP operation
   uint16_t arpOp;
-  tlv = oxm_match_lookup (OXM_OF_ARP_OP, (ofl_match*)msg->match);
+  tlv = oxm_match_lookup (OXM_OF_ARP_OP, (struct ofl_match*)msg->match);
   memcpy (&arpOp, tlv->value, OXM_LENGTH (OXM_OF_ARP_OP));
 
   // Get input port
   uint32_t inPort;
-  tlv = oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
+  tlv = oxm_match_lookup (OXM_OF_IN_PORT, (struct ofl_match*)msg->match);
   memcpy (&inPort, tlv->value, OXM_LENGTH (OXM_OF_IN_PORT));
 
   // Get source and target IP address
   Ipv4Address srcIp, dstIp;
-  srcIp = ExtractIpv4Address (OXM_OF_ARP_SPA, (ofl_match*)msg->match);
-  dstIp = ExtractIpv4Address (OXM_OF_ARP_TPA, (ofl_match*)msg->match);
+  srcIp = ExtractIpv4Address (OXM_OF_ARP_SPA, (struct ofl_match*)msg->match);
+  dstIp = ExtractIpv4Address (OXM_OF_ARP_TPA, (struct ofl_match*)msg->match);
 
   // Get Source MAC address
   Mac48Address srcMac, dstMac;
-  tlv = oxm_match_lookup (OXM_OF_ARP_SHA, (ofl_match*)msg->match);
+  tlv = oxm_match_lookup (OXM_OF_ARP_SHA, (struct ofl_match*)msg->match);
   srcMac.CopyFrom (tlv->value);
-  tlv = oxm_match_lookup (OXM_OF_ARP_THA, (ofl_match*)msg->match);
+  tlv = oxm_match_lookup (OXM_OF_ARP_THA, (struct ofl_match*)msg->match);
   dstMac.CopyFrom (tlv->value);
 
   // Check for ARP request
@@ -275,64 +279,65 @@ QosController::HandleArpPacketIn (
         }
 
       // Send the ARP replay back to the input port
-      ofl_action_output *action;
-      action = (ofl_action_output*)xmalloc (sizeof (ofl_action_output));
+      struct ofl_action_output *action =
+        (struct ofl_action_output*)xmalloc (sizeof (struct ofl_action_output));
       action->header.type = OFPAT_OUTPUT;
       action->port = OFPP_IN_PORT;
       action->max_len = 0;
 
       // Send the ARP reply within an OpenFlow PacketOut message
-      ofl_msg_packet_out reply;
+      struct ofl_msg_packet_out reply;
       reply.header.type = OFPT_PACKET_OUT;
       reply.buffer_id = OFP_NO_BUFFER;
       reply.in_port = inPort;
       reply.data_length = 64;
       reply.data = &replyData[0];
       reply.actions_num = 1;
-      reply.actions = (ofl_action_header**)&action;
+      reply.actions = (struct ofl_action_header**)&action;
 
-      SendToSwitch (swtch, (ofl_msg_header*)&reply, xid);
+      SendToSwitch (swtch, (struct ofl_msg_header*)&reply, xid);
       free (action);
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, 0 /*dp->exp*/);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
 ofl_err
 QosController::HandleConnectionRequest (
-  ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch, uint32_t xid)
+  struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
+  uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
   static uint32_t connectionCounter = 0;
   connectionCounter++;
 
-  ofl_match_tlv *tlv;
+  struct ofl_match_tlv *tlv;
   Ipv4Address serverIp = Ipv4Address::ConvertFrom (m_serverIpAddress);
   Mac48Address serverMac = Mac48Address::ConvertFrom (m_serverMacAddress);
 
   // Get input port
   uint32_t inPort;
-  tlv = oxm_match_lookup (OXM_OF_IN_PORT, (ofl_match*)msg->match);
+  tlv = oxm_match_lookup (OXM_OF_IN_PORT, (struct ofl_match*)msg->match);
   memcpy (&inPort, tlv->value, OXM_LENGTH (OXM_OF_IN_PORT));
 
   // Get Source MAC address
   Mac48Address srcMac;
-  tlv = oxm_match_lookup (OXM_OF_ETH_SRC, (ofl_match*)msg->match);
+  tlv = oxm_match_lookup (OXM_OF_ETH_SRC, (struct ofl_match*)msg->match);
   srcMac.CopyFrom (tlv->value);
 
   // Get source and destination IP address
   Ipv4Address srcIp, dstIp;
-  srcIp = ExtractIpv4Address (OXM_OF_IPV4_SRC, (ofl_match*)msg->match);
-  dstIp = ExtractIpv4Address (OXM_OF_IPV4_DST, (ofl_match*)msg->match);
+  srcIp = ExtractIpv4Address (OXM_OF_IPV4_SRC, (struct ofl_match*)msg->match);
+  dstIp = ExtractIpv4Address (OXM_OF_IPV4_DST, (struct ofl_match*)msg->match);
 
   // Get source and destination TCP ports
   uint16_t srcPort, dstPort;
-  tlv = oxm_match_lookup (OXM_OF_TCP_SRC, (ofl_match*)msg->match);
+  tlv = oxm_match_lookup (OXM_OF_TCP_SRC, (struct ofl_match*)msg->match);
   memcpy (&srcPort, tlv->value, OXM_LENGTH (OXM_OF_TCP_SRC));
-  tlv = oxm_match_lookup (OXM_OF_TCP_DST, (ofl_match*)msg->match);
+  tlv = oxm_match_lookup (OXM_OF_TCP_DST, (struct ofl_match*)msg->match);
   memcpy (&dstPort, tlv->value, OXM_LENGTH (OXM_OF_TCP_DST));
 
   // Create an ARP request for further address resolution
@@ -342,23 +347,23 @@ QosController::HandleConnectionRequest (
   NS_ASSERT_MSG (pkt->GetSize () == 64, "Invalid packet size.");
   pkt->CopyData (replyData, 64);
 
-  ofl_action_output *arpAction;
-  arpAction = (ofl_action_output*)xmalloc (sizeof (ofl_action_output));
+  struct ofl_action_output *arpAction =
+    (struct ofl_action_output*)xmalloc (sizeof (struct ofl_action_output));
   arpAction->header.type = OFPAT_OUTPUT;
   arpAction->port = OFPP_IN_PORT;
   arpAction->max_len = 0;
 
   // Send the ARP request within an OpenFlow PacketOut message
-  ofl_msg_packet_out arpRequest;
+  struct ofl_msg_packet_out arpRequest;
   arpRequest.header.type = OFPT_PACKET_OUT;
   arpRequest.buffer_id = OFP_NO_BUFFER;
   arpRequest.in_port = inPort;
   arpRequest.data_length = 64;
   arpRequest.data = &replyData[0];
   arpRequest.actions_num = 1;
-  arpRequest.actions = (ofl_action_header**)&arpAction;
+  arpRequest.actions = (struct ofl_action_header**)&arpAction;
 
-  SendToSwitch (swtch, (ofl_msg_header*)&arpRequest, 0);
+  SendToSwitch (swtch, (struct ofl_msg_header*)&arpRequest, 0);
   free (arpAction);
 
   // Check for valid service connection request
@@ -394,18 +399,18 @@ QosController::HandleConnectionRequest (
   DpctlExecute (swtch, flowCmd.str ());
 
   // Create group action with server number
-  ofl_action_group *action =
-    (ofl_action_group*)xmalloc (sizeof (struct ofl_action_group));
+  struct ofl_action_group *action =
+    (struct ofl_action_group*)xmalloc (sizeof (struct ofl_action_group));
   action->header.type = OFPAT_GROUP;
   action->group_id = serverNumber;
 
   // Send the packet out to the switch.
-  ofl_msg_packet_out reply;
+  struct ofl_msg_packet_out reply;
   reply.header.type = OFPT_PACKET_OUT;
   reply.buffer_id = msg->buffer_id;
   reply.in_port = inPort;
   reply.actions_num = 1;
-  reply.actions = (ofl_action_header**)&action;
+  reply.actions = (struct ofl_action_header**)&action;
   reply.data_length = 0;
   reply.data = 0;
   if (msg->buffer_id == NO_BUFFER)
@@ -415,16 +420,16 @@ QosController::HandleConnectionRequest (
       reply.data = msg->data;
     }
 
-  SendToSwitch (swtch, (ofl_msg_header*)&reply, xid);
+  SendToSwitch (swtch, (struct ofl_msg_header*)&reply, xid);
   free (action);
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((ofl_msg_header*)msg, 0 /*dp->exp*/);
+  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
   return 0;
 }
 
 Ipv4Address
-QosController::ExtractIpv4Address (uint32_t oxm_of, ofl_match* match)
+QosController::ExtractIpv4Address (uint32_t oxm_of, struct ofl_match* match)
 {
   switch (oxm_of)
     {
@@ -435,7 +440,7 @@ QosController::ExtractIpv4Address (uint32_t oxm_of, ofl_match* match)
       {
         uint32_t ip;
         int size = OXM_LENGTH (oxm_of);
-        ofl_match_tlv *tlv = oxm_match_lookup (oxm_of, match);
+        struct ofl_match_tlv *tlv = oxm_match_lookup (oxm_of, match);
         memcpy (&ip, tlv->value, size);
         return Ipv4Address (ntohl (ip));
       }

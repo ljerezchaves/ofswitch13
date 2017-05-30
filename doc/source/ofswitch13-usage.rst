@@ -32,7 +32,7 @@ Before starting, install the following packages on your system:
 .. code-block:: bash
 
   $ sudo apt-get install build-essential gcc g++ python git mercurial unzip cmake
-  $ sudo apt-get install libpcap-dev libxerces-c2-dev libpcre3-dev flex bison
+  $ sudo apt-get install libpcap-dev libxerces-c-dev libpcre3-dev flex bison
   $ sudo apt-get install pkg-config autoconf libtool libboost-dev
 
 First, it is necessary to compile the |ofslib| as a static library. The
@@ -66,13 +66,13 @@ linker run-time bindings, and copy the include files:
 
 We are done with the *NetBee* library. Now, let's proceed with the |ofslib|
 code. Clone the repository and update to proper (preferably latest) release tag
-at the ``ns3lib`` branch (here, we are using v3.0.x):
+at the ``ns3lib`` branch (here, we are using v3.1.x):
 
 .. code-block:: bash
 
   $ git clone https://github.com/ljerezchaves/ofsoftswitch13
   $ cd ofsoftswitch13
-  $ git checkout v3.0.x
+  $ git checkout v3.1.x
 
 Configure and build the library (don't forget to add the ``--enable-ns3-lib``
 during configuration process):
@@ -99,13 +99,13 @@ It's time to download a recent (preferably stable) |ns3| code into your machine
 
 Before configuring and compiling the simulator, download the |ofs13| code from
 the module repository and place it inside a new ``/src/ofswitch13`` folder.
-Update the code to the latest stable version (here, we are using 3.0.0):
+Update the code to the latest stable version (here, we are using 3.1.0):
 
 .. code-block:: bash
 
   $ hg clone https://bitbucket.org/ljerezchaves/ofswitch13-module src/ofswitch13
   $ cd src/ofswitch13
-  $ hg update 3.0.0
+  $ hg update 3.1.0
   $ cd ../../
 
 Also, you need to patch the |ns3| code with the appropriated patches available
@@ -341,16 +341,25 @@ OFSwitch13Device
   This is a read-only attribute, automatically assigned by the object
   constructor.
 
+* ``FlowTableSize``: The maximum number of entries allowed on each flow table.
+
+* ``GroupTableSize``: The maximum number of entries allowed on group table.
+
+* ``MeterTableSize``: The maximum number of entries allowed on meter table.
+
+* ``PipelineCapacity``: The data rate used to model the pipeline processing
+  capacity in terms of throughput. Packets exceeding the capacity will be
+  discarded.
+
 * ``PortList``: The list of ports available in this switch.
 
-* ``TcamDelay``: Average time to perform a TCAM operation in pipeline. The
-  default value of 30 nanoseconds is the standard TCAM on a NetFPGA. This value
-  will be used to calculate the average pipeline delay for packets, based on
-  the number of flow entries in the tables.
+* ``TcamDelay``: Average time to perform a TCAM operation in pipeline. This
+  value will be used to calculate the average pipeline delay based on the
+  number of flow entries in the tables, as described in :ref:`switch-device`.
 
-* ``DatapathTimeout``: The interval time interval between timeout operations on
-  pipeline. At each internal, the device checks if any flow in any table is
-  timed out and update port status.
+* ``TimeoutInterval``: The time between timeout operations on pipeline. At
+  each internal, the device checks if any flow in any table is timed out and
+  update port status.
 
 OFSwitch13Port
 ##############
@@ -365,17 +374,16 @@ OFSwitch13Queue
 
 * ``QueueList``: The list of internal queues associated to this port queue.
 
-* ``Scheduling``: The output queue scheduling algorithm. Currently, only the
-  priority algorithm is available.
+* ``NumQueues``: The number of internal queues associated to this port queue.
 
 OFSwitch13Helper
 ################
 
+* ``ChannelDataRate``: The data rate to be used for the OpenFlow channel links.
+
 * ``ChannelType``: The configuration used to create the OpenFlow channel. Users
   can select between a single shared CSMA connection, or dedicated connection
   between the controller and each switch, using CSMA or point-to-point links.
-
-* ``ChannelDataRate``: The data rate to be used for the OpenFlow channel links.
 
 OFSwitch13ExternalHelper
 ########################
@@ -387,13 +395,13 @@ OFSwitch13ExternalHelper
 OFSwitch13StatsCalculator
 #########################
 
-* ``OutputFilename``: The filename used to save OpenFlow switch datapath
-  performance statistics.
+* ``EwmaAlpha``: The EWMA alpha parameter, which is the weight given to the
+  most recent measured value when updating average metrics.
 
 * ``DumpTimeout``: The interval between successive dump operations.
 
-* ``EwmaAlpha``: The EWMA alpha parameter, which is the weight given to the
-  most recent measured value when updating average metrics.
+* ``OutputFilename``: The filename used to save OpenFlow switch datapath
+  performance statistics.
 
 .. _output:
 
@@ -416,19 +424,19 @@ statistics of an OpenFlow switch datapath. The instances of this class connect
 to a collection of trace sources in the switch device and periodically dumps
 the following datapath metrics on the output file:
 
-#. Packets per second sent to the pipeline;
-#. Packets per second dropped by meter bands;
-#. Kbits per second of data processed by the pipeline;
-#. Flow-mod per second operations executed by the switch;
-#. Meter-mod per second operations executed by the switch;
-#. Group-mod per second operations executed by the OpenFlow switch;
-#. Packets-in per second sent from the switch to the controller;
-#. Packets-out per second sent from the controller to the switch;
-#. Average switch buffer space usage (percent);
+#. Pipeline load in terms of throughput (Kbits);
+#. Packets dropped while exceeding pipeline load capacity;
+#. Packets dropped by meter bands;
+#. Flow-mod operations executed by the switch;
+#. Meter-mod operations executed by the switch;
+#. Group-mod operations executed by the switch;
+#. Packets-in sent from the switch to the controller;
+#. Packets-out sent from the controller to the switch;
 #. Average number of flow entries in pipeline tables;
 #. Average number of meter entries in meter table;
 #. Average number of group entries in group table;
-#. Average pipeline lookup delay for packet processing (nanoseconds).
+#. Average switch buffer space usage (percent);
+#. Average pipeline lookup delay for packet processing (microseconds).
 
 To enable performance monitoring, just call the ``EnableDatapathStats()``
 helper member function *after* configuring the switches and creating the

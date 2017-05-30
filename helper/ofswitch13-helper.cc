@@ -53,6 +53,11 @@ OFSwitch13Helper::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::OFSwitch13Helper")
     .SetParent<Object> ()
     .SetGroupName ("OFSwitch13")
+    .AddAttribute ("ChannelDataRate",
+                   "The data rate to be used for the OpenFlow channel.",
+                   DataRateValue (DataRate ("10Gb/s")),
+                   MakeDataRateAccessor (&OFSwitch13Helper::SetChannelDataRate),
+                   MakeDataRateChecker ())
     .AddAttribute ("ChannelType",
                    "The configuration used to create the OpenFlow channel",
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
@@ -62,11 +67,6 @@ OFSwitch13Helper::GetTypeId (void)
                      OFSwitch13Helper::SINGLECSMA,    "SingleCsma",
                      OFSwitch13Helper::DEDICATEDCSMA, "DedicatedCsma",
                      OFSwitch13Helper::DEDICATEDP2P,  "DedicatedP2p"))
-    .AddAttribute ("ChannelDataRate",
-                   "The data rate to be used for the OpenFlow channel.",
-                   DataRateValue (DataRate ("10Gb/s")),
-                   MakeDataRateAccessor (&OFSwitch13Helper::SetChannelDataRate),
-                   MakeDataRateChecker ())
   ;
   return tid;
 }
@@ -191,6 +191,7 @@ OFSwitch13Helper::EnableDatapathStats (std::string prefix, bool useNodeNames)
 
       statsFactory.Set ("OutputFilename", StringValue (filename));
       statsCalculator = statsFactory.Create<OFSwitch13StatsCalculator> ();
+      statsCalculator->AggregateObject (dev);
       statsCalculator->HookSinks (dev);
     }
 }

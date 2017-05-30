@@ -28,6 +28,7 @@
 #include <ns3/tcp-header.h>
 #include "ofswitch13-interface.h"
 #include "ofswitch13-port.h"
+#include "ofswitch13-socket-handler.h"
 
 namespace ns3 {
 
@@ -60,15 +61,15 @@ private:
   {
     friend class OFSwitch13Device;
 
-  public:
+public:
     /** Default (empty) constructor. */
     RemoteController ();
 
-  private:
-    Ptr<Socket>       m_socket;         //!< TCP socket to controller.
-    Ptr<SocketReader> m_reader;         //!< Socket reader.
-    Address           m_address;        //!< Controller address.
-    struct remote*    m_remote;         //!< ofsoftswitch13 remote structure.
+private:
+    Ptr<Socket>                   m_socket;   //!< TCP socket to controller.
+    Ptr<OFSwitch13SocketHandler>  m_handler;  //!< Socket handler.
+    Address                       m_address;  //!< Controller address.
+    struct remote*                m_remote;   //!< Library remote struct.
   }; // Class RemoteController
 
   /**
@@ -82,7 +83,7 @@ private:
    */
   struct PipelinePacket
   {
-  public:
+public:
     /** Default (empty) constructor. */
     PipelinePacket ();
 
@@ -121,11 +122,11 @@ private:
     /**
      * Check for packet id in the internal list of IDs for this packet.
      * \param id The ns-3 packet id.
-     * \return true when the id is associated with this packet
+     * \return true when the id is associated with this packet.
      */
     bool HasId (uint64_t id);
 
-  private:
+private:
     bool                  m_valid;  //!< Valid flag.
     Ptr<Packet>           m_packet; //!< Packet pointer.
     std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
@@ -139,7 +140,7 @@ public:
   static TypeId GetTypeId (void);
 
   /**
-   * Default constructor. Initialize structures.
+   * Default constructor.
    * \see ofsoftswitch dp_new () at udatapath/datapath.c
    */
   OFSwitch13Device ();
@@ -148,6 +149,31 @@ public:
    * Dummy destructor, see DoDispose.
    */
   virtual ~OFSwitch13Device ();
+
+  /**
+   * \name Private member accessors.
+   * \return The requested value.
+   */
+  //\{
+  double   GetBufferUsage       (void) const;
+  uint64_t GetDatapathId        (void) const;
+  uint32_t GetFlowEntries       (void) const;
+  uint32_t GetFlowEntries       (size_t tableId) const;
+  uint64_t GetFlowModCounter    (void) const;
+  uint32_t GetFlowTableSize     (void) const;
+  uint32_t GetGroupEntries      (void) const;
+  uint64_t GetGroupModCounter   (void) const;
+  uint32_t GetGroupTableSize    (void) const;
+  uint32_t GetMeterEntries      (void) const;
+  uint64_t GetMeterModCounter   (void) const;
+  uint32_t GetMeterTableSize    (void) const;
+  uint32_t GetNSwitchPorts      (void) const;
+  uint64_t GetPacketInCounter   (void) const;
+  uint64_t GetPacketOutCounter  (void) const;
+  DataRate GetPipelineCapacity  (void) const;
+  Time     GetPipelineDelay     (void) const;
+  DataRate GetPipelineLoad      (void) const;
+  //\}
 
   /**
    * Add a 'port' to the switch device. This method adds a new switch port to a
@@ -173,27 +199,6 @@ public:
                               uint64_t tunnelId = 0);
 
   /**
-   * \return Number of ports attached to this switch.
-   */
-  uint32_t GetNSwitchPorts (void) const;
-
-  /**
-   * \return The datapath ID.
-   */
-  uint64_t GetDatapathId (void) const;
-
-  /**
-   * \return The current number of flow entries in all pipeline tables.
-   */
-  uint32_t GetNumberFlowEntries (void) const;
-
-  /**
-   * \param tid Table id.
-   * \return The current number of flow entries at a specific table.
-   */
-  uint32_t GetNumberFlowEntries (size_t tid) const;
-
-  /**
    * Starts the TCP connection between this switch and the target controller
    * indicated by the address parameter.
    * \param ctrlAddr The controller address used to open the connection.
@@ -213,8 +218,8 @@ public:
    * \param reason Reason packet is being sent (on of OFPR_*).
    */
   static void
-  SendPacketToController (pipeline *pl, struct packet *pkt, uint8_t tableId,
-                          uint8_t reason);
+  SendPacketToController (struct pipeline *pl, struct packet *pkt,
+                          uint8_t tableId, uint8_t reason);
 
   /**
    * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
@@ -225,10 +230,10 @@ public:
    * call the method on the correct object.
    * \param buffer The message buffer to send.
    * \param remote The remote controller connection information.
-   * \return 0 if everything's ok, error number otherwise.
+   * \return 0 if everything's ok, otherwise an error number.
    */
   static int
-  SendOpenflowBufferToRemote (ofpbuf *buffer, remote *remote);
+  SendOpenflowBufferToRemote (struct ofpbuf *buffer, struct remote *remote);
 
   /**
    * Overriding ofsoftswitch13 dp_actions_output_port weak function from
@@ -259,9 +264,10 @@ public:
   /**
    * Callback fired when a packet is dropped by meter band.
    * \param pkt The original internal packet.
+   * \param entry The meter entry that dropped the packet.
    */
   static void
-  MeterDropCallback (struct packet *pkt);
+  MeterDropCallback (struct packet *pkt, struct meter_entry *entry);
 
   /**
    * Callback fired when a packet is cloned.
@@ -293,15 +299,50 @@ public:
   static void
   BufferRetrieveCallback (struct packet *pkt);
 
-private:
+  /**
+   * Retrieve and existing OpenFlow device object by its datapath ID.
+   * \param id The datapath ID.
+   * \return The OpenFlow OFSwitch13Device pointer.
+   */
+  static Ptr<OFSwitch13Device> GetDevice (uint64_t id);
+
+  /**
+   * TracedCallback signature for packets dropped by meter bands.
+   * \param packet The dropped packet.
+   * \param meterId The meter entry ID that dropped the packet.
+   */
+  typedef void (*MeterDropTracedCallback)(
+    Ptr<const Packet> packet, uint32_t meterId);
+
+  /**
+   * TracedCallback signature for OpenFlow switch device.
+   * \param deve The OpenFlow switch device pointer.
+   */
+  typedef void (*DeviceTracedCallback)(Ptr<const OFSwitch13Device> dev);
+
+protected:
   // Inherited from Object
   virtual void DoDispose (void);
 
+  // Inherited from ObjectBase.
+  virtual void NotifyConstructionCompleted (void);
+
+private:
   /**
    * Creates a new datapath.
    * \return The created datapath.
    */
-  datapath* DatapathNew ();
+  struct datapath* DatapathNew ();
+
+  /**
+   * \name Private attributes acessors.
+   * \param value The value to set.
+   */
+  //\{
+  void SetFlowTableSize  (uint32_t value);
+  void SetGroupTableSize (uint32_t value);
+  void SetMeterTableSize (uint32_t value);
+  //\}
 
   /**
    * Check if any flow in any table is timed out and update port status. This
@@ -310,7 +351,7 @@ private:
    * \see ofsoftswitch13 function pipeline_timeout () at udatapath/pipeline.c
    * \param dp The datapath.
    */
-  void DatapathTimeout (datapath* dp);
+  void DatapathTimeout (struct datapath *dp);
 
   /**
    * Get the OFSwitch13Port pointer from its number.
@@ -327,10 +368,11 @@ private:
    * \param reason Reason packet is being sent (on of OFPR_*).
    * \param maxLength Max length of packet to send to controller.
    * \param cookie Packet cookie to send to controller.
+   * \return 0 if everything's ok, otherwise an error number.
    */
-  void SendPacketInMessage (struct packet *pkt, uint8_t tableId,
-                            uint8_t reason, uint16_t maxLength,
-                            uint64_t cookie = 0);
+  int SendPacketInMessage (struct packet *pkt, uint8_t tableId,
+                           uint8_t reason, uint16_t maxLength,
+                           uint64_t cookie = 0);
 
   /**
    * Send a message over a specific switch port. Check port configuration,
@@ -367,7 +409,7 @@ private:
                         Ptr<OFSwitch13Device::RemoteController> remoteCtrl);
 
   /**
-   * SocketReader callback to receive an OpenFlow packet from controller.
+   * Receive an OpenFlow packet from controller.
    * \see remote_rconn_run () at udatapath/datapath.c.
    * \param packet The packet with the OpenFlow message.
    * \param from The packet sender address.
@@ -381,9 +423,10 @@ private:
    * \param error The error code.
    * \param buffer The message buffer that originated the error.
    * \param senderCtrl The origin of a received OpenFlow message.
+   * \return 0 if everything's ok, otherwise an error number.
    */
-  void ReplyWithErrorMessage (ofl_err error, ofpbuf *buffer,
-                              struct sender *senderCtrl);
+  int ReplyWithErrorMessage (ofl_err error, struct ofpbuf *buffer,
+                             struct sender *senderCtrl);
 
   /**
    * Socket callback fired when a TCP connection to controller succeed.
@@ -422,8 +465,10 @@ private:
   /**
    * Notify this device of a packet dropped by OpenFlow meter band.
    * \param pkt The ofsoftswitch13 packet.
+   * \param entry The meter entry that dropped the packet.
    */
-  void NotifyPacketDropped (struct packet *pkt);
+  void NotifyPacketDroppedByMeter (struct packet *pkt,
+                                   struct meter_entry *entry);
 
   /**
    * Notify this device of a packet saved into buffer. This method will get the
@@ -502,13 +547,6 @@ private:
    */
   static void UnregisterDatapath (uint64_t id);
 
-  /**
-   * Retrieve and existing OpenFlow device object by its datapath id
-   * \param id The datapath id.
-   * \return The OpenFlow OFSwitch13Device pointer.
-   */
-  static Ptr<OFSwitch13Device> GetDevice (uint64_t id);
-
   /** Structure to save the list of ports in this datapath. */
   typedef std::vector<Ptr<OFSwitch13Port> > PortList_t;
 
@@ -521,65 +559,70 @@ private:
   /** Structure to save packets, indexed by its id. */
   typedef std::map<uint64_t, Ptr<Packet> > IdPacketMap_t;
 
-  /** Trace source fired when a packet is sent to pipeline. */
-  TracedCallback<Ptr<const Packet> > m_pipelinePacketTrace;
-
-  /** Trace source fired when a packet is dropped by a meter band. */
-  TracedCallback<Ptr<const Packet> > m_meterDropTrace;
-
-  /** Trace source fired when a packet is saved into buffer. */
-  TracedCallback<Ptr<const Packet> > m_bufferSaveTrace;
+  /** Trace source fired when a packet in buffer expires. */
+  TracedCallback<Ptr<const Packet> > m_bufferExpireTrace;
 
   /** Trace source fired when a packet is retrieved from buffer. */
   TracedCallback<Ptr<const Packet> > m_bufferRetrieveTrace;
 
-  /** Trace source fired when a packet in buffer expires. */
-  TracedCallback<Ptr<const Packet> > m_bufferExpireTrace;
+  /** Trace source fired when a packet is saved into buffer. */
+  TracedCallback<Ptr<const Packet> > m_bufferSaveTrace;
 
-  /** Average pipeline delay for packet processing. */
-  TracedValue<Time> m_pipelineDelay;
+  /** Trace source fired when the datapath timeout operation is completed. */
+  TracedCallback<Ptr<const OFSwitch13Device> > m_datapathTimeoutTrace;
+
+  /** Trace source fired when a packet is dropped due to pipeline load. */
+  TracedCallback<Ptr<const Packet> > m_loadDropTrace;
+
+  /** Trace source fired when a packet is dropped by a meter band. */
+  TracedCallback<Ptr<const Packet>, uint32_t> m_meterDropTrace;
+
+  /** Trace source fired when a packet is sent to pipeline. */
+  TracedCallback<Ptr<const Packet> > m_pipePacketTrace;
 
   /** Buffer space usage in terms of packets. */
   TracedValue<double> m_bufferUsage;
 
-  /** Number of entries in pipeline flow tables. */
+  /** Number of entries in all flow tables. */
   TracedValue<uint32_t> m_flowEntries;
-
-  /** Number of entries in meter table. */
-  TracedValue<uint32_t> m_meterEntries;
 
   /** Number of entries in group table. */
   TracedValue<uint32_t> m_groupEntries;
 
-  /** Number of flow-mod messages received by this switch. */
-  TracedValue<uint32_t> m_flowModCounter;
+  /** Number of entries in meter table. */
+  TracedValue<uint32_t> m_meterEntries;
 
-  /** Number of meter-mod messages received by this switch. */
-  TracedValue<uint32_t> m_meterModCounter;
+  /** Average pipeline delay for packet processing. */
+  TracedValue<Time> m_pipeDelay;
 
-  /** Number of group-mod messages received by this switch. */
-  TracedValue<uint32_t> m_groupModCounter;
+  /** Average pipeline load in terms of throughput. */
+  TracedValue<DataRate> m_pipeLoad;
 
-  /** Number of packet-in messages sent by this switch. */
-  TracedValue<uint32_t> m_packetInCounter;
+  uint64_t          m_dpId;         //!< This datapath id.
+  Time              m_timeout;      //!< Datapath timeout interval.
+  Time              m_lastTimeout;  //!< Datapath last timeout.
+  Time              m_tcamDelay;    //!< Flow Table TCAM lookup delay.
+  std::string       m_libLog;       //!< The ofsoftswitch13 library log level.
+  struct datapath*  m_datapath;     //!< The OpenFlow datapath.
+  PortList_t        m_ports;        //!< List of switch ports.
+  CtrlList_t        m_controllers;  //!< Collection of active controllers.
+  uint32_t          m_flowTabSize;  //!< Flow table maximum entries.
+  uint32_t          m_groupTabSize; //!< Group table maximum entries.
+  uint32_t          m_meterTabSize; //!< Meter table maximum entries.
+  IdPacketMap_t     m_bufferPkts;   //!< Packets saved in switch buffer.
+  uint32_t          m_bufferSize;   //!< Buffer size in terms of packets.
+  PipelinePacket    m_pipePkt;      //!< Packet under switch pipeline.
+  DataRate          m_pipeCapacity; //!< Pipeline throughput capacity.
+  uint64_t          m_pipeTokens;   //!< Pipeline capacity available tokens.
+  uint64_t          m_pipeConsumed; //!< Pipeline capacity consumed tokens.
+  uint64_t          m_cFlowMod;     //!< Pipeline flow mod counter.
+  uint64_t          m_cGroupMod;    //!< Pipeline group mod counter.
+  uint64_t          m_cMeterMod;    //!< Pipeline meter mod counter.
+  uint64_t          m_cPacketIn;    //!< Pipeline packet in counter.
+  uint64_t          m_cPacketOut;   //!< Pipeline packet out counter.
 
-  /** Number of packet-out messages received by this switch. */
-  TracedValue<uint32_t> m_packetOutCounter;
-
-  uint64_t        m_dpId;         //!< This datapath id.
-  Time            m_timeout;      //!< Datapath timeout interval.
-  Time            m_lastTimeout;  //!< Datapath last timeout.
-  Time            m_tcamDelay;    //!< Flow Table TCAM lookup delay.
-  std::string     m_libLog;       //!< The ofsoftswitch13 library log levels.
-  datapath*       m_datapath;     //!< The OpenFlow datapath.
-  PipelinePacket  m_pktPipe;      //!< Packet under switch pipeline.
-  PortList_t      m_ports;        //!< List of switch ports.
-  CtrlList_t      m_controllers;  //!< Collection of active controllers.
-  IdPacketMap_t   m_pktsBuffer;   //!< Packets saved in switch buffer.
-  uint32_t        m_bufferSize;   //!< Buffer size in terms of packets.
-
-  static uint64_t m_globalDpId;   //!< Global counter for datapath IDs.
-  static uint64_t m_globalPktId;  //!< Global counter for packets IDs.
+  static uint64_t   m_globalDpId;   //!< Global counter for datapath IDs.
+  static uint64_t   m_globalPktId;  //!< Global counter for packets IDs.
 
   /**
    * As the integration of ofsoftswitch13 and ns-3 involve overriding some C

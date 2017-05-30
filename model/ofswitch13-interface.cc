@@ -25,77 +25,6 @@
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
 
 namespace ns3 {
-
-SocketReader::SocketReader (Ptr<Socket> socket)
-  : m_socket (socket),
-    m_pendingPacket (0),
-    m_pendingBytes (0)
-{
-  NS_LOG_FUNCTION (this);
-
-  // Set the reader callback
-  socket->SetRecvCallback (MakeCallback (&SocketReader::Read, this));
-}
-
-void
-SocketReader::SetReceiveCallback (MessageCallback cb)
-{
-  NS_LOG_FUNCTION (this);
-
-  m_receivedMsg = cb;
-}
-
-void
-SocketReader::Read (Ptr<Socket> socket)
-{
-  NS_LOG_FUNCTION (this << socket);
-
-  Address from;
-  do
-    {
-      if (!m_pendingBytes)
-        {
-          // Starting with a new OpenFlow message.
-          // At least 8 bytes (OpenFlow header) must be available.
-          uint32_t rxBytesAvailable = socket->GetRxAvailable ();
-          if (rxBytesAvailable < 8)
-            {
-              return; // Wait for more bytes.
-            }
-
-          // Receive the OpenFlow header and get the OpenFlow message size
-          ofp_header header;
-          m_pendingPacket = socket->RecvFrom (sizeof (ofp_header), 0, from);
-          m_pendingPacket->CopyData ((uint8_t*)&header, sizeof (ofp_header));
-          m_pendingBytes = ntohs (header.length) - sizeof (ofp_header);
-        }
-
-      // Receive the remaining OpenFlow message
-      if (m_pendingBytes)
-        {
-          if (socket->GetRxAvailable () < m_pendingBytes)
-            {
-              // We need to wait for more bytes
-              return;
-            }
-          m_pendingPacket->AddAtEnd (socket->RecvFrom (m_pendingBytes, 0,
-                                                       from));
-        }
-
-      // Now we have a complete (single) OpenFlow message.
-      // Let's fire the callback before trying to read the next message.
-      if (!m_receivedMsg.IsNull ())
-        {
-          m_receivedMsg (m_pendingPacket, from);
-        }
-
-      // Repeat until socket buffer gets empty
-      m_pendingPacket = 0;
-      m_pendingBytes = 0;
-    }
-  while (socket->GetRxAvailable ());
-}
-
 namespace ofs {
 
 void
@@ -132,13 +61,13 @@ EnableLibraryLog (bool printToFile, std::string prefix,
     }
 }
 
-ofpbuf*
+struct ofpbuf*
 BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
   NS_ASSERT (packet->GetSize () <= bodyRoom);
-  ofpbuf *buffer;
+  struct ofpbuf *buffer;
   uint32_t pktSize;
 
   pktSize = packet->GetSize ();
@@ -148,7 +77,7 @@ BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
 }
 
 Ptr<Packet>
-PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
+PacketFromMsg (struct ofl_msg_header *msg, uint32_t xid)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -156,7 +85,7 @@ PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
   uint8_t *buf;
   size_t buf_size;
   Ptr<Packet> packet;
-  ofpbuf *buffer;
+  struct ofpbuf *buffer;
 
   buffer = ofpbuf_new (0);
   error = ofl_msg_pack (msg, xid, &buf, &buf_size, 0);
@@ -171,14 +100,11 @@ PacketFromMsg (ofl_msg_header *msg, uint32_t xid)
 }
 
 Ptr<Packet>
-PacketFromBuffer (ofpbuf* buffer)
+PacketFromBuffer (struct ofpbuf *buffer)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
-  Ptr<Packet> packet;
-
-  packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
-  return packet;
+  return Create<Packet> ((uint8_t*)buffer->data, buffer->size);
 }
 
 } // namespace ofs
