@@ -425,6 +425,7 @@ to a collection of trace sources in the switch device and periodically dumps
 the following datapath metrics on the output file:
 
 #. Pipeline load in terms of throughput (Kbits);
+#. Pipeline load in terms of packets;
 #. Packets dropped while exceeding pipeline load capacity;
 #. Packets dropped by meter bands;
 #. Flow-mod operations executed by the switch;
