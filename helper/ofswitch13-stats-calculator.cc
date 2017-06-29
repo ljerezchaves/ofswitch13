@@ -239,7 +239,7 @@ OFSwitch13StatsCalculator::NotifyPipelinePacket (Ptr<const Packet> packet)
   NS_LOG_FUNCTION (this << packet);
 
   m_bytes += packet->GetSize ();
-  m_packets ++;
+  m_packets++;
 }
 
 void
