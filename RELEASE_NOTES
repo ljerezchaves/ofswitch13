@@ -8,7 +8,7 @@ Release 3.X.X (XXXXXXXXXXXX)
 ============================
 
 - Including a new counter on the OFSwitch13StatsCalculator to measure the
-  pipeline load in terms of packets.
+  pipeline load regarding the number of packets.
 
 - New OFSwitch13Queue::QueueFactory attribute for the object factory used to
   create internal OpenFlow queues on output ports.
@@ -21,15 +21,15 @@ Release 3.1.0 (May 29, 2017)
   be used to limit the traffic throughput within the pipeline to a specific
   data rate.
 
-- Improving the OFSwitch13Device with the FlowTableSize, GroupTableSize and
+- Improving the OFSwitch13Device with the FlowTableSize, GroupTableSize, and
   MeterTableSize attributes, that can be used to define the maximum number of
-  entries on pipeline tables.
+  entries in pipeline tables.
 
 - Improving the OFSwitch13Queue with the NumQueues attribute that can be used
   to define the number of output queues available for use.
 
-- Updating the ofsoftswitch13 library to allow more entries on each datapath
-  table (flow, meter, and group).
+- Updating some ofsoftswitch13 library defines to allow more entries on each
+  datapath table (flow, meter, and group).
 
 - Including the meter ID parameter on OFSwitch13Device::MeterDrop trace source.
 
@@ -52,8 +52,8 @@ Release 3.1.0 (May 29, 2017)
   real hardware operation.
 
 - This version is compatible with ofsoftswitch13 library release v3.1.x and
-  ns-3 version 3.26 (including patches). No backward compatibility with older
-  ns-3 versions.
+  ns-3 version 3.26 (including patches). There is no backward compatibility
+  with older ns-3 versions.
 
 
 Release 3.0.0 (February 10, 2017)
@@ -87,15 +87,15 @@ Release 3.0.0 (February 10, 2017)
 
 - Implementing a simplified OpenFlow version-negotiation in OpenFlow device.
 
-- Create the SocketReader class to read OpenFlow messages from TCP sockets in
-  safe and independently way.
+- Create the SocketReader class to read OpenFlow messages from TCP sockets
+  safely and independently.
 
 - Creating the RemoteController and RemoteSwitch classes, which can be used to
   independently store information of several remote connections, allowing the
-  implementation of multiple controller functionality.
+  implementation of multiple controller functionalities.
 
 - Refactoring the OFSwitch13Controller class:
-  * Splitting the DpctlCommand into execute and schedule versions;
+  * Splitting the DpctlCommand into 'execute' and 'schedule' versions;
   * Removing dependence from OFSwitch13Device class;
   * Renaming ConnectionStarted () method to HandshakeSuccessful () to reflect
     the method semantic;
@@ -106,7 +106,7 @@ Release 3.0.0 (February 10, 2017)
 - Refactoring the OFSwitch13Helper class:
   * Using the OFSwitch13Helper as a base class and implementing extended
     helpers for configuring an OpenFlow network domain with internal controller
-    applications (OFSwitch13InternalHelper) or an external real controller
+    applications (OFSwitch13InternalHelper) or a real external controller
     (OFSwitch13ExternalHelper);
   * Supporting the configuration of OpenFlow networks domains with multiple
     controllers;
@@ -116,8 +116,8 @@ Release 3.0.0 (February 10, 2017)
     into respective nodes (the use of this function is mandatory).
 
 - This version is compatible with ofsoftswitch13 library release v3.0.x and
-  ns-3 version 3.26 (including patches). No backward compatibility with ns-3.25
-  or older versions.
+  ns-3 version 3.26 (including patches). There is no backward compatibility
+  with older ns-3 versions.
 
 
 Release 2.0.3 (September 12, 2016)
@@ -131,26 +131,25 @@ Release 2.0.2 (April 11, 2016)
 
 - Including the QosController example.
 
-- The OpenFlow device is not an NetDevice child anymore. This was done to avoid
-  misleading interpretation and configuration problems with further ns-3
-  versions. The OFSwitch13NetDevice class was renamed to OFSwitch13Device to
-  better reflect this change.
+- The OpenFlow device is not a NetDevice child anymore. It avoids misleading
+  interpretation and configuration problems with further ns-3 versions. The
+  OFSwitch13NetDevice class was renamed to OFSwitch13Deviceto reflect this
+  change better.
 
 - Replacing the CsmaNetDevice OpenFlow trace source, used by prior versions to
   get packets from the CsmaNetDevice port, by a new CsmaNetDevice OpenFlow
-  receive callback. This new callback avoid problems with internal receive
-  semantics in the way that, for CsmaNetDevice configure as OpenFlow ports, the
-  default receive callback is never invoked.
+  receive callback. This new callback avoids problems with internal receive
+  semantics in the way that CsmaNetDevices configure as OpenFlow ports never
+  invoke the default receive callback.
 
-- Creating a OFSwitch13DeviceContainer for handling CsmaNetDevices. Note the
+- Creating the OFSwitch13DeviceContainer for handling CsmaNetDevices. Note the
   change on InstallSwitch* methods on the OFSwitch13Helper.
 
 - By default, 8 priority queues are created for each OFSwitch13Queue and are
   available for use.
 
 - Updating the documentation with a better module design description (including
-  new figures) and the QosController description. Minor corrections along the
-  entire text.
+  new figures) and the QosController description.
 
 - This version is compatible with ofsoftswitch13 library release v2.0.x and
   ns-3 versions 3.22, 3.23 and 3.24.1, and 3.25 (including patches for
