@@ -128,11 +128,8 @@ OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
 
   struct sw_queue *swQueue;
   QueueTag queueNoTag;
-  uint32_t queueNo = 0;
-  if (item->GetPacket ()->RemovePacketTag (queueNoTag))
-    {
-      queueNo = queueNoTag.GetQueueId ();
-    }
+  item->GetPacket ()->PeekPacketTag (queueNoTag);
+  uint32_t queueNo = queueNoTag.GetQueueId ();
   NS_LOG_DEBUG ("Item " << item << " to be enqueued in queue id " << queueNo);
 
   swQueue = dp_ports_lookup_queue (m_swPort, queueNo);

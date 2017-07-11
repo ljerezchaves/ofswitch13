@@ -108,7 +108,7 @@ GtpTunnelApp::RecvFromTunnelSocket (Ptr<Socket> socket)
 
   // Attach the TunnelId tag with TEID value.
   TunnelIdTag tunnelIdTag (gtpu.GetTeid ());
-  packet->AddPacketTag (tunnelIdTag);
+  packet->ReplacePacketTag (tunnelIdTag);
 
   // Add the Ethernet header to the packet, using the physical device MAC
   // address as source. Note that the original Ethernet frame was removed by
