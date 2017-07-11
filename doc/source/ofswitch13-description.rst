@@ -114,16 +114,17 @@ used in the case of ``VirtualNetDevice``). In this way, it is possible to
 replace the standard ``CsmaNetDevice::TxQueue`` attribute by this modified
 ``OFSwitch13Queue`` object. Figure :ref:`fig-ofswitch13-queue` shows its
 internal structure. It can hold a collection of other queues, each one
-identified by a unique ID. Packets sent to the OpenFlow queue for
-transmission by the ``CsmaNetDevice`` are expected to carry the ``QueueTag``,
-which is used to identify the internal queue that will hold the packet. Then,
-the output scheduling algorithm decides from which queue to get packets during
-dequeue procedures. Currently, only a priority scheduling algorithm is
-available for use (with lowest priority id set to 0). The number of queues
-indicated by the ``OFSwitch13Queue::NumQueues`` attribute are created at
-constructor, and can not be removed.  These queues are of the type
-``DropTailQueue``, operating in packet mode with maximum number of packets set
-to 1000.
+identified by a unique ID. Packets sent to the OpenFlow queue for transmission
+by the ``CsmaNetDevice`` are expected to carry the ``QueueTag``, which is used
+to identify the internal queue that will hold the packet. Then, the output
+scheduling algorithm decides from which queue to get packets during dequeue
+procedures. Currently, only a priority scheduling algorithm is available for
+use (with lowest priority ID set to 0). The ``OFSwitch13Queue::NumQueues``
+attribute indicates the number of interal queues that are created at
+constructur, and can not be removed. The ``OFSwitch13Queue::QueueFactory``
+attribute is used to set the type of each internal queue. By default, it uses
+``DropTailQueue`` operating in packet mode with maximum number of packets set
+to 100.
 
 .. _fig-ofswitch13-queue:
 

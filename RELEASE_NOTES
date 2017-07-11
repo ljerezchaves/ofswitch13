@@ -10,6 +10,9 @@ Release 3.X.X (XXXXXXXXXXXX)
 - Including a new counter on the OFSwitch13StatsCalculator to measure the
   pipeline load in terms of packets.
 
+- New OFSwitch13Queue::QueueFactory attribute for the object factory used to
+  create internal OpenFlow queues on output ports.
+
 
 Release 3.1.0 (May 29, 2017)
 ============================

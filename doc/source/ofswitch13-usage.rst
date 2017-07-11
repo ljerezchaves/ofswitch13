@@ -372,6 +372,8 @@ OFSwitch13Port
 OFSwitch13Queue
 ###############
 
+* ``QueueFactory``: The object factory used when creating internal queues.
+
 * ``QueueList``: The list of internal queues associated to this port queue.
 
 * ``NumQueues``: The number of internal queues associated to this port queue.

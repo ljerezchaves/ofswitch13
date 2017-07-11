@@ -34,15 +34,16 @@ namespace ns3 {
  * \brief The OpenFlow 1.3 queue interface for simple QoS management. An
  * OpenFlow switch provides limited Quality-of-Service support (QoS) through a
  * simple queuing mechanism. One (or more) queues can attach to a port and be
- * used to map flow entries on it. Flow entries mapped to a specific queue will
- * be treated according to that queue's configuration. Queue configuration
+ * used to map flow entries on it. Flow entries mapped to a specific queue
+ * will be treated according to that queue's configuration. Queue configuration
  * takes place outside the OpenFlow protocol. This class implements the queue
  * interface, extending the ns3::Queue class to allow compatibility with the
- * CsmaNetDevice used by OFSwitch13Port. Internally, it holds a collection of N
- * priority queues, indentified by ids ranging from 0 to N in increasing
- * priority. The ns3::QueueTag is used to identify which internal queue will
- * hold the packet, and the priority algorithms decides from which queue get
- * the packets to send over the wire.
+ * CsmaNetDevice used by OFSwitch13Port. Internally, it can hold a collection
+ * of N priority queues, identified by IDs ranging from 0 to N in increasing
+ * priority (queue ID 0 has the lowest priority). The ns3::QueueTag is used to
+ * identify which internal queue will hold the packet, and the priority
+ * algorithms ensures that higher-priority queues "always" get serviced
+ * first.
  */
 class OFSwitch13Queue : public Queue
 {
@@ -55,15 +56,14 @@ public:
 
   /**
    * Complete constructor.
-   * \param port The the pointer to the ofsoftswitch13 internal port
-   *        structure.
+   * \param port The pointer to the ofsoftswitch13 internal port structure.
    */
   OFSwitch13Queue (struct sw_port *port);
   virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
 
   /**
-   * Get the current number of queues.
-   * \return The current number of queues.
+   * Get the number of internal queues.
+   * \return The number of internal queues.
    */
   uint32_t GetNQueues (void) const;
 
@@ -82,9 +82,9 @@ private:
   virtual Ptr<const QueueItem> DoPeek (void) const;
 
   /**
-   * Add a new internal queue to this OpenFlow queue.
+   * Add a new internal queue to this OpenFlow queue interface.
    * \param queue The queue pointer.
-   * \return The queue id for the new queue.
+   * \return The ID for this new internal queue.
    */
   uint32_t AddQueue (Ptr<Queue> queue);
 
@@ -97,25 +97,13 @@ private:
    */
   Ptr<Queue> GetQueue (uint32_t queueId) const;
 
-  /**
-   * Return the queue id that will be used by DoPeek, DoDequeue, and DoRemove
-   * functions based on priority output algorithm.
-   * \internal This function has to keep consistence in its queue decision
-   *           despite arbitrary calls from peek and dequeue functions. When a
-   *           peek operation is performed, a output queue must be selected and
-   *           has to remain the same until the packet is effectively dequeued
-   *           or removed from it.
-   * \param peekLock Get the output queue and lock it.
-   * \return The queue id.
-   */
-  uint32_t GetOutputQueue (bool peekLock = false) const;
-
-  /** Structure to save the list of internal queues in this port queue. */
+  /** Structure to save the list of internal queues in this queue interface. */
   typedef std::vector<Ptr<Queue> > QueueList_t;
 
   struct sw_port*       m_swPort;     //!< ofsoftswitch13 struct sw_port.
-  uint32_t              m_intQueues;  //!< The number of internal queues.
-  QueueList_t           m_queues;     //!< Sorted list of available queues.
+  ObjectFactory         m_qFactory;   //!< Factory for internal queues.
+  uint32_t              m_intQueues;  //!< Number of internal queues.
+  QueueList_t           m_queues;     //!< List of internal queues.
 };
 
 } // namespace ns3
