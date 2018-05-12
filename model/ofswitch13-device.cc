@@ -1055,7 +1055,7 @@ OFSwitch13Device::NotifyMeterEntryCreated (struct meter_entry *entry)
       entry->stats->band_stats [i]->last_fill =
         static_cast<uint64_t> (m_lastTimeout.GetMilliSeconds ());
     }
-  meter_table_add_tokens (m_datapath->meters);
+  refill_bucket (entry);
 }
 
 void

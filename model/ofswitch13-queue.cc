@@ -34,6 +34,17 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Queue");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Queue);
 
+ObjectFactory
+GetDefaultQueueFactory ()
+{
+  // Setting default internal queue configuration.
+  ObjectFactory queueFactory;
+  queueFactory.SetTypeId (DropTailQueue::GetTypeId ());
+  queueFactory.Set ("Mode", EnumValue (Queue::QUEUE_MODE_PACKETS));
+  queueFactory.Set ("MaxPackets", UintegerValue (100));
+  return queueFactory;
+}
+
 TypeId
 OFSwitch13Queue::GetTypeId (void)
 {
@@ -46,6 +57,12 @@ OFSwitch13Queue::GetTypeId (void)
                    UintegerValue (NETDEV_MAX_QUEUES),
                    MakeUintegerAccessor (&OFSwitch13Queue::m_intQueues),
                    MakeUintegerChecker<uint32_t> (1, NETDEV_MAX_QUEUES))
+    .AddAttribute ("QueueFactory",
+                   "The object factory for creating internal queues.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                   ObjectFactoryValue (GetDefaultQueueFactory ()),
+                   MakeObjectFactoryAccessor (&OFSwitch13Queue::m_qFactory),
+                   MakeObjectFactoryChecker ())
     .AddAttribute ("QueueList",
                    "The list of internal queues available to the port.",
                    ObjectVectorValue (),
@@ -104,17 +121,10 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
   SetAttribute ("Mode", EnumValue (Queue::QUEUE_MODE_PACKETS));
   SetAttribute ("MaxPackets", UintegerValue (0xffffffff));
 
-  // Setting default internal queue configuration.
-  ObjectFactory queueFactory;
-  queueFactory.SetTypeId (DropTailQueue::GetTypeId ());
-  queueFactory.Set ("Mode", EnumValue (Queue::QUEUE_MODE_PACKETS));
-  queueFactory.Set ("MaxPackets", UintegerValue (100));
-
-  // Adding internal queues. It will create the maximum number of queues
-  // allowed to this port, even if they are not used.
+  // Creating the internal queues, defined by the NumQueues attribute.
   for (uint32_t i = 0; i < GetNQueues (); i++)
     {
-      AddQueue (queueFactory.Create<Queue> ());
+      AddQueue (m_qFactory.Create<Queue> ());
     }
 
   // Chain up.
@@ -126,15 +136,13 @@ OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
 {
   NS_LOG_FUNCTION (this << item);
 
-  struct sw_queue *swQueue;
   QueueTag queueNoTag;
-  uint32_t queueNo = 0;
-  if (item->GetPacket ()->RemovePacketTag (queueNoTag))
-    {
-      queueNo = queueNoTag.GetQueueId ();
-    }
+  item->GetPacket ()->PeekPacketTag (queueNoTag);
+  uint32_t queueNo = queueNoTag.GetQueueId ();
+  NS_ASSERT_MSG (queueNo < GetNQueues (), "Queue id is out of range.");
   NS_LOG_DEBUG ("Item " << item << " to be enqueued in queue id " << queueNo);
 
+  struct sw_queue *swQueue;
   swQueue = dp_ports_lookup_queue (m_swPort, queueNo);
   NS_ASSERT_MSG (swQueue, "Invalid queue id.");
 
@@ -158,9 +166,17 @@ OFSwitch13Queue::DoDequeue (void)
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t qId = GetOutputQueue ();
-  NS_LOG_DEBUG ("Packet dequeued from queue id " << qId);
-  return GetQueue (qId)->Dequeue ();
+  for (int32_t i = GetNQueues () - 1; i >= 0; i--)
+    {
+      if (GetQueue (i)->IsEmpty () == false)
+        {
+          NS_LOG_DEBUG ("Packet dequeued from queue id " << i);
+          return GetQueue (i)->Dequeue ();
+        }
+    }
+
+  NS_LOG_DEBUG ("Queue empty");
+  return 0;
 }
 
 Ptr<QueueItem>
@@ -168,9 +184,17 @@ OFSwitch13Queue::DoRemove (void)
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t qId = GetOutputQueue ();
-  NS_LOG_DEBUG ("Packet removed from queue id " << qId);
-  return GetQueue (qId)->Remove ();
+  for (int32_t i = GetNQueues () - 1; i >= 0; i--)
+    {
+      if (GetQueue (i)->IsEmpty () == false)
+        {
+          NS_LOG_DEBUG ("Packet removed from queue id " << i);
+          return GetQueue (i)->Remove ();
+        }
+    }
+
+  NS_LOG_DEBUG ("Queue empty");
+  return 0;
 }
 
 Ptr<const QueueItem>
@@ -178,9 +202,17 @@ OFSwitch13Queue::DoPeek (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t qId = GetOutputQueue (true);
-  NS_LOG_DEBUG ("Packet peeked from queue id " << qId);
-  return GetQueue (qId)->Peek ();
+  for (int32_t i = GetNQueues () - 1; i >= 0; i--)
+    {
+      if (GetQueue (i)->IsEmpty () == false)
+        {
+          NS_LOG_DEBUG ("Packet peeked from queue id " << i);
+          return GetQueue (i)->Peek ();
+        }
+    }
+
+  NS_LOG_DEBUG ("Queue empty");
+  return 0;
 }
 
 uint32_t
@@ -220,49 +252,7 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
 Ptr<Queue>
 OFSwitch13Queue::GetQueue (uint32_t queueId) const
 {
-  NS_ASSERT_MSG (queueId < GetNQueues (), "Queue is out of range.");
   return m_queues.at (queueId);
 }
 
-uint32_t
-OFSwitch13Queue::GetOutputQueue (bool peekLock) const
-{
-  NS_LOG_FUNCTION (this << peekLock);
-
-  static bool isLocked = false;
-  static uint32_t queueId = 0;
-
-  // If output queue is locked, we can't change its id.
-  if (isLocked)
-    {
-      // If peekLock is false, unlock it before returning the queue id.
-      if (!peekLock)
-        {
-          isLocked = false;
-        }
-      return queueId;
-    }
-
-  // If output queue is unlocked, let's select the higher-priority nonempty
-  // queue. We use queue id as priority indicator (lowest priority id is 0).
-  for (int32_t i = GetNQueues () - 1; i >= 0; i--)
-    {
-      // Check for nonempty queue
-      if (GetQueue (i)->IsEmpty () == false)
-        {
-          queueId = i;
-          break;
-        }
-    }
-
-  // If peekLock is true, lock the output queue before returning it.
-  if (peekLock)
-    {
-      isLocked = true;
-    }
-
-  return queueId;
-}
-
 } // namespace ns3
-

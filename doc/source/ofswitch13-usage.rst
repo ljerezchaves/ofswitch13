@@ -99,13 +99,13 @@ It's time to download a recent (preferably stable) |ns3| code into your machine
 
 Before configuring and compiling the simulator, download the |ofs13| code from
 the module repository and place it inside a new ``/src/ofswitch13`` folder.
-Update the code to the latest stable version (here, we are using 3.1.0):
+Update the code to the latest stable version (here, we are using 3.1.1):
 
 .. code-block:: bash
 
   $ hg clone https://bitbucket.org/ljerezchaves/ofswitch13-module src/ofswitch13
   $ cd src/ofswitch13
-  $ hg update 3.1.0
+  $ hg update 3.1.1
   $ cd ../../
 
 Also, you need to patch the |ns3| code with the appropriated patches available
@@ -372,6 +372,8 @@ OFSwitch13Port
 OFSwitch13Queue
 ###############
 
+* ``QueueFactory``: The object factory used when creating internal queues.
+
 * ``QueueList``: The list of internal queues associated to this port queue.
 
 * ``NumQueues``: The number of internal queues associated to this port queue.
@@ -425,6 +427,7 @@ to a collection of trace sources in the switch device and periodically dumps
 the following datapath metrics on the output file:
 
 #. Pipeline load in terms of throughput (Kbits);
+#. Pipeline load in terms of packets;
 #. Packets dropped while exceeding pipeline load capacity;
 #. Packets dropped by meter bands;
 #. Flow-mod operations executed by the switch;

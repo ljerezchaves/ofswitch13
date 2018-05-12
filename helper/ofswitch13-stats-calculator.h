@@ -32,6 +32,7 @@ namespace ns3 {
  * to a collection of trace sources in the OpenFlow switch device to monitor
  * the following metrics:
  *  -# Pipeline load in terms of throughput (Kbits);
+ *  -# Pipeline load in terms of packets;
  *  -# Packets dropped while exceeding pipeline load capacity;
  *  -# Packets dropped by meter bands;
  *  -# Flow-mod operations executed by the switch;
@@ -141,6 +142,7 @@ private:
   uint64_t  m_lastPacketsOut;
   uint64_t  m_loadDrops;
   uint64_t  m_meterDrops;
+  uint64_t  m_packets;
   //\}
 };
 

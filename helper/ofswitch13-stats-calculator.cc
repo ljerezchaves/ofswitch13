@@ -50,7 +50,8 @@ OFSwitch13StatsCalculator::OFSwitch13StatsCalculator ()
     m_lastPacketsIn (0),
     m_lastPacketsOut (0),
     m_loadDrops (0),
-    m_meterDrops (0)
+    m_meterDrops (0),
+    m_packets (0)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -172,6 +173,7 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
   << setw (12) << "Time(s)"
   << right
   << setw (12) << "Load(Kbps)"
+  << setw (8)  << "Packets"
   << setw (8)  << "LdDrops"
   << setw (8)  << "MtDrops"
   << setw (8)  << "FloMods"
@@ -237,6 +239,7 @@ OFSwitch13StatsCalculator::NotifyPipelinePacket (Ptr<const Packet> packet)
   NS_LOG_FUNCTION (this << packet);
 
   m_bytes += packet->GetSize ();
+  m_packets++;
 }
 
 void
@@ -259,6 +262,7 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
   << setw (11) << Simulator::Now ().GetSeconds ()
   << right
   << " " << setw (12) << (double)m_bytes * 8 / 1000 / elapSeconds
+  << " " << setw (7)  << m_packets
   << " " << setw (7)  << m_loadDrops
   << " " << setw (7)  << m_meterDrops
   << " " << setw (7)  << flowMods - m_lastFlowMods
@@ -282,6 +286,7 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
   m_lastPacketsOut = packetsOut;
   m_loadDrops = 0;
   m_meterDrops = 0;
+  m_packets = 0;
 
   // Scheduling next update.
   m_lastUpdate = Simulator::Now ();

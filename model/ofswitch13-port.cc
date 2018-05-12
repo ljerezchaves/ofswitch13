@@ -293,12 +293,9 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   // Retrieve the tunnel id from packet, if available.
   Ptr<Packet> localPacket = packet->Copy ();
   TunnelIdTag tunnelIdTag;
-  uint64_t tunnelId = 0;
-  if (localPacket->RemovePacketTag (tunnelIdTag))
-    {
-      tunnelId = tunnelIdTag.GetTunnelId ();
-      NS_LOG_DEBUG ("Pkt tunnel id is " << tunnelId);
-    }
+  localPacket->PeekPacketTag (tunnelIdTag);
+  uint64_t tunnelId = tunnelIdTag.GetTunnelId ();
+  NS_LOG_DEBUG ("Pkt tunnel id is " << tunnelId);
 
   // Send the packet to the OpenFlow pipeline
   NS_LOG_DEBUG ("Pkt copy " << localPacket->GetUid () << " sent to pipeline.");
@@ -332,23 +329,14 @@ OFSwitch13Port::Send (Ptr<const Packet> packet, uint32_t queueNo,
   EthernetHeader header;
   packetCopy->RemoveHeader (header);
 
-  // Tagging the packet with queue number only for ports associated to
-  // CsmaNetDevices (note that VirtualNetDevices doesn't have a queue).
-  if (m_netDev->GetObject<CsmaNetDevice> ())
-    {
-      QueueTag queueTag (queueNo);
-      packetCopy->AddPacketTag (queueTag);
-      NS_LOG_DEBUG ("Pkt queue will be " << queueNo);
-    }
+  // Tagging the packet with queue and tunnel ids.
+  QueueTag queueTag (queueNo);
+  packetCopy->ReplacePacketTag (queueTag);
+  NS_LOG_DEBUG ("Pkt queue will be " << queueNo);
 
-  // Tagging the packet with tunnel id only for logical ports associated to
-  // VirtualNetDevices. The logical port implementation should remove the tag.
-  if (m_netDev->GetObject<VirtualNetDevice> ())
-    {
-      TunnelIdTag tunnelIdTag (tunnelId);
-      packetCopy->AddPacketTag (tunnelIdTag);
-      NS_LOG_DEBUG ("Pkt tunnel tag will be " << tunnelId);
-    }
+  TunnelIdTag tunnelIdTag (tunnelId);
+  packetCopy->ReplacePacketTag (tunnelIdTag);
+  NS_LOG_DEBUG ("Pkt tunnel tag will be " << tunnelId);
 
   // Send the packet over the underlying net device.
   bool status = m_netDev->SendFrom (packetCopy, header.GetSource (),
