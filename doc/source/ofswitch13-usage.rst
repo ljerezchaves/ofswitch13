@@ -36,21 +36,15 @@ Before starting, install the following packages on your system:
   $ sudo apt-get install pkg-config autoconf libtool libboost-dev
 
 First, it is necessary to compile the |ofslib| as a static library. The
-|ofslib| code relies on another library, called *NetBee* (http://www.nbee.org),
-which is used to parse the network packets. So we need to compile and install
-them in the proper order.
+|ofslib| code relies on another library, called *NetBee*
+(https://github.com/netgroup-polito/netbee), which is used to parse the
+network packets. So we need to compile and install them in the proper order.
 
-Download the *NetBee* and unpack the source code:
-
-.. code-block:: bash
-
-  $ wget https://bitbucket.org/ljerezchaves/ofswitch13-module/downloads/nbeesrc.zip
-  $ unzip nbeesrc.zip
-
-Create the build system and compile the library:
+Clone the *NetBee* repository and compile the library:
 
 .. code-block:: bash
 
+  $ git clone https://github.com/netgroup-polito/netbee.git
   $ cd netbee/src/
   $ cmake .
   $ make
