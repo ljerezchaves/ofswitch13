@@ -354,15 +354,14 @@ and ``VirtualNetDevice``. The module brings the patch for including this
 receive callback into |ns3| source code, available under
 ``src/ofswitch13/utils`` directory. Note the existence of a *src* patch for the
 receive callbacks inclusion, and an optional *doc* patch that can be used for
-including the |ofs13| when compiling Doxygen and Sphinx documentation. For
-older versions, users can apply the *src* patch and, if necessary, manually
-resolve the conflicts.
+including the |ofs13| when compiling Doxygen and Sphinx documentation.
 
-Current |ofs13| stable version is 3.X.X. It has been developed and tested
-together with |ns3| versions 3.26, and will not compile with older |ns3|
-versions. If you really need to use an older |ns3| releases, you can check for
-previous |ofs13| versions, but keep in mind that old releases may have known
-bugs and an outdated API. It is strongly recommended to use the latest module
+Current |ofs13| stable version is 3.1.1. This version has been developed and
+tested together with |ns3| version 3.26, and will not compile with different
+|ns3| versions. If you really need to use another |ns3| release, you can check
+the |ofs13| RELEASE_NOTES file for previous |ofs13| releases and |ns3|
+version compatibility, but keep in mind that old releases may have known bugs
+and an outdated API. It is strongly recommended to use the latest module
 version for better results.
 
 References
