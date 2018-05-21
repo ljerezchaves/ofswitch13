@@ -16,18 +16,19 @@ Building the Module
 The |ofs13| module was designed to work together with the |ofslib| library,
 providing an interface for interconnecting the |ns3| simulator to the library.
 To this end, the |ofslib| project must be compiled as a *static library* and
-get proper linked with |ns3| simulator.
+get appropriately linked to the |ns3| simulator.
 
-Currently, the user must download and compile the code manually. Follow the
-instructions below to compile and link the |ns3| simulator to the |ofslib|
-library. *These instructions have been tested on Ubuntu 16.04 LTS. Other
-distributions or versions may require different steps, specially regarding
+By now, the user must download and compile the library code manually. Follow
+the instructions below to compile and link the |ns3| simulator to the |ofslib|
+library. *These instructions were tested on Ubuntu 16.04 LTS. Other
+distributions or versions may require different steps, especially regarding
 library compilation.*
 
 Compiling the library
 #####################
 
-Before starting, install the following packages on your system:
+Before starting, ensure you have the following packages installed on your
+system:
 
 .. code-block:: bash
 
@@ -35,10 +36,10 @@ Before starting, install the following packages on your system:
   $ sudo apt-get install libpcap-dev libxerces-c-dev libpcre3-dev flex bison
   $ sudo apt-get install pkg-config autoconf libtool libboost-dev
 
-First, it is necessary to compile the |ofslib| as a static library. The
-|ofslib| code relies on another library, called *NetBee*
-(https://github.com/netgroup-polito/netbee), which is used to parse the
-network packets. So we need to compile and install them in the proper order.
+We need to compile the |ofslib| as a static library. The |ofslib| relies on
+another library, called *NetBee* (https://github.com/netgroup-polito/netbee),
+which is used to parse the network packets. So we need to compile and install
+them in the proper order.
 
 Clone the *NetBee* repository and compile the library:
 
@@ -102,8 +103,8 @@ Update the code to the latest stable version (here, we are using 3.2.0):
   $ hg update 3.2.0
   $ cd ../../
 
-Also, you need to patch the |ns3| code with the appropriated patches available
-under the ``ofswitch13/utils`` directory (use the patches for the correct |ns3|
+Patch the |ns3| code with the appropriated patches available under the
+``ofswitch13/utils`` directory (use the patches for the correct |ns3|
 version):
 
 .. code-block:: bash
@@ -112,9 +113,9 @@ version):
   $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_27.patch
 
 The ``ofswitch13-src-3_27.patch`` creates the new OpenFlow receive callback at
-``CsmaNetDevice`` and ``virtualNetDevie``, allowing OpenFlow switch to get raw
-packets from these devices. These are the only required change in the |ns3|
-code to allow |ofs13| usage. The ``ofswitch13-doc-3_27.patch`` is optional. It
+``CsmaNetDevice`` and ``VirtualNetDevie``, allowing OpenFlow switch to get raw
+packets from these devices. These are the only required changes in the |ns3|
+code for |ofs13| integration. The ``ofswitch13-doc-3_27.patch`` is optional. It
 instructs the simulator to include the module in the |ns3| model library and
 source code API documentation, which can be helpful to compile the
 documentation using Doxygen and Sphinx.
@@ -213,23 +214,23 @@ configure both the switch and the controller using the
 
 At first, don't forget to enable checksum computations, which are required by
 the |ofs13| module. After creating host and switch nodes, the user is
-responsible to connect the hosts and switches in order to create the desired
-network topology. It's mandatory to use CSMA links for these connections. Note
-that ``CsmaNetDevices`` created and installed into switch node will be later
+responsible for connect the hosts and switches to create the desired network
+topology. Using CSMA links for these connections is mandatory. Note that
+``CsmaNetDevices`` created and installed into switch node will be later
 configured as switch ports. After connecting hosts and switches, it's time to
 create a controller node and configure the OpenFlow network. The
 ``OFSwitch13InternalHelper`` can be used to configure an OpenFlow network
-domain with internal controller application. Using the ``InstallController()``
-method, the helper will configure controller node with a default OpenFlow
-learning controller application. The ``InstallSwitch()`` method will install
-the OpenFlow datapath into switch node and configure the witch ports. At the
-end, it's mandatory to call the ``CreateOpenFlowChannels()`` method to create
-the connections and start the communication between switches and controllers.
+domain with internal controller application. The ``InstallController()`` method
+configures the controller node with a default OpenFlow learning controller
+application. The ``InstallSwitch()`` method installs the OpenFlow datapath into
+switch node and configures the switch ports. In the end, it's mandatory to call
+the ``CreateOpenFlowChannels()`` method to create the connections and start the
+communication between switches and controllers.
 
 The rest of this example follows the standard |ns3| usage: installing TCP/IP
 stack into host nodes, configuring IP addresses, installing applications and
 running the simulation. Don't install the TCP/IP stack into switches and
-controllers nodes (the helper will do that for you). Also, don't assign IP
+controllers nodes (the helper does that for you). Also, don't assign an IP
 address to devices configured as switch ports. For instructions on how to
 compile and run simulation programs, please refer to the |ns3| tutorial.
 
@@ -239,45 +240,44 @@ Helpers
 OFSwitch13Helper
 ################
 
-The ``OFSwitch13Helper`` follows the pattern usage of normal helpers. This is a
-base class that must be extended to create and configure an OpenFlow 1.3
-network domain, composed of one or more OpenFlow switches connected to single
-or multiple OpenFlow controllers. By default, the connections between switches
-and controllers are created using a single shared out-of-band CSMA channel,
-with IP addresses assigned to the 10.100.0.0/24 network. Users can modify this
-configuration by changing the ``OFSwitch13Helper::ChannelType`` attribute at
-instantiation time (dedicated out-of-band connections over CSMA or
-point-to-point channels are also available), or setting a different IP network
-address with the help of the static method
-``OFSwitch13Helper::SetAddressBase()``. The use of standard |ns3| channels and
-devices provides realistic connections with delay and error models.
+This module follows the pattern usage of standard helpers. The
+``OFSwitch13Helper`` is a base class that must be extended to create and
+configure an OpenFlow 1.3 network domain, composed of one or more OpenFlow
+switches connected to single or multiple OpenFlow controllers. By default,
+the connections between switches and controllers are created using a single
+shared out-of-band CSMA channel, with IP addresses assigned to the
+10.100.0.0/24 network. Users can modify this configuration by changing the
+``OFSwitch13Helper::ChannelType`` attribute (dedicated out-of-band connections
+over CSMA or point-to-point channels are also available), or setting a
+different IP network address with the ``OFSwitch13Helper::SetAddressBase()``
+static method. The use of standard |ns3| channels and devices provides
+realistic connections with delay and error models.
 
-This base class brings the methods for configuring the switches (configuring
-the controllers is done by derived classes). The ``InstallSwitch()`` method can
-be used to create and aggregate an ``OFSwitch13Device`` object for each switch
-node. By default, the ``InstallSwitch()`` method configures the switches
-without ports, so users must add the ports to the switch later, using the
-device ``AddSwitchPort()``. However, it is possible to send to the
-``InstallSwitch()`` method a container with ``NetDevices`` that can be
-configured as switch ports of a single switch node.
+This base class brings the methods for configuring the switches (derived
+classes configure the controllers). The ``InstallSwitch()`` method can be used
+to create and aggregate an ``OFSwitch13Device`` object to each switch node. By
+default, the ``InstallSwitch()`` method configures the switches without ports,
+so users must add the ports to the switch later, using the device
+``AddSwitchPort()``. However, it is possible to send to the ``InstallSwitch()``
+method a container with ``NetDevices`` that will be configured as switch ports
+of a single switch node.
 
-Each port can be constructed over a ``CsmaNetDevice`` created during the
-connection between switch nodes and other nodes in the simulation (these
-connections must be previously defined by the user). It is also possible to use
-a ``VirtualNetDevice`` as a logical port, allowing the user to configure
-complex operations like tunneling.
+Each port is configured with the ``CsmaNetDevice`` created during the
+connection between switch nodes and other nodes in the simulation (the user
+must previously define these connections). It is also possible to use a
+``VirtualNetDevice`` as a logical port, allowing the user to configure custom
+operations like tunneling.
 
 After installing the switches and controllers, it is mandatory to use the
 ``CreateOpenFlowChannels()`` member method to effectively create and start the
-connections between switches and controllers. After calling this method, you'll
-not be allowed to install more switches nor controllers using this helper.
-Please note that this base helper class was designed to configure a single
-OpenFlow network domain. All switches will be connected to all controllers on
-the same domain. If you want to configure separated OpenFlow domains on your
-network topology (with their individual switches and controllers) so you may
-need to use a different instance of the derived helper class for each domain.
+connections between all switches and all controllers on the same domain. After
+calling this method, you will not be allowed to install more switches nor
+controllers using this helper. Please note that this helper was designed to
+configure a single OpenFlow network domain. If you want to configure separated
+OpenFlow domains on your network topology (with their switches and controllers)
+so you may need to use a different helper instance for each domain.
 
-This helper also allow users to enable some module outputs that can be used for
+This helper also allows users to enable some module outputs that are used for
 traffic monitoring and performance evaluation. Please, check the :ref:`output`
 section for detailed information.
 
@@ -332,8 +332,8 @@ OFSwitch13Device
 ################
 
 * ``DatapathId``: The unique datapath identification of this OpenFlow switch.
-  This is a read-only attribute, automatically assigned by the object
-  constructor.
+  The datapath ID is a read-only attribute, automatically assigned by the
+  object constructor.
 
 * ``FlowTableSize``: The maximum number of entries allowed on each flow table.
 
@@ -342,40 +342,39 @@ OFSwitch13Device
 * ``MeterTableSize``: The maximum number of entries allowed on meter table.
 
 * ``PipelineCapacity``: The data rate used to model the pipeline processing
-  capacity in terms of throughput. Packets exceeding the capacity will be
-  discarded.
+  capacity (throughput). Packets exceeding the capacity are discarded.
 
 * ``PortList``: The list of ports available in this switch.
 
-* ``TcamDelay``: Average time to perform a TCAM operation in pipeline. This
-  value will be used to calculate the average pipeline delay based on the
+* ``TcamDelay``: Average time to perform a TCAM operation in the pipeline. This
+  value is used to calculate the average pipeline delay based on the
   number of flow entries in the tables, as described in :ref:`switch-device`.
 
-* ``TimeoutInterval``: The time between timeout operations on pipeline. At
-  each internal, the device checks if any flow in any table is timed out and
+* ``TimeoutInterval``: The time between timeout operations in the pipeline. At
+  each interval, the device checks if any flow in any table is timed out and
   update port status.
 
 OFSwitch13Port
 ##############
 
 * ``PortQueue``: The OpenFlow queue to use as the transmission queue in this
-  port. When the port is constructed over a ``CsmaNetDevice``, this queue will
-  be set for use in the underlying device. When the port is constructed over a
-  ``VirtualNetDevice``, this queue will not be used.
+  port. When the port is constructed over a ``CsmaNetDevice``, this queue is
+  set for use in the underlying device. When the port is constructed over a
+  ``VirtualNetDevice``, this queue is not used.
 
 OFSwitch13Queue
 ###############
 
 * ``QueueFactory``: The object factory used when creating internal queues.
 
-* ``QueueList``: The list of internal queues associated to this port queue.
+* ``QueueList``: The list of internal queues associated with this port queue.
 
-* ``NumQueues``: The number of internal queues associated to this port queue.
+* ``NumQueues``: The number of internal queues associated with this port queue.
 
 OFSwitch13Helper
 ################
 
-* ``ChannelDataRate``: The data rate to be used for the OpenFlow channel links.
+* ``ChannelDataRate``: The data rate for the OpenFlow channel links.
 
 * ``ChannelType``: The configuration used to create the OpenFlow channel. Users
   can select between a single shared CSMA connection, or dedicated connection
@@ -392,7 +391,7 @@ OFSwitch13StatsCalculator
 #########################
 
 * ``EwmaAlpha``: The EWMA alpha parameter, which is the weight given to the
-  most recent measured value when updating average metrics.
+  most recent measured value when updating average metrics values.
 
 * ``DumpTimeout``: The interval between successive dump operations.
 
@@ -407,9 +406,9 @@ Output
 This module relies on the |ns3| tracing subsystem for output. The
 ``OFSwitch13Helper`` base class allows users to monitor control-plane traffic
 by enabling PCAP and ASCII trace files for the ``NetDevices`` used to create
-the OpenFlow Channel(s). This can be useful to analyze the OpenFlow messages
+the OpenFlow Channel(s). This approach can be useful to analyze the OpenFlow messages
 exchanged between switches and controllers on this network domain. To enable
-these traces just call the ``EnableOpenFlowPcap()`` and
+these traces, use the ``EnableOpenFlowPcap()`` and
 ``EnableOpenFlowAscii()`` helper member functions *after* configuring the
 switches and creating the OpenFlow channels. It is also possible to enable PCAP
 and ASCII trace files to monitor data-plane traffic on switch ports using the
@@ -420,8 +419,8 @@ statistics of an OpenFlow switch datapath. The instances of this class connect
 to a collection of trace sources in the switch device and periodically dumps
 the following datapath metrics on the output file:
 
-#. Pipeline load in terms of throughput (Kbits);
-#. Pipeline load in terms of packets;
+#. Pipeline load regarding throughput (Kbits);
+#. Pipeline load regarding packets;
 #. Packets dropped while exceeding pipeline load capacity;
 #. Packets dropped by meter bands;
 #. Flow-mod operations executed by the switch;
@@ -429,16 +428,16 @@ the following datapath metrics on the output file:
 #. Group-mod operations executed by the switch;
 #. Packets-in sent from the switch to the controller;
 #. Packets-out sent from the controller to the switch;
-#. Average number of flow entries in pipeline tables;
-#. Average number of meter entries in meter table;
-#. Average number of group entries in group table;
+#. The average number of flow entries in pipeline tables;
+#. The average number of meter entries in meter table;
+#. The average number of group entries in group table;
 #. Average switch buffer space usage (percent);
 #. Average pipeline lookup delay for packet processing (microseconds).
 
-To enable performance monitoring, just call the ``EnableDatapathStats()``
+To enable performance monitoring, use the ``EnableDatapathStats()``
 helper member function *after* configuring the switches and creating the
 OpenFlow channels. By default, statistics are dumped every second, but users
-can adjust this timeout changing the
+can adjust this timeout by changing the
 ``OFSwitch13StatsCalculator::DumpTimeout`` attribute. Besides, for the average
 metrics, an Exponentially Weighted Moving Average (EWMA) is used to update the
 values, and the attribute ``OFSwitch13StatsCalculator::EwmaAlpha`` can be
@@ -447,13 +446,13 @@ adjusted to reflect the desired weight given to most recent measured values.
 When necessary, it is also possible to enable the internal |ofslib| library
 ASCII logging mechanism using two different approaches:
 
-#. The simplified ``OFSwitch13Helper::EnableDatapathLogs()`` static method will
-   dump messages at debug level for all library internal modules into output
-   file (users can set the filename prefix);
+#. The simplified ``OFSwitch13Helper::EnableDatapathLogs()`` static method
+   dumps messages at debug level for all library internal modules into the
+   output file (users can set the filename prefix);
 
 #. The advanced ``ofs::EnableLibraryLog()`` method allow users to define the
-   target log facility (console of file), set the filename, and also customize
-   the logging levels for different library internal modules.
+   target log facility (the console or a file), set the filename, and also
+   customize the logging levels for different library internal modules.
 
 .. _port-coding:
 
@@ -465,7 +464,7 @@ module, keep in mind that this is not an extension of the available
 implementation. For simulation scenarios using the existing |ns3| OpenFlow
 module configured with the ``ns3::OpenFlowSwitchHelper`` helper and using the
 ``ns3::ofi::LearningController``, it is possible to port the code to the
-|ofs13| with little effort. The following code, based on the
+|ofs13| module with little effort. The following code, based on the
 ``openflow-switch.cc`` example, is used for demonstration:
 
 .. code-block:: cpp
@@ -493,11 +492,10 @@ module configured with the ``ns3::OpenFlowSwitchHelper`` helper and using the
   // Other configurations: TCP/IP stack, apps, monitors, etc.
   // ...
 
-This is the core OpenFlow configuration part. Here, the user is creating an
-``ns3::ofi::LearningController`` object instance to be used as the controller.
-It also set the internal attribute ``ExpirationTime`` that is used for cache
-timeout. Then, the helper is used to install the OpenFlow switch device into
-the ``switchNode`` node. The CSMA devices from ``switchDevices`` container are
+This code creates an ``ns3::ofi::LearningController`` object instance as the
+controller. It also sets the internal attribute ``ExpirationTime`` for cache
+timeout. Then, the helper installs the OpenFlow switch device into the
+``switchNode`` node. The CSMA devices from ``switchDevices`` container are
 installed as OpenFlow ports, and the ``controller`` object is set as the
 OpenFlow controller for the network. The following code implements the same
 logic in the |ofs13| module:
@@ -530,16 +528,16 @@ logic in the |ofs13| module:
   Simulator::Stop (Seconds (10));
 
 Note that the |ofs13| module requires a new node to install the controller
-application into it. The ``InstallController()`` function will create the
-learning application object instance and will install it in the
-``controllerNode``. Then, the ``InstallSwitch()`` function will install the
-OpenFlow device into ``switchNode`` and configure the CSMA devices from
-``switchDevices`` container as OpenFlow ports. Finally, the
-``CreateOpenFlowChannels()`` function will configure the connection between
-the switch and the controller. Note that the ``OFSwitch13LearningController``
-doesn't provide the ``ExpirationTime`` attribute. Don't forget to include the
-``Simulator::Stop()`` command to schedule the time delay until the Simulator
-should stop, otherwise the simulation will never end.
+application into it. The ``InstallController()`` function creates the learning
+application object instance and installs it in the ``controllerNode``. Then,
+the ``InstallSwitch()`` function installs the OpenFlow device into
+``switchNode`` and configures the CSMA devices from ``switchDevices`` container
+as OpenFlow ports. Finally, the ``CreateOpenFlowChannels()`` function
+configures the connection between the switch and the controller. Note that the
+``OFSwitch13LearningController`` does not provide the ``ExpirationTime``
+attribute. Don't forget to include the ``Simulator::Stop()`` command to
+schedule the time delay until the Simulator should stop; otherwise, the
+simulation will never end.
 
 For users who have implemented new controllers in the |ns3| OpenFlow module,
 extending the ``ns3::ofi::Controller`` class, are encouraged to explore the
@@ -554,48 +552,48 @@ Advanced Usage
 ``dpctl`` commands
 ##################
 
-For constructing OpenFlow messages and send to the switches, the controller
-relies on the ``dpctl`` utility to simplify the process. This is a management
-utility that enable some control over the OpenFlow switch. With this tool it is
-possible to add flows to the flow table, query for switch features and status,
-and change other configurations. The ``DpctlExecute()`` function can be used by
-derived controllers to convert a variety of ``dpctl`` commands into OpenFlow
-messages and send it to the target switch. There's also the ``DpctlSchedule()``
-variant, which can be used to schedule commands to be executed just after the
-handshake procedure between the controller and the switch (this can be useful
-for scheduling commands during the topology creation, before the simulation
-start).
+For constructing OpenFlow messages and sending them to the switches, the
+controller relies on the ``dpctl`` utility to simplify the process. The
+``dpctl`` is a management utility that enables some control over the OpenFlow
+switch. With this tool, it is possible to add flows to the flow table, query
+for switch features and status, and change other configurations. The
+``DpctlExecute()`` function can be used by derived controllers to convert a
+variety of ``dpctl`` commands into OpenFlow messages and send it to the target
+switch. There's also the ``DpctlSchedule()`` variant, which can be used to
+schedule commands to be executed just after the handshake procedure between the
+controller and the switch (this can be useful for scheduling commands during
+the topology creation, before the simulation start).
 
 Check the `utility documentation
 <https://github.com/CPqD/ofsoftswitch13/wiki/Dpctl-Documentation>`_ for details
 on how to create the commands. Note that the documentation is intended for
 terminal usage in Unix systems, which is a little different from the usage in
 the ``DpctlExecute()`` function. For this module, ignore the options and switch
-reference, and consider only the command and the arguments. You will find some
-examples on this syntax at :ref:`qos-controller` source code.
+reference, and consider only the command and the arguments. You can find some
+examples of this syntax at :ref:`qos-controller` source code.
 
 .. _extending-controller:
 
 Extending the controller
 ########################
 
-The ``OFSwitch13Controller`` base class provides the basic interface for
-controller implementation. For sending OpenFlow messages to the switches,
-preferably use the ``dpctl`` commands. The controller also uses OpenFlow
-message handlers to process different OpenFlow message received from the
-switches. Some handler methods can not be modified by derived class, as they
-must behave as already implemented. Other handlers can be overridden by derived
-controllers to proper handle packets sent from switch to controller and
-implement the desired control logic. The current implementation of these
-virtual handler methods does nothing: just free the received message and
-returns 0. Note that handlers *must* free received messages (msg) when
-everything is fine. For ``HandleMultipartReply()`` implementation, note that
-there are several types of multipart replies that can be filtered.
+The ``OFSwitch13Controller`` base class provides the necessary interface for
+controller implementation. It uses the ``dpctl`` commands for sending OpenFlow
+messages to the switches. The controller also uses OpenFlow message handlers
+to process different OpenFlow message received from the switches. Some handler
+methods cannot be modified by derived class, as they must behave as already
+implemented. Other handlers can be overridden by derived controllers to proper
+parse packets sent from switch to controller and implement the desired control
+logic. The current implementation of these virtual handler methods does
+nothing: only free the received message and returns 0. Note that handlers
+*must* free received messages (msg) when everything is fine. For
+``HandleMultipartReply()`` implementation, note that several types of multipart
+replies can be filtered.
 
 In the ``OFSwitch13LearningController`` implementation, the
 ``HandlePacketIn()`` function is used to handle packet-in messages sent from
-switch to this controller. It look for L2 switching information, update the
-structures and send a packet-out back to the switch. The
+switch to this controller. It looks for L2 switching information, updates the
+structures and sends a packet-out back to the switch. The
 ``HandleFlowRemoved()`` is used to handle expired flow entries notified by the
 switch to this controller. It looks for L2 switching information and removes
 associated entry.
@@ -609,15 +607,16 @@ used to filter packets sent to the controller by the switch. Note that the
 match information from the message received by the controller. For ARP
 messages, ``HandleArpPacketIn()`` exemplifies how to create a new packet at the
 controller and send to the network over a packet-out message. Developers are
-encouraged to study the library internal structures to better understand the
-handlers' implementation and also how to build an OpenFlow message manually.
+encouraged to study the library internal structures to understand better how
+the handlers are implemented and also how to build an OpenFlow message
+manually.
 
 .. _external-controller:
 
 External controller
 ###################
 
-Considering that the OpenFlow messages traversing the OpenFlow channel follows
+Considering that the OpenFlow messages traversing the OpenFlow channel follow
 the standard wire format, it is possible to use the |ns3| ``TapBridge`` module
 to integrate an external OpenFlow 1.3 controller, running on the local system,
 to the simulated environment. The experimental ``external-controller.cc``
@@ -643,17 +642,17 @@ example uses the ``OFSwitch13ExternalHelper`` to this end, as follows:
   // ...
 
 The ``InstallExternalController()`` function configures the controller node as
-a "ghost node" on the simulator. The net device created at the controller node
-(``ctrlDev``) is returned by the function and the user is responsible to bind
-it to the ``TapBridge`` device so it will appear as if it were actually
-replacing the TAP device in the Linux. The default configuration expects an
-OpenFlow controller running on the local machine at port 6653 (the IP address
-is automatically set by the helper). Users can modify the local port number
+a "ghost node" on the simulator. This function returns the net device created
+at the controller node (``ctrlDev``), and the user is responsible for binding
+it to the ``TapBridge`` device, so it appears as if it were replacing the TAP
+device in the Linux. The default configuration expects that the OpenFlow
+controller is running on the local machine at port 6653 (the helper
+automatically sets the IP address). Users can modify the local port number
 setting the ``OFSwitch13ExternalHelper::Port`` attribute.
 
 This example was tested with the Floodlight 1.2 controller
 (http://www.projectfloodlight.org) running on the local machine. Consistent
-behavior is observed once sufficient time elapses (say 3 to 5 minutes) between
+behavior was observed once sufficient time elapses (say 3 to 5 minutes) between
 any two executions.
 
 Examples
@@ -665,34 +664,33 @@ Examples summary
 ################
 
 * **ofswitch13-first**: Two hosts connected to a single OpenFlow switch. The
-  switch is managed by the default learning controller application.
+  default learning controller application manages the switch.
 
 * **ofswitch13-multiple-controllers**: Two hosts connected to a single OpenFlow
-  switch. The switch is managed by to different controllers applications.
+  switch. The default learning controller application manages both switches.
 
 * **ofswitch13-multiple-domains**: Two hosts connected to different OpenFlow
-  switches. Each switch is managed by an independent default learning
-  controller application.
+  switches. An independent default learning controller application manages each
+  switch.
 
 * **ofswitch13-single-domain**: Two hosts connected to different OpenFlow
   switches. Both switches are managed by the default learning controller
   application.
 
 * **ofswitch13-external-controller**: Two hosts connected to different OpenFlow
-  switches. Both switches are managed by the same external controller
-  application.
+  switches. The same external controller application manages both switches.
 
 * **ofswitch13-logical-port**: Two hosts connected to different OpenFlow
-  switches. Both switches are managed by the tunnel controller application.
+  switches. The tunnel controller application manages both switches. 
   The ports interconnecting the switches are configured as logical ports,
   allowing switches to de/encapsulate IP traffic using the GTP/UDP/IP tunneling
   protocol.
 
 * **ofswitch13-qos-controller**: It represents the internal network of an
   organization, where servers and client nodes are located far from each other.
-  An specialized *OpenFlow QoS controller* is used to manage the network,
+  A specialized *OpenFlow QoS controller* manages the network,
   implementing some QoS functionalities and exploiting OpenFlow 1.3 features.
-  This example is detailed in :ref:`qos-controller` section bellow.
+  :ref:`qos-controller` section below details this example.
 
 .. _qos-controller:
 
@@ -703,19 +701,19 @@ A case study scenario was used by [Chaves2016]_ to demonstrate how some of the
 available OpenFlow 1.3 module features can be employed to improve network
 management. Figure :ref:`fig-network-topo` shows the network topology used in
 this example. It represents the internal network of an organization, where
-servers and client nodes are located far from each other (e.g. in separated
+servers and client nodes are located far from each other (e.g., in separated
 buildings). The "long-distance" connection between the sites is via two links
 of 10 Mbps each, while all the other local connections are 100 Mbps. On the
 server side, the *OpenFlow border switch* acts as a border router element: it
-is responsible for handling connection requests coming from the clients, and
+is responsible for handling connection requests coming from the clients and
 redirecting them to the appropriate internal server. On the client side, the
 *OpenFlow client switch* is used to interconnect all clients in a star
 topology. Between these two switches, there is the *OpenFlow aggregation
-switch*, located at the border of the client side and used to provide
-long-distance improved communication. The default |ofs13| learning controller
-is used to manage the client switch, whereas the new *OpenFlow QoS controller*
-is used to manage the other two switches. The latter controller implements some
-QoS functionalities exploiting OpenFlow 1.3 features, as described below. Each
+switch*, located at the border of the client side and used to provide improved
+long-distance communication. The default |ofs13| learning controller is used to
+manage the client switch, whereas the new *OpenFlow QoS controller* is used to
+manage the other two switches. The latter controller implements some QoS
+functionalities exploiting OpenFlow 1.3 features, as described below. Each
 client opens a single TCP connection with one of the 2 available servers, and
 sends packets in uplink direction as much as possible, trying to fill the
 available bandwidth.
@@ -729,21 +727,20 @@ available bandwidth.
 
 **Link aggregation**:
 The link aggregation can be used to combine multiple network connections in
-parallel in order to increase throughput beyond what a single connection could
-sustain. To implement the link aggregation, the OpenFlow group table can be
-used to split the traffic.
+parallel to increase throughput beyond what a single connection could sustain.
+The OpenFlow group table is used to split the traffic and implement the link
+aggregation.
 
 OpenFlow groups were introduced in OpenFlow 1.1 as a way to perform more
 complex operations on packets that cannot be defined within a flow alone. Each
 group receives packets as input and performs any OpenFlow actions on these
 packets. The power of a group is that it contains separate lists of actions,
-and each individual action list is referred to as an OpenFlow bucket. There are
-different types of groups, and the *select* group type can be used to perform
-link aggregation. Each bucket in a select group has an assigned weight, and
-each packet that enters the group is sent to a single bucket. The bucket
-selection algorithm is undefined and is dependent on the switch's
-implementation (the |ofslib| library implements the weighted round robin
-algorithm).
+and each action list is referred to as an OpenFlow bucket. There are different
+types of groups, and the *select* group type can be used to perform link
+aggregation. Each bucket in a select group has an assigned weight, and each
+packet that enters the group is sent to a single bucket. The bucket selection
+algorithm is undefined and is dependent on the switch's implementation (the
+|ofslib| library implements the weighted round robin algorithm).
 
 In the proposed network topology, the QoS controller configures both the border
 and the aggregation switches to perform link aggregation over the two
@@ -756,14 +753,14 @@ select group, so the load is evenly distributed among the links.
 A load balancing mechanism can be used to distribute workloads across multiple
 servers. Among many goals, it aims to optimize resource use and avoid overload
 of any single server. One of the most commonly used applications of load
-balancing is to provide a single Internet service from multiple servers,
+balancing is to provide single Internet service from multiple servers,
 sometimes known as a server farm.
 
 In the proposed network topology, the OpenFlow QoS controller configures the
 border switch to listen for new requests on the IP and port where external
 clients connect to access the servers. The switch forwards the new request to
-the controller, which will decide which of the internal servers must take care
-of this connection. Then, it install the match rules into border switch to
+the controller, which decides which of the internal servers must take care
+of this connection. Then, it installs the match rules into border switch to
 forward the subsequent packets from the same connection directly to the chosen
 server. All this happen without the client ever knowing about the internal
 separation of functions.
@@ -771,10 +768,10 @@ separation of functions.
 To implement this load balancing mechanism, the QoS controller depends on the
 extensible match support introduced in OpenFlow 1.2. Prior versions of the
 OpenFlow specification used a static fixed length structure to specify matches,
-which prevents flexible expression of matches and prevents the inclusion of
-new match fields. The extensible match support allows the switch to match ARP
+which prevents flexible expression of matches and prevents the inclusion of new
+match fields. The extensible match support allows the switch to match ARP
 request messages looking for the server IP address and redirect them to the
-controller, which will create the ARP reply message and send it back to the
+controller, which creates the ARP reply message and send it back to the
 network. The set-field action is used by the border switch to rewrite packet
 headers, replacing source/destinations IP addresses for packets
 leaving/entering the server farm.
@@ -800,15 +797,15 @@ Troubleshooting
   ``Simulator::Stop()`` command to schedule the time delay until the Simulator
   should stop.
 
-* Note that the Spanning Tree Protocol part of 802.1D is not implemented in the
-  ``OFSwitch13LearningController``. Therefore, you have to be careful to not
-  create loops on the connections between switches, otherwise the network will
-  collapse.
+* Note that the ``OFSwitch13LearningController`` does not implement the
+  Spanning Tree Protocol part of 802.1D. Therefore, you have to be careful not
+  to create loops on the connections between switches, otherwise, the network
+  will collapse.
 
 * For simulating scenarios with more than one OpenFlow network domain
   configured with the ``OFSwtich13InternalHelper``, use a different helper
   instance for each domain.
 
-* For using ASCII traces it is necessary to manually include the
+* For using ASCII traces it is necessary to include the
   ``ns3::PacketMetadata::Enable ()`` at the beginning of the program, before
-  any packets are sent.
+  any packets being sent.
