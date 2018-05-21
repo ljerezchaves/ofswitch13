@@ -133,7 +133,7 @@ TunnelController::HandlePacketIn (
           Ipv4Address dstAddr = GetTunnelEndpoint (swtch->GetDpId (), 2);
           uint64_t tunnelId = (uint64_t)dstAddr.Get () << 32;
           tunnelId |= 0xFFFF;
-          char tunnelIdStr [12];
+          char tunnelIdStr [20];
           sprintf (tunnelIdStr, "0x%016lX", tunnelId);
 
           std::ostringstream cmd;
