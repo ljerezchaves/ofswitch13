@@ -18,16 +18,16 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
-#define NS_LOG_APPEND_CONTEXT \
-  if (m_swPort != 0) { std::clog << "[dp " << m_swPort->dp->id << " port " << m_swPort->conf->port_no << "] "; }
-
 #include "ns3/log.h"
 #include "ns3/enum.h"
 #include "ns3/uinteger.h"
 #include "ns3/object-vector.h"
-#include "ns3/drop-tail-queue.h"
 #include "ofswitch13-queue.h"
 #include <algorithm>
+
+#undef NS_LOG_APPEND_CONTEXT
+#define NS_LOG_APPEND_CONTEXT \
+  if (m_swPort != 0) { std::clog << "[dp " << m_swPort->dp->id << " port " << m_swPort->conf->port_no << "] "; }
 
 namespace ns3 {
 
@@ -38,7 +38,7 @@ TypeId
 OFSwitch13Queue::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Queue")
-    .SetParent<Queue> ()
+    .SetParent<Queue<Packet> > ()
     .SetGroupName ("OFSwitch13")
     .AddAttribute ("NumQueues",
                    "The number of internal queues available on this queue.",
@@ -50,14 +50,15 @@ OFSwitch13Queue::GetTypeId (void)
                    "The list of internal queues available to the port.",
                    ObjectVectorValue (),
                    MakeObjectVectorAccessor (&OFSwitch13Queue::m_queues),
-                   MakeObjectVectorChecker<Queue> ())
+                   MakeObjectVectorChecker<Queue<Packet> > ())
   ;
   return tid;
 }
 
 OFSwitch13Queue::OFSwitch13Queue (struct sw_port *port)
-  : Queue (),
-    m_swPort (port)
+  : Queue<Packet> (),
+    m_swPort (port),
+    NS_LOG_TEMPLATE_DEFINE ("OFSwitch13Queue")
 {
   NS_LOG_FUNCTION (this << port);
 }
@@ -101,80 +102,112 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
 
   // We are using a very large queue size for this queue interface. The real
   // check for queue space is performed at DoEnqueue () by the internal queues.
-  SetAttribute ("Mode", EnumValue (Queue::QUEUE_MODE_PACKETS));
+  SetAttribute ("Mode", EnumValue (QueueBase::QUEUE_MODE_PACKETS));
   SetAttribute ("MaxPackets", UintegerValue (0xffffffff));
 
   // Setting default internal queue configuration.
   ObjectFactory queueFactory;
-  queueFactory.SetTypeId (DropTailQueue::GetTypeId ());
-  queueFactory.Set ("Mode", EnumValue (Queue::QUEUE_MODE_PACKETS));
+  queueFactory.SetTypeId ("ns3::DropTailQueue<Packet>");
+  queueFactory.Set ("Mode", EnumValue (QueueBase::QUEUE_MODE_PACKETS));
   queueFactory.Set ("MaxPackets", UintegerValue (100));
 
   // Adding internal queues. It will create the maximum number of queues
   // allowed to this port, even if they are not used.
   for (uint32_t i = 0; i < GetNQueues (); i++)
     {
-      AddQueue (queueFactory.Create<Queue> ());
+      AddQueue (queueFactory.Create<Queue<Packet> > ());
     }
 
   // Chain up.
-  Queue::NotifyConstructionCompleted ();
+  Queue<Packet>::NotifyConstructionCompleted ();
 }
 
 bool
-OFSwitch13Queue::DoEnqueue (Ptr<QueueItem> item)
+OFSwitch13Queue::Enqueue (Ptr<Packet> packet)
 {
-  NS_LOG_FUNCTION (this << item);
+  NS_LOG_FUNCTION (this << packet);
 
   struct sw_queue *swQueue;
   QueueTag queueNoTag;
   uint32_t queueNo = 0;
-  if (item->GetPacket ()->RemovePacketTag (queueNoTag))
+  if (packet->RemovePacketTag (queueNoTag))
     {
       queueNo = queueNoTag.GetQueueId ();
     }
-  NS_LOG_DEBUG ("Item " << item << " to be enqueued in queue id " << queueNo);
+  NS_LOG_DEBUG ("Packet " << packet << " to be enqueued in queue id " << queueNo);
 
   swQueue = dp_ports_lookup_queue (m_swPort, queueNo);
   NS_ASSERT_MSG (swQueue, "Invalid queue id.");
 
-  bool retval = GetQueue (queueNo)->Enqueue (item);
+  bool retval = GetQueue (queueNo)->Enqueue (packet);
   if (retval)
     {
       swQueue->stats->tx_packets++;
-      swQueue->stats->tx_bytes += item->GetPacketSize ();
+      swQueue->stats->tx_bytes += packet->GetSize ();
+
+      // Enqueue the packet in this queue too.
+      // This is necessary to ensure consistent statistics. Otherwise, when the
+      // NetDevice calls the IsEmpty () method, it will return true.
+      DoEnqueue (Tail (), packet);
     }
   else
     {
       NS_LOG_DEBUG ("Packet enqueue dropped by internal queue " << queueNo);
       swQueue->stats->tx_errors++;
-      Drop (item);
+
+      // Drop the packet in this queue too.
+      // This is necessary to ensure consistent statistics.
+      DropBeforeEnqueue (packet);
     }
   return retval;
 }
 
-Ptr<QueueItem>
-OFSwitch13Queue::DoDequeue (void)
+Ptr<Packet>
+OFSwitch13Queue::Dequeue (void)
 {
   NS_LOG_FUNCTION (this);
 
   uint32_t qId = GetOutputQueue ();
   NS_LOG_DEBUG ("Packet dequeued from queue id " << qId);
-  return GetQueue (qId)->Dequeue ();
+  Ptr<Packet> p = GetQueue (qId)->Dequeue ();
+
+  // Dequeue the packet from this queue too. As we don't know the exactly
+  // packet location on this queue, we have to look for it.
+  for (auto it = Head (); it != Tail (); it++)
+    {
+      if ((*it) == p)
+        {
+          DoDequeue (it);
+          break;
+        }
+    }
+  return p;
 }
 
-Ptr<QueueItem>
-OFSwitch13Queue::DoRemove (void)
+Ptr<Packet>
+OFSwitch13Queue::Remove (void)
 {
   NS_LOG_FUNCTION (this);
 
   uint32_t qId = GetOutputQueue ();
   NS_LOG_DEBUG ("Packet removed from queue id " << qId);
-  return GetQueue (qId)->Remove ();
+  Ptr<Packet> p = GetQueue (qId)->Remove ();
+
+  // Remove the packet from this queue too. As we don't know the exactly
+  // packet location on this queue, we have to look for it.
+  for (auto it = Head (); it != Tail (); it++)
+    {
+      if ((*it) == p)
+        {
+          DoRemove (it);
+          break;
+        }
+    }
+  return p;
 }
 
-Ptr<const QueueItem>
-OFSwitch13Queue::DoPeek (void) const
+Ptr<const Packet>
+OFSwitch13Queue::Peek (void) const
 {
   NS_LOG_FUNCTION (this);
 
@@ -184,7 +217,7 @@ OFSwitch13Queue::DoPeek (void) const
 }
 
 uint32_t
-OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
+OFSwitch13Queue::AddQueue (Ptr<Queue<Packet> > queue)
 {
   NS_LOG_FUNCTION (this << queue);
 
@@ -217,7 +250,7 @@ OFSwitch13Queue::AddQueue (Ptr<Queue> queue)
   return queueId;
 }
 
-Ptr<Queue>
+Ptr<Queue<Packet> >
 OFSwitch13Queue::GetQueue (uint32_t queueId) const
 {
   NS_ASSERT_MSG (queueId < GetNQueues (), "Queue is out of range.");

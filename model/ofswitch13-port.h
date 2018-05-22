@@ -26,10 +26,10 @@
 #include <ns3/packet.h>
 #include <ns3/traced-callback.h>
 #include "ofswitch13-interface.h"
-#include "ofswitch13-queue.h"
 
 namespace ns3 {
 
+class OFSwitch13Queue;
 class OFSwitch13Device;
 
 /**

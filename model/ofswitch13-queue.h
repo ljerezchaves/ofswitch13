@@ -28,6 +28,10 @@
 
 namespace ns3 {
 
+// The following explicit template instantiation declaration prevents modules
+// including this header file from implicitly instantiating Queue<Packet>.
+extern template class Queue<Packet>;
+
 /**
  * \ingroup ofswitch13
  *
@@ -44,7 +48,7 @@ namespace ns3 {
  * hold the packet, and the priority algorithms decides from which queue get
  * the packets to send over the wire.
  */
-class OFSwitch13Queue : public Queue
+class OFSwitch13Queue : public Queue<Packet>
 {
 public:
   /**
@@ -61,6 +65,12 @@ public:
   OFSwitch13Queue (struct sw_port *port);
   virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
 
+  // Inherited from Queue.
+  bool Enqueue (Ptr<Packet> packet);
+  Ptr<Packet> Dequeue (void);
+  Ptr<Packet> Remove (void);
+  Ptr<const Packet> Peek (void) const;
+
   /**
    * Get the current number of queues.
    * \return The current number of queues.
@@ -75,18 +85,12 @@ protected:
   virtual void NotifyConstructionCompleted (void);
 
 private:
-  // Inherited from Queue.
-  virtual bool DoEnqueue (Ptr<QueueItem> item);
-  virtual Ptr<QueueItem> DoDequeue (void);
-  virtual Ptr<QueueItem> DoRemove (void);
-  virtual Ptr<const QueueItem> DoPeek (void) const;
-
   /**
    * Add a new internal queue to this OpenFlow queue.
    * \param queue The queue pointer.
    * \return The queue id for the new queue.
    */
-  uint32_t AddQueue (Ptr<Queue> queue);
+  uint32_t AddQueue (Ptr<Queue<Packet> > queue);
 
   /**
    * Get a pointer to internal queue with specific id.
@@ -95,7 +99,7 @@ private:
    * \internal This function is marked as const to allow its usage inside
    *           DoPeek () member function.
    */
-  Ptr<Queue> GetQueue (uint32_t queueId) const;
+  Ptr<Queue<Packet> > GetQueue (uint32_t queueId) const;
 
   /**
    * Return the queue id that will be used by DoPeek, DoDequeue, and DoRemove
@@ -111,11 +115,13 @@ private:
   uint32_t GetOutputQueue (bool peekLock = false) const;
 
   /** Structure to save the list of internal queues in this port queue. */
-  typedef std::vector<Ptr<Queue> > QueueList_t;
+  typedef std::vector<Ptr<Queue<Packet> > > QueueList_t;
 
   struct sw_port*       m_swPort;     //!< ofsoftswitch13 struct sw_port.
   uint32_t              m_intQueues;  //!< The number of internal queues.
   QueueList_t           m_queues;     //!< Sorted list of available queues.
+
+  NS_LOG_TEMPLATE_DECLARE;            //!< Redefinition of the log component.
 };
 
 } // namespace ns3
