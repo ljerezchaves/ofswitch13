@@ -1,18 +1,7 @@
-diff --git a/doc/doxygen.conf b/doc/doxygen.conf
---- a/doc/doxygen.conf
-+++ b/doc/doxygen.conf
-@@ -884,6 +884,7 @@
-                          src/network/examples \
-                          src/nix-vector-routing/examples \
-                          src/olsr/examples \
-+                         src/ofswitch13/examples \
-                          src/openflow/examples \
-                          src/point-to-point/examples \
-                          src/propagation/examples \
 diff --git a/doc/main.h b/doc/main.h
 --- a/doc/main.h
 +++ b/doc/main.h
-@@ -47,6 +47,7 @@
+@@ -51,6 +51,7 @@
   *     - nix-vector-routing
   *     - ns3tcp
   *     - ns3wifi
@@ -24,17 +13,17 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
 --- a/doc/models/Makefile
 +++ b/doc/models/Makefile
 @@ -66,6 +66,10 @@
+ 	$(SRC)/internet/doc/tcp.rst \
  	$(SRC)/internet-apps/doc/internet-apps.rst \
  	$(SRC)/mobility/doc/mobility.rst \
- 	$(SRC)/olsr/doc/olsr.rst \
 +	$(SRC)/ofswitch13/doc/source/ofswitch13.rst \
 +	$(SRC)/ofswitch13/doc/source/ofswitch13-description.rst \
 +	$(SRC)/ofswitch13/doc/source/ofswitch13-usage.rst \
 +	$(SRC)/ofswitch13/doc/source/ofswitch13-validation.rst \
+ 	$(SRC)/olsr/doc/olsr.rst \
  	$(SRC)/openflow/doc/openflow-switch.rst \
  	$(SRC)/point-to-point/doc/point-to-point.rst \
- 	$(SRC)/wifi/doc/source/wifi.rst \
-@@ -267,6 +271,12 @@
+@@ -293,6 +297,12 @@
  	$(SRC)/netanim/doc/figures/RoutingTables.pdf \
  	$(SRC)/netanim/doc/figures/PacketTimeline.png \
  	$(SRC)/netanim/doc/figures/PacketTimeline.pdf \
@@ -47,7 +36,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.png \
  	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.pdf \
  	$(SRC)/spectrum/doc/spectrum-analyzer-example.eps \
-@@ -366,6 +376,12 @@
+@@ -392,6 +402,12 @@
  	$(FIGURES)/lr-wpan-primitives.eps \
  	$(FIGURES)/lr-wpan-data-example.eps \
  	$(FIGURES)/lr-wpan-arch.eps \
@@ -60,7 +49,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(FIGURES)/802-15-4-ber.eps \
  	$(FIGURES)/802-15-4-per-sens.eps \
  	$(FIGURES)/802-15-4-psr-distance.eps \
-@@ -423,6 +439,12 @@
+@@ -459,6 +475,12 @@
  $(FIGURES)/spectrum-tv-rand-geo-points.pdf_width = 8cm
  $(FIGURES)/lr-wpan-primitives.pdf_width = 3in
  $(FIGURES)/lr-wpan-arch.pdf_width = 2in
@@ -72,15 +61,27 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
 +$(FIGURES)/ofswitch13-switch.pdf_width = 10cm
  $(FIGURES)/clear-channel.pdf_width = 12cm
  $(FIGURES)/nist-frame-success-rate.pdf_width = 12cm
- 
+ $(FIGURES)/nist-frame-success-rate-n.pdf_width = 12cm
 diff --git a/doc/models/source/index.rst b/doc/models/source/index.rst
 --- a/doc/models/source/index.rst
 +++ b/doc/models/source/index.rst
-@@ -40,6 +40,7 @@
-    distributed
+@@ -41,6 +41,7 @@
     mobility
     network
+    nix-vector-routing
 +   ofswitch13
     olsr
     openflow-switch
     point-to-point
+diff --git a/doc/ns3_html_theme/get_version.sh b/doc/ns3_html_theme/get_version.sh
+--- a/doc/ns3_html_theme/get_version.sh
++++ b/doc/ns3_html_theme/get_version.sh
+@@ -191,7 +191,7 @@
+     echo "// ns3_version.js:  automatically generated"       >  $outf
+     echo "//  private urls"                                  >> $outf
+     echo "var ns3_host = \"file://$PWD/\";"                  >  $outf
+-    echo "var ns3_version = \"$repo @ $version$dirty\";"     >> $outf
++    echo "var ns3_version = \"ns-3.27 + OFSwitch13 3.2.0\";" >> $outf
+     echo "var ns3_release = \"doc/\";"                       >> $outf
+     echo "var ns3_local = \"build/\";"                       >> $outf
+     echo "var ns3_doxy  = \"html/\";"                        >> $outf
