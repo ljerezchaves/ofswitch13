@@ -4,8 +4,12 @@ OFSwitch13 release notes
 
 This file contains OFSwitch13 release notes (most recent releases first).
 
-Release 3.2.0 (May 12, 2018)
+Release 3.2.0 (May 22, 2018)
 ============================
+
+- Updating OFSwitch13Queue to make it work with ns-3.27 release. Special thanks
+  to Stefano Avallone for improving ns-3 queue environment and providing the
+  patch to update OFSwitch13.
 
 - Fixing the NetBee library repository link on module documentation.
 
