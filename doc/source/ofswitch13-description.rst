@@ -389,8 +389,8 @@ References
 
 .. [Chaves2016] Luciano J. Chaves, Islene C. Garcia, and Edmundo R. M. Madeira.
    `"OFSwitch13: Enhancing ns-3 with OpenFlow 1.3 support"
-   <http://www.lrc.ic.unicamp.br/~luciano/publications/wns316.pdf>`_.
-   To appear in: 8th Workshop on ns-3 (WNS3), 2016.
+   <http://dx.doi.org/10.1145/2915371.2915381>`_.
+   In: 8th Workshop on ns-3 (WNS3), 2016.
 
 .. [Chaves2015] Luciano J. Chaves, Vítor M. Eichemberger, Islene C. Garcia, and Edmundo R. M. Madeira.
    `"Integrating OpenFlow to LTE: some issues toward Software-Defined Mobile Networks"
