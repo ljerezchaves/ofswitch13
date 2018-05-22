@@ -26,6 +26,7 @@
 #include <ns3/inet-socket-address.h>
 #include <ns3/string.h>
 #include <ns3/tcp-header.h>
+#include <ns3/traced-value.h>
 #include "ofswitch13-interface.h"
 #include "ofswitch13-port.h"
 #include "ofswitch13-socket-handler.h"

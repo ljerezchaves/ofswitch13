@@ -18,17 +18,19 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
-#define NS_LOG_APPEND_CONTEXT \
-  if (m_swPort != 0) { std::clog << "[dp " << m_swPort->dp->id << " port " << m_swPort->conf->port_no << "] "; }
-
 #include <ns3/ethernet-header.h>
 #include <ns3/ethernet-trailer.h>
 #include <ns3/pointer.h>
 #include <ns3/csma-net-device.h>
 #include <ns3/virtual-net-device.h>
 #include "ofswitch13-device.h"
+#include "ofswitch13-queue.h"
 #include "ofswitch13-port.h"
 #include "tunnel-id-tag.h"
+
+#undef NS_LOG_APPEND_CONTEXT
+#define NS_LOG_APPEND_CONTEXT \
+  if (m_swPort != 0) { std::clog << "[dp " << m_swPort->dp->id << " port " << m_swPort->conf->port_no << "] "; }
 
 namespace ns3 {
 
