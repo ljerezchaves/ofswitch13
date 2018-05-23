@@ -85,22 +85,22 @@ Linking the library to the simulator
 ####################################
 
 It's time to download a recent (preferably stable) |ns3| code into your machine
-(here, we are going to use the mercurial repository for ns-3.27):
+(here, we are going to use the mercurial repository for ns-3.28):
 
 .. code-block:: bash
 
-  $ hg clone http://code.nsnam.org/ns-3.27
-  $ cd ns-3.27
+  $ hg clone http://code.nsnam.org/ns-3.28
+  $ cd ns-3.28
 
 Before configuring and compiling the simulator, download the |ofs13| code from
 the module repository and place it inside a new ``/src/ofswitch13`` folder.
-Update the code to the latest stable version (here, we are using 3.2.0):
+Update the code to the latest stable version (here, we are using 3.2.1):
 
 .. code-block:: bash
 
   $ hg clone https://bitbucket.org/ljerezchaves/ofswitch13-module src/ofswitch13
   $ cd src/ofswitch13
-  $ hg update 3.2.0
+  $ hg update 3.2.1
   $ cd ../../
 
 Patch the |ns3| code with the appropriated patches available under the
@@ -109,13 +109,13 @@ version):
 
 .. code-block:: bash
 
-  $ patch -p1 < src/ofswitch13/utils/ofswitch13-src-3_27.patch
-  $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_27.patch
+  $ patch -p1 < src/ofswitch13/utils/ofswitch13-src-3_28.patch
+  $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_28.patch
 
-The ``ofswitch13-src-3_27.patch`` creates the new OpenFlow receive callback at
+The ``ofswitch13-src-3_28.patch`` creates the new OpenFlow receive callback at
 ``CsmaNetDevice`` and ``VirtualNetDevie``, allowing OpenFlow switch to get raw
 packets from these devices. These are the only required changes in the |ns3|
-code for |ofs13| integration. The ``ofswitch13-doc-3_27.patch`` is optional. It
+code for |ofs13| integration. The ``ofswitch13-doc-3_28.patch`` is optional. It
 instructs the simulator to include the module in the |ns3| model library and
 source code API documentation, which can be helpful to compile the
 documentation using Doxygen and Sphinx.

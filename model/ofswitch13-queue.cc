@@ -20,6 +20,7 @@
 
 #include "ns3/log.h"
 #include "ns3/enum.h"
+#include "ns3/string.h"
 #include "ns3/uinteger.h"
 #include "ns3/object-vector.h"
 #include "ofswitch13-queue.h"
@@ -40,8 +41,7 @@ GetDefaultQueueFactory ()
   // Setting default internal queue configuration.
   ObjectFactory queueFactory;
   queueFactory.SetTypeId ("ns3::DropTailQueue<Packet>");
-  queueFactory.Set ("Mode", EnumValue (QueueBase::QUEUE_MODE_PACKETS));
-  queueFactory.Set ("MaxPackets", UintegerValue (100));
+  queueFactory.Set ("MaxSize", StringValue ("100p"));
   return queueFactory;
 }
 
@@ -119,8 +119,7 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
 
   // We are using a very large queue size for this queue interface. The real
   // check for queue space is performed at DoEnqueue () by the internal queues.
-  SetAttribute ("Mode", EnumValue (QueueBase::QUEUE_MODE_PACKETS));
-  SetAttribute ("MaxPackets", UintegerValue (0xffffffff));
+  SetAttribute ("MaxSize", StringValue ("100Mp"));
 
   // Creating the internal queues, defined by the NumQueues attribute.
   for (uint32_t i = 0; i < GetNQueues (); i++)
