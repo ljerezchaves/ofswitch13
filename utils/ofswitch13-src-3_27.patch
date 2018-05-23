@@ -1,7 +1,7 @@
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
 --- a/src/csma/model/csma-net-device.cc
 +++ b/src/csma/model/csma-net-device.cc
-@@ -794,6 +794,30 @@
+@@ -831,6 +831,30 @@
        packetType = PACKET_OTHERHOST;
      }
  
@@ -32,7 +32,7 @@ diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.
    // 
    // For all kinds of packetType we receive, we hit the promiscuous sniffer
    // hook and pass a copy up to the promiscuous callback.  Pass a copy to 
-@@ -1019,6 +1043,13 @@
+@@ -1056,6 +1080,13 @@
  }
  
  void
@@ -49,7 +49,7 @@ diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.
 diff --git a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
 --- a/src/csma/model/csma-net-device.h
 +++ b/src/csma/model/csma-net-device.h
-@@ -307,6 +307,14 @@
+@@ -308,6 +308,14 @@
    virtual bool NeedsArp (void) const;
  
    /**
@@ -64,7 +64,7 @@ diff --git a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
     * Set the callback to be used to notify higher layers when a packet has been
     * received.
     *
-@@ -689,6 +697,11 @@
+@@ -698,6 +706,11 @@
    Mac48Address m_address;
  
    /**
@@ -79,7 +79,7 @@ diff --git a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
 diff --git a/src/virtual-net-device/model/virtual-net-device.cc b/src/virtual-net-device/model/virtual-net-device.cc
 --- a/src/virtual-net-device/model/virtual-net-device.cc
 +++ b/src/virtual-net-device/model/virtual-net-device.cc
-@@ -142,6 +142,29 @@
+@@ -141,6 +141,29 @@
                             const Address &source, const Address &destination,
                             PacketType packetType)
  {
@@ -109,7 +109,7 @@ diff --git a/src/virtual-net-device/model/virtual-net-device.cc b/src/virtual-ne
    // 
    // For all kinds of packetType we receive, we hit the promiscuous sniffer
    // hook and pass a copy up to the promiscuous callback.  Pass a copy to 
-@@ -315,5 +338,11 @@
+@@ -314,5 +337,11 @@
    return false;
  }
  
