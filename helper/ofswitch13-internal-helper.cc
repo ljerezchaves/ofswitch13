@@ -122,12 +122,12 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels (void)
         m_p2pHelper.SetDeviceAttribute ("Mtu", UintegerValue (9000));
 
         // Using large queues on devices to avoid losing packets.
-        m_csmaHelper.SetQueue ("ns3::DropTailQueue",
-                               "MaxPackets", UintegerValue (65536));
-        m_p2pHelper.SetQueue ("ns3::DropTailQueue",
-                              "MaxPackets", UintegerValue (65536));
+        m_csmaHelper.SetQueue ("ns3::DropTailQueue<Packet>",
+                               "MaxSize", StringValue ("65536p"));
+        m_p2pHelper.SetQueue ("ns3::DropTailQueue<Packet>",
+                              "MaxSize", StringValue ("65536p"));
 
-        // Create invididual channels for each pair switch/controller.
+        // Create individual channels for each pair switch/controller.
         UintegerValue portValue;
         for (uint32_t swIdx = 0; swIdx < m_switchNodes.GetN (); swIdx++)
           {
