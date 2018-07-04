@@ -26,6 +26,6 @@ Feel free to subscribe to [our mailing list at Google groups][group] and provide
 [ofs13]: https://github.com/ljerezchaves/ofsoftswitch13
 [project]: http://www.lrc.ic.unicamp.br/ofswitch13/
 [apidoc]: http://www.lrc.ic.unicamp.br/ofswitch13/doc/html/index.html
-[issues]: https://bitbucket.org/ljerezchaves/ofswitch13-module/issues?status=new&status=open
+[issues]: https://github.com/ljerezchaves/ofswitch13-module/issues
 [gpl]: http://www.gnu.org/copyleft/gpl.html
 [group]: https://groups.google.com/forum/#!forum/ofswitch13-users
