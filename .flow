@@ -1,8 +1,0 @@
-[branchname]
-master = default
-develop = ofswitch13
-feature = feature/
-release = release/
-hotfix = hotfix/
-support = support/
-
