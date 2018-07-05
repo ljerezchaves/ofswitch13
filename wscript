@@ -4,7 +4,7 @@ import os
 from waflib import Logs, Options
 from waflib.Errors import WafError
 
-# The OFSwitch13 version 3.2.1 is compatible only with ns-3.28
+# This OFSwitch13 version is compatible only with ns-3.28
 def check_version_compatibility(version):
     base = (3, 28)
     try:
