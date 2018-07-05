@@ -4,11 +4,12 @@ import os
 from waflib import Logs, Options
 from waflib.Errors import WafError
 
+# This OFSwitch13 version is compatible only with ns-3.28
 def check_version_compatibility(version):
-    base = (3, 26)
+    base = (3, 28)
     try:
         comp = tuple(map(int, (version.split("."))))
-        return comp >= base
+        return comp == base
     except:
         if version == '3-dev':
             return True
@@ -17,59 +18,69 @@ def check_version_compatibility(version):
 
 def options(opt):
     opt.add_option('--with-ofswitch13',
-        help=('Path to ofsoftswitch13 for NS-3 OpenFlow 1.3 Integration support'),
+        help=('Explicit path to the ofsoftswitch13 directory for ns-3 OpenFlow 1.3 integration support. By default, the configuration script will check for the lib/ofsoftswitch13 directory.'),
         default='', dest='with_ofswitch13')
 
-
 def configure(conf):
-    if not Options.options.with_ofswitch13:
-        conf.msg("Checking for OpenFlow 1.3 location", False)
-        conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 Integration", False,
-                                     "ofswitch13 not enabled (see option --with-ofswitch13)")
+    # Check for OFSwitch13 and ns-3 version compatibility
+    if check_version_compatibility(conf.env.VERSION):
+        conf.msg ("Checking for OpenFlow 1.3 compatibility", "ok")
+    else:
+        conf.msg ("Checking for OpenFlow 1.3 compatibility", "no", color = 'YELLOW')
+        conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 integration", False, "Incompatible ns-3 release")
         conf.env.MODULES_NOT_BUILT.append('ofswitch13')
         return
 
-    if os.path.isdir(Options.options.with_ofswitch13):
-            conf.msg("Checking for OpenFlow 1.3 location", ("%s (given)" % Options.options.with_ofswitch13))
+    # Check for the explicit ofsoftswitch13 given location (using --with-ofswitch13)
+    if Options.options.with_ofswitch13:
+        if os.path.isdir(Options.options.with_ofswitch13):
+            conf.msg("Checking for ofsoftswitch13 location", ("%s (given)" % Options.options.with_ofswitch13))
             conf.env.WITH_OFSWITCH13 = os.path.abspath(Options.options.with_ofswitch13)
+        else:
+            conf.msg ("Checking for ofsoftswitch13 location", ("not found [%s (given)]"  % Options.options.with_ofswitch13), color = 'YELLOW')
+            conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 integration", False, "ofsoftswitch13 given location not found (see option --with-ofswitch13)")
+            conf.env.MODULES_NOT_BUILT.append('ofswitch13')
+            return
 
-    if not conf.env.WITH_OFSWITCH13:
-        conf.msg("Checking for OpenFlow 1.3 location", False)
-        conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 Integration", False,
-                                     "OpenFlow 1.3 given location not found (see option --with-ofswitch13)")
+    # No explicit ofsoftswitch13 given location. Check for the default location (./lib/ofsoftswitch13/)
+    else:
+        contrib_dir = os.path.join('contrib', 'ofswitch13', 'lib', 'ofsoftswitch13')
+        if os.path.isdir(contrib_dir):
+            conf.msg("Checking for ofsoftswitch13 location", ("%s (guessed)" % contrib_dir))
+            conf.env.WITH_OFSWITCH13 = os.path.abspath(contrib_dir)
+        else:
+            src_dir = os.path.join('src', 'ofswitch13', 'lib', 'ofsoftswitch13')
+            if os.path.isdir(src_dir):
+                conf.msg("Checking for ofsoftswitch13 location", ("%s (guessed)" % src_dir))
+                conf.env.WITH_OFSWITCH13 = os.path.abspath(src_dir)
+            else:
+                conf.msg("Checking for ofsoftswitch13 location", "not found [lib/ofsoftswitch13 (guessed)]", color = 'YELLOW')
+                conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 integration", False, "ofsoftswitch13 default location not found (see option --with-ofswitch13)")
+                conf.env.MODULES_NOT_BUILT.append('ofswitch13')
+                return
+
+    # Checking for required libraries
+    conf.env.DL = conf.check(mandatory=False, lib='dl', define_name='DL', uselib_store='DL')
+    conf.env.NBEE = conf.check(mandatory=False, lib='nbee', define_name='NBEE', uselib_store='NBEE')
+    conf.env.OFSWITCH13 = conf.check(mandatory=False, lib='ns3ofswitch13', use='NBEE', libpath=os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'udatapath')))
+    libs_found = conf.env.DL and conf.env.NBEE and conf.env.OFSWITCH13
+    conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 integration", libs_found, "Required libraries not found")
+    if not libs_found:
         conf.env.MODULES_NOT_BUILT.append('ofswitch13')
         return
 
-    # Checking for libraries and configuring paths
-    conf.env.DL = conf.check(mandatory=True, lib='dl', define_name='DL', uselib_store='DL')
-    conf.env.NBEE = conf.check(mandatory=True, lib='nbee', define_name='NBEE', uselib_store='NBEE')
-    conf.env.OFSWITCH13 = conf.check(mandatory=True, lib='ns3ofswitch13', use='NBEE',
-            libpath=os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'udatapath')))
-
+    # Configuring module environment
     conf.env.DEFINES_OFSWITCH13 = ['NS3_OFSWITCH13']
     conf.env.INCLUDES_OFSWITCH13 = [
-            os.path.abspath(conf.env['WITH_OFSWITCH13']),
-            os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'include')),
-            os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'lib')),
-            os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'oflib')),
-            os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'oflib-exp')),
-            os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'secchan')),
-            os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'udatapath'))];
+            os.path.abspath(conf.env.WITH_OFSWITCH13),
+            os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'include')),
+            os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'lib')),
+            os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'oflib')),
+            os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'oflib-exp')),
+            os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'secchan')),
+            os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'udatapath'))];
     conf.env.LIB_OFSWITCH13 = ['dl', 'nbee', 'ns3ofswitch13']
-    conf.env.LIBPATH_OFSWITCH13 = [os.path.abspath(os.path.join(conf.env['WITH_OFSWITCH13'],'udatapath'))]
-
-    if not check_version_compatibility(conf.env.VERSION):
-        conf.msg ("Checking for ns-3 version compatibility", False)
-        conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 Integration", False,
-                                     "Incompatible ns-3 version (must be 3.26 or greater)")
-        conf.env.MODULES_NOT_BUILT.append('ofswitch13')
-        return
-
-    conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 Integration",
-            conf.env.OFSWITCH13, "ns3ofswitch13 library not found")
-
-    if not conf.env.OFSWITCH13:
-        conf.env.MODULES_NOT_BUILT.append('ofswitch13')
+    conf.env.LIBPATH_OFSWITCH13 = [os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'udatapath'))]
 
 
 def build(bld):
@@ -117,5 +128,4 @@ def build(bld):
 
     if bld.env['ENABLE_EXAMPLES']:
         bld.recurse('examples')
-
 
