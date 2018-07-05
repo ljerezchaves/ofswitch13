@@ -13,19 +13,15 @@ Usage
 Building the Module
 ===================
 
-The |ofs13| module was designed to work together with the |ofslib| library,
-providing an interface for interconnecting the |ns3| simulator to the library.
-To this end, the |ofslib| project must be compiled as a *static library* and
-get appropriately linked to the |ns3| simulator.
+The |ofs13| module was designed as an interface for interconnecting the |ns3|
+simulator to the |ofslib| software switch compiled as a library. Follow the
+instructions below to compile and link the |ns3| simulator to the |ofslib|
+library. *These instructions were tested on Ubuntu 16.04 LTS and Ubuntu 18.04
+LTS. Other distributions or versions may require different steps, especially
+regarding library compilation.*
 
-By now, the user must download and compile the library code manually. Follow
-the instructions below to compile and link the |ns3| simulator to the |ofslib|
-library. *These instructions were tested on Ubuntu 16.04 LTS. Other
-distributions or versions may require different steps, especially regarding
-library compilation.*
-
-Compiling the library
-#####################
+Before starting
+###############
 
 Before starting, ensure you have the following packages installed on your
 system:
@@ -36,12 +32,11 @@ system:
   $ sudo apt-get install libpcap-dev libxerces-c-dev libpcre3-dev flex bison
   $ sudo apt-get install pkg-config autoconf libtool libboost-dev
 
-We need to compile the |ofslib| as a static library. The |ofslib| relies on
-another library, called *NetBee* (https://github.com/netgroup-polito/netbee),
-which is used to parse the network packets. So we need to compile and install
-them in the proper order.
-
-Clone the *NetBee* repository and compile the library:
+The |ofslib| depends on the *NetBee* library
+(https://github.com/netgroup-polito/netbee), which is used to parse the network
+packets (there is an ongoing work to remove this dependence). So we need to
+manually compile and install this library. First, clone the *NetBee* repository
+and compile the library:
 
 .. code-block:: bash
 
@@ -50,85 +45,94 @@ Clone the *NetBee* repository and compile the library:
   $ cmake .
   $ make
 
-Add the shared libraries built to your library directory, configure dynamic
-linker run-time bindings, and copy the include files:
+Then, install the shared libraries, configure dynamic linker run-time bindings,
+and copy the include files:
 
 .. code-block:: bash
 
   $ sudo cp ../bin/libn*.so /usr/local/lib
   $ sudo ldconfig
   $ sudo cp -R ../include/* /usr/include/
+  $ cd -
 
-We are done with the *NetBee* library. Now, let's proceed with the |ofslib|
-code. Clone the repository and update to proper (preferably latest) release tag
-at the ``ns3lib`` branch (here, we are using v3.2.x):
+We are done with prerequisites.
 
-.. code-block:: bash
+Compiling the code
+##################
 
-  $ git clone https://github.com/ljerezchaves/ofsoftswitch13
-  $ cd ofsoftswitch13
-  $ git checkout v3.2.x
-
-Configure and build the library (don't forget to add the ``--enable-ns3-lib``
-during configuration process):
+Download a recent stable |ns3| code into your machine (we are using the
+mercurial repository for ns-3.28):
 
 .. code-block:: bash
 
+  $ hg clone http://code.nsnam.org/ns-3.28
+
+Download the |ofs13| code into the ``src/`` folder (starting with ns-3.28, you
+can also download the code into the new ``contrib/`` folder). This procedure
+will recursively download the |ofslib| code into the
+``ofswitch13/lib/ofsoftswitch13/`` directory.
+
+.. code-block:: bash
+
+  $ cd ns-3.28/src
+  $ git clone --recurse-submodules https://github.com/ljerezchaves/ofswitch13.git
+
+Update the code to the desired release version (we are using release 3.2.2,
+which is compatible with ns-3.28) [#f1]_:
+
+.. [#f1] For |ofs13| release versions prior to 3.2.2 (when no submodule
+         dependence was configured in the git repository), the |ofslib| code
+         will not automatically update to the correct version. In this case,
+         you must manually updated the |ofslib| code to the proper version
+         before compiling the library in the next step (check the release note
+         files for versions compatibility).
+
+.. code-block:: bash
+
+  $ cd ofswitch13
+  $ git checkout 3.2.2
+
+Now it is time to compile the |ofslib| as a static library. Configure and
+build the library (don't forget to add the ``--enable-ns3-lib`` during
+configuration process):
+
+.. code-block:: bash
+
+  $ cd lib/ofsoftswitch13
   $ ./boot.sh
   $ ./configure --enable-ns3-lib
   $ make
 
 Once everything gets compiled, the static library ``libns3ofswitch13.a`` file
-will be available under the ``ofsoftswitch13/udatapath/`` directory.
-
-Linking the library to the simulator
-####################################
-
-It's time to download a recent (preferably stable) |ns3| code into your machine
-(here, we are going to use the mercurial repository for ns-3.28):
+will be available under the ``lib/ofsoftswitch13/udatapath`` directory. Go back
+to the |ns3| root directory and patch the |ns3| code with the appropriated
+patches available under the ``ofswitch13/utils`` directory (check for the
+correct |ns3| version):
 
 .. code-block:: bash
 
-  $ hg clone http://code.nsnam.org/ns-3.28
-  $ cd ns-3.28
-
-Before configuring and compiling the simulator, download the |ofs13| code from
-the module repository and place it inside a new ``/src/ofswitch13`` folder.
-Update the code to the latest stable version (here, we are using 3.2.1):
-
-.. code-block:: bash
-
-  $ hg clone https://bitbucket.org/ljerezchaves/ofswitch13-module src/ofswitch13
-  $ cd src/ofswitch13
-  $ hg update 3.2.1
-  $ cd ../../
-
-Patch the |ns3| code with the appropriated patches available under the
-``ofswitch13/utils`` directory (use the patches for the correct |ns3|
-version):
-
-.. code-block:: bash
-
+  $ cd ../../../../
   $ patch -p1 < src/ofswitch13/utils/ofswitch13-src-3_28.patch
   $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_28.patch
 
-The ``ofswitch13-src-3_28.patch`` creates the new OpenFlow receive callback at
-``CsmaNetDevice`` and ``VirtualNetDevie``, allowing OpenFlow switch to get raw
+The ``src`` patch creates the new OpenFlow receive callback at
+``CsmaNetDevice`` and ``VirtualNetDevice``, allowing OpenFlow switch to get raw
 packets from these devices. These are the only required changes in the |ns3|
-code for |ofs13| integration. The ``ofswitch13-doc-3_28.patch`` is optional. It
-instructs the simulator to include the module in the |ns3| model library and
-source code API documentation, which can be helpful to compile the
-documentation using Doxygen and Sphinx.
+code for |ofs13| integration. The ``doc`` patch is optional, and instructs the
+simulator to include the module in the |ns3| model library and source code API
+documentation, which can be helpful to compile the documentation using Doxygen
+and Sphinx.
 
-Now, you can configure the |ns3| including the ``--with-ofswitch13`` option to
-show the simulator where it can find the |ofslib| main directory:
+Now, configure the |ns3|. By default, the configuration script will look for
+the |ofslib| library in the ``lib/ofsoftswitch13/`` directory (use the
+``--with-ofswitch13`` option to specify a different location):
 
 .. code-block:: bash
 
-  $ ./waf configure --with-ofswitch13=path/to/ofsoftswitch13
+  $ ./waf configure
 
-Check for the enabled |ns3| *OpenFlow 1.3 Integration* feature at the end of
-the configuration process. Finally, compile the simulator:
+Check for the enabled *NS-3 OpenFlow 1.3 integration* feature after
+configuration. Finally, compile the simulator:
 
 .. code-block:: bash
 
@@ -681,7 +685,7 @@ Examples summary
   switches. The same external controller application manages both switches.
 
 * **ofswitch13-logical-port**: Two hosts connected to different OpenFlow
-  switches. The tunnel controller application manages both switches. 
+  switches. The tunnel controller application manages both switches.
   The ports interconnecting the switches are configured as logical ports,
   allowing switches to de/encapsulate IP traffic using the GTP/UDP/IP tunneling
   protocol.
