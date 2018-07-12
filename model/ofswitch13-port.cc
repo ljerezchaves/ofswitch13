@@ -278,7 +278,7 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   NS_LOG_FUNCTION (this << packet);
 
   // Check port configuration.
-  if (m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
+  if ((m_swPort->conf->config & (OFPPC_NO_RECV | OFPPC_PORT_DOWN)) != 0)
     {
       NS_LOG_WARN ("This port is down or inoperating. Discarding packet");
       return false;
