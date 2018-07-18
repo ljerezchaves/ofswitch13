@@ -165,12 +165,12 @@ OFSwitch13Device::GetTypeId (void)
 
 OFSwitch13Device::OFSwitch13Device ()
   : m_dpId (0),
-    m_pipeConsumed (0),
-    m_cFlowMod (0),
-    m_cGroupMod (0),
-    m_cMeterMod (0),
-    m_cPacketIn (0),
-    m_cPacketOut (0)
+  m_pipeConsumed (0),
+  m_cFlowMod (0),
+  m_cGroupMod (0),
+  m_cMeterMod (0),
+  m_cPacketIn (0),
+  m_cPacketOut (0)
 {
   NS_LOG_FUNCTION (this);
 
@@ -1288,15 +1288,15 @@ OFSwitch13Device::UnregisterDatapath (uint64_t id)
 
 OFSwitch13Device::RemoteController::RemoteController ()
   : m_socket (0),
-    m_handler (0),
-    m_remote (0)
+  m_handler (0),
+  m_remote (0)
 {
   m_address = Address ();
 }
 
 OFSwitch13Device::PipelinePacket::PipelinePacket ()
   : m_valid (false),
-    m_packet (0)
+  m_packet (0)
 {
 }
 

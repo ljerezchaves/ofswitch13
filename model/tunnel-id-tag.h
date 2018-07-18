@@ -69,6 +69,6 @@ private:
   uint64_t m_tunnelId;      //!< Tunnel metadata information.
 };
 
-};  // namespace ns3
+} // namespace ns3
 #endif // TUNNEL_ID_TAG_H
 

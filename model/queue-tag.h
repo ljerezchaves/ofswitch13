@@ -69,6 +69,6 @@ private:
   uint32_t m_queueId;   //!< Packet sequence number
 };
 
-};  // namespace ns3
+} // namespace ns3
 #endif // QUEUE_TAG_H
 

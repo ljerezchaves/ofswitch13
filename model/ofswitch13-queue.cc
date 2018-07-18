@@ -74,8 +74,8 @@ OFSwitch13Queue::GetTypeId (void)
 
 OFSwitch13Queue::OFSwitch13Queue (struct sw_port *port)
   : Queue<Packet> (),
-    m_swPort (port),
-    NS_LOG_TEMPLATE_DEFINE ("OFSwitch13Queue")
+  m_swPort (port),
+  NS_LOG_TEMPLATE_DEFINE ("OFSwitch13Queue")
 {
   NS_LOG_FUNCTION (this << port);
 }
