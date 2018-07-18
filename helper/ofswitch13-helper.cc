@@ -101,7 +101,7 @@ OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix, bool promiscuous)
 {
   NS_LOG_FUNCTION (this << prefix);
 
-  NS_ABORT_MSG_UNLESS (m_blocked, "OpenFlow channels not configured yet.");
+  NS_ABORT_MSG_IF (!m_blocked, "OpenFlow channels not configured yet.");
   switch (m_channelType)
     {
     case OFSwitch13Helper::SINGLECSMA:
@@ -117,7 +117,7 @@ OFSwitch13Helper::EnableOpenFlowPcap (std::string prefix, bool promiscuous)
       }
     default:
       {
-        NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
+        NS_ABORT_MSG ("Invalid OpenflowChannelType.");
       }
     }
 }
@@ -127,7 +127,7 @@ OFSwitch13Helper::EnableOpenFlowAscii (std::string prefix)
 {
   NS_LOG_FUNCTION (this << prefix);
 
-  NS_ABORT_MSG_UNLESS (m_blocked, "OpenFlow channels not configured yet.");
+  NS_ABORT_MSG_IF (!m_blocked, "OpenFlow channels not configured yet.");
   AsciiTraceHelper ascii;
   switch (m_channelType)
     {
@@ -144,7 +144,7 @@ OFSwitch13Helper::EnableOpenFlowAscii (std::string prefix)
       }
     default:
       {
-        NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
+        NS_ABORT_MSG ("Invalid OpenflowChannelType.");
       }
     }
 }
@@ -154,8 +154,8 @@ OFSwitch13Helper::EnableDatapathStats (std::string prefix, bool useNodeNames)
 {
   NS_LOG_FUNCTION (this << prefix);
 
-  NS_ABORT_MSG_UNLESS (m_blocked, "OpenFlow channels not configured yet.");
-  NS_ABORT_MSG_UNLESS (prefix.size (), "Empty prefix string.");
+  NS_ABORT_MSG_IF (!m_blocked, "OpenFlow channels not configured yet.");
+  NS_ASSERT_MSG (prefix.size (), "Empty prefix string.");
   if (prefix.back () != '-')
     {
       prefix += "-";

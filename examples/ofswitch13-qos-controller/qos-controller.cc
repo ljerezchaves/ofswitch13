@@ -445,7 +445,7 @@ QosController::ExtractIpv4Address (uint32_t oxm_of, struct ofl_match* match)
         return Ipv4Address (ntohl (ip));
       }
     default:
-      NS_FATAL_ERROR ("Invalid IP field.");
+      NS_ABORT_MSG ("Invalid IP field.");
     }
 }
 
@@ -550,6 +550,6 @@ QosController::GetArpEntry (Ipv4Address ip)
       NS_LOG_INFO ("Found ARP entry: " << ip << " - " << ret->second);
       return ret->second;
     }
-  NS_FATAL_ERROR ("No ARP information for this IP.");
+  NS_ABORT_MSG ("No ARP information for this IP.");
 }
 

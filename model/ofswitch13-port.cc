@@ -103,10 +103,8 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
   // Check for valid NetDevice type
   Ptr<CsmaNetDevice> csmaDev = netDev->GetObject<CsmaNetDevice> ();
   Ptr<VirtualNetDevice> virtDev = netDev->GetObject<VirtualNetDevice> ();
-  if (!csmaDev && !virtDev)
-    {
-      NS_FATAL_ERROR ("NetDevice must be CsmaNetDevice or VirtualNetDevice.");
-    }
+  NS_ABORT_MSG_IF (!csmaDev && !virtDev,
+                   "NetDevice must be CsmaNetDevice or VirtualNetDevice.");
 
   m_portNo = ++(dp->ports_num);
   m_swPort = &dp->ports[m_portNo];

@@ -65,8 +65,8 @@ OFSwitch13ExternalHelper::SetChannelType (ChannelType type)
   NS_LOG_FUNCTION (this << type);
 
   // Check for valid channel type for this helper.
-  NS_ABORT_MSG_UNLESS (type == OFSwitch13Helper::SINGLECSMA, "Invalid channel "
-                       "type for OFSwitch13ExternalHelper (use SingleCsma).");
+  NS_ABORT_MSG_IF (type != OFSwitch13Helper::SINGLECSMA, "Invalid channel "
+                   "type for OFSwitch13ExternalHelper (use SingleCsma).");
   OFSwitch13Helper::SetChannelType (type);
 }
 
@@ -85,7 +85,7 @@ OFSwitch13ExternalHelper::CreateOpenFlowChannels (void)
   NS_LOG_FUNCTION (this);
 
   NS_LOG_INFO ("Creating OpenFlow channels.");
-  NS_ABORT_MSG_UNLESS (!m_blocked, "OpenFlow channels already configured.");
+  NS_ABORT_MSG_IF (m_blocked, "OpenFlow channels already configured.");
 
   // Block this helper to avoid further calls to install methods.
   m_blocked = true;
@@ -122,7 +122,7 @@ OFSwitch13ExternalHelper::CreateOpenFlowChannels (void)
     case OFSwitch13ExternalHelper::DEDICATEDP2P:
     default:
       {
-        NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
+        NS_ABORT_MSG ("Invalid OpenflowChannelType.");
       }
     }
 }
@@ -133,8 +133,8 @@ OFSwitch13ExternalHelper::InstallExternalController (Ptr<Node> cNode)
   NS_LOG_FUNCTION (this << cNode);
 
   NS_LOG_INFO ("Installing OpenFlow controller on node " << cNode->GetId ());
-  NS_ABORT_MSG_UNLESS (!m_blocked && m_controlDevs.GetN () == 0,
-                       "OpenFlow controller/channels already configured.");
+  NS_ABORT_MSG_IF (m_blocked || m_controlDevs.GetN () != 0,
+                   "OpenFlow controller/channels already configured.");
 
   // Install the TCP/IP stack and the controller application into node.
   m_internet.Install (cNode);

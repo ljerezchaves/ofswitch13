@@ -623,7 +623,7 @@ OFSwitch13Controller::GetRemoteSwitch (Address address)
     {
       return it->second;
     }
-  NS_FATAL_ERROR ("Couldn't find the remote switch for this address.");
+  NS_ABORT_MSG ("Couldn't find the remote switch for this address.");
 }
 
 bool

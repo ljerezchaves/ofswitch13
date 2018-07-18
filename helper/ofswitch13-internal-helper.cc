@@ -57,7 +57,7 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels (void)
   NS_LOG_FUNCTION (this);
 
   NS_LOG_INFO ("Creating OpenFlow channels.");
-  NS_ABORT_MSG_UNLESS (!m_blocked, "OpenFlow channels already configured.");
+  NS_ABORT_MSG_IF (m_blocked, "OpenFlow channels already configured.");
 
   // Block this helper to avoid further calls to install methods.
   m_blocked = true;
@@ -161,7 +161,7 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels (void)
       }
     default:
       {
-        NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
+        NS_ABORT_MSG ("Invalid OpenflowChannelType.");
       }
     }
 }
@@ -173,7 +173,7 @@ OFSwitch13InternalHelper::InstallController (
   NS_LOG_FUNCTION (this << cNode << controller);
 
   NS_LOG_INFO ("Installing OpenFlow controller on node " << cNode->GetId ());
-  NS_ABORT_MSG_UNLESS (!m_blocked, "OpenFlow channels already configured.");
+  NS_ABORT_MSG_IF (m_blocked, "OpenFlow channels already configured.");
 
   // Install the TCP/IP stack and the controller application into node.
   m_internet.Install (cNode);
@@ -212,7 +212,7 @@ OFSwitch13InternalHelper::Connect (Ptr<Node> ctrl, Ptr<Node> swtch)
     case OFSwitch13InternalHelper::SINGLECSMA:
     default:
       {
-        NS_FATAL_ERROR ("Invalid OpenflowChannelType.");
+        NS_ABORT_MSG ("Invalid OpenflowChannelType.");
       }
     }
 }

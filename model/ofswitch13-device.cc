@@ -306,10 +306,8 @@ OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
   NS_LOG_FUNCTION (this << portDevice);
 
   NS_LOG_INFO ("Adding port addr " << portDevice->GetAddress ());
-  if (GetNSwitchPorts () >= DP_MAX_PORTS)
-    {
-      NS_FATAL_ERROR ("No more ports allowed.");
-    }
+  NS_ABORT_MSG_IF (GetNSwitchPorts () >= DP_MAX_PORTS,
+                   "No more ports allowed.");
 
   // Create the OpenFlow port for this device.
   Ptr<OFSwitch13Port> ofPort;
@@ -522,11 +520,7 @@ OFSwitch13Device::GetDevice (uint64_t id)
     {
       return it->second;
     }
-  else
-    {
-      NS_FATAL_ERROR ("Error retrieving datapath device from global map.");
-      return 0;
-    }
+  NS_ABORT_MSG ("Error when retrieving datapath.");
 }
 
 /********** Protected methods **********/
@@ -1199,7 +1193,7 @@ OFSwitch13Device::GetRemoteController (Ptr<Socket> socket)
           return *it;
         }
     }
-  NS_FATAL_ERROR ("Error returning controller for this socket.");
+  NS_ABORT_MSG ("Error returning controller for this socket.");
 }
 
 Ptr<OFSwitch13Device::RemoteController>
@@ -1231,7 +1225,7 @@ OFSwitch13Device::GetRemoteController (struct remote *remote)
           return *it;
         }
     }
-  NS_FATAL_ERROR ("Error returning controller for this remote pointer.");
+  NS_ABORT_MSG ("Error returning controller for this remote pointer.");
 }
 
 uint64_t
@@ -1276,10 +1270,7 @@ OFSwitch13Device::RegisterDatapath (uint64_t id, Ptr<OFSwitch13Device> dev)
   std::pair<uint64_t, Ptr<OFSwitch13Device> > entry (id, dev);
   std::pair<DpIdDevMap_t::iterator, bool> ret;
   ret = OFSwitch13Device::m_globalSwitchMap.insert (entry);
-  if (ret.second == false)
-    {
-      NS_FATAL_ERROR ("Error inserting datapath device into global map.");
-    }
+  NS_ABORT_MSG_IF (ret.second == false, "Error when registering datapath.");
 }
 
 void
@@ -1290,11 +1281,9 @@ OFSwitch13Device::UnregisterDatapath (uint64_t id)
   if (it != OFSwitch13Device::m_globalSwitchMap.end ())
     {
       OFSwitch13Device::m_globalSwitchMap.erase (it);
+      return;
     }
-  else
-    {
-      NS_FATAL_ERROR ("Error removing datapath device from global map.");
-    }
+  NS_ABORT_MSG ("Error when removing datapath.");
 }
 
 OFSwitch13Device::RemoteController::RemoteController ()
