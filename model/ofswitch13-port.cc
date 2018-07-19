@@ -29,8 +29,12 @@
 #include "tunnel-id-tag.h"
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT \
-  if (m_swPort != 0) { std::clog << "[dp " << m_swPort->dp->id << " port " << m_swPort->conf->port_no << "] "; }
+#define NS_LOG_APPEND_CONTEXT                                   \
+  if (m_swPort != 0)                                            \
+    {                                                           \
+      std::clog << "[dp " << m_swPort->dp->id                   \
+                << " port " << m_swPort->conf->port_no << "] "; \
+    }
 
 namespace ns3 {
 
