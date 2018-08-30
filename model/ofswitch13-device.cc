@@ -169,6 +169,7 @@ OFSwitch13Device::GetTypeId (void)
 
 OFSwitch13Device::OFSwitch13Device ()
   : m_dpId (0),
+  m_pipeTokens (0),
   m_pipeConsumed (0),
   m_cFlowMod (0),
   m_cGroupMod (0),
