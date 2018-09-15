@@ -9,7 +9,7 @@ def check_version_compatibility(version):
     base = (3, 28)
     try:
         comp = tuple(map(int, (version.split("."))))
-        return comp == base
+        return comp >= base
     except:
         if version == '3-dev':
             return True
