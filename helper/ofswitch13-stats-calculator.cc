@@ -168,24 +168,22 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
   // Open output file and print header line.
   m_wrapper = Create<OutputStreamWrapper> (m_filename, std::ios::out);
   *m_wrapper->GetStream ()
-    << fixed << setprecision (2)
-    << left
-    << setw (12) << "Time(s)"
-    << right
-    << setw (12) << "Load(Kbps)"
-    << setw (8)  << "Packets"
-    << setw (8)  << "LdDrops"
-    << setw (8)  << "MtDrops"
-    << setw (8)  << "FloMods"
-    << setw (8)  << "MetMods"
-    << setw (8)  << "GroMods"
-    << setw (8)  << "PktsIn"
-    << setw (8)  << "PktsOut"
-    << setw (8)  << "NFlows"
-    << setw (8)  << "NMeters"
-    << setw (8)  << "NGroups"
-    << setw (8)  << "Buff(%)"
-    << setw (8)  << "Dly(us)"
+    << boolalpha << right << fixed << setprecision (3)
+    << " " << setw (8) << "Time:s"
+    << " " << setw (12) << "Load:kbps"
+    << " " << setw (7)  << "Packets"
+    << " " << setw (7)  << "LdDrops"
+    << " " << setw (7)  << "MtDrops"
+    << " " << setw (7)  << "FloMods"
+    << " " << setw (7)  << "MetMods"
+    << " " << setw (7)  << "GroMods"
+    << " " << setw (7)  << "PktsIn"
+    << " " << setw (7)  << "PktsOut"
+    << " " << setw (7)  << "NFlows"
+    << " " << setw (7)  << "NMeters"
+    << " " << setw (7)  << "NGroups"
+    << " " << setw (7)  << "Buff:%"
+    << " " << setw (7)  << "Dly:us"
     << std::endl;
 
   // Scheduling first update and dump.
@@ -258,9 +256,7 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
 
   // Print statistics to file.
   *m_wrapper->GetStream ()
-    << left
-    << setw (11) << Simulator::Now ().GetSeconds ()
-    << right
+    << " " << setw (8)  << Simulator::Now ().GetSeconds ()
     << " " << setw (12) << (double)m_bytes * 8 / 1000 / elapSeconds
     << " " << setw (7)  << m_packets
     << " " << setw (7)  << m_loadDrops
