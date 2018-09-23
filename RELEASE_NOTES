@@ -5,10 +5,21 @@ OFSwitch13 release notes
 This file contains OFSwitch13 release notes (most recent releases first).
 
 
-Release 3.X.X (XXX XX, XXXX)
+Release 3.3.X (XXX XX, XXXX)
 ============================
 
 - Fix incorrect bitwise comparison when checking port configuration.
+
+- Fix incorrect ns-3 version comparison that was preventing module
+  configuration in ns-3.28.1
+
+- Merging new commits from the CPqD ofsoftswitch13 library.
+
+- Preparing patches for ns-3.29.
+
+- This version is compatible with ofsoftswitch13 library release v3.3.x and
+  ns-3 version 3.28 and 3.29 (including patches). There is no backward
+  compatibility with older ns-3 versions.
 
 
 Release 3.2.2 (Jul 05, 2018)
