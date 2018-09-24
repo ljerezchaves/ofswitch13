@@ -13,6 +13,11 @@ Release 3.3.X (XXX XX, XXXX)
 - Fix incorrect ns-3 version comparison that was preventing module
   configuration in ns-3.28.1
 
+- Renaming OFSwitch13Device::GetFlowEntries (void) to GetSumFlowEntries (void)
+  and the OFSwitch13StatsCalculator::GetEwmaFlowEntries (void) to
+  GetEwmaSumFlowEntries (void) to better describe that these methods return the
+  sum of entries in all pipeline tables.
+
 - Merging new commits from the CPqD ofsoftswitch13 library.
 
 - Preparing patches for ns-3.29.
