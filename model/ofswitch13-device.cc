@@ -133,11 +133,11 @@ OFSwitch13Device::GetTypeId (void)
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_bufferUsage),
                      "ns3::TracedValueCallback::Double")
-    .AddTraceSource ("FlowEntries",
+    .AddTraceSource ("SumFlowEntries",
                      "Traced value indicating the total number of flow entries"
                      " (periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_flowEntries),
+                       &OFSwitch13Device::m_sumFlowEntries),
                      "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("GroupEntries",
                      "Traced value indicating the number of group entries "
@@ -200,12 +200,6 @@ uint64_t
 OFSwitch13Device::GetDatapathId (void) const
 {
   return m_dpId;
-}
-
-uint32_t
-OFSwitch13Device::GetFlowEntries (void) const
-{
-  return m_flowEntries;
 }
 
 uint32_t
@@ -303,6 +297,12 @@ DataRate
 OFSwitch13Device::GetPipelineLoad (void) const
 {
   return m_pipeLoad;
+}
+
+uint32_t
+OFSwitch13Device::GetSumFlowEntries (void) const
+{
+  return m_sumFlowEntries;
 }
 
 Ptr<OFSwitch13Port>
@@ -695,13 +695,13 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
     {
       flowEntries += GetFlowEntries (i);
     }
-  m_flowEntries = flowEntries;
+  m_sumFlowEntries = flowEntries;
 
   // The pipeline delay is estimated as k * log (n), where 'k' is the
   // m_tcamDelay set to the time for a single TCAM operation, and 'n' is the
   // current number of entries on all flow tables.
-  m_pipeDelay = m_flowEntries < 2U ? m_tcamDelay :
-    m_tcamDelay * (int64_t)ceil (log2 (m_flowEntries));
+  m_pipeDelay = m_sumFlowEntries < 2U ? m_tcamDelay :
+    m_tcamDelay * (int64_t)ceil (log2 (m_sumFlowEntries));
 
   // The pipeline load is estimated based on the tokens removed from pipeline
   // bucket since last timeout operation.

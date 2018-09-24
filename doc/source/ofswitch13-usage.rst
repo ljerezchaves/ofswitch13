@@ -432,7 +432,7 @@ the following datapath metrics on the output file:
 #. Group-mod operations executed by the switch;
 #. Packets-in sent from the switch to the controller;
 #. Packets-out sent from the controller to the switch;
-#. The average number of flow entries in pipeline tables;
+#. The average sum of flow entries in all pipeline tables;
 #. The average number of meter entries in meter table;
 #. The average number of group entries in group table;
 #. Average switch buffer space usage (percent);

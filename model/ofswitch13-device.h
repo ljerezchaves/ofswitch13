@@ -158,7 +158,6 @@ public:
   //\{
   double   GetBufferUsage       (void) const;
   uint64_t GetDatapathId        (void) const;
-  uint32_t GetFlowEntries       (void) const;
   uint32_t GetFlowEntries       (size_t tableId) const;
   uint64_t GetFlowModCounter    (void) const;
   uint32_t GetFlowTableSize     (void) const;
@@ -174,6 +173,7 @@ public:
   DataRate GetPipelineCapacity  (void) const;
   Time     GetPipelineDelay     (void) const;
   DataRate GetPipelineLoad      (void) const;
+  uint32_t GetSumFlowEntries    (void) const;
   //\}
 
   /**
@@ -584,8 +584,8 @@ private:
   /** Buffer space usage in terms of packets. */
   TracedValue<double> m_bufferUsage;
 
-  /** Number of entries in all flow tables. */
-  TracedValue<uint32_t> m_flowEntries;
+  /** Sum of entries in all flow tables. */
+  TracedValue<uint32_t> m_sumFlowEntries;
 
   /** Number of entries in group table. */
   TracedValue<uint32_t> m_groupEntries;

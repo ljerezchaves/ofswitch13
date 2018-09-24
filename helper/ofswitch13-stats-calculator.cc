@@ -38,7 +38,7 @@ OFSwitch13StatsCalculator::OFSwitch13StatsCalculator ()
   m_wrapper (0),
   m_lastUpdate (Simulator::Now ()),
   m_avgBufferUsage (0),
-  m_avgFlowEntries (0),
+  m_avgSumFlowEntries (0),
   m_avgGroupEntries (0),
   m_avgMeterEntries (0),
   m_avgPipelineDelay (0),
@@ -122,12 +122,6 @@ OFSwitch13StatsCalculator::GetEwmaBufferUsage (void) const
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetEwmaFlowEntries (void) const
-{
-  return std::round (m_avgFlowEntries);
-}
-
-uint32_t
 OFSwitch13StatsCalculator::GetEwmaGroupEntries (void) const
 {
   return std::round (m_avgGroupEntries);
@@ -149,6 +143,12 @@ DataRate
 OFSwitch13StatsCalculator::GetEwmaPipelineLoad (void) const
 {
   return DataRate (std::round (m_avgPipelineLoad));
+}
+
+uint32_t
+OFSwitch13StatsCalculator::GetEwmaSumFlowEntries (void) const
+{
+  return std::round (m_avgSumFlowEntries);
 }
 
 void
@@ -179,7 +179,7 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
     << " " << setw (7)  << "GroMods"
     << " " << setw (7)  << "PktsIn"
     << " " << setw (7)  << "PktsOut"
-    << " " << setw (7)  << "NFlows"
+    << " " << setw (7)  << "SFlows"
     << " " << setw (7)  << "NMeters"
     << " " << setw (7)  << "NGroups"
     << " " << setw (7)  << "Buff:%"
@@ -202,8 +202,8 @@ OFSwitch13StatsCalculator::NotifyDatapathTimeout (Ptr<const OFSwitch13Device> de
   NS_ASSERT_MSG (m_device == device, "Invalid device pointer.");
   m_avgBufferUsage = m_alpha * m_device->GetBufferUsage ()
     + (1 - m_alpha) * m_avgBufferUsage;
-  m_avgFlowEntries = m_alpha * m_device->GetFlowEntries ()
-    + (1 - m_alpha) * m_avgFlowEntries;
+  m_avgSumFlowEntries = m_alpha * m_device->GetSumFlowEntries ()
+    + (1 - m_alpha) * m_avgSumFlowEntries;
   m_avgGroupEntries = m_alpha * m_device->GetGroupEntries ()
     + (1 - m_alpha) * m_avgGroupEntries;
   m_avgMeterEntries = m_alpha * m_device->GetMeterEntries ()
@@ -266,7 +266,7 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
     << " " << setw (7)  << groupMods - m_lastGroupMods
     << " " << setw (7)  << packetsIn - m_lastPacketsIn
     << " " << setw (7)  << packetsOut - m_lastPacketsOut
-    << " " << setw (7)  << GetEwmaFlowEntries ()
+    << " " << setw (7)  << GetEwmaSumFlowEntries ()
     << " " << setw (7)  << GetEwmaMeterEntries ()
     << " " << setw (7)  << GetEwmaGroupEntries ()
     << " " << setw (7)  << GetEwmaBufferUsage ()
