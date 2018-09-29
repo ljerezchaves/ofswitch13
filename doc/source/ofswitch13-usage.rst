@@ -348,6 +348,8 @@ OFSwitch13Device
 * ``PipelineCapacity``: The data rate used to model the pipeline processing
   capacity (throughput). Packets exceeding the capacity are discarded.
 
+* ``PipelineTables``: The number of pipeline flow tables.
+
 * ``PortList``: The list of ports available in this switch.
 
 * ``TcamDelay``: Average time to perform a TCAM operation in the pipeline. This
@@ -410,13 +412,13 @@ Output
 This module relies on the |ns3| tracing subsystem for output. The
 ``OFSwitch13Helper`` base class allows users to monitor control-plane traffic
 by enabling PCAP and ASCII trace files for the ``NetDevices`` used to create
-the OpenFlow Channel(s). This approach can be useful to analyze the OpenFlow messages
-exchanged between switches and controllers on this network domain. To enable
-these traces, use the ``EnableOpenFlowPcap()`` and
+the OpenFlow Channel(s). This approach can be useful to analyze the OpenFlow
+messages exchanged between switches and controllers on this network domain. To
+enable these traces, use the ``EnableOpenFlowPcap()`` and
 ``EnableOpenFlowAscii()`` helper member functions *after* configuring the
-switches and creating the OpenFlow channels. It is also possible to enable PCAP
-and ASCII trace files to monitor data-plane traffic on switch ports using the
-standard ``CsmaHelper`` trace functions.
+switches and creating the OpenFlow channels. It is also possible to enable
+PCAP and ASCII trace files to monitor data-plane traffic on switch ports using
+the standard ``CsmaHelper`` trace functions.
 
 For performance evaluation, the ``OFSwitch13StatsCalculator`` class can monitor
 statistics of an OpenFlow switch datapath. The instances of this class connect
@@ -680,6 +682,10 @@ Examples summary
 * **ofswitch13-single-domain**: Two hosts connected to different OpenFlow
   switches. Both switches are managed by the default learning controller
   application.
+
+* **ofswitch13-custom-switch**: Two hosts connected to a single OpenFlow
+  switch. The default learning controller application manages the switch. The
+  switch datapath can be customized by the command line parameters.
 
 * **ofswitch13-external-controller**: Two hosts connected to different OpenFlow
   switches. The same external controller application manages both switches.

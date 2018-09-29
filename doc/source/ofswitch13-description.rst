@@ -382,11 +382,6 @@ References
    for packet header description" <http://dx.doi.org/10.1016/j.comnet.2005.05.029>`_.
    Computer Networks, 50(5):688–706, 2006.
 
-.. [Qi2010] Yaxuan Qi, Jeffrey Fong, Weirong Jiang, Bo Xu, Jun Li, and Viktor Prasanna.
-   `"Multi-dimensional Packet Classification on FPGA: 100 Gbps and Beyond"
-   <http://dx.doi.org/10.1109/FPT.2010.5681492>`_.
-   In: IEEE International Conference on Field-Programmable Technology (FPT), 2010.
-
 .. [Chaves2016] Luciano J. Chaves, Islene C. Garcia, and Edmundo R. M. Madeira.
    `"OFSwitch13: Enhancing ns-3 with OpenFlow 1.3 support"
    <http://dx.doi.org/10.1145/2915371.2915381>`_.
