@@ -80,7 +80,7 @@ OFSwitch13Device::GetTypeId (void)
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    UintegerValue (64),
                    MakeUintegerAccessor (&OFSwitch13Device::m_numPipeTabs),
-                   MakeUintegerChecker<uint32_t> (1, OFPTT_MAX))
+                   MakeUintegerChecker<uint32_t> (1, (OFPTT_MAX + 1)))
     .AddAttribute ("PortList",
                    "The list of ports associated to this switch.",
                    ObjectVectorValue (),
