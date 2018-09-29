@@ -42,7 +42,6 @@ QosController::DoDispose ()
 
   m_arpTable.clear ();
   OFSwitch13Controller::DoDispose ();
-  Application::DoDispose ();
 }
 
 TypeId

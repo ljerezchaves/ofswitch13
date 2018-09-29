@@ -89,6 +89,7 @@ TunnelController::DoDispose ()
 
   m_arpTable.clear ();
   m_endpointTable.clear ();
+  OFSwitch13Controller::DoDispose ();
 }
 
 void
