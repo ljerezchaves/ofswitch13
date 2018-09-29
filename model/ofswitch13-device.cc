@@ -54,27 +54,33 @@ OFSwitch13Device::GetTypeId (void)
                    MakeUintegerChecker<uint64_t> ())
     .AddAttribute ("FlowTableSize",
                    "The maximum number of entries allowed on each flow table.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    UintegerValue (FLOW_TABLE_MAX_ENTRIES),
-                   MakeUintegerAccessor (&OFSwitch13Device::SetFlowTableSize,
-                                         &OFSwitch13Device::GetFlowTableSize),
+                   MakeUintegerAccessor (&OFSwitch13Device::m_flowTabSize),
                    MakeUintegerChecker<uint32_t> (0, FLOW_TABLE_MAX_ENTRIES))
     .AddAttribute ("GroupTableSize",
                    "The maximum number of entries allowed on group table.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    UintegerValue (GROUP_TABLE_MAX_ENTRIES),
-                   MakeUintegerAccessor (&OFSwitch13Device::SetGroupTableSize,
-                                         &OFSwitch13Device::GetGroupTableSize),
+                   MakeUintegerAccessor (&OFSwitch13Device::m_groupTabSize),
                    MakeUintegerChecker<uint32_t> (0, GROUP_TABLE_MAX_ENTRIES))
     .AddAttribute ("MeterTableSize",
                    "The maximum number of entries allowed on meter table.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    UintegerValue (METER_TABLE_MAX_ENTRIES),
-                   MakeUintegerAccessor (&OFSwitch13Device::SetMeterTableSize,
-                                         &OFSwitch13Device::GetMeterTableSize),
+                   MakeUintegerAccessor (&OFSwitch13Device::m_meterTabSize),
                    MakeUintegerChecker<uint32_t> (0, METER_TABLE_MAX_ENTRIES))
     .AddAttribute ("PipelineCapacity",
                    "Pipeline processing capacity in terms of throughput.",
                    DataRateValue (DataRate ("100Gb/s")),
                    MakeDataRateAccessor (&OFSwitch13Device::m_pipeCapacity),
                    MakeDataRateChecker ())
+    .AddAttribute ("PipelineTables",
+                   "The number of pipeline flow tables.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                   UintegerValue (64),
+                   MakeUintegerAccessor (&OFSwitch13Device::m_numPipeTabs),
+                   MakeUintegerChecker<uint32_t> (1, OFPTT_MAX))
     .AddAttribute ("PortList",
                    "The list of ports associated to this switch.",
                    ObjectVectorValue (),
@@ -178,16 +184,12 @@ OFSwitch13Device::OFSwitch13Device ()
   m_cPacketOut (0)
 {
   NS_LOG_FUNCTION (this);
-
-  NS_LOG_INFO ("OpenFlow version " << OFP_VERSION);
-  m_dpId = ++m_globalDpId;
-  m_datapath = DatapathNew ();
-  OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
 }
 
 OFSwitch13Device::~OFSwitch13Device ()
 {
   NS_LOG_FUNCTION (this);
+  NS_LOG_INFO ("OpenFlow version: " << OFP_VERSION);
 }
 
 double
@@ -261,6 +263,12 @@ uint32_t
 OFSwitch13Device::GetMeterTableSize (void) const
 {
   return m_meterTabSize;
+}
+
+uint32_t
+OFSwitch13Device::GetNPipelineTables (void) const
+{
+  return m_numPipeTabs;
 }
 
 uint32_t
@@ -560,6 +568,16 @@ OFSwitch13Device::NotifyConstructionCompleted ()
 {
   NS_LOG_FUNCTION (this);
 
+  // Create the datapath.
+  m_dpId = ++m_globalDpId;
+  m_datapath = DatapathNew ();
+  OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
+
+  // Ajust datapath table sizes from attribute values.
+  AdjustFlowTableSize (GetFlowTableSize ());
+  AdjustGroupTableSize (GetGroupTableSize ());
+  AdjustMeterTableSize (GetMeterTableSize ());
+
   // Execute the first datapath timeout.
   DatapathTimeout (m_datapath);
 
@@ -602,6 +620,9 @@ OFSwitch13Device::DatapathNew ()
   memset (dp->ports, 0x00, sizeof (dp->ports));
   dp->local_port = 0;
 
+  // Set the number of flow tables from the PipelineTables attribute.
+  dp->pipeline_num_tables = GetNPipelineTables ();
+
   dp->buffers = dp_buffers_create (dp);
   dp->pipeline = pipeline_create (dp);
   dp->groups = group_table_create (dp);
@@ -629,47 +650,44 @@ OFSwitch13Device::DatapathNew ()
 }
 
 void
-OFSwitch13Device::SetFlowTableSize (uint32_t value)
+OFSwitch13Device::AdjustFlowTableSize (uint32_t value)
 {
   NS_LOG_FUNCTION (this << value);
 
   NS_ASSERT_MSG (m_datapath, "No datapath created yet.");
   struct flow_table *table;
-  for (size_t i = 0; i < PIPELINE_TABLES; i++)
+  for (size_t i = 0; i < GetNPipelineTables (); i++)
     {
       table = m_datapath->pipeline->tables [i];
-      NS_ABORT_MSG_IF (table->stats->active_count >= value,
+      NS_ABORT_MSG_IF (table->stats->active_count > value,
                        "Can't reduce table size to this value.");
       table->features->max_entries = value;
     }
-  m_flowTabSize = value;
 }
 
 void
-OFSwitch13Device::SetGroupTableSize (uint32_t value)
+OFSwitch13Device::AdjustGroupTableSize (uint32_t value)
 {
   NS_LOG_FUNCTION (this << value);
 
   NS_ASSERT_MSG (m_datapath, "No datapath created yet.");
-  NS_ABORT_MSG_IF (m_datapath->groups->entries_num >= value,
+  NS_ABORT_MSG_IF (m_datapath->groups->entries_num > value,
                    "Can't reduce table size to this value.");
   for (size_t i = 0; i < 4; i++)
     {
       m_datapath->groups->features->max_groups [i] = value;
     }
-  m_groupTabSize = value;
 }
 
 void
-OFSwitch13Device::SetMeterTableSize (uint32_t value)
+OFSwitch13Device::AdjustMeterTableSize (uint32_t value)
 {
   NS_LOG_FUNCTION (this << value);
 
   NS_ASSERT_MSG (m_datapath, "No datapath created yet.");
-  NS_ABORT_MSG_IF (m_datapath->meters->entries_num >= value,
+  NS_ABORT_MSG_IF (m_datapath->meters->entries_num > value,
                    "Can't reduce table size to this value.");
   m_datapath->meters->features->max_meter = value;
-  m_meterTabSize = value;
 }
 
 void
@@ -691,7 +709,7 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
   m_groupEntries =  m_datapath->groups->entries_num;
   m_meterEntries = m_datapath->meters->entries_num;
   uint32_t flowEntries = 0;
-  for (size_t i = 0; i < PIPELINE_TABLES; i++)
+  for (size_t i = 0; i < GetNPipelineTables (); i++)
     {
       flowEntries += GetFlowEntries (i);
     }
