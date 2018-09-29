@@ -89,4 +89,4 @@ TunnelIdTag::Print (std::ostream &os) const
   os << " TunnelIdTag id=" << m_tunnelId;
 }
 
-};  // namespace ns3
+} // namespace ns3

@@ -158,7 +158,6 @@ public:
   //\{
   double   GetBufferUsage       (void) const;
   uint64_t GetDatapathId        (void) const;
-  uint32_t GetFlowEntries       (void) const;
   uint32_t GetFlowEntries       (size_t tableId) const;
   uint64_t GetFlowModCounter    (void) const;
   uint32_t GetFlowTableSize     (void) const;
@@ -168,12 +167,14 @@ public:
   uint32_t GetMeterEntries      (void) const;
   uint64_t GetMeterModCounter   (void) const;
   uint32_t GetMeterTableSize    (void) const;
+  uint32_t GetNPipelineTables   (void) const;
   uint32_t GetNSwitchPorts      (void) const;
   uint64_t GetPacketInCounter   (void) const;
   uint64_t GetPacketOutCounter  (void) const;
   DataRate GetPipelineCapacity  (void) const;
   Time     GetPipelineDelay     (void) const;
   DataRate GetPipelineLoad      (void) const;
+  uint32_t GetSumFlowEntries    (void) const;
   //\}
 
   /**
@@ -336,13 +337,13 @@ private:
   struct datapath* DatapathNew ();
 
   /**
-   * \name Private attributes acessors.
+   * \name Adjust OpenFlow switch table sizes.
    * \param value The value to set.
    */
   //\{
-  void SetFlowTableSize  (uint32_t value);
-  void SetGroupTableSize (uint32_t value);
-  void SetMeterTableSize (uint32_t value);
+  void AdjustFlowTableSize  (uint32_t value);
+  void AdjustGroupTableSize (uint32_t value);
+  void AdjustMeterTableSize (uint32_t value);
   //\}
 
   /**
@@ -584,8 +585,8 @@ private:
   /** Buffer space usage in terms of packets. */
   TracedValue<double> m_bufferUsage;
 
-  /** Number of entries in all flow tables. */
-  TracedValue<uint32_t> m_flowEntries;
+  /** Sum of entries in all flow tables. */
+  TracedValue<uint32_t> m_sumFlowEntries;
 
   /** Number of entries in group table. */
   TracedValue<uint32_t> m_groupEntries;
@@ -610,6 +611,7 @@ private:
   uint32_t          m_flowTabSize;  //!< Flow table maximum entries.
   uint32_t          m_groupTabSize; //!< Group table maximum entries.
   uint32_t          m_meterTabSize; //!< Meter table maximum entries.
+  uint32_t          m_numPipeTabs;  //!< Number of pipeline flow tables.
   IdPacketMap_t     m_bufferPkts;   //!< Packets saved in switch buffer.
   uint32_t          m_bufferSize;   //!< Buffer size in terms of packets.
   PipelinePacket    m_pipePkt;      //!< Packet under switch pipeline.

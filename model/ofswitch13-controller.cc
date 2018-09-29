@@ -522,51 +522,51 @@ OFSwitch13Controller::HandleSwitchMsg (
 
     case OFPT_PACKET_IN:
       return HandlePacketIn (
-               (struct ofl_msg_packet_in*)msg, swtch, xid);
+        (struct ofl_msg_packet_in*)msg, swtch, xid);
 
     case OFPT_ECHO_REQUEST:
       return HandleEchoRequest (
-               (struct ofl_msg_echo*)msg, swtch, xid);
+        (struct ofl_msg_echo*)msg, swtch, xid);
 
     case OFPT_ECHO_REPLY:
       return HandleEchoReply (
-               (struct ofl_msg_echo*)msg, swtch, xid);
+        (struct ofl_msg_echo*)msg, swtch, xid);
 
     case OFPT_ERROR:
       return HandleError (
-               (struct ofl_msg_error*)msg, swtch, xid);
+        (struct ofl_msg_error*)msg, swtch, xid);
 
     case OFPT_FEATURES_REPLY:
       return HandleFeaturesReply (
-               (struct ofl_msg_features_reply*)msg, swtch, xid);
+        (struct ofl_msg_features_reply*)msg, swtch, xid);
 
     case OFPT_GET_CONFIG_REPLY:
       return HandleGetConfigReply (
-               (struct ofl_msg_get_config_reply*)msg, swtch, xid);
+        (struct ofl_msg_get_config_reply*)msg, swtch, xid);
 
     case OFPT_FLOW_REMOVED:
       return HandleFlowRemoved (
-               (struct ofl_msg_flow_removed*)msg, swtch, xid);
+        (struct ofl_msg_flow_removed*)msg, swtch, xid);
 
     case OFPT_PORT_STATUS:
       return HandlePortStatus (
-               (struct ofl_msg_port_status*)msg, swtch, xid);
+        (struct ofl_msg_port_status*)msg, swtch, xid);
 
     case OFPT_GET_ASYNC_REPLY:
       return HandleAsyncReply (
-               (struct ofl_msg_async_config*)msg, swtch, xid);
+        (struct ofl_msg_async_config*)msg, swtch, xid);
 
     case OFPT_MULTIPART_REPLY:
       return HandleMultipartReply (
-               (struct ofl_msg_multipart_reply_header*)msg, swtch, xid);
+        (struct ofl_msg_multipart_reply_header*)msg, swtch, xid);
 
     case OFPT_ROLE_REPLY:
       return HandleRoleReply (
-               (struct ofl_msg_role_request*)msg, swtch, xid);
+        (struct ofl_msg_role_request*)msg, swtch, xid);
 
     case OFPT_QUEUE_GET_CONFIG_REPLY:
       return HandleQueueGetConfigReply (
-               (struct ofl_msg_queue_get_config_reply*)msg, swtch, xid);
+        (struct ofl_msg_queue_get_config_reply*)msg, swtch, xid);
 
     case OFPT_EXPERIMENTER:
     default:
@@ -623,7 +623,7 @@ OFSwitch13Controller::GetRemoteSwitch (Address address)
     {
       return it->second;
     }
-  NS_FATAL_ERROR ("Couldn't find the remote switch for this address.");
+  NS_ABORT_MSG ("Couldn't find the remote switch for this address.");
 }
 
 bool
@@ -700,9 +700,9 @@ OFSwitch13Controller::SocketPeerError (Ptr<Socket> socket)
 
 OFSwitch13Controller::RemoteSwitch::RemoteSwitch ()
   : m_handler (0),
-    m_ctrlApp (0),
-    m_dpId (0),
-    m_role (OFPCR_ROLE_EQUAL)
+  m_ctrlApp (0),
+  m_dpId (0),
+  m_role (OFPCR_ROLE_EQUAL)
 {
   m_address = Address ();
 }
@@ -727,8 +727,8 @@ OFSwitch13Controller::RemoteSwitch::GetDpId (void) const
 
 OFSwitch13Controller::EchoInfo::EchoInfo (Ptr<const RemoteSwitch> swtch)
   : m_waiting (true),
-    m_send (Simulator::Now ()),
-    m_swtch (swtch)
+  m_send (Simulator::Now ()),
+  m_swtch (swtch)
 {
 }
 
@@ -747,7 +747,7 @@ OFSwitch13Controller::EchoInfo::GetRtt (void) const
 
 OFSwitch13Controller::BarrierInfo::BarrierInfo (Ptr<const RemoteSwitch> swtch)
   : m_waiting (true),
-    m_swtch (swtch)
+  m_swtch (swtch)
 {
 }
 

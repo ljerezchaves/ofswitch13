@@ -89,4 +89,4 @@ QueueTag::Print (std::ostream &os) const
   os << " QueueTag id=" << m_queueId;
 }
 
-};  // namespace ns3
+} // namespace ns3

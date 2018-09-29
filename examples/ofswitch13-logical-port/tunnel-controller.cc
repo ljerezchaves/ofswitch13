@@ -60,7 +60,7 @@ TunnelController::SaveArpEntry (Ipv4Address ipAddr, Mac48Address macAddr)
       NS_LOG_INFO ("New ARP entry: " << ipAddr << " - " << macAddr);
       return;
     }
-  NS_FATAL_ERROR ("This IP already exists in ARP table.");
+  NS_ABORT_MSG ("This IP already exists in ARP table.");
 }
 
 void
@@ -79,7 +79,7 @@ TunnelController::SaveTunnelEndpoint (uint64_t dpId, uint32_t portNo,
                    " - " << ipAddr);
       return;
     }
-  NS_FATAL_ERROR ("This endpoint already exists in tunnel endpoint table.");
+  NS_ABORT_MSG ("This endpoint already exists in tunnel endpoint table.");
 }
 
 void
@@ -89,6 +89,7 @@ TunnelController::DoDispose ()
 
   m_arpTable.clear ();
   m_endpointTable.clear ();
+  OFSwitch13Controller::DoDispose ();
 }
 
 void
@@ -167,8 +168,7 @@ TunnelController::HandlePacketIn (
           return 0;
         }
 
-      NS_ABORT_MSG ("This packet in was not supposed to be sent to this "
-                    "controller. Aborting...");
+      NS_LOG_ERROR ("This packet in was not supposed to be sent here.");
     }
   else if (reason == OFPR_ACTION)
     {
@@ -203,7 +203,7 @@ TunnelController::GetArpEntry (Ipv4Address ip)
       NS_LOG_INFO ("Found ARP entry: " << ip << " - " << ret->second);
       return ret->second;
     }
-  NS_FATAL_ERROR ("No ARP information for this IP.");
+  NS_ABORT_MSG ("No ARP information for this IP.");
 }
 
 Ipv4Address
@@ -220,7 +220,7 @@ TunnelController::GetTunnelEndpoint (uint64_t dpId, uint32_t portNo)
                    " - " << ret->second);
       return ret->second;
     }
-  NS_FATAL_ERROR ("No tunnel endpoint information for this datapath + port.");
+  NS_ABORT_MSG ("No tunnel endpoint information for this datapath + port.");
 }
 
 ofl_err
@@ -321,7 +321,7 @@ TunnelController::ExtractIpv4Address (uint32_t oxm_of, struct ofl_match* match)
         return Ipv4Address (ntohl (ip));
       }
     default:
-      NS_FATAL_ERROR ("Invalid IP field.");
+      NS_ABORT_MSG ("Invalid IP field.");
     }
 }
 

@@ -37,9 +37,9 @@ OFSwitch13SocketHandler::GetTypeId (void)
 
 OFSwitch13SocketHandler::OFSwitch13SocketHandler (Ptr<Socket> socket)
   : m_socket (socket),
-    m_pendingPacket (0),
-    m_pendingBytes (0),
-    m_txQueue ()
+  m_pendingPacket (0),
+  m_pendingBytes (0),
+  m_txQueue ()
 {
   NS_LOG_FUNCTION (this << socket);
 

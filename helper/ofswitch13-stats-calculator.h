@@ -40,7 +40,7 @@ namespace ns3 {
  *  -# Group-mod operations executed by the switch;
  *  -# Packets-in sent from the switch to the controller;
  *  -# Packets-out sent from the controller to the switch;
- *  -# Average number of flow entries in pipeline tables;
+ *  -# Average sum of flow entries in all pipeline tables;
  *  -# Average number of meter entries in meter table;
  *  -# Average number of group entries in group table;
  *  -# Average switch buffer space usage (percent);
@@ -71,12 +71,12 @@ public:
    * \return The requested metric value.
    */
   //\{
-  uint32_t GetEwmaBufferUsage   (void) const;
-  uint32_t GetEwmaFlowEntries   (void) const;
-  uint32_t GetEwmaGroupEntries  (void) const;
-  uint32_t GetEwmaMeterEntries  (void) const;
-  Time     GetEwmaPipelineDelay (void) const;
-  DataRate GetEwmaPipelineLoad  (void) const;
+  uint32_t GetEwmaBufferUsage    (void) const;
+  uint32_t GetEwmaGroupEntries   (void) const;
+  uint32_t GetEwmaMeterEntries   (void) const;
+  Time     GetEwmaPipelineDelay  (void) const;
+  DataRate GetEwmaPipelineLoad   (void) const;
+  uint32_t GetEwmaSumFlowEntries (void) const;
   //\}
 
 protected:
@@ -128,7 +128,7 @@ private:
   /** \name Internal counters, average values, and updated flags. */
   //\{
   double    m_avgBufferUsage;
-  double    m_avgFlowEntries;
+  double    m_avgSumFlowEntries;
   double    m_avgGroupEntries;
   double    m_avgMeterEntries;
   double    m_avgPipelineDelay;

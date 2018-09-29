@@ -27,8 +27,12 @@
 #include <algorithm>
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT \
-  if (m_swPort != 0) { std::clog << "[dp " << m_swPort->dp->id << " port " << m_swPort->conf->port_no << "] "; }
+#define NS_LOG_APPEND_CONTEXT                                   \
+  if (m_swPort != 0)                                            \
+    {                                                           \
+      std::clog << "[dp " << m_swPort->dp->id                   \
+                << " port " << m_swPort->conf->port_no << "] "; \
+    }
 
 namespace ns3 {
 
@@ -74,8 +78,8 @@ OFSwitch13Queue::GetTypeId (void)
 
 OFSwitch13Queue::OFSwitch13Queue (struct sw_port *port)
   : Queue<Packet> (),
-    m_swPort (port),
-    NS_LOG_TEMPLATE_DEFINE ("OFSwitch13Queue")
+  m_swPort (port),
+  NS_LOG_TEMPLATE_DEFINE ("OFSwitch13Queue")
 {
   NS_LOG_FUNCTION (this << port);
 }

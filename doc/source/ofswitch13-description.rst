@@ -188,16 +188,16 @@ machine, to the simulated environment.
 Library integration
 ###################
 
-This module was designed to work together with the |ofslib| user-space software
-switch implementation. The `original implementation
-<https://github.com/CPqD/ofsoftswitch13>`_ was forked and slightly modified,
-resulting in the `OpenFlow 1.3 Software Switch for ns-3
-<https://github.com/ljerezchaves/ofsoftswitch13>`_ library. The ``ns3lib``
-branch includes some callbacks, compiler directives and minor changes in
-structure declarations to allow the integration between the module and the
-|ns3|. The code does not modify the original switch datapath implementation,
-which is currently maintained in the original repository and regularly synced
-to the modified one.
+This module was designed to work together with a user-space software
+switch implementation. The original `Basic OpenFlow User Space Software Switch
+(BOFUSS) project <https://github.com/CPqD/ofsoftswitch13>`_ (also known as
+|ofslib|) was forked and slightly modified, resulting in the `OpenFlow 1.3
+Software Switch for ns-3 <https://github.com/ljerezchaves/ofsoftswitch13>`_
+library. The ``ns3lib`` branch includes some callbacks, compiler directives and
+minor changes in structure declarations to allow the integration between the
+module and the |ns3|. The code does not modify the original switch datapath
+implementation, which is currently maintained in the original repository and
+regularly synced to the modified one.
 
 Figure :ref:`fig-ofswitch13-library`, adapted from [Fernandes2014]_, shows the
 library architecture and highlights the |ns3| integration points. The library
@@ -352,12 +352,13 @@ receive callback into |ns3| source code, available under
 the receive callbacks inclusion, and an optional *doc* patch that can be used
 for including the |ofs13| when compiling Doxygen and Sphinx documentation.
 
-The current |ofs13| stable version is 3.2.2. This version is compatible with
-|ns3| version 3.28, and will not compile with different |ns3| versions. If you
-need to use another |ns3| release, you can check the |ofs13| RELEASE_NOTES file
-for previous |ofs13| releases and their |ns3| version compatibility, but keep
-in mind that old releases may have known bugs and an old API. It is strongly
-recommended to use the latest module version for better results.
+The current |ofs13| stable version is 3.3.0. This version is compatible with
+|ns3| versions 3.28 and 3.29, and will not compile with different |ns3|
+versions. If you need to use another |ns3| release, you can check the |ofs13|
+RELEASE_NOTES file for previous |ofs13| releases and their |ns3| version
+compatibility, but keep in mind that old releases may have known bugs and an
+old API. It is strongly recommended to use the latest module version for better
+results.
 
 References
 ==========
@@ -381,11 +382,6 @@ References
 .. [Risso2006] Fulvio Risso and Mario Baldi. `"Netpdl: An extensible xml-based language
    for packet header description" <http://dx.doi.org/10.1016/j.comnet.2005.05.029>`_.
    Computer Networks, 50(5):688–706, 2006.
-
-.. [Qi2010] Yaxuan Qi, Jeffrey Fong, Weirong Jiang, Bo Xu, Jun Li, and Viktor Prasanna.
-   `"Multi-dimensional Packet Classification on FPGA: 100 Gbps and Beyond"
-   <http://dx.doi.org/10.1109/FPT.2010.5681492>`_.
-   In: IEEE International Conference on Field-Programmable Technology (FPT), 2010.
 
 .. [Chaves2016] Luciano J. Chaves, Islene C. Garcia, and Edmundo R. M. Madeira.
    `"OFSwitch13: Enhancing ns-3 with OpenFlow 1.3 support"

@@ -29,8 +29,12 @@
 #include "tunnel-id-tag.h"
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT \
-  if (m_swPort != 0) { std::clog << "[dp " << m_swPort->dp->id << " port " << m_swPort->conf->port_no << "] "; }
+#define NS_LOG_APPEND_CONTEXT                                   \
+  if (m_swPort != 0)                                            \
+    {                                                           \
+      std::clog << "[dp " << m_swPort->dp->id                   \
+                << " port " << m_swPort->conf->port_no << "] "; \
+    }
 
 namespace ns3 {
 
@@ -39,8 +43,8 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Port);
 
 OFSwitch13Port::OFSwitch13Port ()
   : m_swPort (0),
-    m_netDev (0),
-    m_openflowDev (0)
+  m_netDev (0),
+  m_openflowDev (0)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -95,18 +99,16 @@ OFSwitch13Port::GetTypeId (void)
 OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
                                 Ptr<OFSwitch13Device> openflowDev)
   : m_swPort (0),
-    m_netDev (netDev),
-    m_openflowDev (openflowDev)
+  m_netDev (netDev),
+  m_openflowDev (openflowDev)
 {
   NS_LOG_FUNCTION (this << netDev << openflowDev);
 
   // Check for valid NetDevice type
   Ptr<CsmaNetDevice> csmaDev = netDev->GetObject<CsmaNetDevice> ();
   Ptr<VirtualNetDevice> virtDev = netDev->GetObject<VirtualNetDevice> ();
-  if (!csmaDev && !virtDev)
-    {
-      NS_FATAL_ERROR ("NetDevice must be CsmaNetDevice or VirtualNetDevice.");
-    }
+  NS_ABORT_MSG_IF (!csmaDev && !virtDev,
+                   "NetDevice must be CsmaNetDevice or VirtualNetDevice.");
 
   m_portNo = ++(dp->ports_num);
   m_swPort = &dp->ports[m_portNo];
@@ -278,7 +280,7 @@ OFSwitch13Port::Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
   NS_LOG_FUNCTION (this << packet);
 
   // Check port configuration.
-  if (m_swPort->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0))
+  if ((m_swPort->conf->config & (OFPPC_NO_RECV | OFPPC_PORT_DOWN)) != 0)
     {
       NS_LOG_WARN ("This port is down or inoperating. Discarding packet");
       return false;

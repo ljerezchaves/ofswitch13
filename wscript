@@ -4,12 +4,12 @@ import os
 from waflib import Logs, Options
 from waflib.Errors import WafError
 
-# This OFSwitch13 version is compatible only with ns-3.28
+# This OFSwitch13 version is compatible with ns-3.28 or later.
 def check_version_compatibility(version):
     base = (3, 28)
     try:
         comp = tuple(map(int, (version.split("."))))
-        return comp == base
+        return comp >= base
     except:
         if version == '3-dev':
             return True

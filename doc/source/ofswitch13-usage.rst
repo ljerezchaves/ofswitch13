@@ -61,11 +61,11 @@ Compiling the code
 ##################
 
 Download a recent stable |ns3| code into your machine (we are using the
-mercurial repository for ns-3.28):
+mercurial repository for ns-3.29):
 
 .. code-block:: bash
 
-  $ hg clone http://code.nsnam.org/ns-3.28
+  $ hg clone http://code.nsnam.org/ns-3.29
 
 Download the |ofs13| code into the ``src/`` folder (starting with ns-3.28, you
 can also download the code into the new ``contrib/`` folder). This procedure
@@ -74,11 +74,11 @@ will recursively download the |ofslib| code into the
 
 .. code-block:: bash
 
-  $ cd ns-3.28/src
+  $ cd ns-3.29/src
   $ git clone --recurse-submodules https://github.com/ljerezchaves/ofswitch13.git
 
-Update the code to the desired release version (we are using release 3.2.2,
-which is compatible with ns-3.28) [#f1]_:
+Update the code to the desired release version (we are using release 3.3.0,
+which is compatible with ns-3.28 and ns-3.29) [#f1]_:
 
 .. [#f1] For |ofs13| release versions prior to 3.2.2 (when no submodule
          dependence was configured in the git repository), the |ofslib| code
@@ -90,7 +90,7 @@ which is compatible with ns-3.28) [#f1]_:
 .. code-block:: bash
 
   $ cd ofswitch13
-  $ git checkout 3.2.2
+  $ git checkout 3.0.0
 
 Now it is time to compile the |ofslib| as a static library. Configure and
 build the library (don't forget to add the ``--enable-ns3-lib`` during
@@ -112,8 +112,8 @@ correct |ns3| version):
 .. code-block:: bash
 
   $ cd ../../../../
-  $ patch -p1 < src/ofswitch13/utils/ofswitch13-src-3_28.patch
-  $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_28.patch
+  $ patch -p1 < src/ofswitch13/utils/ofswitch13-src-3_29.patch
+  $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_29.patch
 
 The ``src`` patch creates the new OpenFlow receive callback at
 ``CsmaNetDevice`` and ``VirtualNetDevice``, allowing OpenFlow switch to get raw
@@ -348,6 +348,8 @@ OFSwitch13Device
 * ``PipelineCapacity``: The data rate used to model the pipeline processing
   capacity (throughput). Packets exceeding the capacity are discarded.
 
+* ``PipelineTables``: The number of pipeline flow tables.
+
 * ``PortList``: The list of ports available in this switch.
 
 * ``TcamDelay``: Average time to perform a TCAM operation in the pipeline. This
@@ -410,13 +412,13 @@ Output
 This module relies on the |ns3| tracing subsystem for output. The
 ``OFSwitch13Helper`` base class allows users to monitor control-plane traffic
 by enabling PCAP and ASCII trace files for the ``NetDevices`` used to create
-the OpenFlow Channel(s). This approach can be useful to analyze the OpenFlow messages
-exchanged between switches and controllers on this network domain. To enable
-these traces, use the ``EnableOpenFlowPcap()`` and
+the OpenFlow Channel(s). This approach can be useful to analyze the OpenFlow
+messages exchanged between switches and controllers on this network domain. To
+enable these traces, use the ``EnableOpenFlowPcap()`` and
 ``EnableOpenFlowAscii()`` helper member functions *after* configuring the
-switches and creating the OpenFlow channels. It is also possible to enable PCAP
-and ASCII trace files to monitor data-plane traffic on switch ports using the
-standard ``CsmaHelper`` trace functions.
+switches and creating the OpenFlow channels. It is also possible to enable
+PCAP and ASCII trace files to monitor data-plane traffic on switch ports using
+the standard ``CsmaHelper`` trace functions.
 
 For performance evaluation, the ``OFSwitch13StatsCalculator`` class can monitor
 statistics of an OpenFlow switch datapath. The instances of this class connect
@@ -432,7 +434,7 @@ the following datapath metrics on the output file:
 #. Group-mod operations executed by the switch;
 #. Packets-in sent from the switch to the controller;
 #. Packets-out sent from the controller to the switch;
-#. The average number of flow entries in pipeline tables;
+#. The average sum of flow entries in all pipeline tables;
 #. The average number of meter entries in meter table;
 #. The average number of group entries in group table;
 #. Average switch buffer space usage (percent);
@@ -680,6 +682,10 @@ Examples summary
 * **ofswitch13-single-domain**: Two hosts connected to different OpenFlow
   switches. Both switches are managed by the default learning controller
   application.
+
+* **ofswitch13-custom-switch**: Two hosts connected to a single OpenFlow
+  switch. The default learning controller application manages the switch. The
+  switch datapath can be customized by the command line parameters.
 
 * **ofswitch13-external-controller**: Two hosts connected to different OpenFlow
   switches. The same external controller application manages both switches.
