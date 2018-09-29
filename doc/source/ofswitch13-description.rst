@@ -188,16 +188,16 @@ machine, to the simulated environment.
 Library integration
 ###################
 
-This module was designed to work together with the |ofslib| user-space software
-switch implementation. The `original implementation
-<https://github.com/CPqD/ofsoftswitch13>`_ was forked and slightly modified,
-resulting in the `OpenFlow 1.3 Software Switch for ns-3
-<https://github.com/ljerezchaves/ofsoftswitch13>`_ library. The ``ns3lib``
-branch includes some callbacks, compiler directives and minor changes in
-structure declarations to allow the integration between the module and the
-|ns3|. The code does not modify the original switch datapath implementation,
-which is currently maintained in the original repository and regularly synced
-to the modified one.
+This module was designed to work together with a user-space software
+switch implementation. The original `Basic OpenFlow User Space Software Switch
+(BOFUSS) project <https://github.com/CPqD/ofsoftswitch13>`_ (also known as
+|ofslib|) was forked and slightly modified, resulting in the `OpenFlow 1.3
+Software Switch for ns-3 <https://github.com/ljerezchaves/ofsoftswitch13>`_
+library. The ``ns3lib`` branch includes some callbacks, compiler directives and
+minor changes in structure declarations to allow the integration between the
+module and the |ns3|. The code does not modify the original switch datapath
+implementation, which is currently maintained in the original repository and
+regularly synced to the modified one.
 
 Figure :ref:`fig-ofswitch13-library`, adapted from [Fernandes2014]_, shows the
 library architecture and highlights the |ns3| integration points. The library
