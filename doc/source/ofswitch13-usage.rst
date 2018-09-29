@@ -90,7 +90,7 @@ which is compatible with ns-3.28 and ns-3.29) [#f1]_:
 .. code-block:: bash
 
   $ cd ofswitch13
-  $ git checkout 3.0.0
+  $ git checkout 3.3.0
 
 Now it is time to compile the |ofslib| as a static library. Configure and
 build the library (don't forget to add the ``--enable-ns3-lib`` during
