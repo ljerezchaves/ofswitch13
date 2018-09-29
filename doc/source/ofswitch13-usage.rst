@@ -77,8 +77,8 @@ will recursively download the |ofslib| code into the
   $ cd ns-3.29/src
   $ git clone --recurse-submodules https://github.com/ljerezchaves/ofswitch13.git
 
-Update the code to the desired release version (we are using release 3.3.0,
-which is compatible with ns-3.28 and ns-3.29) [#f1]_:
+Update the code to the desired release version (we are using release 3.X.X,
+which is compatible with ns-3.28 or later) [#f1]_:
 
 .. [#f1] For |ofs13| release versions prior to 3.2.2 (when no submodule
          dependence was configured in the git repository), the |ofslib| code
@@ -90,7 +90,7 @@ which is compatible with ns-3.28 and ns-3.29) [#f1]_:
 .. code-block:: bash
 
   $ cd ofswitch13
-  $ git checkout 3.3.0
+  $ git checkout 3.X.X
 
 Now it is time to compile the |ofslib| as a static library. Configure and
 build the library (don't forget to add the ``--enable-ns3-lib`` during
