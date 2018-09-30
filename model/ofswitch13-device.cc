@@ -268,7 +268,7 @@ OFSwitch13Device::GetDatapathTimeout (void) const
 }
 
 uint32_t
-OFSwitch13Device::GetFlowTableEntries (size_t tableId) const
+OFSwitch13Device::GetFlowTableEntries (uint8_t tableId) const
 {
   NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
   NS_ASSERT_MSG (tableId < GetNPipelineTables (), "Invalid table ID.");
@@ -276,13 +276,13 @@ OFSwitch13Device::GetFlowTableEntries (size_t tableId) const
 }
 
 uint32_t
-OFSwitch13Device::GetFlowTableSize (size_t tableId) const
+OFSwitch13Device::GetFlowTableSize (uint8_t tableId) const
 {
   return m_flowTabSize;
 }
 
 double
-OFSwitch13Device::GetFlowTableUsage (size_t tableId) const
+OFSwitch13Device::GetFlowTableUsage (uint8_t tableId) const
 {
   if (GetFlowTableSize (tableId) == 0)
     {

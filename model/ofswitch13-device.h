@@ -180,9 +180,9 @@ public:
   uint32_t GetBufferSize        (void) const;
   double   GetBufferUsage       (void) const;
   Time     GetDatapathTimeout   (void) const;
-  uint32_t GetFlowTableEntries  (size_t tableId = 0) const;
-  uint32_t GetFlowTableSize     (size_t tableId = 0) const;
-  double   GetFlowTableUsage    (size_t tableId = 0) const;
+  uint32_t GetFlowTableEntries  (uint8_t tableId = 0) const;
+  uint32_t GetFlowTableSize     (uint8_t tableId = 0) const;
+  double   GetFlowTableUsage    (uint8_t tableId = 0) const;
   uint32_t GetGroupTableEntries (void) const;
   uint32_t GetGroupTableSize    (void) const;
   double   GetGroupTableUsage   (void) const;
