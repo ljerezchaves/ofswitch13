@@ -425,20 +425,30 @@ statistics of an OpenFlow switch datapath. The instances of this class connect
 to a collection of trace sources in the switch device and periodically dumps
 the following datapath metrics on the output file:
 
-#. Pipeline load regarding throughput (Kbits);
-#. Pipeline load regarding packets;
-#. Packets dropped while exceeding pipeline load capacity;
-#. Packets dropped by meter bands;
-#. Flow-mod operations executed by the switch;
-#. Meter-mod operations executed by the switch;
-#. Group-mod operations executed by the switch;
-#. Packets-in sent from the switch to the controller;
-#. Packets-out sent from the controller to the switch;
-#. The average sum of flow entries in all pipeline tables;
-#. The average number of meter entries in meter table;
-#. The average number of group entries in group table;
-#. Average switch buffer space usage (percent);
-#. Average pipeline lookup delay for packet processing (microseconds).
+#. [``Load:kbps``] EWMA pipeline load in terms of throughput (kbits);
+#. [``Packets``] Pipeline load in terms of packets in the last interval;
+#. [``Dly:us``] EWMA pipeline lookup delay for packet processing (usecs);
+#. [``LdDrops``] Packets dropped by pipeline load in the last interval;
+#. [``MtDrops``] Packets dropped by meter bands in the last interval;
+#. [``FloMods``] Flow-mod operations executed in the last interval;
+#. [``MetMods``] Meter-mod operations executed in the last interval;
+#. [``GroMods``] Group-mod operations executed in the last interval;
+#. [``PktsIn``] Packets-in sent to the controller in the last interval;
+#. [``PktsOut``] Packets-out received from the controller in the last interval;
+#. [``SFlows``] EWMA sum of entries in all pipeline flow tables;
+#. [``FloAU:%``] Average flow table usage, considering the sum of entries in
+   all flow tables divided by the aggregated sizes of all flow tables
+   with at least one flow entry installed (percent);
+#. [``NMeters1``] EWMA number of entries in meter table;
+#. [``MetU:%``] Average meter table usage (percent);
+#. [``NGroups``] EWMA number of entries in group table;
+#. [``GroU:%``] Average group table usage (percent);
+#. [``PktsBuf``] EWMA number of packets saved in switch buffer;
+#. [``BufU:%``] Average switch buffer usage (percent);
+
+When the PipelineTableDetails attribute is 'true', the EWMA number of entries
+and the average flow table usage for each pipeline flow tables is also
+available under column [``NFlows:FloU:%|...``].
 
 To enable performance monitoring, use the ``EnableDatapathStats()``
 helper member function *after* configuring the switches and creating the
