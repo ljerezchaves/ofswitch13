@@ -31,6 +31,7 @@ namespace ns3 {
  * statistics and periodically write them to an output file. This stats
  * calculator connects to a collection of trace sources in the OpenFlow switch
  * device to monitor the following metrics:
+ *
  *  -# [Load:kbps] EWMA pipeline load in terms of throughput (kbits);
  *  -# [Packets] Pipeline load in terms of packets in the last interval;
  *  -# [Dly:us] EWMA pipeline lookup delay for packet processing (usecs);
@@ -51,6 +52,10 @@ namespace ns3 {
  *  -# [GroU:%] Average group table usage (percent);
  *  -# [PktsBuf] EWMA number of packets saved in switch buffer;
  *  -# [BufU:%] Average switch buffer usage (percent);
+ *
+ * When the PipelineTableDetails is 'true', the EWMA number of entries and the
+ * average flow table usage for each pipeline flow tables is also available
+ * under column [NFlows:FloU:%|...].
  */
 class OFSwitch13StatsCalculator : public Object
 {
@@ -74,10 +79,12 @@ public:
    * \name EWMA statistics calculators.
    * Get the average metric values that are updated at every datapath timeout
    * operation using an Exponentially Weighted Moving Average.
+   * \param tableId The pipeline table ID.
    * \return The requested metric value.
    */
   //\{
   uint32_t GetEwmaBufferEntries       (void) const;
+  uint32_t GetEwmaFlowTableEntries    (uint8_t tableId) const;
   uint32_t GetEwmaGroupTableEntries   (void) const;
   uint32_t GetEwmaMeterTableEntries   (void) const;
   Time     GetEwmaPipelineDelay       (void) const;
@@ -91,10 +98,12 @@ public:
    * values and resources size. For the flow table usage, only those tables
    * with active flow entries are considered when calculating the average
    * usage value.
+   * \param tableId The pipeline table ID.
    * \return The requested metric value.
    */
   //\{
   uint32_t GetAvgBufferUsage       (void) const;
+  uint32_t GetAvgFlowTableUsage    (uint8_t tableId) const;
   uint32_t GetAvgGroupTableUsage   (void) const;
   uint32_t GetAvgMeterTableUsage   (void) const;
   uint32_t GetAvgActFlowTableUsage (void) const;
@@ -145,15 +154,18 @@ private:
   Time                      m_timeout;      //!< Update timeout.
   Time                      m_lastUpdate;   //!< Last update time.
   double                    m_alpha;        //!< EWMA alpha parameter.
+  bool                      m_details;      //!< Pipeline table details.
 
   /** \name Internal counters, average values, and updated flags. */
   //\{
   double    m_ewmaBufferEntries;
-  double    m_ewmaSumFlowEntries;
   double    m_ewmaGroupEntries;
   double    m_ewmaMeterEntries;
   double    m_ewmaPipelineDelay;
   double    m_ewmaPipelineLoad;
+  double    m_ewmaSumFlowEntries;
+
+  std::vector<double> m_ewmaFlowEntries;
 
   uint64_t  m_bytes;
   uint64_t  m_lastFlowMods;
