@@ -134,6 +134,9 @@ private:
   }; // Struct PipelinePacket
 
 public:
+  OFSwitch13Device ();            //!< Default constructor
+  virtual ~OFSwitch13Device ();   //!< Dummy destructor, see DoDispose
+
   /**
    * Register this type.
    * \return The object TypeId.
@@ -141,39 +144,55 @@ public:
   static TypeId GetTypeId (void);
 
   /**
-   * Default constructor.
-   * \see ofsoftswitch dp_new () at udatapath/datapath.c
+   * Get the OpenFlow datapath ID.
+   * \return The datapath ID.
    */
-  OFSwitch13Device ();
+  uint64_t GetDatapathId (void) const;
 
   /**
-   * Dummy destructor, see DoDispose.
-   */
-  virtual ~OFSwitch13Device ();
-
-  /**
-   * \name Private member accessors.
+   * \name OpenFLow control channel counter accessors.
    * \return The requested value.
    */
   //\{
-  double   GetBufferUsage       (void) const;
-  uint64_t GetDatapathId        (void) const;
-  uint32_t GetFlowEntries       (size_t tableId) const;
   uint64_t GetFlowModCounter    (void) const;
-  uint32_t GetFlowTableSize     (void) const;
-  uint32_t GetGroupEntries      (void) const;
   uint64_t GetGroupModCounter   (void) const;
-  uint32_t GetGroupTableSize    (void) const;
-  uint32_t GetMeterEntries      (void) const;
   uint64_t GetMeterModCounter   (void) const;
-  uint32_t GetMeterTableSize    (void) const;
-  uint32_t GetNPipelineTables   (void) const;
-  uint32_t GetNSwitchPorts      (void) const;
   uint64_t GetPacketInCounter   (void) const;
   uint64_t GetPacketOutCounter  (void) const;
-  DataRate GetPipelineCapacity  (void) const;
+  //\}
+
+  /**
+   * \name Pipeline traced value accessors.
+   * \return The requested value.
+   */
+  //\{
   Time     GetPipelineDelay     (void) const;
   DataRate GetPipelineLoad      (void) const;
+  //\}
+
+  /**
+   * \name Datapath internal accessors.
+   * \param tableId The pipeline flow table ID.
+   * \return The requested value.
+   */
+  //\{
+  uint32_t GetBufferEntries     (void) const;
+  uint32_t GetBufferSize        (void) const;
+  double   GetBufferUsage       (void) const;
+  Time     GetDatapathTimeout   (void) const;
+  uint32_t GetFlowTableEntries  (size_t tableId = 0) const;
+  uint32_t GetFlowTableSize     (size_t tableId = 0) const;
+  double   GetFlowTableUsage    (size_t tableId = 0) const;
+  uint32_t GetGroupTableEntries (void) const;
+  uint32_t GetGroupTableSize    (void) const;
+  double   GetGroupTableUsage   (void) const;
+  uint32_t GetMeterTableEntries (void) const;
+  uint32_t GetMeterTableSize    (void) const;
+  double   GetMeterTableUsage   (void) const;
+  uint32_t GetNControllers      (void) const;
+  uint32_t GetNPipelineTables   (void) const;
+  uint32_t GetNSwitchPorts      (void) const;
+  DataRate GetPipelineCapacity  (void) const;
   uint32_t GetSumFlowEntries    (void) const;
   //\}
 
@@ -333,6 +352,7 @@ private:
   /**
    * Creates a new datapath.
    * \return The created datapath.
+   * \see ofsoftswitch dp_new () at udatapath/datapath.c
    */
   struct datapath* DatapathNew ();
 
@@ -582,17 +602,14 @@ private:
   /** Trace source fired when a packet is sent to pipeline. */
   TracedCallback<Ptr<const Packet> > m_pipePacketTrace;
 
-  /** Buffer space usage in terms of packets. */
-  TracedValue<double> m_bufferUsage;
-
-  /** Sum of entries in all flow tables. */
-  TracedValue<uint32_t> m_sumFlowEntries;
-
   /** Number of entries in group table. */
   TracedValue<uint32_t> m_groupEntries;
 
   /** Number of entries in meter table. */
   TracedValue<uint32_t> m_meterEntries;
+
+  /** Sum of entries in all flow tables. */
+  TracedValue<uint32_t> m_sumFlowEntries;
 
   /** Average pipeline delay for packet processing. */
   TracedValue<Time> m_pipeDelay;

@@ -204,9 +204,9 @@ OFSwitch13StatsCalculator::NotifyDatapathTimeout (Ptr<const OFSwitch13Device> de
     + (1 - m_alpha) * m_avgBufferUsage;
   m_avgSumFlowEntries = m_alpha * m_device->GetSumFlowEntries ()
     + (1 - m_alpha) * m_avgSumFlowEntries;
-  m_avgGroupEntries = m_alpha * m_device->GetGroupEntries ()
+  m_avgGroupEntries = m_alpha * m_device->GetGroupTableEntries ()
     + (1 - m_alpha) * m_avgGroupEntries;
-  m_avgMeterEntries = m_alpha * m_device->GetMeterEntries ()
+  m_avgMeterEntries = m_alpha * m_device->GetMeterTableEntries ()
     + (1 - m_alpha) * m_avgMeterEntries;
   m_avgPipelineDelay = m_alpha * m_device->GetPipelineDelay ().GetDouble ()
     + (1 - m_alpha) * m_avgPipelineDelay;

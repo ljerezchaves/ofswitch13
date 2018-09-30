@@ -39,6 +39,29 @@ uint64_t OFSwitch13Device::m_globalPktId = 0;
 OFSwitch13Device::DpIdDevMap_t OFSwitch13Device::m_globalSwitchMap;
 
 /********** Public methods **********/
+OFSwitch13Device::OFSwitch13Device ()
+  : m_dpId (0),
+  m_pipeTokens (0),
+  m_pipeConsumed (0),
+  m_cFlowMod (0),
+  m_cGroupMod (0),
+  m_cMeterMod (0),
+  m_cPacketIn (0),
+  m_cPacketOut (0)
+{
+  NS_LOG_FUNCTION (this);
+  NS_LOG_INFO ("OpenFlow version: " << OFP_VERSION);
+
+  m_dpId = ++m_globalDpId;
+  NS_LOG_DEBUG ("New datapath ID " << m_dpId);
+  OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
+}
+
+OFSwitch13Device::~OFSwitch13Device ()
+{
+  NS_LOG_FUNCTION (this);
+}
+
 TypeId
 OFSwitch13Device::GetTypeId (void)
 {
@@ -133,69 +156,38 @@ OFSwitch13Device::GetTypeId (void)
                        &OFSwitch13Device::m_datapathTimeoutTrace),
                      "ns3::OFSwitch13Device::DeviceTracedCallback")
 
-    .AddTraceSource ("BufferUsage",
-                     "Traced value indicating the buffer space usage "
-                     "(periodically updated on datapath timeout operation).",
+    .AddTraceSource ("GroupEntries",
+                     "Traced value indicating the number of group entries"
+                     " (periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_bufferUsage),
-                     "ns3::TracedValueCallback::Double")
+                       &OFSwitch13Device::m_groupEntries),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("MeterEntries",
+                     "Traced value indicating the number of meter entries"
+                     " (periodically updated on datapath timeout operation).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_meterEntries),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("PipelineDelay",
+                     "Traced value indicating the avg pipeline lookup delay"
+                     " (periodically updated on datapath timeout operation).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_pipeDelay),
+                     "ns3::TracedValueCallback::Time")
+    .AddTraceSource ("PipelineLoad",
+                     "Traced value indicating the avg pipeline load"
+                     " (periodically updated on datapath timeout operation).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_pipeLoad),
+                     "ns3::TracedValueCallback::DataRate")
     .AddTraceSource ("SumFlowEntries",
                      "Traced value indicating the total number of flow entries"
                      " (periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_sumFlowEntries),
                      "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("GroupEntries",
-                     "Traced value indicating the number of group entries "
-                     "(periodically updated on datapath timeout operation).",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_groupEntries),
-                     "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("MeterEntries",
-                     "Traced value indicating the number of meter entries "
-                     "(periodically updated on datapath timeout operation).",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_meterEntries),
-                     "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("PipelineDelay",
-                     "Traced value indicating the avg pipeline lookup delay "
-                     "(periodically updated on datapath timeout operation).",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_pipeDelay),
-                     "ns3::TracedValueCallback::Time")
-    .AddTraceSource ("PipelineLoad",
-                     "Traced value indicating the avg pipeline load "
-                     "(periodically updated on datapath timeout operation).",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_pipeLoad),
-                     "ns3::TracedValueCallback::DataRate")
   ;
   return tid;
-}
-
-OFSwitch13Device::OFSwitch13Device ()
-  : m_dpId (0),
-  m_pipeTokens (0),
-  m_pipeConsumed (0),
-  m_cFlowMod (0),
-  m_cGroupMod (0),
-  m_cMeterMod (0),
-  m_cPacketIn (0),
-  m_cPacketOut (0)
-{
-  NS_LOG_FUNCTION (this);
-}
-
-OFSwitch13Device::~OFSwitch13Device ()
-{
-  NS_LOG_FUNCTION (this);
-  NS_LOG_INFO ("OpenFlow version: " << OFP_VERSION);
-}
-
-double
-OFSwitch13Device::GetBufferUsage (void) const
-{
-  return m_bufferUsage;
 }
 
 uint64_t
@@ -204,35 +196,10 @@ OFSwitch13Device::GetDatapathId (void) const
   return m_dpId;
 }
 
-uint32_t
-OFSwitch13Device::GetFlowEntries (size_t tableId) const
-{
-  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
-  uint32_t entries = 0;
-  struct flow_table *table = m_datapath->pipeline->tables [tableId];
-  if (!(table->disabled))
-    {
-      entries = table->stats->active_count;
-    }
-  return entries;
-}
-
 uint64_t
 OFSwitch13Device::GetFlowModCounter (void) const
 {
   return m_cFlowMod;
-}
-
-uint32_t
-OFSwitch13Device::GetFlowTableSize (void) const
-{
-  return m_flowTabSize;
-}
-
-uint32_t
-OFSwitch13Device::GetGroupEntries (void) const
-{
-  return m_groupEntries;
 }
 
 uint64_t
@@ -241,40 +208,10 @@ OFSwitch13Device::GetGroupModCounter (void) const
   return m_cGroupMod;
 }
 
-uint32_t
-OFSwitch13Device::GetGroupTableSize (void) const
-{
-  return m_groupTabSize;
-}
-
-uint32_t
-OFSwitch13Device::GetMeterEntries (void) const
-{
-  return m_meterEntries;
-}
-
 uint64_t
 OFSwitch13Device::GetMeterModCounter (void) const
 {
   return m_cMeterMod;
-}
-
-uint32_t
-OFSwitch13Device::GetMeterTableSize (void) const
-{
-  return m_meterTabSize;
-}
-
-uint32_t
-OFSwitch13Device::GetNPipelineTables (void) const
-{
-  return m_numPipeTabs;
-}
-
-uint32_t
-OFSwitch13Device::GetNSwitchPorts (void) const
-{
-  return m_datapath->ports_num;
 }
 
 uint64_t
@@ -287,12 +224,6 @@ uint64_t
 OFSwitch13Device::GetPacketOutCounter (void) const
 {
   return m_cPacketOut;
-}
-
-DataRate
-OFSwitch13Device::GetPipelineCapacity (void) const
-{
-  return m_pipeCapacity;
 }
 
 Time
@@ -308,9 +239,124 @@ OFSwitch13Device::GetPipelineLoad (void) const
 }
 
 uint32_t
+OFSwitch13Device::GetBufferEntries (void) const
+{
+  return m_bufferPkts.size ();
+}
+
+uint32_t
+OFSwitch13Device::GetBufferSize (void) const
+{
+  return m_bufferSize;
+}
+
+double
+OFSwitch13Device::GetBufferUsage (void) const
+{
+  return static_cast<double> (GetBufferEntries ()) /
+         static_cast<double> (GetBufferSize ());
+}
+
+Time
+OFSwitch13Device::GetDatapathTimeout (void) const
+{
+  return m_timeout;
+}
+
+uint32_t
+OFSwitch13Device::GetFlowTableEntries (size_t tableId) const
+{
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+  NS_ASSERT_MSG (tableId < GetNPipelineTables (), "Invalid table ID.");
+  return m_datapath->pipeline->tables [tableId]->stats->active_count;
+}
+
+uint32_t
+OFSwitch13Device::GetFlowTableSize (size_t tableId) const
+{
+  return m_flowTabSize;
+}
+
+double
+OFSwitch13Device::GetFlowTableUsage (size_t tableId) const
+{
+  return static_cast<double> (GetFlowTableEntries (tableId)) /
+         static_cast<double> (GetFlowTableSize (tableId));
+}
+
+uint32_t
+OFSwitch13Device::GetGroupTableEntries (void) const
+{
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+  return m_datapath->groups->entries_num;
+}
+
+uint32_t
+OFSwitch13Device::GetGroupTableSize (void) const
+{
+  return m_groupTabSize;
+}
+
+double
+OFSwitch13Device::GetGroupTableUsage (void) const
+{
+  return static_cast<double> (GetGroupTableEntries ()) /
+         static_cast<double> (GetGroupTableSize ());
+}
+
+uint32_t
+OFSwitch13Device::GetMeterTableEntries (void) const
+{
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+  return m_datapath->meters->entries_num;
+}
+
+uint32_t
+OFSwitch13Device::GetMeterTableSize (void) const
+{
+  return m_meterTabSize;
+}
+
+double
+OFSwitch13Device::GetMeterTableUsage (void) const
+{
+  return static_cast<double> (GetMeterTableEntries ()) /
+         static_cast<double> (GetMeterTableSize ());
+}
+
+uint32_t
+OFSwitch13Device::GetNControllers (void) const
+{
+  return m_controllers.size ();
+}
+
+uint32_t
+OFSwitch13Device::GetNPipelineTables (void) const
+{
+  return m_numPipeTabs;
+}
+
+uint32_t
+OFSwitch13Device::GetNSwitchPorts (void) const
+{
+  return m_ports.size ();
+}
+
+DataRate
+OFSwitch13Device::GetPipelineCapacity (void) const
+{
+  return m_pipeCapacity;
+}
+
+uint32_t
 OFSwitch13Device::GetSumFlowEntries (void) const
 {
-  return m_sumFlowEntries;
+  uint32_t flowEntries = 0;
+  for (size_t i = 0; i < GetNPipelineTables (); i++)
+    {
+      flowEntries += GetFlowTableEntries (i);
+    }
+  return flowEntries;
 }
 
 Ptr<OFSwitch13Port>
@@ -328,7 +374,8 @@ OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
 
   // Save port in port list (assert port no and vector index).
   m_ports.push_back (ofPort);
-  NS_ASSERT (m_ports.size () == ofPort->GetPortNo ());
+  NS_ASSERT ((m_ports.size () == ofPort->GetPortNo ())
+             && (m_ports.size () == m_datapath->ports_num));
 
   return ofPort;
 }
@@ -569,9 +616,7 @@ OFSwitch13Device::NotifyConstructionCompleted ()
   NS_LOG_FUNCTION (this);
 
   // Create the datapath.
-  m_dpId = ++m_globalDpId;
   m_datapath = DatapathNew ();
-  OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
 
   // Ajust datapath table sizes from attribute values.
   AdjustFlowTableSize (GetFlowTableSize ());
@@ -655,13 +700,11 @@ OFSwitch13Device::AdjustFlowTableSize (uint32_t value)
   NS_LOG_FUNCTION (this << value);
 
   NS_ASSERT_MSG (m_datapath, "No datapath created yet.");
-  struct flow_table *table;
   for (size_t i = 0; i < GetNPipelineTables (); i++)
     {
-      table = m_datapath->pipeline->tables [i];
-      NS_ABORT_MSG_IF (table->stats->active_count > value,
+      NS_ABORT_MSG_IF (GetFlowTableEntries (i) > value,
                        "Can't reduce table size to this value.");
-      table->features->max_entries = value;
+      m_datapath->pipeline->tables [i]->features->max_entries = value;
     }
 }
 
@@ -671,7 +714,7 @@ OFSwitch13Device::AdjustGroupTableSize (uint32_t value)
   NS_LOG_FUNCTION (this << value);
 
   NS_ASSERT_MSG (m_datapath, "No datapath created yet.");
-  NS_ABORT_MSG_IF (m_datapath->groups->entries_num > value,
+  NS_ABORT_MSG_IF (GetGroupTableEntries () > value,
                    "Can't reduce table size to this value.");
   for (size_t i = 0; i < 4; i++)
     {
@@ -685,7 +728,7 @@ OFSwitch13Device::AdjustMeterTableSize (uint32_t value)
   NS_LOG_FUNCTION (this << value);
 
   NS_ASSERT_MSG (m_datapath, "No datapath created yet.");
-  NS_ABORT_MSG_IF (m_datapath->meters->entries_num > value,
+  NS_ABORT_MSG_IF (GetMeterTableEntries () > value,
                    "Can't reduce table size to this value.");
   m_datapath->meters->features->max_meter = value;
 }
@@ -696,7 +739,7 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
   meter_table_add_tokens (dp->meters);
   pipeline_timeout (dp->pipeline);
 
-  // Check for changes in links (port) status.
+  // Check for chan/s in links (port) status.
   PortList_t::iterator it;
   for (it = m_ports.begin (); it != m_ports.end (); it++)
     {
@@ -705,15 +748,9 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
     }
 
   // Update traced values.
-  m_bufferUsage = (double)m_bufferPkts.size () / m_bufferSize;
-  m_groupEntries =  m_datapath->groups->entries_num;
-  m_meterEntries = m_datapath->meters->entries_num;
-  uint32_t flowEntries = 0;
-  for (size_t i = 0; i < GetNPipelineTables (); i++)
-    {
-      flowEntries += GetFlowEntries (i);
-    }
-  m_sumFlowEntries = flowEntries;
+  m_groupEntries = GetGroupTableEntries ();
+  m_meterEntries = GetMeterTableEntries ();
+  m_sumFlowEntries = GetSumFlowEntries ();
 
   // The pipeline delay is estimated as k * log (n), where 'k' is the
   // m_tcamDelay set to the time for a single TCAM operation, and 'n' is the
