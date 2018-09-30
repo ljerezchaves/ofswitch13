@@ -253,6 +253,10 @@ OFSwitch13Device::GetBufferSize (void) const
 double
 OFSwitch13Device::GetBufferUsage (void) const
 {
+  if (GetBufferSize () == 0)
+    {
+      return 0.0;
+    }
   return static_cast<double> (GetBufferEntries ()) /
          static_cast<double> (GetBufferSize ());
 }
@@ -280,6 +284,10 @@ OFSwitch13Device::GetFlowTableSize (size_t tableId) const
 double
 OFSwitch13Device::GetFlowTableUsage (size_t tableId) const
 {
+  if (GetFlowTableSize (tableId) == 0)
+    {
+      return 0.0;
+    }
   return static_cast<double> (GetFlowTableEntries (tableId)) /
          static_cast<double> (GetFlowTableSize (tableId));
 }
@@ -300,6 +308,10 @@ OFSwitch13Device::GetGroupTableSize (void) const
 double
 OFSwitch13Device::GetGroupTableUsage (void) const
 {
+  if (GetGroupTableSize () == 0)
+    {
+      return 0.0;
+    }
   return static_cast<double> (GetGroupTableEntries ()) /
          static_cast<double> (GetGroupTableSize ());
 }
@@ -320,6 +332,10 @@ OFSwitch13Device::GetMeterTableSize (void) const
 double
 OFSwitch13Device::GetMeterTableUsage (void) const
 {
+  if (GetMeterTableSize () == 0)
+    {
+      return 0.0;
+    }
   return static_cast<double> (GetMeterTableEntries ()) /
          static_cast<double> (GetMeterTableSize ());
 }
