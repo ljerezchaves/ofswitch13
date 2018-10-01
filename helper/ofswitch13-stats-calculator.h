@@ -33,6 +33,7 @@ namespace ns3 {
  * device to monitor the following metrics:
  *
  *  -# [Load:kbps] Pipeline load throughput in the last interval (kbits);
+ *  -# [Load:%] Average pipeline load usage (percent);
  *  -# [Packets] Packets processed by the pipeline in the last interval;
  *  -# [Dly:us] EWMA pipeline lookup delay for packet processing (usecs);
  *  -# [LdDrops] Packets dropped by pipeline load in the last interval;

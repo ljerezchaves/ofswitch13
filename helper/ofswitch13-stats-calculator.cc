@@ -261,6 +261,7 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
     << boolalpha << right << fixed << setprecision (3)
     << " " << setw (8) << "Time:s"
     << " " << setw (12) << "Load:kbps"
+    << " " << setw (7)  << "Load:%"
     << " " << setw (7)  << "Packets"
     << " " << setw (7)  << "Dly:us"
     << " " << setw (7)  << "LdDrops"
@@ -359,12 +360,24 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
   uint64_t packetsIn  = m_device->GetPacketInCounter ();
   uint64_t packetsOut = m_device->GetPacketOutCounter ();
 
+  // We don't use the EWMA pipeline load here. Instead, we use the number of
+  // bytes transmitted since the last dump operation to get a precise average
+  // pipeline load.
   double elapSeconds = (Simulator::Now () - m_lastUpdate).GetSeconds ();
+  uint64_t pipeLoad = m_bytes * 8 / elapSeconds;
+  uint64_t pipeCapacity = m_device->GetPipelineCapacity ().GetBitRate ();
+  uint32_t pipeUsage = 0;
+  if (pipeCapacity)
+    {
+      pipeUsage = std::round (static_cast<double> (pipeLoad) * 100 /
+                              static_cast<double> (pipeCapacity));
+    }
 
   // Print statistics to file.
   *m_wrapper->GetStream ()
     << " " << setw (8)  << Simulator::Now ().GetSeconds ()
-    << " " << setw (12) << (double)m_bytes * 8 / 1000 / elapSeconds
+    << " " << setw (12) << static_cast<double> (pipeLoad) / 1000
+    << " " << setw (7)  << pipeUsage
     << " " << setw (7)  << GetEwmaPipelineDelay ().GetMicroSeconds ()
     << " " << setw (7)  << m_packets
     << " " << setw (7)  << m_loadDrops

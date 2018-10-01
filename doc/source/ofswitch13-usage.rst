@@ -425,8 +425,9 @@ statistics of an OpenFlow switch datapath. The instances of this class connect
 to a collection of trace sources in the switch device and periodically dumps
 the following datapath metrics on the output file:
 
-#. [``Load:kbps``] EWMA pipeline load in terms of throughput (kbits);
-#. [``Packets``] Pipeline load in terms of packets in the last interval;
+#. [``Load:kbps``] Pipeline load throughput in the last interval (kbits);
+#. [``Load:%``] Average pipeline load usage (percent);
+#. [``Packets``]Packets processed by the pipeline in the last interval;
 #. [``Dly:us``] EWMA pipeline lookup delay for packet processing (usecs);
 #. [``LdDrops``] Packets dropped by pipeline load in the last interval;
 #. [``MtDrops``] Packets dropped by meter bands in the last interval;
