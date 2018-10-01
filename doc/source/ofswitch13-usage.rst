@@ -447,9 +447,9 @@ the following datapath metrics on the output file:
 #. [``PktsBuf``] EWMA number of packets saved in switch buffer;
 #. [``BufU:%``] Average switch buffer usage (percent);
 
-When the PipelineTableDetails attribute is 'true', the EWMA number of entries
-and the average flow table usage for each pipeline flow tables is also
-available under column [``NFlows:FloU:%|...``].
+When the PipelineDetails attribute is 'true', the EWMA number of entries and
+the average flow table usage for each pipeline flow tables is also available
+under column [``NFlows:FloU:%|...``].
 
 To enable performance monitoring, use the ``EnableDatapathStats()``
 helper member function *after* configuring the switches and creating the

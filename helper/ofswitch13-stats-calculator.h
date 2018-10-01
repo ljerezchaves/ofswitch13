@@ -54,7 +54,7 @@ namespace ns3 {
  *  -# [PktsBuf] EWMA number of packets saved in switch buffer;
  *  -# [BufU:%] Average switch buffer usage in the last interval (percent);
  *
- * When the PipelineTableDetails is 'true', the EWMA number of entries and the
+ * When the PipelineDetails is 'true', the EWMA number of entries and the
  * average flow table usage for each pipeline flow tables is also available
  * under column [NFlows:FloU:%|...].
  */
