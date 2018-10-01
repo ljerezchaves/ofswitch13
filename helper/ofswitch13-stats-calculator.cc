@@ -171,7 +171,7 @@ OFSwitch13StatsCalculator::GetAvgBufferUsage (void) const
     {
       return 0;
     }
-  return std::round (100 * static_cast<double> (GetEwmaBufferEntries ()) /
+  return std::round (static_cast<double> (GetEwmaBufferEntries ()) * 100 /
                      static_cast<double> (m_device->GetBufferSize ()));
 }
 
@@ -183,7 +183,7 @@ OFSwitch13StatsCalculator::GetAvgFlowTableUsage (uint8_t tableId) const
       return 0;
     }
   return std::round (
-    100 * static_cast<double> (GetEwmaFlowTableEntries (tableId)) /
+    static_cast<double> (GetEwmaFlowTableEntries (tableId)) * 100 /
     static_cast<double> (m_device->GetFlowTableSize (tableId)));
 }
 
@@ -194,7 +194,7 @@ OFSwitch13StatsCalculator::GetAvgGroupTableUsage (void) const
     {
       return 0;
     }
-  return std::round (100 * static_cast<double> (GetEwmaGroupTableEntries ()) /
+  return std::round (static_cast<double> (GetEwmaGroupTableEntries ()) * 100 /
                      static_cast<double> (m_device->GetGroupTableSize ()));
 }
 
@@ -205,28 +205,40 @@ OFSwitch13StatsCalculator::GetAvgMeterTableUsage (void) const
     {
       return 0;
     }
-  return std::round (100 * static_cast<double> (GetEwmaMeterTableEntries ()) /
+  return std::round (static_cast<double> (GetEwmaMeterTableEntries ()) * 100 /
                      static_cast<double> (m_device->GetMeterTableSize ()));
+}
+
+uint32_t
+OFSwitch13StatsCalculator::GetAvgPipelineUsage (void) const
+{
+  if (m_device->GetPipelineCapacity ().GetBitRate () == 0)
+    {
+      return 0;
+    }
+  return std::round (
+    static_cast<double> (GetEwmaPipelineLoad ().GetBitRate ()) * 100 /
+    static_cast<double> (m_device->GetPipelineCapacity ().GetBitRate ()));
 }
 
 uint32_t
 OFSwitch13StatsCalculator::GetAvgActFlowTableUsage (void) const
 {
-  uint32_t maxSize = 0;
+  uint32_t sumSize = 0;
   for (size_t i = 0; i < m_device->GetNPipelineTables (); i++)
     {
       if (m_device->GetFlowTableEntries (i))
         {
-          maxSize += m_device->GetFlowTableSize (i);
+          sumSize += m_device->GetFlowTableSize (i);
         }
     }
 
-  if (maxSize == 0)
+  if (sumSize == 0)
     {
       return 0;
     }
-  return std::round (100 * static_cast<double> (GetEwmaSumFlowEntries ()) /
-                     static_cast<double> (maxSize));
+  return std::round (static_cast<double> (GetEwmaSumFlowEntries ()) * 100 /
+                     static_cast<double> (sumSize));
 }
 
 void

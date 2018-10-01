@@ -32,8 +32,8 @@ namespace ns3 {
  * calculator connects to a collection of trace sources in the OpenFlow switch
  * device to monitor the following metrics:
  *
- *  -# [Load:kbps] EWMA pipeline load in terms of throughput (kbits);
- *  -# [Packets] Pipeline load in terms of packets in the last interval;
+ *  -# [Load:kbps] Pipeline load throughput in the last interval (kbits);
+ *  -# [Packets] Packets processed by the pipeline in the last interval;
  *  -# [Dly:us] EWMA pipeline lookup delay for packet processing (usecs);
  *  -# [LdDrops] Packets dropped by pipeline load in the last interval;
  *  -# [MtDrops] Packets dropped by meter bands in the last interval;
@@ -45,13 +45,13 @@ namespace ns3 {
  *  -# [SFlows] EWMA sum of entries in all pipeline flow tables;
  *  -# [FloAU:%] Average flow table usage, considering the sum of entries in
  *     all flow tables divided by the aggregated sizes of all flow tables
- *     with at least one flow entry installed (percent);
+ *     with at least one flow entry installed in the last interval (percent);
  *  -# [NMeters] EWMA number of entries in meter table;
- *  -# [MetU:%] Average meter table usage (percent);
+ *  -# [MetU:%] Average meter table usage in the last interval (percent);
  *  -# [NGroups] EWMA number of entries in group table;
- *  -# [GroU:%] Average group table usage (percent);
+ *  -# [GroU:%] Average group table usage in the last interval (percent);
  *  -# [PktsBuf] EWMA number of packets saved in switch buffer;
- *  -# [BufU:%] Average switch buffer usage (percent);
+ *  -# [BufU:%] Average switch buffer usage in the last interval (percent);
  *
  * When the PipelineTableDetails is 'true', the EWMA number of entries and the
  * average flow table usage for each pipeline flow tables is also available
@@ -106,6 +106,7 @@ public:
   uint32_t GetAvgFlowTableUsage    (uint8_t tableId) const;
   uint32_t GetAvgGroupTableUsage   (void) const;
   uint32_t GetAvgMeterTableUsage   (void) const;
+  uint32_t GetAvgPipelineUsage     (void) const;
   uint32_t GetAvgActFlowTableUsage (void) const;
   //\}
 
