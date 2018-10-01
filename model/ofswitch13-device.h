@@ -193,6 +193,7 @@ public:
   uint32_t GetNPipelineTables   (void) const;
   uint32_t GetNSwitchPorts      (void) const;
   DataRate GetPipelineCapacity  (void) const;
+  double   GetPipelineUsage     (void) const;
   uint32_t GetSumFlowEntries    (void) const;
   //\}
 

@@ -364,6 +364,17 @@ OFSwitch13Device::GetPipelineCapacity (void) const
   return m_pipeCapacity;
 }
 
+double
+OFSwitch13Device::GetPipelineUsage (void) const
+{
+  if (GetPipelineCapacity ().GetBitRate () == 0)
+    {
+      return 0.0;
+    }
+  return static_cast<double> (GetPipelineLoad ().GetBitRate ()) /
+         static_cast<double> (GetPipelineCapacity ().GetBitRate ());
+}
+
 uint32_t
 OFSwitch13Device::GetSumFlowEntries (void) const
 {
