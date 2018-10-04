@@ -154,20 +154,11 @@ public:
    * \return The requested value.
    */
   //\{
-  uint64_t GetFlowModCounter    (void) const;
-  uint64_t GetGroupModCounter   (void) const;
-  uint64_t GetMeterModCounter   (void) const;
-  uint64_t GetPacketInCounter   (void) const;
-  uint64_t GetPacketOutCounter  (void) const;
-  //\}
-
-  /**
-   * \name Pipeline traced value accessors.
-   * \return The requested value.
-   */
-  //\{
-  Time     GetPipelineDelay     (void) const;
-  DataRate GetPipelineLoad      (void) const;
+  uint64_t GetFlowModCounter      (void) const;
+  uint64_t GetGroupModCounter     (void) const;
+  uint64_t GetMeterModCounter     (void) const;
+  uint64_t GetPacketInCounter     (void) const;
+  uint64_t GetPacketOutCounter    (void) const;
   //\}
 
   /**
@@ -176,25 +167,27 @@ public:
    * \return The requested value.
    */
   //\{
-  uint32_t GetBufferEntries     (void) const;
-  uint32_t GetBufferSize        (void) const;
-  double   GetBufferUsage       (void) const;
-  Time     GetDatapathTimeout   (void) const;
-  uint32_t GetFlowTableEntries  (uint8_t tableId = 0) const;
-  uint32_t GetFlowTableSize     (uint8_t tableId = 0) const;
-  double   GetFlowTableUsage    (uint8_t tableId = 0) const;
-  uint32_t GetGroupTableEntries (void) const;
-  uint32_t GetGroupTableSize    (void) const;
-  double   GetGroupTableUsage   (void) const;
-  uint32_t GetMeterTableEntries (void) const;
-  uint32_t GetMeterTableSize    (void) const;
-  double   GetMeterTableUsage   (void) const;
-  uint32_t GetNControllers      (void) const;
-  uint32_t GetNPipelineTables   (void) const;
-  uint32_t GetNSwitchPorts      (void) const;
-  DataRate GetPipelineCapacity  (void) const;
-  double   GetPipelineUsage     (void) const;
-  uint32_t GetSumFlowEntries    (void) const;
+  uint32_t GetBufferEntries       (void) const;
+  uint32_t GetBufferSize          (void) const;
+  double   GetBufferUsage         (void) const;
+  Time     GetDatapathTimeout     (void) const;
+  uint32_t GetFlowTableEntries    (uint8_t tableId = 0) const;
+  uint32_t GetFlowTableSize       (uint8_t tableId = 0) const;
+  double   GetFlowTableUsage      (uint8_t tableId = 0) const;
+  uint32_t GetGroupTableEntries   (void) const;
+  uint32_t GetGroupTableSize      (void) const;
+  double   GetGroupTableUsage     (void) const;
+  uint32_t GetMeterTableEntries   (void) const;
+  uint32_t GetMeterTableSize      (void) const;
+  double   GetMeterTableUsage     (void) const;
+  uint32_t GetNControllers        (void) const;
+  uint32_t GetNPipelineTables     (void) const;
+  uint32_t GetNSwitchPorts        (void) const;
+  Time     GetPipelineDelay       (void) const;
+  DataRate GetProcessingCapacity  (void) const;
+  DataRate GetProcessingLoad      (void) const;
+  double   GetProcessingUsage     (void) const;
+  uint32_t GetSumFlowEntries      (void) const;
   //\}
 
   /**
@@ -594,7 +587,7 @@ private:
   /** Trace source fired when the datapath timeout operation is completed. */
   TracedCallback<Ptr<const OFSwitch13Device> > m_datapathTimeoutTrace;
 
-  /** Trace source fired when a packet is dropped due to pipeline load. */
+  /** Trace source fired when a packet is dropped due to overloaded switch. */
   TracedCallback<Ptr<const Packet> > m_loadDropTrace;
 
   /** Trace source fired when a packet is dropped by a meter band. */
@@ -615,8 +608,8 @@ private:
   /** Average pipeline delay for packet processing. */
   TracedValue<Time> m_pipeDelay;
 
-  /** Average pipeline load in terms of throughput. */
-  TracedValue<DataRate> m_pipeLoad;
+  /** Average processing load in terms of throughput. */
+  TracedValue<DataRate> m_procLoad;
 
   uint64_t          m_dpId;         //!< This datapath id.
   Time              m_timeout;      //!< Datapath timeout interval.
@@ -633,9 +626,9 @@ private:
   IdPacketMap_t     m_bufferPkts;   //!< Packets saved in switch buffer.
   uint32_t          m_bufferSize;   //!< Buffer size in terms of packets.
   PipelinePacket    m_pipePkt;      //!< Packet under switch pipeline.
-  DataRate          m_pipeCapacity; //!< Pipeline throughput capacity.
   uint64_t          m_pipeTokens;   //!< Pipeline capacity available tokens.
   uint64_t          m_pipeConsumed; //!< Pipeline capacity consumed tokens.
+  DataRate          m_procCapy;     //!< Pipeline processing capacity.
   uint64_t          m_cFlowMod;     //!< Pipeline flow mod counter.
   uint64_t          m_cGroupMod;    //!< Pipeline group mod counter.
   uint64_t          m_cMeterMod;    //!< Pipeline meter mod counter.

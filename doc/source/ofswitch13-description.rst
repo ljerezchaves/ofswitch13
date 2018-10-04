@@ -85,7 +85,7 @@ callback in the ``NetDevice`` is the only required modification to the |ns3|
 source code for |ofs13| usage.
 
 The incoming packet is checked for conformance to the pipeline processing
-capacity (throughput) defined by the ``OFSwitch13Device::PipelineCapacity``
+capacity (throughput) defined by the ``OFSwitch13Device::ProcessingCapacity``
 attribute. Packets exceeding processing capacity are dropped, while conformant
 packets are sent to the pipeline at the |ofslib| library.
 

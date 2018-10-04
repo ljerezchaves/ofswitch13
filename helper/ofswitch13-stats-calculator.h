@@ -32,11 +32,11 @@ namespace ns3 {
  * calculator connects to a collection of trace sources in the OpenFlow switch
  * device to monitor the following metrics:
  *
- *  -# [Load:kbps] Pipeline load throughput in the last interval (kbits);
- *  -# [Load:%] Average pipeline load usage (percent);
+ *  -# [Load:kbps] Processing load in the last interval (kbits);
+ *  -# [Load:%] Average processing capacity usage (percent);
  *  -# [Packets] Packets processed by the pipeline in the last interval;
  *  -# [Dly:us] EWMA pipeline lookup delay for packet processing (usecs);
- *  -# [LdDrops] Packets dropped by pipeline load in the last interval;
+ *  -# [LdDrops] Packets dropped by capacity overloaded in the last interval;
  *  -# [MtDrops] Packets dropped by meter bands in the last interval;
  *  -# [FloMods] Flow-mod operations executed in the last interval;
  *  -# [MetMods] Meter-mod operations executed in the last interval;
@@ -89,7 +89,7 @@ public:
   uint32_t GetEwmaGroupTableEntries   (void) const;
   uint32_t GetEwmaMeterTableEntries   (void) const;
   Time     GetEwmaPipelineDelay       (void) const;
-  DataRate GetEwmaPipelineLoad        (void) const;
+  DataRate GetEwmaProcessingLoad      (void) const;
   uint32_t GetEwmaSumFlowEntries      (void) const;
   //\}
 
@@ -107,7 +107,7 @@ public:
   uint32_t GetAvgFlowTableUsage    (uint8_t tableId) const;
   uint32_t GetAvgGroupTableUsage   (void) const;
   uint32_t GetAvgMeterTableUsage   (void) const;
-  uint32_t GetAvgPipelineUsage     (void) const;
+  uint32_t GetAvgProcessingUsage   (void) const;
   uint32_t GetAvgActFlowTableUsage (void) const;
   //\}
 
@@ -129,7 +129,7 @@ private:
    * Notify when a packet is dropped due to pipeline load.
    * \param packet The packet.
    */
-  void NotifyLoadDrop (Ptr<const Packet> packet);
+  void NotifyOverloadDrop (Ptr<const Packet> packet);
 
   /**
    * Notify when a packet is dropped by a meter band.
@@ -164,7 +164,7 @@ private:
   double    m_ewmaGroupEntries;
   double    m_ewmaMeterEntries;
   double    m_ewmaPipelineDelay;
-  double    m_ewmaPipelineLoad;
+  double    m_ewmaProcessingLoad;
   double    m_ewmaSumFlowEntries;
 
   std::vector<double> m_ewmaFlowEntries;

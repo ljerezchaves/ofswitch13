@@ -8,6 +8,15 @@ This file contains OFSwitch13 release notes (most recent releases first).
 Release 3.X.X (XXX XX, XXXX)
 ============================
 
+- Renaming OFSwitch13Device attributes and trace sources to better reflect what
+  they really represent: PipelineCapacity attribute was renamed to
+  ProcessingCapacity, PipelineLoad traced value was renamed to ProcessingLoad,
+  and LoadDrop trace source was renamed to OverloadDrop. The methods
+  GetPipelineLoad and GetPipelineCapacity were also renamed to
+  GetProcessingLoad and GetProcessingCapacity. These changes also reflects on
+  the OFSwitch13StatsCalculator: GetEwmaPipelineLoad and GetAvgPipelineUsage
+  were renamed to GetEwmaProcessingLoad and GetAvgProcessingUsage.
+
 - Updating OFSwitch13Device::Get* methods for improved datapath stats. The 
   GetFlowEntries, GetGroupEntries, and GetMeterEntries methods were replaced by
   GetFlowTableEntries, GetGroupTableEntries, and GetMeterTableEntries. The

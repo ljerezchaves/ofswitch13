@@ -107,7 +107,7 @@ main (int argc, char *argv[])
 
   // Create the OpenFlow helper with custom switch attributes.
   Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper> ();
-  of13Helper->SetDeviceAttribute ("PipelineCapacity", DataRateValue (pipeLoad));
+  of13Helper->SetDeviceAttribute ("ProcessingCapacity", DataRateValue (pipeLoad));
   of13Helper->SetDeviceAttribute ("PipelineTables", UintegerValue (pipeTabs));
   of13Helper->SetDeviceAttribute ("FlowTableSize", UintegerValue (flowSize));
   of13Helper->SetDeviceAttribute ("GroupTableSize", UintegerValue (groupSize));
