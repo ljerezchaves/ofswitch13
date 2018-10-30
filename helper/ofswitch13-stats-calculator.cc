@@ -378,8 +378,8 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
     << " " << setw (8)  << Simulator::Now ().GetSeconds ()
     << " " << setw (12) << static_cast<double> (procLoad) / 1000
     << " " << setw (7)  << procUsage
-    << " " << setw (7)  << GetEwmaPipelineDelay ().GetMicroSeconds ()
     << " " << setw (7)  << m_packets
+    << " " << setw (7)  << GetEwmaPipelineDelay ().GetMicroSeconds ()
     << " " << setw (7)  << m_loadDrops
     << " " << setw (7)  << m_meterDrops
     << " " << setw (7)  << flowMods - m_lastFlowMods
