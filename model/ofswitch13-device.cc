@@ -113,12 +113,12 @@ OFSwitch13Device::GetTypeId (void)
                    "Average time to perform a TCAM operation in pipeline.",
                    TimeValue (MicroSeconds (20)),
                    MakeTimeAccessor (&OFSwitch13Device::m_tcamDelay),
-                   MakeTimeChecker ())
+                   MakeTimeChecker (Time (0)))
     .AddAttribute ("TimeoutInterval",
                    "The interval between timeout operations on datapath.",
                    TimeValue (MilliSeconds (100)),
                    MakeTimeAccessor (&OFSwitch13Device::m_timeout),
-                   MakeTimeChecker ())
+                   MakeTimeChecker (Time (1)))
 
     .AddTraceSource ("BufferExpire",
                      "Trace source indicating an expired packet in buffer.",
