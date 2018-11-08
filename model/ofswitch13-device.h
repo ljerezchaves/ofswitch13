@@ -197,6 +197,12 @@ public:
   //\}
 
   /**
+   * Get a pointer to the internal ofsoftswitch13 datapath structure.
+   * \return The requested pointer.
+   */
+  struct datapath* GetDatapathStruct ();
+
+  /**
    * Add a 'port' to the switch device. This method adds a new switch port to a
    * OFSwitch13Device, so that the new switch port NetDevice becomes part of
    * the switch and L2 frames start being forwarded to/from this OpenFlow

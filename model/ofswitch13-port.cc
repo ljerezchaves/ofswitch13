@@ -359,4 +359,10 @@ OFSwitch13Port::Send (Ptr<const Packet> packet, uint32_t queueNo,
   return status;
 }
 
+struct sw_port*
+OFSwitch13Port::GetPortStruct ()
+{
+  return m_swPort;
+}
+
 } // namespace ns3

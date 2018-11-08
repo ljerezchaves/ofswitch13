@@ -393,6 +393,12 @@ OFSwitch13Device::GetSumFlowEntries (void) const
   return flowEntries;
 }
 
+struct datapath*
+OFSwitch13Device::GetDatapathStruct ()
+{
+  return m_datapath;
+}
+
 Ptr<OFSwitch13Port>
 OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
 {

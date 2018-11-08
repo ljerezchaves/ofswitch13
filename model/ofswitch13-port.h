@@ -91,6 +91,12 @@ public:
   bool Send (Ptr<const Packet> packet, uint32_t queueNo = 0,
              uint64_t tunnelId = 0);
 
+  /**
+   * Get a pointer to the internal ofsoftswitch13 port structure.
+   * \return The requested pointer.
+   */
+  struct sw_port* GetPortStruct ();
+
 protected:
   /** Destructor implementation */
   virtual void DoDispose ();
