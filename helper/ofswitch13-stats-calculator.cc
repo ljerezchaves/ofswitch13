@@ -38,10 +38,10 @@ OFSwitch13StatsCalculator::OFSwitch13StatsCalculator ()
   m_wrapper (0),
   m_lastUpdate (Simulator::Now ()),
   m_ewmaBufferEntries (0.0),
+  m_ewmaCpuLoad (0.0),
   m_ewmaGroupEntries (0.0),
   m_ewmaMeterEntries (0.0),
   m_ewmaPipelineDelay (0.0),
-  m_ewmaProcessingLoad (0.0),
   m_ewmaSumFlowEntries (0.0),
   m_bytes (0),
   m_lastFlowMods (0),
@@ -128,6 +128,12 @@ OFSwitch13StatsCalculator::GetEwmaBufferEntries (void) const
   return std::round (m_ewmaBufferEntries);
 }
 
+DataRate
+OFSwitch13StatsCalculator::GetEwmaCpuLoad (void) const
+{
+  return DataRate (std::round (m_ewmaCpuLoad));
+}
+
 uint32_t
 OFSwitch13StatsCalculator::GetEwmaFlowTableEntries (uint8_t tableId) const
 {
@@ -152,12 +158,6 @@ OFSwitch13StatsCalculator::GetEwmaPipelineDelay (void) const
   return Time (m_ewmaPipelineDelay);
 }
 
-DataRate
-OFSwitch13StatsCalculator::GetEwmaProcessingLoad (void) const
-{
-  return DataRate (std::round (m_ewmaProcessingLoad));
-}
-
 uint32_t
 OFSwitch13StatsCalculator::GetEwmaSumFlowEntries (void) const
 {
@@ -173,6 +173,18 @@ OFSwitch13StatsCalculator::GetAvgBufferUsage (void) const
     }
   return std::round (static_cast<double> (GetEwmaBufferEntries ()) * 100 /
                      static_cast<double> (m_device->GetBufferSize ()));
+}
+
+uint32_t
+OFSwitch13StatsCalculator::GetAvgCpuUsage (void) const
+{
+  if (m_device->GetCpuCapacity ().GetBitRate () == 0)
+    {
+      return 0;
+    }
+  return std::round (
+    static_cast<double> (GetEwmaCpuLoad ().GetBitRate ()) * 100 /
+    static_cast<double> (m_device->GetCpuCapacity ().GetBitRate ()));
 }
 
 uint32_t
@@ -207,18 +219,6 @@ OFSwitch13StatsCalculator::GetAvgMeterTableUsage (void) const
     }
   return std::round (static_cast<double> (GetEwmaMeterTableEntries ()) * 100 /
                      static_cast<double> (m_device->GetMeterTableSize ()));
-}
-
-uint32_t
-OFSwitch13StatsCalculator::GetAvgProcessingUsage (void) const
-{
-  if (m_device->GetProcessingCapacity ().GetBitRate () == 0)
-    {
-      return 0;
-    }
-  return std::round (
-    static_cast<double> (GetEwmaProcessingLoad ().GetBitRate ()) * 100 /
-    static_cast<double> (m_device->GetProcessingCapacity ().GetBitRate ()));
 }
 
 uint32_t
@@ -304,6 +304,8 @@ OFSwitch13StatsCalculator::NotifyDatapathTimeout (
   NS_ASSERT_MSG (m_device == device, "Invalid device pointer.");
   m_ewmaBufferEntries = m_alpha * m_device->GetBufferEntries ()
     + (1 - m_alpha) * m_ewmaBufferEntries;
+  m_ewmaCpuLoad = m_alpha * m_device->GetCpuLoad ().GetBitRate ()
+    + (1 - m_alpha) * m_ewmaCpuLoad;
   m_ewmaSumFlowEntries = m_alpha * m_device->GetSumFlowEntries ()
     + (1 - m_alpha) * m_ewmaSumFlowEntries;
   m_ewmaGroupEntries = m_alpha * m_device->GetGroupTableEntries ()
@@ -312,8 +314,6 @@ OFSwitch13StatsCalculator::NotifyDatapathTimeout (
     + (1 - m_alpha) * m_ewmaMeterEntries;
   m_ewmaPipelineDelay = m_alpha * m_device->GetPipelineDelay ().GetDouble ()
     + (1 - m_alpha) * m_ewmaPipelineDelay;
-  m_ewmaProcessingLoad = m_alpha * m_device->GetProcessingLoad ().GetBitRate ()
-    + (1 - m_alpha) * m_ewmaProcessingLoad;
 
   for (size_t i = 0; i < m_device->GetNPipelineTables (); i++)
     {
@@ -360,24 +360,24 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
   uint64_t packetsIn  = m_device->GetPacketInCounter ();
   uint64_t packetsOut = m_device->GetPacketOutCounter ();
 
-  // We don't use the EWMA processing load here. Instead, we use the number of
+  // We don't use the EWMA CPU load here. Instead, we use the number of
   // bytes transmitted since the last dump operation to get a precise average
-  // processing load.
+  // CPU load.
   double elapSeconds = (Simulator::Now () - m_lastUpdate).GetSeconds ();
-  uint64_t procLoad = m_bytes * 8 / elapSeconds;
-  uint64_t procCapy = m_device->GetProcessingCapacity ().GetBitRate ();
-  uint32_t procUsage = 0;
-  if (procCapy)
+  uint64_t cpuLoad = m_bytes * 8 / elapSeconds;
+  uint64_t cpuCapy = m_device->GetCpuCapacity ().GetBitRate ();
+  uint32_t cpuUsage = 0;
+  if (cpuCapy)
     {
-      procUsage = std::round (static_cast<double> (procLoad) * 100 /
-                              static_cast<double> (procCapy));
+      cpuUsage = std::round (static_cast<double> (cpuLoad) * 100 /
+                             static_cast<double> (cpuCapy));
     }
 
   // Print statistics to file.
   *m_wrapper->GetStream ()
     << " " << setw (8)  << Simulator::Now ().GetSeconds ()
-    << " " << setw (12) << static_cast<double> (procLoad) / 1000
-    << " " << setw (7)  << procUsage
+    << " " << setw (12) << static_cast<double> (cpuLoad) / 1000
+    << " " << setw (7)  << cpuUsage
     << " " << setw (7)  << m_packets
     << " " << setw (7)  << GetEwmaPipelineDelay ().GetMicroSeconds ()
     << " " << setw (7)  << m_loadDrops

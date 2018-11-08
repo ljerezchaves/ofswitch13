@@ -32,8 +32,8 @@ namespace ns3 {
  * calculator connects to a collection of trace sources in the OpenFlow switch
  * device to monitor the following metrics:
  *
- *  -# [Load:kbps] Processing load in the last interval (kbits);
- *  -# [Load:%] Average processing capacity usage (percent);
+ *  -# [Load:kbps] CPU processing load in the last interval (kbps);
+ *  -# [Load:%] Average CPU processing capacity usage (percent);
  *  -# [Packets] Packets processed by the pipeline in the last interval;
  *  -# [Dly:us] EWMA pipeline lookup delay for packet processing (usecs);
  *  -# [LdDrops] Packets dropped by capacity overloaded in the last interval;
@@ -85,11 +85,11 @@ public:
    */
   //\{
   uint32_t GetEwmaBufferEntries       (void) const;
+  DataRate GetEwmaCpuLoad             (void) const;
   uint32_t GetEwmaFlowTableEntries    (uint8_t tableId) const;
   uint32_t GetEwmaGroupTableEntries   (void) const;
   uint32_t GetEwmaMeterTableEntries   (void) const;
   Time     GetEwmaPipelineDelay       (void) const;
-  DataRate GetEwmaProcessingLoad      (void) const;
   uint32_t GetEwmaSumFlowEntries      (void) const;
   //\}
 
@@ -104,10 +104,10 @@ public:
    */
   //\{
   uint32_t GetAvgBufferUsage       (void) const;
+  uint32_t GetAvgCpuUsage          (void) const;
   uint32_t GetAvgFlowTableUsage    (uint8_t tableId) const;
   uint32_t GetAvgGroupTableUsage   (void) const;
   uint32_t GetAvgMeterTableUsage   (void) const;
-  uint32_t GetAvgProcessingUsage   (void) const;
   uint32_t GetAvgActFlowTableUsage (void) const;
   //\}
 
@@ -161,10 +161,10 @@ private:
   /** \name Internal counters, average values, and updated flags. */
   //\{
   double    m_ewmaBufferEntries;
+  double    m_ewmaCpuLoad;
   double    m_ewmaGroupEntries;
   double    m_ewmaMeterEntries;
   double    m_ewmaPipelineDelay;
-  double    m_ewmaProcessingLoad;
   double    m_ewmaSumFlowEntries;
 
   std::vector<double> m_ewmaFlowEntries;

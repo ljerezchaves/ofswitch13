@@ -41,8 +41,8 @@ OFSwitch13Device::DpIdDevMap_t OFSwitch13Device::m_globalSwitchMap;
 /********** Public methods **********/
 OFSwitch13Device::OFSwitch13Device ()
   : m_dpId (0),
-  m_pipeTokens (0),
-  m_pipeConsumed (0),
+  m_cpuConsumed (0),
+  m_cpuTokens (0),
   m_cFlowMod (0),
   m_cGroupMod (0),
   m_cMeterMod (0),
@@ -69,6 +69,11 @@ OFSwitch13Device::GetTypeId (void)
     .SetParent<Object> ()
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Device> ()
+    .AddAttribute ("CpuCapacity",
+                   "CPU processing capacity (in terms of throughput).",
+                   DataRateValue (DataRate ("100Gb/s")),
+                   MakeDataRateAccessor (&OFSwitch13Device::m_cpuCapacity),
+                   MakeDataRateChecker ())
     .AddAttribute ("DatapathId",
                    "The unique identification of this OpenFlow switch.",
                    TypeId::ATTR_GET,
@@ -104,11 +109,6 @@ OFSwitch13Device::GetTypeId (void)
                    ObjectVectorValue (),
                    MakeObjectVectorAccessor (&OFSwitch13Device::m_ports),
                    MakeObjectVectorChecker<OFSwitch13Port> ())
-    .AddAttribute ("ProcessingCapacity",
-                   "Pipeline processing capacity in terms of throughput.",
-                   DataRateValue (DataRate ("100Gb/s")),
-                   MakeDataRateAccessor (&OFSwitch13Device::m_procCapy),
-                   MakeDataRateChecker ())
     .AddAttribute ("TcamDelay",
                    "Average time to perform a TCAM operation in pipeline.",
                    TimeValue (MicroSeconds (20)),
@@ -141,8 +141,8 @@ OFSwitch13Device::GetTypeId (void)
                        &OFSwitch13Device::m_meterDropTrace),
                      "ns3::OFSwitch13Device::MeterDropTracedCallback")
     .AddTraceSource ("OverloadDrop",
-                     "Trace source indicating a packet dropped by processing "
-                     "capacity overloaded.",
+                     "Trace source indicating a packet dropped by CPU "
+                     "overloaded processing capacity.",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_loadDropTrace),
                      "ns3::Packet::TracedCallback")
@@ -157,6 +157,12 @@ OFSwitch13Device::GetTypeId (void)
                        &OFSwitch13Device::m_datapathTimeoutTrace),
                      "ns3::OFSwitch13Device::DeviceTracedCallback")
 
+    .AddTraceSource ("CpuLoad",
+                     "Traced value indicating the avg CPU processing load"
+                     " (periodically updated on datapath timeout operation).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_cpuLoad),
+                     "ns3::TracedValueCallback::DataRate")
     .AddTraceSource ("GroupEntries",
                      "Traced value indicating the number of group entries"
                      " (periodically updated on datapath timeout operation).",
@@ -175,12 +181,6 @@ OFSwitch13Device::GetTypeId (void)
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_pipeDelay),
                      "ns3::TracedValueCallback::Time")
-    .AddTraceSource ("ProcessingLoad",
-                     "Traced value indicating the avg processing load"
-                     " (periodically updated on datapath timeout operation).",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_procLoad),
-                     "ns3::TracedValueCallback::DataRate")
     .AddTraceSource ("SumFlowEntries",
                      "Traced value indicating the total number of flow entries"
                      " (periodically updated on datapath timeout operation).",
@@ -254,6 +254,29 @@ OFSwitch13Device::GetBufferUsage (void) const
     }
   return static_cast<double> (GetBufferEntries ()) /
          static_cast<double> (GetBufferSize ());
+}
+
+DataRate
+OFSwitch13Device::GetCpuCapacity (void) const
+{
+  return m_cpuCapacity;
+}
+
+DataRate
+OFSwitch13Device::GetCpuLoad (void) const
+{
+  return m_cpuLoad;
+}
+
+double
+OFSwitch13Device::GetCpuUsage (void) const
+{
+  if (GetCpuCapacity ().GetBitRate () == 0)
+    {
+      return 0.0;
+    }
+  return static_cast<double> (GetCpuLoad ().GetBitRate ()) /
+         static_cast<double> (GetCpuCapacity ().GetBitRate ());
 }
 
 Time
@@ -359,29 +382,6 @@ OFSwitch13Device::GetPipelineDelay (void) const
   return m_pipeDelay;
 }
 
-DataRate
-OFSwitch13Device::GetProcessingCapacity (void) const
-{
-  return m_procCapy;
-}
-
-DataRate
-OFSwitch13Device::GetProcessingLoad (void) const
-{
-  return m_procLoad;
-}
-
-double
-OFSwitch13Device::GetProcessingUsage (void) const
-{
-  if (GetProcessingCapacity ().GetBitRate () == 0)
-    {
-      return 0.0;
-    }
-  return static_cast<double> (GetProcessingLoad ().GetBitRate ()) /
-         static_cast<double> (GetProcessingCapacity ().GetBitRate ());
-}
-
 uint32_t
 OFSwitch13Device::GetSumFlowEntries (void) const
 {
@@ -420,19 +420,19 @@ OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
 {
   NS_LOG_FUNCTION (this << packet << portNo << tunnelId);
 
-  // Check the packet for conformance to the processing capacity.
+  // Check the packet for conformance to CPU processing capacity.
   uint32_t pktSizeBits = packet->GetSize () * 8;
-  if (m_pipeTokens < pktSizeBits)
+  if (m_cpuTokens < pktSizeBits)
     {
       // Packet will be dropped. Increase counter and fire drop trace source.
-      NS_LOG_DEBUG ("Drop packet due to pipeline processing capacity.");
+      NS_LOG_DEBUG ("Drop packet due to CPU overloaded capacity.");
       m_loadDropTrace (packet);
       return;
     }
 
   // Consume tokens, fire trace source and schedule the packet to the pipeline.
-  m_pipeTokens -= pktSizeBits;
-  m_pipeConsumed += pktSizeBits;
+  m_cpuTokens -= pktSizeBits;
+  m_cpuConsumed += pktSizeBits;
   m_pipePacketTrace (packet);
   Simulator::Schedule (m_pipeDelay, &OFSwitch13Device::SendToPipeline,
                        this, packet, portNo, tunnelId);
@@ -792,17 +792,17 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
   m_pipeDelay = m_sumFlowEntries < 2U ? m_tcamDelay :
     m_tcamDelay * (int64_t)ceil (log2 (m_sumFlowEntries));
 
-  // The processing load is estimated based on the tokens removed from pipeline
-  // bucket since last timeout operation.
-  m_procLoad = DataRate (m_pipeConsumed / m_timeout.GetSeconds ());
-  m_pipeConsumed = 0;
+  // The CPU load is estimated based on the CPU consumed tokens since last
+  // timeout operation.
+  m_cpuLoad = DataRate (m_cpuConsumed / m_timeout.GetSeconds ());
+  m_cpuConsumed = 0;
 
   // Refill the pipeline bucket with tokens based on elapsed time
   // (bucket capacity is set to the number of tokens for an entire second).
   Time elapTime = Simulator::Now () - m_lastTimeout;
-  uint64_t addTokens = m_procCapy.GetBitRate () * elapTime.GetSeconds ();
-  uint64_t maxTokens = m_procCapy.GetBitRate ();
-  m_pipeTokens = std::min (m_pipeTokens + addTokens, maxTokens);
+  uint64_t addTokens = m_cpuCapacity.GetBitRate () * elapTime.GetSeconds ();
+  uint64_t maxTokens = m_cpuCapacity.GetBitRate ();
+  m_cpuTokens = std::min (m_cpuTokens + addTokens, maxTokens);
 
   dp->last_timeout = time_now ();
   m_lastTimeout = Simulator::Now ();

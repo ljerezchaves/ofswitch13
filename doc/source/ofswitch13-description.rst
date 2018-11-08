@@ -84,10 +84,10 @@ which are necessary during OpenFlow pipeline processing. Including this new
 callback in the ``NetDevice`` is the only required modification to the |ns3|
 source code for |ofs13| usage.
 
-The incoming packet is checked for conformance to the pipeline processing
-capacity (throughput) defined by the ``OFSwitch13Device::ProcessingCapacity``
-attribute. Packets exceeding processing capacity are dropped, while conformant
-packets are sent to the pipeline at the |ofslib| library.
+The incoming packet is checked for conformance to the CPU processing capacity
+(throughput) defined by the ``OFSwitch13Device::CpuCapacity`` attribute.
+Packets exceeding CPU processing capacity are dropped, while conformant packets
+are sent to the pipeline at the |ofslib| library.
 
 The module considers the concept of *virtual TCAM* (Ternary Content-Addressable
 Memory) to estimate the average flow table search time to model OpenFlow

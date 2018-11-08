@@ -176,6 +176,9 @@ public:
   uint32_t GetBufferEntries       (void) const;
   uint32_t GetBufferSize          (void) const;
   double   GetBufferUsage         (void) const;
+  DataRate GetCpuCapacity         (void) const;
+  DataRate GetCpuLoad             (void) const;
+  double   GetCpuUsage            (void) const;
   Time     GetDatapathTimeout     (void) const;
   uint32_t GetFlowTableEntries    (uint8_t tableId = 0) const;
   uint32_t GetFlowTableSize       (uint8_t tableId = 0) const;
@@ -190,9 +193,6 @@ public:
   uint32_t GetNPipelineTables     (void) const;
   uint32_t GetNSwitchPorts        (void) const;
   Time     GetPipelineDelay       (void) const;
-  DataRate GetProcessingCapacity  (void) const;
-  DataRate GetProcessingLoad      (void) const;
-  double   GetProcessingUsage     (void) const;
   uint32_t GetSumFlowEntries      (void) const;
   //\}
 
@@ -611,11 +611,11 @@ private:
   /** Sum of entries in all flow tables. */
   TracedValue<uint32_t> m_sumFlowEntries;
 
-  /** Average pipeline delay for packet processing. */
+  /** Average delay for pipeline packet processing. */
   TracedValue<Time> m_pipeDelay;
 
-  /** Average processing load in terms of throughput. */
-  TracedValue<DataRate> m_procLoad;
+  /** Average CPU processing load. */
+  TracedValue<DataRate> m_cpuLoad;
 
   uint64_t          m_dpId;         //!< This datapath id.
   Time              m_timeout;      //!< Datapath timeout interval.
@@ -632,9 +632,9 @@ private:
   IdPacketMap_t     m_bufferPkts;   //!< Packets saved in switch buffer.
   uint32_t          m_bufferSize;   //!< Buffer size in terms of packets.
   PipelinePacket    m_pipePkt;      //!< Packet under switch pipeline.
-  uint64_t          m_pipeTokens;   //!< Pipeline capacity available tokens.
-  uint64_t          m_pipeConsumed; //!< Pipeline capacity consumed tokens.
-  DataRate          m_procCapy;     //!< Pipeline processing capacity.
+  DataRate          m_cpuCapacity;  //!< CPU processing capacity.
+  uint64_t          m_cpuConsumed;  //!< CPU processing tokens consumed.
+  uint64_t          m_cpuTokens;    //!< CPU processing tokens available.
   uint64_t          m_cFlowMod;     //!< Pipeline flow mod counter.
   uint64_t          m_cGroupMod;    //!< Pipeline group mod counter.
   uint64_t          m_cMeterMod;    //!< Pipeline meter mod counter.

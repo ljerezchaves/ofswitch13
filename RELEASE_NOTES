@@ -14,14 +14,16 @@ Release 3.X.X (XXX XX, XXXX)
   OpenFlow device pointer. For the latter, there's the optional second
   parameter of a device container that will be configured as switch ports.
 
+- New OFSwitch13Device::GetDpId () method as an alias for the GetDatapathId ()
+  method.
+
 - Renaming OFSwitch13Device attributes and trace sources to better reflect what
-  they really represent: PipelineCapacity attribute was renamed to
-  ProcessingCapacity, PipelineLoad traced value was renamed to ProcessingLoad,
-  and LoadDrop trace source was renamed to OverloadDrop. The methods
-  GetPipelineLoad and GetPipelineCapacity were also renamed to
-  GetProcessingLoad and GetProcessingCapacity. These changes also reflects on
-  the OFSwitch13StatsCalculator: GetEwmaPipelineLoad and GetAvgPipelineUsage
-  were renamed to GetEwmaProcessingLoad and GetAvgProcessingUsage.
+  they really represent: PipelineCapacity attribute was renamed to CpuCapacity,
+  PipelineLoad traced value was renamed to CpuLoad, and LoadDrop trace source
+  was renamed to OverloadDrop. The methods GetPipelineLoad and
+  GetPipelineCapacity were also renamed to GetCpuLoad and GetCpuCapacity. These
+  changes also reflects on the OFSwitch13StatsCalculator: GetEwmaPipelineLoad
+  and GetAvgPipelineUsage were renamed to GetEwmaCpuLoad and GetAvgCpuUsage.
 
 - Updating OFSwitch13Device::Get* methods for improved datapath stats. The
   GetFlowEntries, GetGroupEntries, and GetMeterEntries methods were replaced by
@@ -32,11 +34,10 @@ Release 3.X.X (XXX XX, XXXX)
   the same can be used to get this value on demand.
 
 - Improving OFSwitch13StatsCalculator with more statistics. It can now dump
-  individual flow table stats. This feature is optional (disabled by default).
-  The PipelineTableDetails attribute can be used to enable statistics for each
-  pipeline flow table.
+  individual flow table stats. This is an optional feature (disabled by
+  default), that can be enabled by the PipelineTableDetails attribute.
 
-- This version is compatible with ofsoftswitch13 library release v3.X.x and
+- This version is compatible with ofsoftswitch13 library release v3.3.x and
   ns-3 versions 3.28 or later (including patches). There is no backward
   compatibility with older ns-3 versions.
 

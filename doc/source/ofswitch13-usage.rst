@@ -339,6 +339,9 @@ OFSwitch13Device
   The datapath ID is a read-only attribute, automatically assigned by the
   object constructor.
 
+* ``CpuCapacity``: The data rate used to model the CPU processing capacity
+  (throughput). Packets exceeding this capacity are discarded.
+
 * ``FlowTableSize``: The maximum number of entries allowed on each flow table.
 
 * ``GroupTableSize``: The maximum number of entries allowed on group table.
@@ -346,9 +349,6 @@ OFSwitch13Device
 * ``MeterTableSize``: The maximum number of entries allowed on meter table.
 
 * ``PipelineTables``: The number of pipeline flow tables.
-
-* ``ProcessingCapacity``: The data rate used to model the pipeline processing
-  capacity (throughput). Packets exceeding the capacity are discarded.
 
 * ``PortList``: The list of ports available in this switch.
 
@@ -425,9 +425,9 @@ statistics of an OpenFlow switch datapath. The instances of this class connect
 to a collection of trace sources in the switch device and periodically dumps
 the following datapath metrics on the output file:
 
-#. [``Load:kbps``] Processing load in the last interval (kbits);
-#. [``Load:%``] Average processing capacity usage (percent);
-#. [``Packets``]Packets processed by the pipeline in the last interval;
+#. [``Load:kbps``] CPU orocessing load in the last interval (kbps);
+#. [``Load:%``] Average CPU processing capacity usage (percent);
+#. [``Packets``] Packets processed by the pipeline in the last interval;
 #. [``Dly:us``] EWMA pipeline lookup delay for packet processing (usecs);
 #. [``LdDrops``] Packets dropped by capacity overloaded in the last interval;
 #. [``MtDrops``] Packets dropped by meter bands in the last interval;
