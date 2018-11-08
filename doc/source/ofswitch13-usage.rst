@@ -447,7 +447,7 @@ the following datapath metrics on the output file:
 #. [``PktsBuf``] EWMA number of packets saved in switch buffer;
 #. [``BufU:%``] Average switch buffer usage (percent);
 
-When the PipelineDetails attribute is 'true', the EWMA number of entries and
+When the FlowTableDetails attribute is 'true', the EWMA number of entries and
 the average flow table usage for each pipeline flow tables is also available
 under column [``NFlows:FloU:%|...``].
 

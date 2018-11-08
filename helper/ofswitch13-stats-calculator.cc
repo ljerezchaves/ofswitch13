@@ -84,7 +84,7 @@ OFSwitch13StatsCalculator::GetTypeId (void)
                    StringValue ("ofswitch_stats.log"),
                    MakeStringAccessor (&OFSwitch13StatsCalculator::m_filename),
                    MakeStringChecker ())
-    .AddAttribute ("PipelineDetails",
+    .AddAttribute ("FlowTableDetails",
                    "Dump individual pipeline flow table statistics.",
                    BooleanValue (false),
                    MakeBooleanAccessor (&OFSwitch13StatsCalculator::m_details),

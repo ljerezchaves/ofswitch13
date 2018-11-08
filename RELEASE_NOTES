@@ -38,7 +38,7 @@ Release 3.X.X (XXX XX, XXXX)
 
 - Improving OFSwitch13StatsCalculator with more statistics. It can now dump
   individual flow table stats. This is an optional feature (disabled by
-  default), that can be enabled by the PipelineTableDetails attribute.
+  default), that can be enabled by the FlowTableDetails attribute.
 
 - This version is compatible with ofsoftswitch13 library release v3.3.x and
   ns-3 versions 3.28 or later (including patches). There is no backward
