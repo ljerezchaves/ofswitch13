@@ -118,7 +118,7 @@ OFSwitch13Device::GetTypeId (void)
                    "The interval between timeout operations on datapath.",
                    TimeValue (MilliSeconds (100)),
                    MakeTimeAccessor (&OFSwitch13Device::m_timeout),
-                   MakeTimeChecker (Time (1)))
+                   MakeTimeChecker (MilliSeconds (1), MilliSeconds (1000)))
 
     .AddTraceSource ("BufferExpire",
                      "Trace source indicating an expired packet in buffer.",
