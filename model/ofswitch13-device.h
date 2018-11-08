@@ -150,6 +150,12 @@ public:
   uint64_t GetDatapathId (void) const;
 
   /**
+   * Alias for the GetDatapathId () method.
+   * \return The datapath ID.
+   */
+  uint64_t GetDpId (void) const;
+
+  /**
    * \name OpenFLow control channel counter accessors.
    * \return The requested value.
    */

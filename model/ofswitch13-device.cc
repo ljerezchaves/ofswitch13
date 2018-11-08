@@ -198,6 +198,12 @@ OFSwitch13Device::GetDatapathId (void) const
 }
 
 uint64_t
+OFSwitch13Device::GetDpId (void) const
+{
+  return m_dpId;
+}
+
+uint64_t
 OFSwitch13Device::GetFlowModCounter (void) const
 {
   return m_cFlowMod;
