@@ -104,7 +104,7 @@ private:
   /** Structure to save the list of internal queues in this queue interface. */
   typedef std::vector<Ptr<Queue> > QueueList_t;
 
-  struct sw_port*       m_swPort;     //!< ofsoftswitch13 struct sw_port.
+  struct sw_port*       m_swPort;     //!< ofsoftswitch13 port structure.
   ObjectFactory         m_qFactory;   //!< Factory for internal queues.
   uint32_t              m_intQueues;  //!< Number of internal queues.
   QueueList_t           m_queues;     //!< List of internal queues.

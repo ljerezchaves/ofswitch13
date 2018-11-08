@@ -622,7 +622,7 @@ private:
   Time              m_lastTimeout;  //!< Datapath last timeout.
   Time              m_tcamDelay;    //!< Flow Table TCAM lookup delay.
   std::string       m_libLog;       //!< The ofsoftswitch13 library log level.
-  struct datapath*  m_datapath;     //!< The OpenFlow datapath.
+  struct datapath*  m_datapath;     //!< ofsoftswitch13 datapath structure.
   PortList_t        m_ports;        //!< List of switch ports.
   CtrlList_t        m_controllers;  //!< Collection of active controllers.
   uint32_t          m_flowTabSize;  //!< Flow table maximum entries.

@@ -127,7 +127,7 @@ private:
   TracedCallback<Ptr<const Packet> > m_txTrace;
 
   uint32_t                  m_portNo;       //!< Port number.
-  struct sw_port*           m_swPort;       //!< ofsoftswitch13 struct sw_port.
+  struct sw_port*           m_swPort;       //!< ofsoftswitch13 port structure.
   Ptr<NetDevice>            m_netDev;       //!< Underlying NetDevice.
   Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue.
   Ptr<OFSwitch13Device>     m_openflowDev;  //!< OpenFlow device.
