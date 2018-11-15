@@ -259,30 +259,30 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
   m_wrapper = Create<OutputStreamWrapper> (m_filename, std::ios::out);
   *m_wrapper->GetStream ()
     << boolalpha << right << fixed << setprecision (3)
-    << " " << setw (8) << "Time:s"
-    << " " << setw (12) << "Load:kbps"
-    << " " << setw (7)  << "Load:%"
+    << " " << setw (8)  << "TimeSec"
+    << " " << setw (12) << "LoaKbps"
+    << " " << setw (7)  << "LoaUsag"
     << " " << setw (7)  << "Packets"
-    << " " << setw (7)  << "Dly:us"
-    << " " << setw (7)  << "LdDrops"
-    << " " << setw (7)  << "MtDrops"
+    << " " << setw (7)  << "DlyUsec"
+    << " " << setw (7)  << "LoaDrop"
+    << " " << setw (7)  << "MetDrps"
     << " " << setw (7)  << "FloMods"
     << " " << setw (7)  << "MetMods"
     << " " << setw (7)  << "GroMods"
     << " " << setw (7)  << "PktsIn"
     << " " << setw (7)  << "PktsOut"
-    << " " << setw (7)  << "SFlows"
-    << " " << setw (7)  << "FloAU:%"
-    << " " << setw (7)  << "NMeters"
-    << " " << setw (7)  << "MetU:%"
-    << " " << setw (7)  << "NGroups"
-    << " " << setw (7)  << "GroU:%"
-    << " " << setw (7)  << "PktsBuf"
-    << " " << setw (7)  << "BufU:%";
+    << " " << setw (7)  << "FloEntr"
+    << " " << setw (7)  << "FloUsag"
+    << " " << setw (7)  << "MetEntr"
+    << " " << setw (7)  << "MetUsag"
+    << " " << setw (7)  << "GroEntr"
+    << " " << setw (7)  << "GroUsag"
+    << " " << setw (7)  << "BufPkts"
+    << " " << setw (7)  << "BufUsag";
 
   if (m_details)
     {
-      *m_wrapper->GetStream () << "  " << setw (19) << "[NFlows:FloU:%|...]";
+      *m_wrapper->GetStream () << "  " << setw (21) << "[FloEntr:FloUsag|...]";
     }
 
   *m_wrapper->GetStream () << std::endl;

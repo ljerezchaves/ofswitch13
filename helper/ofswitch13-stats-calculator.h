@@ -32,31 +32,31 @@ namespace ns3 {
  * calculator connects to a collection of trace sources in the OpenFlow switch
  * device to monitor the following metrics:
  *
- *  -# [Load:kbps] CPU processing load in the last interval (kbps);
- *  -# [Load:%] Average CPU processing capacity usage (percent);
- *  -# [Packets] Packets processed by the pipeline in the last interval;
- *  -# [Dly:us] EWMA pipeline lookup delay for packet processing (usecs);
- *  -# [LdDrops] Packets dropped by capacity overloaded in the last interval;
- *  -# [MtDrops] Packets dropped by meter bands in the last interval;
- *  -# [FloMods] Flow-mod operations executed in the last interval;
- *  -# [MetMods] Meter-mod operations executed in the last interval;
- *  -# [GroMods] Group-mod operations executed in the last interval;
- *  -# [PktsIn] Packets-in sent to the controller in the last interval;
- *  -# [PktsOut] Packets-out received from the controller in the last interval;
- *  -# [SFlows] EWMA sum of entries in all pipeline flow tables;
- *  -# [FloAU:%] Average flow table usage, considering the sum of entries in
- *     all flow tables divided by the aggregated sizes of all flow tables
- *     with at least one flow entry installed in the last interval (percent);
- *  -# [NMeters] EWMA number of entries in meter table;
- *  -# [MetU:%] Average meter table usage in the last interval (percent);
- *  -# [NGroups] EWMA number of entries in group table;
- *  -# [GroU:%] Average group table usage in the last interval (percent);
- *  -# [PktsBuf] EWMA number of packets saved in switch buffer;
- *  -# [BufU:%] Average switch buffer usage in the last interval (percent);
+ * -# [LoaKbps] CPU porocessing load in the last interval (Kbps);
+ * -# [LoaUsag] Average CPU processing capacity usage (percent);
+ * -# [Packets] Packets processed by the pipeline in the last interval;
+ * -# [DlyUsec] EWMA pipeline lookup delay for packet processing (usecs);
+ * -# [LoaDrop] Packets dropped by capacity overloaded in the last interval;
+ * -# [MetDrps] Packets dropped by meter bands in the last interval;
+ * -# [FloMods] Flow-mod operations executed in the last interval;
+ * -# [MetMods] Meter-mod operations executed in the last interval;
+ * -# [GroMods] Group-mod operations executed in the last interval;
+ * -# [PktsIn]  Packets-in sent to the controller in the last interval;
+ * -# [PktsOut] Packets-out received from the controller in the last interval;
+ * -# [FloEntr] EWMA sum of entries in all pipeline flow tables;
+ * -# [FloUsag] Average flow table usage, considering the sum of entries in
+ *    all flow tables divided by the aggregated sizes of all flow tables with
+ *    at least one flow entry installed (percent);
+ * -# [MetEntr] EWMA number of entries in meter table;
+ * -# [MetUsag] Average meter table usage (percent);
+ * -# [GroEntr] EWMA number of entries in group table;
+ * -# [GroUsag] Average group table usage (percent);
+ * -# [BufPkts] EWMA number of packets in switch buffer;
+ * -# [BufUsag] Average switch buffer usage (percent);
  *
  * When the FlowTableDetails is 'true', the EWMA number of entries and the
- * average flow table usage for each pipeline flow tables is also available
- * under column [NFlows:FloU:%|...].
+ * average flow table usage for each pipeline flow table is also available
+ * under column [FloEntr:FloUsag|...].
  */
 class OFSwitch13StatsCalculator : public Object
 {

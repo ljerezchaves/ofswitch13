@@ -40,6 +40,9 @@ Release 3.X.X (XXX XX, XXXX)
   individual flow table stats. This is an optional feature (disabled by
   default), that can be enabled by the FlowTableDetails attribute.
 
+- Renaming OFSwitch13StatsCalculator column names in first row, removing any
+  special character from them.
+
 - This version is compatible with ofsoftswitch13 library release v3.3.x and
   ns-3 versions 3.28 or later (including patches). There is no backward
   compatibility with older ns-3 versions.
