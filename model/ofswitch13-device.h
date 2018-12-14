@@ -180,9 +180,10 @@ public:
   DataRate GetCpuLoad             (void) const;
   double   GetCpuUsage            (void) const;
   Time     GetDatapathTimeout     (void) const;
-  uint32_t GetFlowTableEntries    (uint8_t tableId = 0) const;
-  uint32_t GetFlowTableSize       (uint8_t tableId = 0) const;
-  double   GetFlowTableUsage      (uint8_t tableId = 0) const;
+  uint32_t GetDftFlowTableSize    (void) const;
+  uint32_t GetFlowTableEntries    (uint8_t tableId) const;
+  uint32_t GetFlowTableSize       (uint8_t tableId) const;
+  double   GetFlowTableUsage      (uint8_t tableId) const;
   uint32_t GetGroupTableEntries   (void) const;
   uint32_t GetGroupTableSize      (void) const;
   double   GetGroupTableUsage     (void) const;
@@ -364,12 +365,14 @@ private:
 
   /**
    * \name Adjust OpenFlow switch table sizes.
+   * \param tableId The pipeline flow table ID.
    * \param value The value to set.
    */
   //\{
-  void AdjustFlowTableSize  (uint32_t value);
-  void AdjustGroupTableSize (uint32_t value);
-  void AdjustMeterTableSize (uint32_t value);
+  void SetFlowTableSize     (uint8_t tableId, uint32_t value);
+  void SetDftFlowTableSize  (uint32_t value);
+  void SetGroupTableSize    (uint32_t value);
+  void SetMeterTableSize    (uint32_t value);
   //\}
 
   /**

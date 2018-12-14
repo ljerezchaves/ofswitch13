@@ -8,6 +8,9 @@ This file contains OFSwitch13 release notes (most recent releases first).
 Release 3.X.X (XXX XX, XXXX)
 ============================
 
+- The OFSwitch13Device FlowTableSize, GroupTableSize, and MeterTableSize
+  attributes can now be adjusted at any time.
+
 - Overriding the OFSwitch13Helper::InstallSwitch method. When the first
   parameter is a node container, the method returns an OpenFlow device
   container. When the first parameter is a node pointer, the method returns the
