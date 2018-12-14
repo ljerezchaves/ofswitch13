@@ -54,9 +54,9 @@ namespace ns3 {
  * -# [BufPkts] EWMA number of packets in switch buffer;
  * -# [BufUsag] Average switch buffer usage (percent);
  *
- * When the FlowTableDetails is 'true', the EWMA number of entries and the
- * average flow table usage for each pipeline flow table is also available
- * under column [FloEntr:FloUsag|...].
+ * When the FlowTableDetails attribute is set to 'true', the EWMA number of
+ * entries and the average flow table usage for each pipeline flow table is
+ * also available under the columns ``T**Entr`` and ``T**Usag``.
  */
 class OFSwitch13StatsCalculator : public Object
 {

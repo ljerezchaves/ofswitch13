@@ -101,6 +101,44 @@ OFSwitch13StatsCalculator::HookSinks (Ptr<OFSwitch13Device> device)
   // Save switch device pointer.
   m_device = device;
 
+  // Print the header line.
+  *m_wrapper->GetStream ()
+    << boolalpha << right << fixed << setprecision (3)
+    << " " << setw (8)  << "TimeSec"
+    << " " << setw (12) << "LoaKbps"
+    << " " << setw (7)  << "LoaUsag"
+    << " " << setw (7)  << "Packets"
+    << " " << setw (7)  << "DlyUsec"
+    << " " << setw (7)  << "LoaDrop"
+    << " " << setw (7)  << "MetDrps"
+    << " " << setw (7)  << "FloMods"
+    << " " << setw (7)  << "MetMods"
+    << " " << setw (7)  << "GroMods"
+    << " " << setw (7)  << "PktsIn"
+    << " " << setw (7)  << "PktsOut"
+    << " " << setw (7)  << "FloEntr"
+    << " " << setw (7)  << "FloUsag"
+    << " " << setw (7)  << "MetEntr"
+    << " " << setw (7)  << "MetUsag"
+    << " " << setw (7)  << "GroEntr"
+    << " " << setw (7)  << "GroUsag"
+    << " " << setw (7)  << "BufPkts"
+    << " " << setw (7)  << "BufUsag";
+
+  if (m_details)
+    {
+      for (size_t i = 0; i < m_device->GetNPipelineTables (); i++)
+        {
+          std::string field1 = "T" + to_string (i) + "Entr";
+          std::string field2 = "T" + to_string (i) + "Usag";
+          *m_wrapper->GetStream ()
+            << " " << setw (7) << field1
+            << " " << setw (7) << field2;
+        }
+    }
+
+  *m_wrapper->GetStream () << std::endl;
+
   // Hook sinks.
   device->TraceConnectWithoutContext (
     "DatapathTimeout", MakeCallback (
@@ -255,37 +293,8 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
 {
   NS_LOG_FUNCTION (this);
 
-  // Open output file and print header line.
+  // Open output file.
   m_wrapper = Create<OutputStreamWrapper> (m_filename, std::ios::out);
-  *m_wrapper->GetStream ()
-    << boolalpha << right << fixed << setprecision (3)
-    << " " << setw (8)  << "TimeSec"
-    << " " << setw (12) << "LoaKbps"
-    << " " << setw (7)  << "LoaUsag"
-    << " " << setw (7)  << "Packets"
-    << " " << setw (7)  << "DlyUsec"
-    << " " << setw (7)  << "LoaDrop"
-    << " " << setw (7)  << "MetDrps"
-    << " " << setw (7)  << "FloMods"
-    << " " << setw (7)  << "MetMods"
-    << " " << setw (7)  << "GroMods"
-    << " " << setw (7)  << "PktsIn"
-    << " " << setw (7)  << "PktsOut"
-    << " " << setw (7)  << "FloEntr"
-    << " " << setw (7)  << "FloUsag"
-    << " " << setw (7)  << "MetEntr"
-    << " " << setw (7)  << "MetUsag"
-    << " " << setw (7)  << "GroEntr"
-    << " " << setw (7)  << "GroUsag"
-    << " " << setw (7)  << "BufPkts"
-    << " " << setw (7)  << "BufUsag";
-
-  if (m_details)
-    {
-      *m_wrapper->GetStream () << "  " << setw (21) << "[FloEntr:FloUsag|...]";
-    }
-
-  *m_wrapper->GetStream () << std::endl;
 
   // Scheduling first update and dump.
   Simulator::Schedule (m_timeout,
@@ -398,19 +407,12 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
 
   if (m_details)
     {
-      *m_wrapper->GetStream () << "  [" << setfill ('0');
       for (size_t i = 0; i < m_device->GetNPipelineTables (); i++)
         {
           *m_wrapper->GetStream ()
-            << setw (5) << GetEwmaFlowTableEntries (i) << ":"
-            << setw (3) << GetAvgFlowTableUsage (i);
-
-          if (i + 1 != m_device->GetNPipelineTables ())
-            {
-              *m_wrapper->GetStream () << "|";
-            }
+            << " " << setw (7) << GetEwmaFlowTableEntries (i)
+            << " " << setw (7) << GetAvgFlowTableUsage (i);
         }
-      *m_wrapper->GetStream () << "]" << setfill (' ');
     }
 
   *m_wrapper->GetStream () << std::endl;
