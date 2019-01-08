@@ -49,18 +49,6 @@ public:
   virtual ~OFSwitch13Port ();   //!< Dummy destructor, see DoDispose
 
   /**
-   * Register this type.
-   * \return The object TypeId.
-   */
-  static TypeId GetTypeId (void);
-
-  /**
-   * Get the OpenFlow port number for this port.
-   * \return The port number.
-   */
-  uint32_t GetPortNo (void) const;
-
-  /**
    * Complete Constructor. Create and populate a new datapath port, notifying
    * the controller of this new port.
    * \see ofsoftswitch new_port () at udatapath/dp_ports.c
@@ -70,6 +58,42 @@ public:
    */
   OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
                   Ptr<OFSwitch13Device> openflowDev);
+
+  /**
+   * Register this type.
+   * \return The object TypeId.
+   */
+  static TypeId GetTypeId (void);
+
+  /**
+   * Get the NetDevice pointer from the underlying port.
+   * \return A pointer to the corresponding underlying NetDevice.
+   */
+  Ptr<NetDevice> GetPortDevice (void) const;
+
+  /**
+   * Get the OpenFlow port number for this port.
+   * \return The port number.
+   */
+  uint32_t GetPortNo (void) const;
+
+  /**
+   * Get the OpenFlow queue for this port.
+   * \return The port queue.
+   */
+  Ptr<OFSwitch13Queue> GetPortQueue (void) const;
+
+  /**
+   * Get a pointer to the internal ofsoftswitch13 port structure.
+   * \return The requested pointer.
+   */
+  struct sw_port* GetPortStruct ();
+
+  /**
+   * Get the OFSwitch13Device pointer from this port.
+   * \return A pointer to the corresponding OFSwitch13Device.
+   */
+  Ptr<OFSwitch13Device> GetSwitchDevice (void) const;
 
   /**
    * Update the port state field based on NetDevice status, and notify the
@@ -90,12 +114,6 @@ public:
    */
   bool Send (Ptr<const Packet> packet, uint32_t queueNo = 0,
              uint64_t tunnelId = 0);
-
-  /**
-   * Get a pointer to the internal ofsoftswitch13 port structure.
-   * \return The requested pointer.
-   */
-  struct sw_port* GetPortStruct ();
 
 protected:
   /** Destructor implementation */

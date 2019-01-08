@@ -182,10 +182,28 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
     }
 }
 
+Ptr<NetDevice>
+OFSwitch13Port::GetPortDevice (void) const
+{
+  return m_netDev;
+}
+
 uint32_t
 OFSwitch13Port::GetPortNo (void) const
 {
   return m_portNo;
+}
+
+Ptr<OFSwitch13Queue>
+OFSwitch13Port::GetPortQueue (void) const
+{
+  return m_portQueue;
+}
+
+Ptr<OFSwitch13Device>
+OFSwitch13Port::GetSwitchDevice (void) const
+{
+  return m_openflowDev;
 }
 
 bool

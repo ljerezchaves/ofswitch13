@@ -17,6 +17,8 @@ Release 3.X.X (XXX XX, XXXX)
   OpenFlow device pointer. For the latter, there's the optional second
   parameter of a device container that will be configured as switch ports.
 
+- New OFSwitch13Port::GetPortDevice, GetPortQueue and GetSwitchDevice methods.
+
 - New OFSwitch13Device::GetDpId method as an alias for the GetDatapathId
   method.
 
