@@ -217,6 +217,13 @@ public:
   Ptr<OFSwitch13Port> AddSwitchPort (Ptr<NetDevice> portDevice);
 
   /**
+   * Get the OFSwitch13Port pointer from its number.
+   * \param no The port number (starting at 1).
+   * \return A pointer to the corresponding OFSwitch13Port.
+   */
+  Ptr<OFSwitch13Port> GetSwitchPort (uint32_t no) const;
+
+  /**
    * Called when a packet is received on one of the switch's ports. This method
    * will schedule the packet for OpenFlow pipeline.
    * \param packet The packet.
@@ -383,13 +390,6 @@ private:
    * \param dp The datapath.
    */
   void DatapathTimeout (struct datapath *dp);
-
-  /**
-   * Get the OFSwitch13Port pointer from its number.
-   * \param no The port number (starting at 1).
-   * \return A pointer to the corresponding OFSwitch13Port.
-   */
-  Ptr<OFSwitch13Port> GetOFSwitch13Port (uint32_t no);
 
   /**
    * Create an OpenFlow packet in message and send the packet to all

@@ -23,6 +23,8 @@ Release 3.X.X (XXX XX, XXXX)
 - New OFSwitch13Device::GetDatapathStruct and OFSwitch13Port::GetPortStruct
   methods returning a pointer to the ofsoftswitch13 library structures.
 
+- Renaming OFSwitch13Device::GetOFSwitch13Port method to GetSwitchPort.
+
 - Renaming OFSwitch13Device attributes and trace sources to better reflect what
   they really represent: PipelineCapacity attribute was renamed to CpuCapacity,
   PipelineLoad traced value was renamed to CpuLoad, and LoadDrop trace source

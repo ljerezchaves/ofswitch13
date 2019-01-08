@@ -429,6 +429,16 @@ OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
   return ofPort;
 }
 
+Ptr<OFSwitch13Port>
+OFSwitch13Device::GetSwitchPort (uint32_t no) const
+{
+  NS_LOG_FUNCTION (this << no);
+
+  // Assert port no (starts at 1).
+  NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Port is out of range.");
+  return m_ports.at (no - 1);
+}
+
 void
 OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
                                          uint64_t tunnelId)
@@ -844,16 +854,6 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
                        this, m_datapath);
 }
 
-Ptr<OFSwitch13Port>
-OFSwitch13Device::GetOFSwitch13Port (uint32_t no)
-{
-  NS_LOG_FUNCTION (this << no);
-
-  // Assert port no (starts at 1).
-  NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Port is out of range.");
-  return m_ports.at (no - 1);
-}
-
 int
 OFSwitch13Device::SendPacketInMessage (struct packet *pkt, uint8_t tableId,
                                        uint8_t reason, uint16_t maxLength,
@@ -896,7 +896,7 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid << portNo);
 
-  Ptr<OFSwitch13Port> port = GetOFSwitch13Port (portNo);
+  Ptr<OFSwitch13Port> port = GetSwitchPort (portNo);
   if (!port)
     {
       NS_LOG_ERROR ("Can't forward packet to invalid port.");
