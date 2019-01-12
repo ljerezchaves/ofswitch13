@@ -5,11 +5,14 @@ OFSwitch13 release notes
 This file contains OFSwitch13 release notes (most recent releases first).
 
 
-Release 3.X.X (XXX XX, XXXX)
+Release 4.X.X (XXX XX, XXXX)
 ============================
 
+- BE AWARE THAT this release brings incompatible API changes in respect to
+  prior OFSwitch13 versions.
+
 - Fixing the correlation between queue ID and priority in OFSwitch13Queue:
-  From now one, the lower is the queue ID, the higher is its priority.
+  from now one, the lower is the queue ID, the higher is its priority.
 
 - By default, every output port on the switch is created with a single queue.
   The OFSwitch13Queue::NumQueues attribute can be used to configure a custom
