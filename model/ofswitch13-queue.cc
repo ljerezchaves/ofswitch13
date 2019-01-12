@@ -58,7 +58,7 @@ OFSwitch13Queue::GetTypeId (void)
     .AddAttribute ("NumQueues",
                    "The number of internal queues available on this queue.",
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                   UintegerValue (NETDEV_MAX_QUEUES),
+                   UintegerValue (1),
                    MakeUintegerAccessor (&OFSwitch13Queue::m_intQueues),
                    MakeUintegerChecker<uint32_t> (1, NETDEV_MAX_QUEUES))
     .AddAttribute ("QueueFactory",

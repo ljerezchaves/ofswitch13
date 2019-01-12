@@ -11,6 +11,10 @@ Release 3.X.X (XXX XX, XXXX)
 - Fixing the correlation between queue ID and priority in OFSwitch13Queue:
   From now one, the lower is the queue ID, the higher is its priority.
 
+- By default, every output port on the switch is created with a single queue.
+  The OFSwitch13Queue::NumQueues attribute can be used to configure a custom
+  number of internal priority queues.
+
 - The OFSwitch13Device FlowTableSize, GroupTableSize, and MeterTableSize
   attributes can now be adjusted at any time.
 
