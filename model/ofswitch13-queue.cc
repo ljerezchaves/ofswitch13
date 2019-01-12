@@ -178,7 +178,7 @@ OFSwitch13Queue::Dequeue (void)
 {
   NS_LOG_FUNCTION (this);
 
-  for (int32_t i = GetNQueues () - 1; i >= 0; i--)
+  for (uint32_t i = 0; i < GetNQueues (); i++)
     {
       if (GetQueue (i)->IsEmpty () == false)
         {
@@ -210,7 +210,7 @@ OFSwitch13Queue::Remove (void)
 {
   NS_LOG_FUNCTION (this);
 
-  for (int32_t i = GetNQueues () - 1; i >= 0; i--)
+  for (uint32_t i = 0; i < GetNQueues (); i++)
     {
       if (GetQueue (i)->IsEmpty () == false)
         {
@@ -242,7 +242,7 @@ OFSwitch13Queue::Peek (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  for (int32_t i = GetNQueues () - 1; i >= 0; i--)
+  for (uint32_t i = 0; i < GetNQueues (); i++)
     {
       if (GetQueue (i)->IsEmpty () == false)
         {

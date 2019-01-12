@@ -119,8 +119,8 @@ Packets sent to the OpenFlow queue for transmission by the ``CsmaNetDevice``
 are expected to carry the ``QueueTag``, which is used to identify the internal
 queue to hold the packet. Then, the output scheduling algorithm decides from
 which queue to get packets during dequeue procedures. Currently, only a
-priority scheduling algorithm is available for use (with lowest priority ID set
-to 0). The ``OFSwitch13Queue::NumQueues`` attribute indicates the number of
+priority scheduling algorithm is available for use (with highest priority ID
+set to 0). The ``OFSwitch13Queue::NumQueues`` attribute indicates the number of
 internal queues that the constructor must create, and cannot be removed. The
 ``OFSwitch13Queue::QueueFactory`` attribute is used to set the type of each
 internal queue. By default, it uses ``DropTailQueue`` operating in packet mode

@@ -43,10 +43,10 @@ extern template class Queue<Packet>;
  * takes place outside the OpenFlow protocol. This class implements the queue
  * interface, extending the ns3::Queue class to allow compatibility with the
  * CsmaNetDevice used by OFSwitch13Port. Internally, it can hold a collection
- * of N priority queues, identified by IDs ranging from 0 to N in increasing
- * priority (queue ID 0 has the lowest priority). The ns3::QueueTag is used to
+ * of N priority queues, identified by IDs ranging from 0 to N with decreasing
+ * priority (queue ID 0 has the highest priority). The ns3::QueueTag is used to
  * identify which internal queue will hold the packet, and the priority
- * algorithms ensures that higher-priority queues "always" get serviced
+ * algorithms ensures that higher-priority queues are "always" get serviced
  * first.
  */
 class OFSwitch13Queue : public Queue<Packet>
