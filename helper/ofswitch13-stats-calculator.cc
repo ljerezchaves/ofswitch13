@@ -70,7 +70,7 @@ OFSwitch13StatsCalculator::GetTypeId (void)
     .AddConstructor<OFSwitch13StatsCalculator> ()
     .AddAttribute ("EwmaAlpha",
                    "The EWMA alpha parameter for averaging statistics.",
-                   DoubleValue (0.25),
+                   DoubleValue (0.2),
                    MakeDoubleAccessor (&OFSwitch13StatsCalculator::m_alpha),
                    MakeDoubleChecker<double> (0.0, 1.0))
     .AddAttribute ("DumpTimeout",
