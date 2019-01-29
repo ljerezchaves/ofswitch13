@@ -33,35 +33,12 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Queue");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Queue);
 
-static ObjectFactory
-GetDefaultQueueFactory ()
-{
-  // Setting default internal queue configuration.
-  ObjectFactory queueFactory;
-  queueFactory.SetTypeId ("ns3::DropTailQueue<Packet>");
-  queueFactory.Set ("MaxSize", StringValue ("100p"));
-  return queueFactory;
-}
-
 TypeId
 OFSwitch13Queue::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Queue")
     .SetParent<Queue<Packet> > ()
     .SetGroupName ("OFSwitch13")
-    .AddConstructor<OFSwitch13Queue> ()
-    .AddAttribute ("NumQueues",
-                   "The number of internal queues available on this queue.",
-                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                   UintegerValue (1),
-                   MakeUintegerAccessor (&OFSwitch13Queue::m_numQueues),
-                   MakeUintegerChecker<int> (1, NETDEV_MAX_QUEUES))
-    .AddAttribute ("QueueFactory",
-                   "The object factory for creating internal queues.",
-                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                   ObjectFactoryValue (GetDefaultQueueFactory ()),
-                   MakeObjectFactoryAccessor (&OFSwitch13Queue::m_facQueues),
-                   MakeObjectFactoryChecker ())
     .AddAttribute ("QueueList",
                    "The list of internal queues available to the port.",
                    ObjectVectorValue (),
@@ -124,64 +101,6 @@ OFSwitch13Queue::Enqueue (Ptr<Packet> packet)
   return retval;
 }
 
-Ptr<Packet>
-OFSwitch13Queue::Dequeue (void)
-{
-  NS_LOG_FUNCTION (this);
-
-  for (int queueId = 0; queueId < GetNQueues (); queueId++)
-    {
-      if (GetQueue (queueId)->IsEmpty () == false)
-        {
-          NS_LOG_DEBUG ("Packet to be dequeued from queue " << queueId);
-          Ptr<Packet> packet = GetQueue (queueId)->Dequeue ();
-          NotifyDequeue (packet);
-          return packet;
-        }
-    }
-
-  NS_LOG_DEBUG ("Queue empty");
-  return 0;
-}
-
-Ptr<Packet>
-OFSwitch13Queue::Remove (void)
-{
-  NS_LOG_FUNCTION (this);
-
-  for (int queueId = 0; queueId < GetNQueues (); queueId++)
-    {
-      if (GetQueue (queueId)->IsEmpty () == false)
-        {
-          NS_LOG_DEBUG ("Packet to be removed from queue " << queueId);
-          Ptr<Packet> packet = GetQueue (queueId)->Remove ();
-          NotifyRemove (packet);
-          return packet;
-        }
-    }
-
-  NS_LOG_DEBUG ("Queue empty");
-  return 0;
-}
-
-Ptr<const Packet>
-OFSwitch13Queue::Peek (void) const
-{
-  NS_LOG_FUNCTION (this);
-
-  for (int queueId = 0; queueId < GetNQueues (); queueId++)
-    {
-      if (GetQueue (queueId)->IsEmpty () == false)
-        {
-          NS_LOG_DEBUG ("Packet to be peeked from queue " << queueId);
-          return GetQueue (queueId)->Peek ();
-        }
-    }
-
-  NS_LOG_DEBUG ("Queue empty");
-  return 0;
-}
-
 int
 OFSwitch13Queue::GetNQueues (void) const
 {
@@ -233,13 +152,6 @@ OFSwitch13Queue::DoInitialize ()
 {
   NS_LOG_FUNCTION (this);
 
-  NS_ASSERT_MSG (m_swPort, "No ofsoftswitch13 port structure defined yet.");
-
-  // Creating the internal queues, defined by the NumQueues attribute.
-  for (int queueId = 0; queueId < m_numQueues; queueId++)
-    {
-      AddQueue (m_facQueues.Create<Queue<Packet> > ());
-    }
   // Chain up.
   Queue<Packet>::DoInitialize ();
 }

@@ -46,7 +46,7 @@ GetDefaultQueueFactory ()
 {
   // Setting default internal queue configuration.
   ObjectFactory queueFactory;
-  queueFactory.SetTypeId ("ns3::OFSwitch13Queue");
+  queueFactory.SetTypeId ("ns3::OFSwitch13PriorityQueue");
   return queueFactory;
 }
 

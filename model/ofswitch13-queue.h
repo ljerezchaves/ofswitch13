@@ -32,20 +32,23 @@ extern template class Queue<Packet>;
 
 /**
  * \ingroup ofswitch13
+ * \brief The OpenFlow 1.3 queue interface.
  *
- * \brief The OpenFlow 1.3 queue interface for simple QoS management. An
- * OpenFlow switch provides limited Quality-of-Service support (QoS) through a
- * simple queuing mechanism. One (or more) queues can attach to a port and be
- * used to map flow entries on it. Flow entries mapped to a specific queue
- * will be treated according to that queue's configuration. Queue configuration
- * takes place outside the OpenFlow protocol. This class implements the queue
- * interface, extending the ns3::Queue class to allow compatibility with the
- * CsmaNetDevice used by OFSwitch13Port. Internally, it can hold a collection
- * of N priority queues, identified by IDs ranging from 0 to N with decreasing
- * priority (queue ID 0 has the highest priority). The ns3::QueueTag is used to
- * identify which internal queue will hold the packet, and the priority
- * algorithms ensures that higher-priority queues are "always" get serviced
- * first.
+ * An OpenFlow switch provides limited Quality-of-Service support (QoS) through
+ * a simple queuing mechanism. One (or more) queues can attach to a port and be
+ * used to map flow entries on it. Flow entries mapped to a specific queue will
+ * be treated according to that queue's configuration. Queue configuration
+ * takes place outside the OpenFlow protocol.
+ *
+ * This class implements the queue interface, extending the ns3::Queue<Packet>
+ * class to allow compatibility with the CsmaNetDevice used by OFSwitch13Port.
+ * Internally, it holds a collection of N (possibly different) queues,
+ * identified by IDs ranging from 0 to N-1. The Enqueue () method uses the
+ * ns3::QueueTag to identify which internal queue will hold the packet.
+ * Subclasses can implement different output scheduling algorithms by
+ * implementing the Dequeue (), Remove () and Peek () methods, always calling
+ * the NotifyDequeue () and NotifyRemoved () methods from this base class to
+ * keep consistency.
  */
 class OFSwitch13Queue : public Queue<Packet>
 {
@@ -61,9 +64,6 @@ public:
 
   // Inherited from Queue.
   bool Enqueue (Ptr<Packet> packet);
-  Ptr<Packet> Dequeue (void);
-  Ptr<Packet> Remove (void);
-  Ptr<const Packet> Peek (void) const;
 
   /**
    * Get the number of internal queues.
@@ -124,8 +124,6 @@ private:
   typedef std::vector<Ptr<Queue> > QueueList_t;
 
   struct sw_port*       m_swPort;     //!< ofsoftswitch13 port structure.
-  ObjectFactory         m_facQueues;   //!< Factory for internal queues.
-  int                   m_numQueues;  //!< Number of internal queues.
   QueueList_t           m_queues;     //!< List of internal queues.
 
   NS_LOG_TEMPLATE_DECLARE;            //!< Redefinition of the log component.
