@@ -92,7 +92,7 @@ OFSwitch13Queue::~OFSwitch13Queue ()
 int
 OFSwitch13Queue::GetNQueues (void) const
 {
-  return m_intQueues;
+  return m_queues.size ();
 }
 
 Ptr<Queue<Packet> >
