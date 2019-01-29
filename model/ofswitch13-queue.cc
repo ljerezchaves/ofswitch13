@@ -39,7 +39,7 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Queue");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Queue);
 
-ObjectFactory
+static ObjectFactory
 GetDefaultQueueFactory ()
 {
   // Setting default internal queue configuration.
@@ -95,44 +95,10 @@ OFSwitch13Queue::GetNQueues (void) const
   return m_intQueues;
 }
 
-void
-OFSwitch13Queue::DoDispose ()
+Ptr<Queue<Packet> >
+OFSwitch13Queue::GetQueue (int queueId) const
 {
-  NS_LOG_FUNCTION (this);
-
-  // While m_swPort is valid, free internal stats and props
-  // structures for each available queue
-  if (m_swPort)
-    {
-      struct sw_queue *swQueue;
-      for (int queueId = 0; queueId < GetNQueues (); queueId++)
-        {
-          swQueue = &(m_swPort->queues[queueId]);
-          free (swQueue->stats);
-          free (swQueue->props);
-        }
-      m_swPort = 0;
-    }
-  m_queues.clear ();
-}
-
-void
-OFSwitch13Queue::NotifyConstructionCompleted (void)
-{
-  NS_LOG_FUNCTION (this);
-
-  // We are using a very large queue size for this queue interface. The real
-  // check for queue space is performed at DoEnqueue () by the internal queues.
-  SetAttribute ("MaxSize", StringValue ("100Mp"));
-
-  // Creating the internal queues, defined by the NumQueues attribute.
-  for (int queueId = 0; queueId < GetNQueues (); queueId++)
-    {
-      AddQueue (m_qFactory.Create<Queue<Packet> > ());
-    }
-
-  // Chain up.
-  Queue<Packet>::NotifyConstructionCompleted ();
+  return m_queues.at (queueId);
 }
 
 bool
@@ -255,6 +221,46 @@ OFSwitch13Queue::Peek (void) const
   return 0;
 }
 
+void
+OFSwitch13Queue::DoDispose ()
+{
+  NS_LOG_FUNCTION (this);
+
+  // While m_swPort is valid, free internal stats and props
+  // structures for each available queue
+  if (m_swPort)
+    {
+      struct sw_queue *swQueue;
+      for (int queueId = 0; queueId < GetNQueues (); queueId++)
+        {
+          swQueue = &(m_swPort->queues[queueId]);
+          free (swQueue->stats);
+          free (swQueue->props);
+        }
+      m_swPort = 0;
+    }
+  m_queues.clear ();
+}
+
+void
+OFSwitch13Queue::NotifyConstructionCompleted (void)
+{
+  NS_LOG_FUNCTION (this);
+
+  // We are using a very large queue size for this queue interface. The real
+  // check for queue space is performed at DoEnqueue () by the internal queues.
+  SetAttribute ("MaxSize", StringValue ("100Mp"));
+
+  // Creating the internal queues, defined by the NumQueues attribute.
+  for (int queueId = 0; queueId < GetNQueues (); queueId++)
+    {
+      AddQueue (m_qFactory.Create<Queue<Packet> > ());
+    }
+
+  // Chain up.
+  Queue<Packet>::NotifyConstructionCompleted ();
+}
+
 uint32_t
 OFSwitch13Queue::AddQueue (Ptr<Queue<Packet> > queue)
 {
@@ -287,12 +293,6 @@ OFSwitch13Queue::AddQueue (Ptr<Queue<Packet> > queue)
   NS_LOG_DEBUG ("New queue with ID " << queueId);
 
   return queueId;
-}
-
-Ptr<Queue<Packet> >
-OFSwitch13Queue::GetQueue (int queueId) const
-{
-  return m_queues.at (queueId);
 }
 
 } // namespace ns3

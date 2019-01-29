@@ -76,21 +76,6 @@ public:
    */
   int GetNQueues (void) const;
 
-protected:
-  /** Destructor implementation. */
-  virtual void DoDispose ();
-
-  // Inherited from ObjectBase.
-  virtual void NotifyConstructionCompleted (void);
-
-private:
-  /**
-   * Add a new internal queue to this OpenFlow queue interface.
-   * \param queue The queue pointer.
-   * \return The ID for this new internal queue.
-   */
-  uint32_t AddQueue (Ptr<Queue<Packet> > queue);
-
   /**
    * Get a pointer to internal queue with specific id.
    * \param queueId The queue id.
@@ -100,6 +85,21 @@ private:
    */
   Ptr<Queue<Packet> > GetQueue (int queueId) const;
 
+protected:
+  /** Destructor implementation. */
+  virtual void DoDispose ();
+
+  // Inherited from ObjectBase.
+  virtual void NotifyConstructionCompleted (void);
+
+  /**
+   * Add a new internal queue to this OpenFlow queue interface.
+   * \param queue The queue pointer.
+   * \return The ID for this new internal queue.
+   */
+  uint32_t AddQueue (Ptr<Queue<Packet> > queue);
+
+private:
   /** Structure to save the list of internal queues in this queue interface. */
   typedef std::vector<Ptr<Queue> > QueueList_t;
 
