@@ -174,7 +174,7 @@ OFSwitch13Queue::Remove (void)
             {
               if ((*it) == packet)
                 {
-                  DoDequeue (it);
+                  DoRemove (it);
                   return packet;
                 }
             }
