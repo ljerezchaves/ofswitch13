@@ -34,7 +34,7 @@ extern template class Queue<Packet>;
  * This class implements the priority queuing discipline for OpenFlow queue.
  * It creates a collection of N priority queues, identified by IDs ranging from
  * 0 to N-1 with decreasing priority (queue ID 0 has the highest priority). The
- * output scheduling algorithm ensures that higher-priority queues are "always"
+ * output scheduling algorithm ensures that higher-priority queues are always
  * served first.
  */
 class OFSwitch13PriorityQueue : public OFSwitch13Queue
@@ -60,7 +60,7 @@ protected:
 
 private:
   /**
-   * Indentify the highest-priority non-empty queue.
+   * Identify the highest-priority non-empty queue.
    * \return The queue ID.
    */
   int GetNonEmptyQueue (void) const;

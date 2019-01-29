@@ -40,7 +40,7 @@ OFSwitch13Queue::GetTypeId (void)
     .SetParent<Queue<Packet> > ()
     .SetGroupName ("OFSwitch13")
     .AddAttribute ("QueueList",
-                   "The list of internal queues available to the port.",
+                   "The list of internal queues.",
                    ObjectVectorValue (),
                    MakeObjectVectorAccessor (&OFSwitch13Queue::m_queues),
                    MakeObjectVectorChecker<Queue<Packet> > ())

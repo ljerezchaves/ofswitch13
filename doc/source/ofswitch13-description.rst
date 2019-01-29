@@ -103,35 +103,40 @@ where *K* is the ``OFSwitch13Device::TcamDelay`` attribute set to the time for
 a single TCAM operation, and *n* is the current number of entries on pipeline
 flow tables.
 
-Packets coming back from the library for output action are sent to the
-specialized ``OFSwitch13Queue`` provided by the module. An OpenFlow switch
-provides limited QoS support employing a simple queuing mechanism, where each
-port can have one or more queues attached to it. Packets sent to a specific
-queue are treated according to that queue’s configuration. The
-``OFSwitch13Queue`` class implements the queue interface, extending the |ns3|
-``Queue`` class to allow compatibility with the ``CsmaNetDevice`` used within
-``OFSwitch13Port`` objects (``VirtualNetDevice`` does not use this queue). In
-this way, it is possible to replace the standard ``CsmaNetDevice::TxQueue``
-attribute by this modified ``OFSwitch13Queue`` object. Figure
-:ref:`fig-ofswitch13-queue` shows its internal structure. It can hold a
-collection of other standard queues, each one identified by a unique ID.
+Packets coming back from the library for output action are sent to the OpenFlow
+queue provided by the module. An OpenFlow switch provides limited QoS support
+employing a simple queuing mechanism, where each port can have one or more
+queues attached to it. Packets sent to a specific queue are treated according
+to that queue’s configuration. Queue configuration takes place outside the
+OpenFlow protocol. The ``OFSwitch13Queue`` abstract base class implements the
+queue interface, extending the |ns3| ``Queue<Packet>`` class to allow
+compatibility with the ``CsmaNetDevice`` used within ``OFSwitch13Port`` objects
+(``VirtualNetDevice`` does not use queues). In this way, it is possible to
+replace the standard ``CsmaNetDevice::TxQueue`` attribute by this modified
+``OFSwitch13Queue`` object. Internally, it can hold a collection of N (possibly
+different) queues, each one identified by a unique ID ranging from 0 to N-1.
 Packets sent to the OpenFlow queue for transmission by the ``CsmaNetDevice``
-are expected to carry the ``QueueTag``, which is used to identify the internal
-queue to hold the packet. Then, the output scheduling algorithm decides from
-which queue to get packets during dequeue procedures. Currently, only a
-priority scheduling algorithm is available for use (with highest priority ID
-set to 0). The ``OFSwitch13Queue::NumQueues`` attribute indicates the number of
-internal queues that the constructor must create, and cannot be removed. The
-``OFSwitch13Queue::QueueFactory`` attribute is used to set the type of each
-internal queue. By default, it uses ``DropTailQueue`` operating in packet mode
-with the maximum number of packets set to 100.
+are expected to carry the ``QueueTag``, which is used by the
+``OFSwitch13Queue::Enqueue`` method to identify the internal queue that will
+hold the packet. Specialized ``OFSwitch13Queue`` subclasses can perform
+different output scheduling algorithms by implementing the ``Peek``,
+``Dequeue``, and ``Remove`` pure virtual methods from |ns3| ``Queue``. The last
+two methods must call the ``NotifyDequeue`` and ``NotifyRemoved`` methods
+respectively, which are used by the ``OFSwitch13Queue`` to keep consistent
+statistics.
 
-.. _fig-ofswitch13-queue:
-
-.. figure:: figures/ofswitch13-queue.*
-  :align: center
-
-  The ``OFSwitch13Queue`` internal structure
+The OpenFlow port type queue can be configured by the
+``OFSwitch13Port::QueueFactory`` attribute at construction time. Currently, the
+``OFSwitch13PriorityQueue`` is the only specialized OpenFlow queue available
+for use. It implements the priority queuing discipline for a collection of N
+priority queues, identified by IDs ranging from 0 to N-1 with decreasing
+priority (queue ID 0 has the highest priority). The output scheduling algorithm
+ensures that higher-priority queues are always served first. The
+``OFSwitch13PriorityQueue::QueueFactory`` and
+``OFSwitch13PriorityQueue::NumQueues`` attributes can be used to configure the
+type and the number of internal priority queues, respectively. By default, it
+creates a single ``DropTailQueue`` operating in packet mode with the maximum
+number of packets set to 100.
 
 OpenFlow 1.3 Controller Application Interface
 #############################################

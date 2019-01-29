@@ -368,14 +368,21 @@ OFSwitch13Port
   set for use in the underlying device. When the port is constructed over a
   ``VirtualNetDevice``, this queue is not used.
 
+* ``QueueFactory``: The object factory describing the OpenFlow queue to be
+  created for this port.
+
 OFSwitch13Queue
 ###############
 
-* ``QueueFactory``: The object factory used when creating internal queues.
+* ``QueueList``: The list of internal queues.
 
-* ``QueueList``: The list of internal queues associated with this port queue.
+OFSwitch13PriorityQueue
+#######################
 
-* ``NumQueues``: The number of internal queues associated with this port queue.
+* ``QueueFactory``: The object factory describing the internal priority queues
+  to be created.
+
+* ``NumQueues``: The number of internal priority queues.
 
 OFSwitch13Helper
 ################

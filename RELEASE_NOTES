@@ -18,7 +18,7 @@ Release 4.0.0 (XXX XX, XXXX)
     different) queues, identified by IDs ranging from 0 to N-1. The Enqueue
     method uses the ns3::QueueTag to identify which internal queue will hold
     the packet.
-  * Specialized subclasses can implement different output scheduling algorithms
+  * Specialized subclasses can perform different output scheduling algorithms
     by implementing the Peek, Dequeue, and Remove methods. The last two methods
     must call the NotifyDequeue and NotifyRemoved methods respectively, which
     are used to update statistics and keep consistency with the base class.

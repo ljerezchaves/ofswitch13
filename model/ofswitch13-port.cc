@@ -88,12 +88,12 @@ OFSwitch13Port::GetTypeId (void)
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Port> ()
     .AddAttribute ("PortQueue",
-                   "The OpenFlow queue to use as the tx queue in this port.",
+                   "The OpenFlow queue to use as the TX queue in this port.",
                    PointerValue (),
                    MakePointerAccessor (&OFSwitch13Port::m_portQueue),
                    MakePointerChecker<OFSwitch13Queue> ())
     .AddAttribute ("QueueFactory",
-                   "The object factory for creating internal queues.",
+                   "The object factory for the OpenFlow queue.",
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    ObjectFactoryValue (GetDefaultQueueFactory ()),
                    MakeObjectFactoryAccessor (&OFSwitch13Port::m_factQueue),

@@ -45,7 +45,7 @@ extern template class Queue<Packet>;
  * Internally, it holds a collection of N (possibly different) queues,
  * identified by IDs ranging from 0 to N-1. The Enqueue () method uses the
  * ns3::QueueTag to identify which internal queue will hold the packet.
- * Subclasses can implement different output scheduling algorithms by
+ * Subclasses can perform different output scheduling algorithms by
  * implementing the Dequeue (), Remove () and Peek () methods, always calling
  * the NotifyDequeue () and NotifyRemoved () methods from this base class to
  * keep consistency.
