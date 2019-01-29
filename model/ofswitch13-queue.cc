@@ -89,18 +89,6 @@ OFSwitch13Queue::~OFSwitch13Queue ()
   NS_LOG_FUNCTION (this);
 }
 
-int
-OFSwitch13Queue::GetNQueues (void) const
-{
-  return m_queues.size ();
-}
-
-Ptr<Queue<Packet> >
-OFSwitch13Queue::GetQueue (int queueId) const
-{
-  return m_queues.at (queueId);
-}
-
 bool
 OFSwitch13Queue::Enqueue (Ptr<Packet> packet)
 {
@@ -219,6 +207,18 @@ OFSwitch13Queue::Peek (void) const
 
   NS_LOG_DEBUG ("Queue empty");
   return 0;
+}
+
+int
+OFSwitch13Queue::GetNQueues (void) const
+{
+  return m_queues.size ();
+}
+
+Ptr<Queue<Packet> >
+OFSwitch13Queue::GetQueue (int queueId) const
+{
+  return m_queues.at (queueId);
 }
 
 void
