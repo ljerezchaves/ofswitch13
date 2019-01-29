@@ -24,7 +24,6 @@
 #include <ns3/csma-net-device.h>
 #include <ns3/virtual-net-device.h>
 #include "ofswitch13-device.h"
-#include "ofswitch13-queue.h"
 #include "ofswitch13-port.h"
 #include "tunnel-id-tag.h"
 

@@ -26,10 +26,14 @@
 #include <ns3/packet.h>
 #include <ns3/traced-callback.h>
 #include "ofswitch13-interface.h"
+#include "ofswitch13-queue.h"
 
 namespace ns3 {
 
-class OFSwitch13Queue;
+// The following explicit template instantiation declaration prevents modules
+// including this header file from implicitly instantiating Queue<Packet>.
+extern template class Queue<Packet>;
+
 class OFSwitch13Device;
 
 /**
