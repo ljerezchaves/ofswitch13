@@ -20,9 +20,8 @@
 #ifndef OFSWITCH13_QUEUE_H
 #define OFSWITCH13_QUEUE_H
 
-#include <queue>
-#include "ns3/packet.h"
-#include "ns3/queue.h"
+#include <ns3/packet.h>
+#include <ns3/queue.h>
 #include "ofswitch13-interface.h"
 #include "queue-tag.h"
 
