@@ -57,11 +57,7 @@ public:
    */
   static TypeId GetTypeId (void);
 
-  /**
-   * Complete constructor.
-   * \param port The pointer to the ofsoftswitch13 internal port structure.
-   */
-  OFSwitch13Queue (struct sw_port *port);
+  OFSwitch13Queue ();           //!< Default constructor.
   virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
 
   // Inherited from Queue.
@@ -84,6 +80,12 @@ public:
    *           DoPeek () member function.
    */
   Ptr<Queue<Packet> > GetQueue (int queueId) const;
+
+  /**
+   * Set the pointer to the internal ofsoftswitch13 port structure.
+   * \param port The port structure pointer.
+   */
+  void SetPortStruct (struct sw_port *port);
 
 protected:
   /** Destructor implementation. */

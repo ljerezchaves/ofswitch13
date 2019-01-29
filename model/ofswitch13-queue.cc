@@ -55,6 +55,7 @@ OFSwitch13Queue::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::OFSwitch13Queue")
     .SetParent<Queue<Packet> > ()
     .SetGroupName ("OFSwitch13")
+    .AddConstructor<OFSwitch13Queue> ()
     .AddAttribute ("NumQueues",
                    "The number of internal queues available on this queue.",
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
@@ -76,12 +77,12 @@ OFSwitch13Queue::GetTypeId (void)
   return tid;
 }
 
-OFSwitch13Queue::OFSwitch13Queue (struct sw_port *port)
+OFSwitch13Queue::OFSwitch13Queue ()
   : Queue<Packet> (),
-  m_swPort (port),
+  m_swPort (0),
   NS_LOG_TEMPLATE_DEFINE ("OFSwitch13Queue")
 {
-  NS_LOG_FUNCTION (this << port);
+  NS_LOG_FUNCTION (this);
 }
 
 OFSwitch13Queue::~OFSwitch13Queue ()
@@ -222,6 +223,14 @@ OFSwitch13Queue::GetQueue (int queueId) const
 }
 
 void
+OFSwitch13Queue::SetPortStruct (struct sw_port *port)
+{
+  NS_LOG_FUNCTION (this << port);
+
+  m_swPort = port;
+}
+
+void
 OFSwitch13Queue::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
@@ -246,6 +255,8 @@ void
 OFSwitch13Queue::DoInitialize ()
 {
   NS_LOG_FUNCTION (this);
+
+  NS_ASSERT_MSG (m_swPort, "No ofsoftswitch13 port structure defined yet.");
 
   // Creating the internal queues, defined by the NumQueues attribute.
   for (int queueId = 0; queueId < m_numQueues; queueId++)
