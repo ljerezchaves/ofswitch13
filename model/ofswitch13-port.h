@@ -123,6 +123,9 @@ protected:
   /** Destructor implementation */
   virtual void DoDispose ();
 
+  // Inherited from ObjectBase.
+  virtual void NotifyConstructionCompleted (void);
+
 private:
   /**
    * Create the bitmaps of OFPPF_* describing port features.
@@ -157,7 +160,7 @@ private:
   uint32_t                  m_portNo;       //!< Port number.
   struct sw_port*           m_swPort;       //!< ofsoftswitch13 port structure.
   Ptr<NetDevice>            m_netDev;       //!< Underlying NetDevice.
-  Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue.
+  Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow port Queue.
   Ptr<OFSwitch13Device>     m_openflowDev;  //!< OpenFlow device.
 };
 

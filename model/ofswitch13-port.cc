@@ -103,22 +103,29 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
 {
   NS_LOG_FUNCTION (this << netDev << openflowDev);
 
-  // Check for valid NetDevice type
-  Ptr<CsmaNetDevice> csmaDev = netDev->GetObject<CsmaNetDevice> ();
-  Ptr<VirtualNetDevice> virtDev = netDev->GetObject<VirtualNetDevice> ();
-  NS_ABORT_MSG_IF (!csmaDev && !virtDev,
-                   "NetDevice must be CsmaNetDevice or VirtualNetDevice.");
-
   m_portNo = ++(dp->ports_num);
   m_swPort = &dp->ports[m_portNo];
-
   memset (m_swPort, '\0', sizeof *m_swPort);
+
+  // Saving datapath pointer.
+  m_swPort->dp = dp;
+}
+
+void
+OFSwitch13Port::NotifyConstructionCompleted ()
+{
+  NS_LOG_FUNCTION (this);
+
+  // Check for valid NetDevice type
+  Ptr<CsmaNetDevice> csmaDev = m_netDev->GetObject<CsmaNetDevice> ();
+  Ptr<VirtualNetDevice> virtDev = m_netDev->GetObject<VirtualNetDevice> ();
+  NS_ABORT_MSG_IF (!csmaDev && !virtDev,
+                   "NetDevice must be CsmaNetDevice or VirtualNetDevice.");
 
   // Filling ofsoftswitch13 internal structures for this port.
   size_t oflPortSize = sizeof (struct ofl_port);
   size_t oflPortStatsSize = sizeof (struct ofl_port_stats);
 
-  m_swPort->dp = dp;
   m_swPort->conf = (struct ofl_port*)xmalloc (oflPortSize);
   memset (m_swPort->conf, 0x00, oflPortSize);
   m_swPort->conf->port_no = m_portNo;
@@ -144,11 +151,11 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
   // To avoid a null check failure in ofsoftswitch13
   // dp_ports_handle_stats_request_port (), we are pointing m_swPort->netdev to
   // corresponding ns3::NetDevice, but this pointer must not be used!
-  m_swPort->netdev = (struct netdev*)PeekPointer (netDev);
+  m_swPort->netdev = (struct netdev*)PeekPointer (m_netDev);
 
   // Creating the OFSwitch13Queue for this switch port
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
-  m_swPort->max_queues = dp->max_queues;
+  m_swPort->max_queues = m_swPort->dp->max_queues;
   m_swPort->num_queues = 0;
   m_portQueue = CreateObject<OFSwitch13Queue> ();
   m_portQueue->SetPortStruct (m_swPort);
@@ -160,7 +167,7 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
 
   m_swPort->created = time_msec ();
 
-  list_push_back (&dp->port_list, &m_swPort->node);
+  list_push_back (&m_swPort->dp->port_list, &m_swPort->node);
 
   // Notify the controller that this port has been added/created
   struct ofl_msg_port_status msg;
