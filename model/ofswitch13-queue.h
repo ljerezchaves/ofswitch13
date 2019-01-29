@@ -74,7 +74,7 @@ public:
    * Get the number of internal queues.
    * \return The number of internal queues.
    */
-  uint32_t GetNQueues (void) const;
+  int GetNQueues (void) const;
 
 protected:
   /** Destructor implementation. */
@@ -98,14 +98,14 @@ private:
    * \internal This function is marked as const to allow its usage inside
    *           DoPeek () member function.
    */
-  Ptr<Queue<Packet> > GetQueue (uint32_t queueId) const;
+  Ptr<Queue<Packet> > GetQueue (int queueId) const;
 
   /** Structure to save the list of internal queues in this queue interface. */
   typedef std::vector<Ptr<Queue> > QueueList_t;
 
   struct sw_port*       m_swPort;     //!< ofsoftswitch13 port structure.
   ObjectFactory         m_qFactory;   //!< Factory for internal queues.
-  uint32_t              m_intQueues;  //!< Number of internal queues.
+  int                   m_intQueues;  //!< Number of internal queues.
   QueueList_t           m_queues;     //!< List of internal queues.
 
   NS_LOG_TEMPLATE_DECLARE;            //!< Redefinition of the log component.

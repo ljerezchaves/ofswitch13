@@ -60,7 +60,7 @@ OFSwitch13Queue::GetTypeId (void)
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    UintegerValue (1),
                    MakeUintegerAccessor (&OFSwitch13Queue::m_intQueues),
-                   MakeUintegerChecker<uint32_t> (1, NETDEV_MAX_QUEUES))
+                   MakeUintegerChecker<int> (1, NETDEV_MAX_QUEUES))
     .AddAttribute ("QueueFactory",
                    "The object factory for creating internal queues.",
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
@@ -89,7 +89,7 @@ OFSwitch13Queue::~OFSwitch13Queue ()
   NS_LOG_FUNCTION (this);
 }
 
-uint32_t
+int
 OFSwitch13Queue::GetNQueues (void) const
 {
   return m_intQueues;
@@ -105,9 +105,9 @@ OFSwitch13Queue::DoDispose ()
   if (m_swPort)
     {
       struct sw_queue *swQueue;
-      for (uint32_t i = 0; i < GetNQueues (); i++)
+      for (int queueId = 0; queueId < GetNQueues (); queueId++)
         {
-          swQueue = &(m_swPort->queues[i]);
+          swQueue = &(m_swPort->queues[queueId]);
           free (swQueue->stats);
           free (swQueue->props);
         }
@@ -126,7 +126,7 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
   SetAttribute ("MaxSize", StringValue ("100Mp"));
 
   // Creating the internal queues, defined by the NumQueues attribute.
-  for (uint32_t i = 0; i < GetNQueues (); i++)
+  for (int queueId = 0; queueId < GetNQueues (); queueId++)
     {
       AddQueue (m_qFactory.Create<Queue<Packet> > ());
     }
@@ -140,17 +140,17 @@ OFSwitch13Queue::Enqueue (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 
-  QueueTag queueNoTag;
-  packet->PeekPacketTag (queueNoTag);
-  uint32_t queueNo = queueNoTag.GetQueueId ();
-  NS_ASSERT_MSG (queueNo < GetNQueues (), "Queue id is out of range.");
-  NS_LOG_DEBUG ("Packet " << packet << " to be enqueued in queue id " << queueNo);
+  QueueTag queueTag;
+  packet->PeekPacketTag (queueTag);
+  int queueId = static_cast<int> (queueTag.GetQueueId ());
+  NS_ASSERT_MSG (queueId < GetNQueues (), "Queue ID is out of range.");
+  NS_LOG_DEBUG ("Packet to be enqueued in queue " << queueId);
 
   struct sw_queue *swQueue;
-  swQueue = dp_ports_lookup_queue (m_swPort, queueNo);
+  swQueue = dp_ports_lookup_queue (m_swPort, queueId);
   NS_ASSERT_MSG (swQueue, "Invalid queue id.");
 
-  bool retval = GetQueue (queueNo)->Enqueue (packet);
+  bool retval = GetQueue (queueId)->Enqueue (packet);
   if (retval)
     {
       swQueue->stats->tx_packets++;
@@ -163,7 +163,7 @@ OFSwitch13Queue::Enqueue (Ptr<Packet> packet)
     }
   else
     {
-      NS_LOG_DEBUG ("Packet enqueue dropped by internal queue " << queueNo);
+      NS_LOG_DEBUG ("Packet enqueue dropped by internal queue " << queueId);
       swQueue->stats->tx_errors++;
 
       // Drop the packet in this queue too.
@@ -178,26 +178,26 @@ OFSwitch13Queue::Dequeue (void)
 {
   NS_LOG_FUNCTION (this);
 
-  for (uint32_t i = 0; i < GetNQueues (); i++)
+  for (int queueId = 0; queueId < GetNQueues (); queueId++)
     {
-      if (GetQueue (i)->IsEmpty () == false)
+      if (GetQueue (queueId)->IsEmpty () == false)
         {
-          NS_LOG_DEBUG ("Packet dequeued from queue id " << i);
-          Ptr<Packet> p = GetQueue (i)->Dequeue ();
+          NS_LOG_DEBUG ("Packet dequeued from queue " << queueId);
+          Ptr<Packet> packet = GetQueue (queueId)->Dequeue ();
 
           // Dequeue the packet from this queue too. As we don't know the
           // exactly packet location on this queue, we have to look for it.
           for (auto it = Head (); it != Tail (); it++)
             {
-              if ((*it) == p)
+              if ((*it) == packet)
                 {
                   DoDequeue (it);
-                  return p;
+                  return packet;
                 }
             }
 
-          NS_LOG_WARN ("Packet " << p << " was not found on this queue.");
-          return p;
+          NS_LOG_WARN ("Packet was not found on this queue.");
+          return packet;
         }
     }
 
@@ -210,26 +210,26 @@ OFSwitch13Queue::Remove (void)
 {
   NS_LOG_FUNCTION (this);
 
-  for (uint32_t i = 0; i < GetNQueues (); i++)
+  for (int queueId = 0; queueId < GetNQueues (); queueId++)
     {
-      if (GetQueue (i)->IsEmpty () == false)
+      if (GetQueue (queueId)->IsEmpty () == false)
         {
-          NS_LOG_DEBUG ("Packet removed from queue id " << i);
-          Ptr<Packet> p = GetQueue (i)->Remove ();
+          NS_LOG_DEBUG ("Packet removed from queue " << queueId);
+          Ptr<Packet> packet = GetQueue (queueId)->Remove ();
 
           // Remove the packet from this queue too. As we don't know the
           // exactly packet location on this queue, we have to look for it.
           for (auto it = Head (); it != Tail (); it++)
             {
-              if ((*it) == p)
+              if ((*it) == packet)
                 {
                   DoDequeue (it);
-                  return p;
+                  return packet;
                 }
             }
 
-          NS_LOG_WARN ("Packet " << p << " was not found on this queue.");
-          return p;
+          NS_LOG_WARN ("Packet was not found on this queue.");
+          return packet;
         }
     }
 
@@ -242,12 +242,12 @@ OFSwitch13Queue::Peek (void) const
 {
   NS_LOG_FUNCTION (this);
 
-  for (uint32_t i = 0; i < GetNQueues (); i++)
+  for (int queueId = 0; queueId < GetNQueues (); queueId++)
     {
-      if (GetQueue (i)->IsEmpty () == false)
+      if (GetQueue (queueId)->IsEmpty () == false)
         {
-          NS_LOG_DEBUG ("Packet peeked from queue id " << i);
-          return GetQueue (i)->Peek ();
+          NS_LOG_DEBUG ("Packet peeked from queue " << queueId);
+          return GetQueue (queueId)->Peek ();
         }
     }
 
@@ -284,13 +284,13 @@ OFSwitch13Queue::AddQueue (Ptr<Queue<Packet> > queue)
 
   // Inserting the ns3::Queue object into queue list.
   m_queues.push_back (queue);
-  NS_LOG_DEBUG ("New queue with id " << queueId);
+  NS_LOG_DEBUG ("New queue with ID " << queueId);
 
   return queueId;
 }
 
 Ptr<Queue<Packet> >
-OFSwitch13Queue::GetQueue (uint32_t queueId) const
+OFSwitch13Queue::GetQueue (int queueId) const
 {
   return m_queues.at (queueId);
 }
