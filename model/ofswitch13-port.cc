@@ -152,6 +152,7 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
   m_swPort->max_queues = dp->max_queues;
   m_swPort->num_queues = 0;
   m_portQueue = CreateObject<OFSwitch13Queue> (m_swPort);
+  m_portQueue->Initialize ();
   if (csmaDev)
     {
       csmaDev->SetQueue (m_portQueue);

@@ -243,6 +243,18 @@ OFSwitch13Queue::DoDispose ()
 }
 
 void
+OFSwitch13Queue::DoInitialize ()
+{
+  NS_LOG_FUNCTION (this);
+
+  // Creating the internal queues, defined by the NumQueues attribute.
+  for (int queueId = 0; queueId < m_numQueues; queueId++)
+    {
+      AddQueue (m_facQueues.Create<Queue<Packet> > ());
+    }
+}
+
+void
 OFSwitch13Queue::NotifyConstructionCompleted (void)
 {
   NS_LOG_FUNCTION (this);
@@ -250,12 +262,6 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
   // We are using a very large queue size for this queue interface. The real
   // check for queue space is performed at DoEnqueue () by the internal queues.
   SetAttribute ("MaxSize", StringValue ("100Mp"));
-
-  // Creating the internal queues, defined by the NumQueues attribute.
-  for (int queueId = 0; queueId < m_numQueues; queueId++)
-    {
-      AddQueue (m_facQueues.Create<Queue<Packet> > ());
-    }
 
   // Chain up.
   Queue<Packet>::NotifyConstructionCompleted ();

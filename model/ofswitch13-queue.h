@@ -89,6 +89,9 @@ protected:
   /** Destructor implementation. */
   virtual void DoDispose ();
 
+  // Inherited from Object.
+  virtual void DoInitialize (void);
+
   // Inherited from ObjectBase.
   virtual void NotifyConstructionCompleted (void);
 
