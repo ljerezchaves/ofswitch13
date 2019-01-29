@@ -23,7 +23,6 @@
 #include <ns3/packet.h>
 #include <ns3/queue.h>
 #include "ofswitch13-interface.h"
-#include "queue-tag.h"
 
 namespace ns3 {
 
@@ -103,6 +102,9 @@ protected:
    * \return The ID for this new internal queue.
    */
   uint32_t AddQueue (Ptr<Queue<Packet> > queue);
+
+  uint64_t              m_dpId;       //!< OpenFlow datapath ID.
+  uint32_t              m_portNo;     //!< OpenFlow port number.
 
 private:
   /** Structure to save the list of internal queues in this queue interface. */

@@ -19,20 +19,14 @@
  */
 
 #include "ns3/log.h"
-#include "ns3/enum.h"
 #include "ns3/string.h"
-#include "ns3/uinteger.h"
 #include "ns3/object-vector.h"
 #include "ofswitch13-queue.h"
-#include <algorithm>
+#include "queue-tag.h"
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT                                   \
-  if (m_swPort != 0)                                            \
-    {                                                           \
-      std::clog << "[dp " << m_swPort->dp->id                   \
-                << " port " << m_swPort->conf->port_no << "] "; \
-    }
+#define NS_LOG_APPEND_CONTEXT \
+  std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
 
 namespace ns3 {
 
@@ -79,6 +73,8 @@ OFSwitch13Queue::GetTypeId (void)
 
 OFSwitch13Queue::OFSwitch13Queue ()
   : Queue<Packet> (),
+  m_dpId (0),
+  m_portNo (0),
   m_swPort (0),
   NS_LOG_TEMPLATE_DEFINE ("OFSwitch13Queue")
 {
@@ -228,6 +224,8 @@ OFSwitch13Queue::SetPortStruct (struct sw_port *port)
   NS_LOG_FUNCTION (this << port);
 
   m_swPort = port;
+  m_dpId = port->dp->id;
+  m_portNo = port->conf->port_no;
 }
 
 void
@@ -249,6 +247,9 @@ OFSwitch13Queue::DoDispose ()
       m_swPort = 0;
     }
   m_queues.clear ();
+
+  // Chain up.
+  Queue<Packet>::DoDispose ();
 }
 
 void
@@ -263,6 +264,8 @@ OFSwitch13Queue::DoInitialize ()
     {
       AddQueue (m_facQueues.Create<Queue<Packet> > ());
     }
+  // Chain up.
+  Queue<Packet>::DoInitialize ();
 }
 
 void

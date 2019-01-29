@@ -26,6 +26,7 @@
 #include "ofswitch13-device.h"
 #include "ofswitch13-port.h"
 #include "tunnel-id-tag.h"
+#include "queue-tag.h"
 
 #undef NS_LOG_APPEND_CONTEXT
 #define NS_LOG_APPEND_CONTEXT                                   \
