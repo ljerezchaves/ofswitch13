@@ -104,8 +104,8 @@ private:
   typedef std::vector<Ptr<Queue> > QueueList_t;
 
   struct sw_port*       m_swPort;     //!< ofsoftswitch13 port structure.
-  ObjectFactory         m_qFactory;   //!< Factory for internal queues.
-  int                   m_intQueues;  //!< Number of internal queues.
+  ObjectFactory         m_facQueues;   //!< Factory for internal queues.
+  int                   m_numQueues;  //!< Number of internal queues.
   QueueList_t           m_queues;     //!< List of internal queues.
 
   NS_LOG_TEMPLATE_DECLARE;            //!< Redefinition of the log component.

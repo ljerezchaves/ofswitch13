@@ -59,13 +59,13 @@ OFSwitch13Queue::GetTypeId (void)
                    "The number of internal queues available on this queue.",
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    UintegerValue (1),
-                   MakeUintegerAccessor (&OFSwitch13Queue::m_intQueues),
+                   MakeUintegerAccessor (&OFSwitch13Queue::m_numQueues),
                    MakeUintegerChecker<int> (1, NETDEV_MAX_QUEUES))
     .AddAttribute ("QueueFactory",
                    "The object factory for creating internal queues.",
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    ObjectFactoryValue (GetDefaultQueueFactory ()),
-                   MakeObjectFactoryAccessor (&OFSwitch13Queue::m_qFactory),
+                   MakeObjectFactoryAccessor (&OFSwitch13Queue::m_facQueues),
                    MakeObjectFactoryChecker ())
     .AddAttribute ("QueueList",
                    "The list of internal queues available to the port.",
@@ -252,9 +252,9 @@ OFSwitch13Queue::NotifyConstructionCompleted (void)
   SetAttribute ("MaxSize", StringValue ("100Mp"));
 
   // Creating the internal queues, defined by the NumQueues attribute.
-  for (int queueId = 0; queueId < GetNQueues (); queueId++)
+  for (int queueId = 0; queueId < m_numQueues; queueId++)
     {
-      AddQueue (m_qFactory.Create<Queue<Packet> > ());
+      AddQueue (m_facQueues.Create<Queue<Packet> > ());
     }
 
   // Chain up.
