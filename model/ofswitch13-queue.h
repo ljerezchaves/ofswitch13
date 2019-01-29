@@ -103,6 +103,19 @@ protected:
    */
   uint32_t AddQueue (Ptr<Queue<Packet> > queue);
 
+  /**
+   * Notify the parent class of a packet dequeued from any internal queue.
+   * \param packet The packet.
+   */
+  void NotifyDequeue (Ptr<Packet> packet);
+
+  /**
+   * Notify the parent class of a packet removed from any internal queue.
+   * \param packet The packet.
+   */
+  void NotifyRemove (Ptr<Packet> packet);
+
+  // Values used for logging context.
   uint64_t              m_dpId;       //!< OpenFlow datapath ID.
   uint32_t              m_portNo;     //!< OpenFlow port number.
 

@@ -133,21 +133,9 @@ OFSwitch13Queue::Dequeue (void)
     {
       if (GetQueue (queueId)->IsEmpty () == false)
         {
-          NS_LOG_DEBUG ("Packet dequeued from queue " << queueId);
+          NS_LOG_DEBUG ("Packet to be dequeued from queue " << queueId);
           Ptr<Packet> packet = GetQueue (queueId)->Dequeue ();
-
-          // Dequeue the packet from this queue too. As we don't know the
-          // exactly packet location on this queue, we have to look for it.
-          for (auto it = Head (); it != Tail (); it++)
-            {
-              if ((*it) == packet)
-                {
-                  DoDequeue (it);
-                  return packet;
-                }
-            }
-
-          NS_LOG_WARN ("Packet was not found on this queue.");
+          NotifyDequeue (packet);
           return packet;
         }
     }
@@ -165,21 +153,9 @@ OFSwitch13Queue::Remove (void)
     {
       if (GetQueue (queueId)->IsEmpty () == false)
         {
-          NS_LOG_DEBUG ("Packet removed from queue " << queueId);
+          NS_LOG_DEBUG ("Packet to be removed from queue " << queueId);
           Ptr<Packet> packet = GetQueue (queueId)->Remove ();
-
-          // Remove the packet from this queue too. As we don't know the
-          // exactly packet location on this queue, we have to look for it.
-          for (auto it = Head (); it != Tail (); it++)
-            {
-              if ((*it) == packet)
-                {
-                  DoRemove (it);
-                  return packet;
-                }
-            }
-
-          NS_LOG_WARN ("Packet was not found on this queue.");
+          NotifyRemove (packet);
           return packet;
         }
     }
@@ -197,7 +173,7 @@ OFSwitch13Queue::Peek (void) const
     {
       if (GetQueue (queueId)->IsEmpty () == false)
         {
-          NS_LOG_DEBUG ("Packet peeked from queue " << queueId);
+          NS_LOG_DEBUG ("Packet to be peeked from queue " << queueId);
           return GetQueue (queueId)->Peek ();
         }
     }
@@ -313,6 +289,42 @@ OFSwitch13Queue::AddQueue (Ptr<Queue<Packet> > queue)
   NS_LOG_DEBUG ("New queue with ID " << queueId);
 
   return queueId;
+}
+
+void
+OFSwitch13Queue::NotifyDequeue (Ptr<Packet> packet)
+{
+  NS_LOG_FUNCTION (this << packet);
+
+  // Dequeue the packet from this queue too. As we don't know the
+  // exactly packet location on this queue, we have to look for it.
+  for (auto it = Head (); it != Tail (); it++)
+    {
+      if ((*it) == packet)
+        {
+          DoDequeue (it);
+          return;
+        }
+    }
+  NS_LOG_WARN ("Packet was not found on this queue.");
+}
+
+void
+OFSwitch13Queue::NotifyRemove (Ptr<Packet> packet)
+{
+  NS_LOG_FUNCTION (this << packet);
+
+  // Remove the packet from this queue too. As we don't know the
+  // exactly packet location on this queue, we have to look for it.
+  for (auto it = Head (); it != Tail (); it++)
+    {
+      if ((*it) == packet)
+        {
+          DoRemove (it);
+          return;
+        }
+    }
+  NS_LOG_WARN ("Packet was not found on this queue.");
 }
 
 } // namespace ns3
