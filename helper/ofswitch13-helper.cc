@@ -20,6 +20,7 @@
 
 #ifdef NS3_OFSWITCH13
 
+#include <ns3/ofswitch13-port.h>
 #include "ofswitch13-helper.h"
 #include "ofswitch13-stats-calculator.h"
 
