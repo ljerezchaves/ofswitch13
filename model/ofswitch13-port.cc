@@ -40,6 +40,15 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Port");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Port);
 
+static ObjectFactory
+GetDefaultQueueFactory ()
+{
+  // Setting default internal queue configuration.
+  ObjectFactory queueFactory;
+  queueFactory.SetTypeId ("ns3::OFSwitch13Queue");
+  return queueFactory;
+}
+
 OFSwitch13Port::OFSwitch13Port ()
   : m_swPort (0),
   m_netDev (0),
@@ -82,6 +91,12 @@ OFSwitch13Port::GetTypeId (void)
                    PointerValue (),
                    MakePointerAccessor (&OFSwitch13Port::m_portQueue),
                    MakePointerChecker<OFSwitch13Queue> ())
+    .AddAttribute ("QueueFactory",
+                   "The object factory for creating internal queues.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                   ObjectFactoryValue (GetDefaultQueueFactory ()),
+                   MakeObjectFactoryAccessor (&OFSwitch13Port::m_factQueue),
+                   MakeObjectFactoryChecker ())
 
     .AddTraceSource ("SwitchPortRx",
                      "Trace source indicating a packet received at this port.",
@@ -157,7 +172,7 @@ OFSwitch13Port::NotifyConstructionCompleted ()
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
   m_swPort->max_queues = m_swPort->dp->max_queues;
   m_swPort->num_queues = 0;
-  m_portQueue = CreateObject<OFSwitch13Queue> ();
+  m_portQueue = DynamicCast<OFSwitch13Queue> (m_factQueue.Create ());
   m_portQueue->SetPortStruct (m_swPort);
   m_portQueue->Initialize ();
   if (csmaDev)

@@ -161,6 +161,7 @@ private:
   struct sw_port*           m_swPort;       //!< ofsoftswitch13 port structure.
   Ptr<NetDevice>            m_netDev;       //!< Underlying NetDevice.
   Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow port Queue.
+  ObjectFactory             m_factQueue;    //!< Factory for port queue.
   Ptr<OFSwitch13Device>     m_openflowDev;  //!< OpenFlow device.
 };
 
