@@ -5,20 +5,34 @@ OFSwitch13 release notes
 This file contains OFSwitch13 release notes (most recent releases first).
 
 
-Release 4.X.X (XXX XX, XXXX)
+Release 4.0.0 (XXX XX, XXXX)
 ============================
 
 - BE AWARE THAT this release brings incompatible API changes in respect to
   prior OFSwitch13 versions.
 
-- Fixing the correlation between queue ID and priority in OFSwitch13Queue:
-  from now one, the lower is the queue ID, the higher is its priority.
+- Refactoring the OpenFlow queue:
+  * The OFSwitch13Queue base class implements the queue interface, extending
+    the ns3::Queue<Packet> class to allow compatibility with the CsmaNetDevice
+    used by OFSwitch13Port. Internally, it holds a collection of N (possibly
+    different) queues, identified by IDs ranging from 0 to N-1. The Enqueue
+    method uses the ns3::QueueTag to identify which internal queue will hold
+    the packet.
+  * Specialized subclasses can implement different output scheduling algorithms
+    by implementing the Peek, Dequeue, and Remove methods. The last two methods
+    must call the NotifyDequeue and NotifyRemoved methods respectively, which
+    are used to update statistics and keep consistency with the base class.
+  * The OFSwitch13PriorityQueue implements the specialized priority queuing
+    discipline for a collection of N priority queues, identified by IDs ranging
+    from 0 to N-1 with decreasing priority (queue ID 0 has the highest
+    priority). The output scheduling algorithm ensures that higher-priority
+    queues are "always" served first. The OFSwitch13PriorityQueue::QueueFactory
+    and OFSwitch13PriorityQueue::NumQueues attributes can be used to configure
+    the type and the number of internal priority queues, respectively.
+  * The OpenFlow port queue can be configured by the
+    OFSwitch13Port::QueueFactory attribute at construction time.
 
-- By default, every output port on the switch is created with a single queue.
-  The OFSwitch13Queue::NumQueues attribute can be used to configure a custom
-  number of internal priority queues.
-
-- The OFSwitch13Device FlowTableSize, GroupTableSize, and MeterTableSize
+- The OFSwitch13Device::FlowTableSize, GroupTableSize, and MeterTableSize
   attributes can now be adjusted at any time.
 
 - Overriding the OFSwitch13Helper::InstallSwitch method. When the first
@@ -68,7 +82,7 @@ Release 4.X.X (XXX XX, XXXX)
 
 - Merging new commits from the CPqD ofsoftswitch13 library.
 
-- This version is compatible with ofsoftswitch13 library release v3.3.x and
+- This version is compatible with ofsoftswitch13 library release v4.0.x and
   ns-3 versions 3.28 or later (including patches). There is no backward
   compatibility with older ns-3 versions.
 
