@@ -32,14 +32,14 @@ Release 4.0.0 (XXX XX, XXXX)
   * The OpenFlow port queue can be configured by the
     OFSwitch13Port::QueueFactory attribute at construction time.
 
-- The OFSwitch13Device::FlowTableSize, GroupTableSize, and MeterTableSize
-  attributes can now be adjusted at any time.
-
 - Overriding the OFSwitch13Helper::InstallSwitch method. When the first
   parameter is a node container, the method returns an OpenFlow device
   container. When the first parameter is a node pointer, the method returns the
   OpenFlow device pointer. For the latter, there's the optional second
   parameter of a device container that will be configured as switch ports.
+
+- The OFSwitch13Device::FlowTableSize, GroupTableSize, and MeterTableSize
+  attributes can now be adjusted at any time.
 
 - New OFSwitch13Port::GetPortDevice, GetPortQueue and GetSwitchDevice methods.
 
