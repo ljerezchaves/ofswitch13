@@ -352,7 +352,7 @@ receive callback into |ns3| source code, available under
 the receive callbacks inclusion, and an optional *doc* patch that can be used
 for including the |ofs13| when compiling Doxygen and Sphinx documentation.
 
-The current |ofs13| stable version is 3.X.X. This version is compatible with
+The current |ofs13| stable version is 4.X.X. This version is compatible with
 |ns3| version 3.28 or later, and will not compile with older |ns3|
 versions. If you need to use another |ns3| release, you can check the |ofs13|
 RELEASE_NOTES file for previous |ofs13| releases and their |ns3| version
