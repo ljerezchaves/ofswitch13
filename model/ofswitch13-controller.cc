@@ -246,8 +246,7 @@ OFSwitch13Controller::SendEchoRequest (Ptr<const RemoteSwitch> swtch,
   // Create and save the echo metadata for this request
   uint32_t xid = GetNextXid ();
   std::pair <uint32_t, EchoInfo> entry (xid, EchoInfo (swtch));
-  std::pair <EchoMsgMap_t::iterator, bool> ret;
-  ret = m_echoMap.insert (entry);
+  auto ret = m_echoMap.insert (entry);
   if (ret.second == false)
     {
       NS_LOG_ERROR ("Error requesting echo to switch " << swtch);
@@ -275,8 +274,7 @@ OFSwitch13Controller::SendBarrierRequest (Ptr<const RemoteSwitch> swtch)
   // Create and save the barrier metadata for this request
   uint32_t xid = GetNextXid ();
   std::pair <uint32_t, BarrierInfo> entry (xid, BarrierInfo (swtch));
-  std::pair <BarrierMsgMap_t::iterator, bool> ret;
-  ret = m_barrierMap.insert (entry);
+  auto ret = m_barrierMap.insert (entry);
   if (ret.second == false)
     {
       NS_LOG_ERROR ("Error requesting barrier to switch " << swtch);
@@ -311,7 +309,7 @@ OFSwitch13Controller::HandleEchoReply (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  EchoMsgMap_t::iterator it = m_echoMap.find (xid);
+  auto it = m_echoMap.find (xid);
   if (it == m_echoMap.end ())
     {
       NS_LOG_WARN ("Echo response for unknonw echo request.");
@@ -336,7 +334,7 @@ OFSwitch13Controller::HandleBarrierReply (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  BarrierMsgMap_t::iterator it = m_barrierMap.find (xid);
+  auto it = m_barrierMap.find (xid);
   if (it == m_barrierMap.end ())
     {
       NS_LOG_WARN ("Barrier response for unknonw barrier request.");
@@ -387,9 +385,8 @@ OFSwitch13Controller::HandleFeaturesReply (
   ofl_msg_free ((struct ofl_msg_header*)msg, 0);
 
   // Executing any scheduled commands for this OpenFlow datapath ID
-  std::pair <DpIdCmdMap_t::iterator, DpIdCmdMap_t::iterator> ret;
-  ret = m_schedCommands.equal_range (swtch->m_dpId);
-  for (DpIdCmdMap_t::iterator it = ret.first; it != ret.second; it++)
+  auto ret = m_schedCommands.equal_range (swtch->m_dpId);
+  for (auto it = ret.first; it != ret.second; it++)
     {
       DpctlExecute (swtch, it->second);
     }
@@ -618,7 +615,7 @@ OFSwitch13Controller::GetRemoteSwitch (Address address)
 {
   NS_LOG_FUNCTION (this << address);
 
-  SwitchsMap_t::const_iterator it = m_switchesMap.find (address);
+  auto it = m_switchesMap.find (address);
   if (it != m_switchesMap.end ())
     {
       return it->second;
@@ -664,8 +661,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
     MakeCallback (&OFSwitch13Controller::ReceiveFromSwitch, this));
 
   std::pair <Address, Ptr<RemoteSwitch> > entry (swtch->m_address, swtch);
-  std::pair <SwitchsMap_t::iterator, bool> ret;
-  ret = m_switchesMap.insert (entry);
+  auto ret = m_switchesMap.insert (entry);
   if (ret.second == false)
     {
       NS_LOG_ERROR ("This switch is already registered with this controller.");

@@ -634,8 +634,7 @@ OFSwitch13Device::BufferRetrieveCallback (struct packet *pkt)
 Ptr<OFSwitch13Device>
 OFSwitch13Device::GetDevice (uint64_t id)
 {
-  DpIdDevMap_t::iterator it;
-  it = OFSwitch13Device::m_globalSwitchMap.find (id);
+  auto it = OFSwitch13Device::m_globalSwitchMap.find (id);
   if (it != OFSwitch13Device::m_globalSwitchMap.end ())
     {
       return it->second;
@@ -1154,8 +1153,7 @@ OFSwitch13Device::SocketCtrlFailed (Ptr<Socket> socket)
 
   // Loop over controllers looking for the one associated to this socket and
   // remove it from the collection.
-  CtrlList_t::iterator it;
-  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+  for (auto it = m_controllers.begin (); it != m_controllers.end (); it++)
     {
       Ptr<RemoteController> remoteCtrl = *it;
       if (remoteCtrl->m_socket == socket)
@@ -1252,8 +1250,7 @@ OFSwitch13Device::BufferPacketSave (uint64_t packetId, time_t timeout)
 
   // Remove from pipeline and save into buffer.
   std::pair <uint64_t, Ptr<Packet> > entry (packetId, m_pipePkt.GetPacket ());
-  std::pair <IdPacketMap_t::iterator, bool> ret;
-  ret = m_bufferPkts.insert (entry);
+  auto ret = m_bufferPkts.insert (entry);
   if (ret.second == true)
     {
       NS_LOG_DEBUG ("Packet " << packetId << " saved into buffer.");
@@ -1281,7 +1278,7 @@ OFSwitch13Device::BufferPacketRetrieve (uint64_t packetId)
   NS_ASSERT_MSG (!m_pipePkt.IsValid (), "Another packet in pipeline.");
 
   // Find packet in buffer.
-  IdPacketMap_t::iterator it = m_bufferPkts.find (packetId);
+  auto it = m_bufferPkts.find (packetId);
   NS_ASSERT_MSG (it != m_bufferPkts.end (), "Packet not found in buffer.");
 
   // Save packet into pipeline structure.
@@ -1299,7 +1296,7 @@ OFSwitch13Device::BufferPacketDelete (uint64_t packetId)
   NS_LOG_FUNCTION (this << packetId);
 
   // Delete from buffer map.
-  IdPacketMap_t::iterator it = m_bufferPkts.find (packetId);
+  auto it = m_bufferPkts.find (packetId);
   if (it != m_bufferPkts.end ())
     {
       NS_LOG_DEBUG ("Expired packet " << packetId << " deleted from buffer.");
@@ -1396,16 +1393,14 @@ void
 OFSwitch13Device::RegisterDatapath (uint64_t id, Ptr<OFSwitch13Device> dev)
 {
   std::pair<uint64_t, Ptr<OFSwitch13Device> > entry (id, dev);
-  std::pair<DpIdDevMap_t::iterator, bool> ret;
-  ret = OFSwitch13Device::m_globalSwitchMap.insert (entry);
+  auto ret = OFSwitch13Device::m_globalSwitchMap.insert (entry);
   NS_ABORT_MSG_IF (ret.second == false, "Error when registering datapath.");
 }
 
 void
 OFSwitch13Device::UnregisterDatapath (uint64_t id)
 {
-  DpIdDevMap_t::iterator it;
-  it = OFSwitch13Device::m_globalSwitchMap.find (id);
+  auto it = OFSwitch13Device::m_globalSwitchMap.find (id);
   if (it != OFSwitch13Device::m_globalSwitchMap.end ())
     {
       OFSwitch13Device::m_globalSwitchMap.erase (it);
@@ -1470,8 +1465,7 @@ OFSwitch13Device::PipelinePacket::DelCopy (uint64_t id)
 {
   NS_ASSERT_MSG (m_valid, "Invalid packet metadata.");
 
-  std::vector<uint64_t>::iterator it;
-  for (it = m_ids.begin (); it != m_ids.end (); it++)
+  for (auto it = m_ids.begin (); it != m_ids.end (); it++)
     {
       if (*it == id)
         {
@@ -1491,8 +1485,7 @@ OFSwitch13Device::PipelinePacket::HasId (uint64_t id)
 {
   NS_ASSERT_MSG (m_valid, "Invalid packet metadata.");
 
-  std::vector<uint64_t>::iterator it;
-  for (it = m_ids.begin (); it != m_ids.end (); it++)
+  for (auto it = m_ids.begin (); it != m_ids.end (); it++)
     {
       if (*it == id)
         {

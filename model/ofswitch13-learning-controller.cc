@@ -94,7 +94,7 @@ OFSwitch13LearningController::HandlePacketIn (
       dst48.CopyFrom (ethDst->value);
 
       // Get L2Table for this datapath
-      DatapathMap_t::iterator it = m_learnedInfo.find (dpId);
+      auto it = m_learnedInfo.find (dpId);
       if (it != m_learnedInfo.end ())
         {
           L2Table_t *l2Table = &it->second;
@@ -102,7 +102,7 @@ OFSwitch13LearningController::HandlePacketIn (
           // Looking for out port based on dst address (except for broadcast)
           if (!dst48.IsBroadcast ())
             {
-              L2Table_t::iterator itDst = l2Table->find (dst48);
+              auto itDst = l2Table->find (dst48);
               if (itDst != l2Table->end ())
                 {
                   outPort = itDst->second;
@@ -115,12 +115,11 @@ OFSwitch13LearningController::HandlePacketIn (
 
           // Learning port from source address
           NS_ASSERT_MSG (!src48.IsBroadcast (), "Invalid src broadcast addr");
-          L2Table_t::iterator itSrc = l2Table->find (src48);
+          auto itSrc = l2Table->find (src48);
           if (itSrc == l2Table->end ())
             {
-              std::pair <L2Table_t::iterator, bool> ret;
-              ret = l2Table->insert (
-                  std::pair<Mac48Address, uint32_t> (src48, inPort));
+              std::pair<Mac48Address, uint32_t> entry (src48, inPort);
+              auto ret = l2Table->insert (entry);
               if (ret.second == false)
                 {
                   NS_LOG_ERROR ("Can't insert mac48address / port pair");
@@ -198,7 +197,7 @@ OFSwitch13LearningController::HandleFlowRemoved (
 
   NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");
   uint64_t dpId = swtch->GetDpId ();
-  DatapathMap_t::iterator it = m_learnedInfo.find (dpId);
+  auto it = m_learnedInfo.find (dpId);
   if (it != m_learnedInfo.end ())
     {
       Mac48Address mac48;
@@ -207,7 +206,7 @@ OFSwitch13LearningController::HandleFlowRemoved (
       mac48.CopyFrom (ethSrc->value);
 
       L2Table_t *l2Table = &it->second;
-      L2Table_t::iterator itSrc = l2Table->find (mac48);
+      auto itSrc = l2Table->find (mac48);
       if (itSrc != l2Table->end ())
         {
           l2Table->erase (itSrc);
@@ -241,8 +240,8 @@ OFSwitch13LearningController::HandshakeSuccessful (
   L2Table_t l2Table;
   uint64_t dpId = swtch->GetDpId ();
 
-  std::pair <DatapathMap_t::iterator, bool> ret;
-  ret =  m_learnedInfo.insert (std::pair<uint64_t, L2Table_t> (dpId, l2Table));
+  std::pair<uint64_t, L2Table_t> entry (dpId, l2Table);
+  auto ret = m_learnedInfo.insert (entry);
   if (ret.second == false)
     {
       NS_LOG_ERROR ("Table exists for this datapath.");
