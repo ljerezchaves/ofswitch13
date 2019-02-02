@@ -158,10 +158,9 @@ OFSwitch13Controller::StopApplication ()
 {
   NS_LOG_FUNCTION (this << m_port);
 
-  for (SwitchsMap_t::iterator it = m_switchesMap.begin ();
-       it != m_switchesMap.end (); it++)
+  for (auto const &it : m_switchesMap)
     {
-      Ptr<RemoteSwitch> swtch = it->second;
+      Ptr<RemoteSwitch> swtch = it.second;
       swtch->m_handler = 0;
     }
   m_switchesMap.clear ();
@@ -191,10 +190,9 @@ OFSwitch13Controller::GetRemoteSwitch (uint64_t dpId) const
 {
   NS_LOG_FUNCTION (this << dpId);
 
-  SwitchsMap_t::const_iterator it;
-  for (it = m_switchesMap.begin (); it != m_switchesMap.end (); it++)
+  for (auto const &it : m_switchesMap)
     {
-      Ptr<const RemoteSwitch> swtch = it->second;
+      Ptr<const RemoteSwitch> swtch = it.second;
       if (swtch->m_dpId == dpId)
         {
           return swtch;

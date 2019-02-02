@@ -650,12 +650,10 @@ OFSwitch13Device::DoDispose ()
 
   OFSwitch13Device::UnregisterDatapath (m_dpId);
 
-  PortList_t::iterator it;
-  for (it = m_ports.begin (); it != m_ports.end (); it++)
+  for (auto &port : m_ports)
     {
-      Ptr<OFSwitch13Port> port = *it;
       port->Dispose ();
-      *it = 0;
+      port = 0;
     }
   m_ports.clear ();
   m_bufferPkts.clear ();
@@ -817,10 +815,8 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
   pipeline_timeout (dp->pipeline);
 
   // Check for chan/s in links (port) status.
-  PortList_t::iterator it;
-  for (it = m_ports.begin (); it != m_ports.end (); it++)
+  for (auto const &port : m_ports)
     {
-      Ptr<OFSwitch13Port> port = *it;
       port->PortUpdateState ();
     }
 
@@ -1310,12 +1306,11 @@ OFSwitch13Device::GetRemoteController (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
 
-  CtrlList_t::iterator it;
-  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+  for (auto const &ctrl : m_controllers)
     {
-      if ((*it)->m_socket == socket)
+      if (ctrl->m_socket == socket)
         {
-          return *it;
+          return ctrl;
         }
     }
   NS_ABORT_MSG ("Error returning controller for this socket.");
@@ -1326,12 +1321,11 @@ OFSwitch13Device::GetRemoteController (Address address)
 {
   NS_LOG_FUNCTION (this << address);
 
-  CtrlList_t::iterator it;
-  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+  for (auto const &ctrl : m_controllers)
     {
-      if ((*it)->m_address == address)
+      if (ctrl->m_address == address)
         {
-          return *it;
+          return ctrl;
         }
     }
   return 0;
@@ -1342,12 +1336,11 @@ OFSwitch13Device::GetRemoteController (struct remote *remote)
 {
   NS_LOG_FUNCTION (this << remote);
 
-  CtrlList_t::iterator it;
-  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+  for (auto const &ctrl : m_controllers)
     {
-      if ((*it)->m_remote == remote)
+      if (ctrl->m_remote == remote)
         {
-          return *it;
+          return ctrl;
         }
     }
   NS_ABORT_MSG ("Error returning controller for this remote pointer.");
