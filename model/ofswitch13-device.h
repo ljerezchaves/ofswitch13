@@ -129,7 +129,7 @@ public:
 private:
     bool                  m_valid;  //!< Valid flag.
     Ptr<Packet>           m_packet; //!< Packet pointer.
-    std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
+    std::list<uint64_t>   m_ids;    //!< Internal list of IDs for this packet.
   }; // Struct PipelinePacket
 
 public:
