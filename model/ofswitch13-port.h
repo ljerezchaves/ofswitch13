@@ -157,6 +157,7 @@ private:
   /** Trace source fired when a packet will be sent over this switch port. */
   TracedCallback<Ptr<const Packet> > m_txTrace;
 
+  uint64_t                  m_dpId;         //!< OpenFlow datapath ID.
   uint32_t                  m_portNo;       //!< Port number.
   struct sw_port*           m_swPort;       //!< ofsoftswitch13 port structure.
   Ptr<NetDevice>            m_netDev;       //!< Underlying NetDevice.

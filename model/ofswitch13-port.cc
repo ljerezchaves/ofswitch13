@@ -29,12 +29,8 @@
 #include "queue-tag.h"
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT                                   \
-  if (m_swPort != 0)                                            \
-    {                                                           \
-      std::clog << "[dp " << m_swPort->dp->id                   \
-                << " port " << m_swPort->conf->port_no << "] "; \
-    }
+#define NS_LOG_APPEND_CONTEXT \
+  std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
 
 namespace ns3 {
 
@@ -51,7 +47,9 @@ GetDefaultQueueFactory ()
 }
 
 OFSwitch13Port::OFSwitch13Port ()
-  : m_swPort (0),
+  : m_dpId (0),
+  m_portNo (0),
+  m_swPort (0),
   m_netDev (0),
   m_openflowDev (0)
 {
@@ -113,12 +111,15 @@ OFSwitch13Port::GetTypeId (void)
 
 OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
                                 Ptr<OFSwitch13Device> openflowDev)
-  : m_swPort (0),
+  : m_dpId (0),
+  m_portNo (0), 
+  m_swPort (0),
   m_netDev (netDev),
   m_openflowDev (openflowDev)
 {
   NS_LOG_FUNCTION (this << netDev << openflowDev);
 
+  m_dpId = dp->id;
   m_portNo = ++(dp->ports_num);
   m_swPort = &dp->ports[m_portNo];
   memset (m_swPort, '\0', sizeof *m_swPort);
