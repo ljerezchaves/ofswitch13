@@ -662,6 +662,13 @@ OFSwitch13Device::DoDispose ()
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
   meter_table_destroy (m_datapath->meters);
+
+  free (m_datapath->buffers);
+  free (m_datapath->mfr_desc);
+  free (m_datapath->hw_desc);
+  free (m_datapath->sw_desc);
+  free (m_datapath->dp_desc);
+  free (m_datapath->serial_num);
   free (m_datapath);
 
   Object::DoDispose ();
