@@ -1001,8 +1001,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
   senderCtrl.conn_id = 0; // TODO No support for auxiliary connections
 
   // Get the OpenFlow buffer and unpack the message.
-  struct ofpbuf *buffer;
-  buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
+  struct ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
   error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
                           &senderCtrl.xid, m_datapath->exp);
 
