@@ -77,25 +77,25 @@ OFSwitch13Controller::DpctlExecute (Ptr<const RemoteSwitch> swtch,
 {
   NS_LOG_FUNCTION (this << swtch << textCmd);
 
-  char **argv;
-  size_t argc;
-
   wordexp_t cmd;
   wordexp (textCmd.c_str (), &cmd, 0);
-  argv = cmd.we_wordv;
-  argc = cmd.we_wordc;
+  char **argv = cmd.we_wordv;
+  size_t argc = cmd.we_wordc;
 
-  if (!strcmp (argv[0], "set-table-match") || !strcmp (argv[0], "ping"))
+  if ((strcmp (argv[0], "ping") == 0)
+      || (strcmp (argv[0], "monitor") == 0)
+      || (strcmp (argv[0], "set-desc") == 0)
+      || (strcmp (argv[0], "queue-mod") == 0)
+      || (strcmp (argv[0], "queue-del") == 0))
     {
-      NS_LOG_ERROR ("Dpctl command currently not supported.");
-    }
-  else
-    {
-      return dpctl_exec_ns3_command ((void*)PeekPointer (swtch), argc, argv);
+      NS_LOG_ERROR ("Dpctl experimenter command currently not supported.");
+      wordfree (&cmd);
+      return EXIT_FAILURE;
     }
 
+  int ret = dpctl_exec_ns3_command ((void*)PeekPointer (swtch), argc, argv);
   wordfree (&cmd);
-  return 0;
+  return ret;
 }
 
 int
