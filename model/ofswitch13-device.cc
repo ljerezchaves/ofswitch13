@@ -524,6 +524,8 @@ OFSwitch13Device::SendOpenflowBufferToRemote (struct ofpbuf *buffer,
   Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (remote->dp->id);
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
   Ptr<RemoteController> remoteCtrl = dev->GetRemoteController (remote);
+  
+  ofpbuf_delete (buffer);
   return dev->SendToController (packet, remoteCtrl);
 }
 
@@ -657,6 +659,11 @@ OFSwitch13Device::DoDispose ()
     }
   m_ports.clear ();
   m_bufferPkts.clear ();
+
+  for (auto &ctrl : m_controllers)
+    {
+      free (ctrl->m_remote);
+    }
   m_controllers.clear ();
 
   pipeline_destroy (m_datapath->pipeline);
