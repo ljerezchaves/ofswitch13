@@ -1144,6 +1144,7 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
   struct sender senderCtrl;
   senderCtrl.remote = remoteCtrl->m_remote;
   senderCtrl.conn_id = 0; // TODO No support for auxiliary connections.
+  senderCtrl.xid = 0;
   dp_send_message (m_datapath, &msg, &senderCtrl);
 }
 
