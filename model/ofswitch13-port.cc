@@ -112,7 +112,7 @@ OFSwitch13Port::GetTypeId (void)
 OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
                                 Ptr<OFSwitch13Device> openflowDev)
   : m_dpId (0),
-  m_portNo (0), 
+  m_portNo (0),
   m_swPort (0),
   m_netDev (netDev),
   m_openflowDev (openflowDev)

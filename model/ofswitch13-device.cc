@@ -524,7 +524,7 @@ OFSwitch13Device::SendOpenflowBufferToRemote (struct ofpbuf *buffer,
   Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (remote->dp->id);
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
   Ptr<RemoteController> remoteCtrl = dev->GetRemoteController (remote);
-  
+
   ofpbuf_delete (buffer);
   return dev->SendToController (packet, remoteCtrl);
 }
