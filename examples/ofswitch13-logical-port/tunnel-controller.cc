@@ -143,6 +143,9 @@ TunnelController::HandlePacketIn (
               << "write:set_field=tunn_id:" << tunnelIdStr
               << ",output=2";
           DpctlExecute (swtch, cmd.str ());
+
+          // All handlers must free the message when everything is ok
+          ofl_msg_free ((struct ofl_msg_header*)msg, 0);
           return 0;
         }
       else if (inPort == 2)
@@ -165,6 +168,9 @@ TunnelController::HandlePacketIn (
               << "write:set_field=eth_dst:" << dstMac
               << ",output=1";
           DpctlExecute (swtch, cmd.str ());
+
+          // All handlers must free the message when everything is ok
+          ofl_msg_free ((struct ofl_msg_header*)msg, 0);
           return 0;
         }
 
