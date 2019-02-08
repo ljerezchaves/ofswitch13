@@ -80,6 +80,12 @@ Release 4.0.0 (XXX XX, XXXX)
 - Increasing the maximum number of output queues on ports to 32
   (see NETDEV_MAX_QUEUES at lib/ofsoftswitch13/lib/netdev.h)
 
+- Removing the NetBee library dependence when compiling the ofsoftswitch13
+  library. The packet inspection is now performed by the packet_parse method
+  at lib/ofsoftswitch13/udatapath/packet_handle_std.c.
+
+- Improving ofsoftswitch13 library performance and fixing memory leak errors.
+
 - Merging new commits from the CPqD ofsoftswitch13 library.
 
 - This version is compatible with ofsoftswitch13 library release v4.0.x and

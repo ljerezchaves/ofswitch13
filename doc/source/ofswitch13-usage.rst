@@ -16,46 +16,23 @@ Building the Module
 The |ofs13| module was designed as an interface for interconnecting the |ns3|
 simulator to the |ofslib| software switch compiled as a library. Follow the
 instructions below to compile and link the |ns3| simulator to the |ofslib|
-library. *These instructions were tested on Ubuntu 16.04 LTS and Ubuntu 18.04
-LTS. Other distributions or versions may require different steps, especially
-regarding library compilation.*
+library. *These instructions were tested on Debian 8, Ubuntu 16.04 LTS, and
+Ubuntu 18.04 LTS. Other distributions or versions may require different steps,
+especially regarding library compilation.*
 
 Before starting
 ###############
 
 Before starting, ensure you have the following packages installed on your
-system:
+system [#f1]_:
 
 .. code-block:: bash
 
   $ sudo apt-get install build-essential gcc g++ python git mercurial unzip cmake
-  $ sudo apt-get install libpcap-dev libxerces-c-dev libpcre3-dev flex bison
   $ sudo apt-get install pkg-config autoconf libtool libboost-dev
 
-The |ofslib| depends on the *NetBee* library
-(https://github.com/netgroup-polito/netbee), which is used to parse the network
-packets (there is an ongoing work to remove this dependence). So we need to
-manually compile and install this library. First, clone the *NetBee* repository
-and compile the library:
-
-.. code-block:: bash
-
-  $ git clone https://github.com/netgroup-polito/netbee.git
-  $ cd netbee/src/
-  $ cmake .
-  $ make
-
-Then, install the shared libraries, configure dynamic linker run-time bindings,
-and copy the include files:
-
-.. code-block:: bash
-
-  $ sudo cp ../bin/libn*.so /usr/local/lib
-  $ sudo ldconfig
-  $ sudo cp -R ../include/* /usr/include/
-  $ cd -
-
-We are done with prerequisites.
+.. [#f1] The *NetBee* library dependence was removed in |ofs13|
+         release version 4.0.0.
 
 Compiling the code
 ##################
@@ -78,9 +55,9 @@ will recursively download the |ofslib| code into the
   $ git clone --recurse-submodules https://github.com/ljerezchaves/ofswitch13.git
 
 Update the code to the desired release version (we are using release 4.X.X,
-which is compatible with ns-3.28 or later) [#f1]_:
+which is compatible with ns-3.28 or later) [#f2]_:
 
-.. [#f1] For |ofs13| release versions prior to 3.2.2 (when no submodule
+.. [#f2] For |ofs13| release versions prior to 3.2.2 (when no submodule
          dependence was configured in the git repository), the |ofslib| code
          will not automatically update to the correct version. In this case,
          you must manually updated the |ofslib| code to the proper version
