@@ -37,12 +37,12 @@ OFSwitch13StatsCalculator::OFSwitch13StatsCalculator ()
   : m_device (0),
   m_wrapper (0),
   m_lastUpdate (Simulator::Now ()),
-  m_avgBufferUsage (0),
-  m_avgSumFlowEntries (0),
-  m_avgGroupEntries (0),
-  m_avgMeterEntries (0),
-  m_avgPipelineDelay (0),
-  m_avgPipelineLoad (0),
+  m_ewmaBufferEntries (0.0),
+  m_ewmaCpuLoad (0.0),
+  m_ewmaGroupEntries (0.0),
+  m_ewmaMeterEntries (0.0),
+  m_ewmaPipelineDelay (0.0),
+  m_ewmaSumFlowEntries (0.0),
   m_bytes (0),
   m_lastFlowMods (0),
   m_lastGroupMods (0),
@@ -70,7 +70,7 @@ OFSwitch13StatsCalculator::GetTypeId (void)
     .AddConstructor<OFSwitch13StatsCalculator> ()
     .AddAttribute ("EwmaAlpha",
                    "The EWMA alpha parameter for averaging statistics.",
-                   DoubleValue (0.25),
+                   DoubleValue (0.2),
                    MakeDoubleAccessor (&OFSwitch13StatsCalculator::m_alpha),
                    MakeDoubleChecker<double> (0.0, 1.0))
     .AddAttribute ("DumpTimeout",
@@ -84,6 +84,11 @@ OFSwitch13StatsCalculator::GetTypeId (void)
                    StringValue ("ofswitch_stats.log"),
                    MakeStringAccessor (&OFSwitch13StatsCalculator::m_filename),
                    MakeStringChecker ())
+    .AddAttribute ("FlowTableDetails",
+                   "Dump individual pipeline flow table statistics.",
+                   BooleanValue (false),
+                   MakeBooleanAccessor (&OFSwitch13StatsCalculator::m_details),
+                   MakeBooleanChecker ())
   ;
   return tid;
 }
@@ -96,14 +101,52 @@ OFSwitch13StatsCalculator::HookSinks (Ptr<OFSwitch13Device> device)
   // Save switch device pointer.
   m_device = device;
 
+  // Print the header line.
+  *m_wrapper->GetStream ()
+    << boolalpha << right << fixed << setprecision (3)
+    << " " << setw (8)  << "TimeSec"
+    << " " << setw (12) << "LoaKbps"
+    << " " << setw (7)  << "LoaUsag"
+    << " " << setw (7)  << "Packets"
+    << " " << setw (7)  << "DlyUsec"
+    << " " << setw (7)  << "LoaDrop"
+    << " " << setw (7)  << "MetDrps"
+    << " " << setw (7)  << "FloMods"
+    << " " << setw (7)  << "MetMods"
+    << " " << setw (7)  << "GroMods"
+    << " " << setw (7)  << "PktsIn"
+    << " " << setw (7)  << "PktsOut"
+    << " " << setw (7)  << "FloEntr"
+    << " " << setw (7)  << "FloUsag"
+    << " " << setw (7)  << "MetEntr"
+    << " " << setw (7)  << "MetUsag"
+    << " " << setw (7)  << "GroEntr"
+    << " " << setw (7)  << "GroUsag"
+    << " " << setw (7)  << "BufPkts"
+    << " " << setw (7)  << "BufUsag";
+
+  if (m_details)
+    {
+      for (size_t i = 0; i < m_device->GetNPipelineTables (); i++)
+        {
+          std::string field1 = "T" + to_string (i) + "Entr";
+          std::string field2 = "T" + to_string (i) + "Usag";
+          *m_wrapper->GetStream ()
+            << " " << setw (7) << field1
+            << " " << setw (7) << field2;
+        }
+    }
+
+  *m_wrapper->GetStream () << std::endl;
+
   // Hook sinks.
   device->TraceConnectWithoutContext (
     "DatapathTimeout", MakeCallback (
       &OFSwitch13StatsCalculator::NotifyDatapathTimeout,
       Ptr<OFSwitch13StatsCalculator> (this)));
   device->TraceConnectWithoutContext (
-    "LoadDrop", MakeCallback (
-      &OFSwitch13StatsCalculator::NotifyLoadDrop,
+    "OverloadDrop", MakeCallback (
+      &OFSwitch13StatsCalculator::NotifyOverloadDrop,
       Ptr<OFSwitch13StatsCalculator> (this)));
   device->TraceConnectWithoutContext (
     "MeterDrop", MakeCallback (
@@ -113,42 +156,127 @@ OFSwitch13StatsCalculator::HookSinks (Ptr<OFSwitch13Device> device)
     "PipelinePacket", MakeCallback (
       &OFSwitch13StatsCalculator::NotifyPipelinePacket,
       Ptr<OFSwitch13StatsCalculator> (this)));
+
+  m_ewmaFlowEntries.resize (device->GetNPipelineTables (), 0.0);
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetEwmaBufferUsage (void) const
+OFSwitch13StatsCalculator::GetEwmaBufferEntries (void) const
 {
-  return std::round (100 * m_avgBufferUsage);
+  return std::round (m_ewmaBufferEntries);
+}
+
+DataRate
+OFSwitch13StatsCalculator::GetEwmaCpuLoad (void) const
+{
+  return DataRate (std::round (m_ewmaCpuLoad));
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetEwmaGroupEntries (void) const
+OFSwitch13StatsCalculator::GetEwmaFlowTableEntries (uint8_t tableId) const
 {
-  return std::round (m_avgGroupEntries);
+  return std::round (m_ewmaFlowEntries.at (tableId));
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetEwmaMeterEntries (void) const
+OFSwitch13StatsCalculator::GetEwmaGroupTableEntries (void) const
 {
-  return std::round (m_avgMeterEntries);
+  return std::round (m_ewmaGroupEntries);
+}
+
+uint32_t
+OFSwitch13StatsCalculator::GetEwmaMeterTableEntries (void) const
+{
+  return std::round (m_ewmaMeterEntries);
 }
 
 Time
 OFSwitch13StatsCalculator::GetEwmaPipelineDelay (void) const
 {
-  return Time (m_avgPipelineDelay);
-}
-
-DataRate
-OFSwitch13StatsCalculator::GetEwmaPipelineLoad (void) const
-{
-  return DataRate (std::round (m_avgPipelineLoad));
+  return Time (m_ewmaPipelineDelay);
 }
 
 uint32_t
 OFSwitch13StatsCalculator::GetEwmaSumFlowEntries (void) const
 {
-  return std::round (m_avgSumFlowEntries);
+  return std::round (m_ewmaSumFlowEntries);
+}
+
+uint32_t
+OFSwitch13StatsCalculator::GetAvgBufferUsage (void) const
+{
+  if (m_device->GetBufferSize () == 0)
+    {
+      return 0;
+    }
+  return std::round (static_cast<double> (GetEwmaBufferEntries ()) * 100 /
+                     static_cast<double> (m_device->GetBufferSize ()));
+}
+
+uint32_t
+OFSwitch13StatsCalculator::GetAvgCpuUsage (void) const
+{
+  if (m_device->GetCpuCapacity ().GetBitRate () == 0)
+    {
+      return 0;
+    }
+  return std::round (
+    static_cast<double> (GetEwmaCpuLoad ().GetBitRate ()) * 100 /
+    static_cast<double> (m_device->GetCpuCapacity ().GetBitRate ()));
+}
+
+uint32_t
+OFSwitch13StatsCalculator::GetAvgFlowTableUsage (uint8_t tableId) const
+{
+  if (m_device->GetFlowTableSize (tableId) == 0)
+    {
+      return 0;
+    }
+  return std::round (
+    static_cast<double> (GetEwmaFlowTableEntries (tableId)) * 100 /
+    static_cast<double> (m_device->GetFlowTableSize (tableId)));
+}
+
+uint32_t
+OFSwitch13StatsCalculator::GetAvgGroupTableUsage (void) const
+{
+  if (m_device->GetGroupTableSize () == 0)
+    {
+      return 0;
+    }
+  return std::round (static_cast<double> (GetEwmaGroupTableEntries ()) * 100 /
+                     static_cast<double> (m_device->GetGroupTableSize ()));
+}
+
+uint32_t
+OFSwitch13StatsCalculator::GetAvgMeterTableUsage (void) const
+{
+  if (m_device->GetMeterTableSize () == 0)
+    {
+      return 0;
+    }
+  return std::round (static_cast<double> (GetEwmaMeterTableEntries ()) * 100 /
+                     static_cast<double> (m_device->GetMeterTableSize ()));
+}
+
+uint32_t
+OFSwitch13StatsCalculator::GetAvgActFlowTableUsage (void) const
+{
+  uint32_t sumSize = 0;
+  for (size_t i = 0; i < m_device->GetNPipelineTables (); i++)
+    {
+      if (m_device->GetFlowTableEntries (i))
+        {
+          sumSize += m_device->GetFlowTableSize (i);
+        }
+    }
+
+  if (sumSize == 0)
+    {
+      return 0;
+    }
+  return std::round (static_cast<double> (GetEwmaSumFlowEntries ()) * 100 /
+                     static_cast<double> (sumSize));
 }
 
 void
@@ -165,26 +293,8 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
 {
   NS_LOG_FUNCTION (this);
 
-  // Open output file and print header line.
+  // Open output file.
   m_wrapper = Create<OutputStreamWrapper> (m_filename, std::ios::out);
-  *m_wrapper->GetStream ()
-    << boolalpha << right << fixed << setprecision (3)
-    << " " << setw (8) << "Time:s"
-    << " " << setw (12) << "Load:kbps"
-    << " " << setw (7)  << "Packets"
-    << " " << setw (7)  << "LdDrops"
-    << " " << setw (7)  << "MtDrops"
-    << " " << setw (7)  << "FloMods"
-    << " " << setw (7)  << "MetMods"
-    << " " << setw (7)  << "GroMods"
-    << " " << setw (7)  << "PktsIn"
-    << " " << setw (7)  << "PktsOut"
-    << " " << setw (7)  << "SFlows"
-    << " " << setw (7)  << "NMeters"
-    << " " << setw (7)  << "NGroups"
-    << " " << setw (7)  << "Buff:%"
-    << " " << setw (7)  << "Dly:us"
-    << std::endl;
 
   // Scheduling first update and dump.
   Simulator::Schedule (m_timeout,
@@ -195,27 +305,34 @@ OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
 }
 
 void
-OFSwitch13StatsCalculator::NotifyDatapathTimeout (Ptr<const OFSwitch13Device> device)
+OFSwitch13StatsCalculator::NotifyDatapathTimeout (
+  Ptr<const OFSwitch13Device> device)
 {
   NS_LOG_FUNCTION (this);
 
   NS_ASSERT_MSG (m_device == device, "Invalid device pointer.");
-  m_avgBufferUsage = m_alpha * m_device->GetBufferUsage ()
-    + (1 - m_alpha) * m_avgBufferUsage;
-  m_avgSumFlowEntries = m_alpha * m_device->GetSumFlowEntries ()
-    + (1 - m_alpha) * m_avgSumFlowEntries;
-  m_avgGroupEntries = m_alpha * m_device->GetGroupEntries ()
-    + (1 - m_alpha) * m_avgGroupEntries;
-  m_avgMeterEntries = m_alpha * m_device->GetMeterEntries ()
-    + (1 - m_alpha) * m_avgMeterEntries;
-  m_avgPipelineDelay = m_alpha * m_device->GetPipelineDelay ().GetDouble ()
-    + (1 - m_alpha) * m_avgPipelineDelay;
-  m_avgPipelineLoad = m_alpha * m_device->GetPipelineLoad ().GetBitRate ()
-    + (1 - m_alpha) * m_avgPipelineLoad;
+  m_ewmaBufferEntries = m_alpha * m_device->GetBufferEntries ()
+    + (1 - m_alpha) * m_ewmaBufferEntries;
+  m_ewmaCpuLoad = m_alpha * m_device->GetCpuLoad ().GetBitRate ()
+    + (1 - m_alpha) * m_ewmaCpuLoad;
+  m_ewmaSumFlowEntries = m_alpha * m_device->GetSumFlowEntries ()
+    + (1 - m_alpha) * m_ewmaSumFlowEntries;
+  m_ewmaGroupEntries = m_alpha * m_device->GetGroupTableEntries ()
+    + (1 - m_alpha) * m_ewmaGroupEntries;
+  m_ewmaMeterEntries = m_alpha * m_device->GetMeterTableEntries ()
+    + (1 - m_alpha) * m_ewmaMeterEntries;
+  m_ewmaPipelineDelay = m_alpha * m_device->GetPipelineDelay ().GetDouble ()
+    + (1 - m_alpha) * m_ewmaPipelineDelay;
+
+  for (size_t i = 0; i < m_device->GetNPipelineTables (); i++)
+    {
+      m_ewmaFlowEntries.at (i) = m_alpha * m_device->GetFlowTableEntries (i)
+        + (1 - m_alpha) * m_ewmaFlowEntries.at (i);
+    }
 }
 
 void
-OFSwitch13StatsCalculator::NotifyLoadDrop (Ptr<const Packet> packet)
+OFSwitch13StatsCalculator::NotifyOverloadDrop (Ptr<const Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 
@@ -252,13 +369,26 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
   uint64_t packetsIn  = m_device->GetPacketInCounter ();
   uint64_t packetsOut = m_device->GetPacketOutCounter ();
 
+  // We don't use the EWMA CPU load here. Instead, we use the number of
+  // bytes transmitted since the last dump operation to get a precise average
+  // CPU load.
   double elapSeconds = (Simulator::Now () - m_lastUpdate).GetSeconds ();
+  uint64_t cpuLoad = m_bytes * 8 / elapSeconds;
+  uint64_t cpuCapy = m_device->GetCpuCapacity ().GetBitRate ();
+  uint32_t cpuUsage = 0;
+  if (cpuCapy)
+    {
+      cpuUsage = std::round (static_cast<double> (cpuLoad) * 100 /
+                             static_cast<double> (cpuCapy));
+    }
 
   // Print statistics to file.
   *m_wrapper->GetStream ()
     << " " << setw (8)  << Simulator::Now ().GetSeconds ()
-    << " " << setw (12) << (double)m_bytes * 8 / 1000 / elapSeconds
+    << " " << setw (12) << static_cast<double> (cpuLoad) / 1000
+    << " " << setw (7)  << cpuUsage
     << " " << setw (7)  << m_packets
+    << " " << setw (7)  << GetEwmaPipelineDelay ().GetMicroSeconds ()
     << " " << setw (7)  << m_loadDrops
     << " " << setw (7)  << m_meterDrops
     << " " << setw (7)  << flowMods - m_lastFlowMods
@@ -267,11 +397,25 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
     << " " << setw (7)  << packetsIn - m_lastPacketsIn
     << " " << setw (7)  << packetsOut - m_lastPacketsOut
     << " " << setw (7)  << GetEwmaSumFlowEntries ()
-    << " " << setw (7)  << GetEwmaMeterEntries ()
-    << " " << setw (7)  << GetEwmaGroupEntries ()
-    << " " << setw (7)  << GetEwmaBufferUsage ()
-    << " " << setw (7)  << GetEwmaPipelineDelay ().GetMicroSeconds ()
-    << std::endl;
+    << " " << setw (7)  << GetAvgActFlowTableUsage ()
+    << " " << setw (7)  << GetEwmaMeterTableEntries ()
+    << " " << setw (7)  << GetAvgMeterTableUsage ()
+    << " " << setw (7)  << GetEwmaGroupTableEntries ()
+    << " " << setw (7)  << GetAvgGroupTableUsage ()
+    << " " << setw (7)  << GetEwmaBufferEntries ()
+    << " " << setw (7)  << GetAvgBufferUsage ();
+
+  if (m_details)
+    {
+      for (size_t i = 0; i < m_device->GetNPipelineTables (); i++)
+        {
+          *m_wrapper->GetStream ()
+            << " " << setw (7) << GetEwmaFlowTableEntries (i)
+            << " " << setw (7) << GetAvgFlowTableUsage (i);
+        }
+    }
+
+  *m_wrapper->GetStream () << std::endl;
 
   // Update internal counters.
   m_bytes = 0;

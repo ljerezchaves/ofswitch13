@@ -19,35 +19,19 @@
  */
 
 #include "ns3/log.h"
-#include "ns3/enum.h"
 #include "ns3/string.h"
-#include "ns3/uinteger.h"
 #include "ns3/object-vector.h"
 #include "ofswitch13-queue.h"
-#include <algorithm>
+#include "queue-tag.h"
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT                                   \
-  if (m_swPort != 0)                                            \
-    {                                                           \
-      std::clog << "[dp " << m_swPort->dp->id                   \
-                << " port " << m_swPort->conf->port_no << "] "; \
-    }
+#define NS_LOG_APPEND_CONTEXT \
+  std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
 
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Queue");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Queue);
-
-ObjectFactory
-GetDefaultQueueFactory ()
-{
-  // Setting default internal queue configuration.
-  ObjectFactory queueFactory;
-  queueFactory.SetTypeId ("ns3::DropTailQueue<Packet>");
-  queueFactory.Set ("MaxSize", StringValue ("100p"));
-  return queueFactory;
-}
 
 TypeId
 OFSwitch13Queue::GetTypeId (void)
@@ -55,20 +39,8 @@ OFSwitch13Queue::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::OFSwitch13Queue")
     .SetParent<Queue<Packet> > ()
     .SetGroupName ("OFSwitch13")
-    .AddAttribute ("NumQueues",
-                   "The number of internal queues available on this queue.",
-                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                   UintegerValue (NETDEV_MAX_QUEUES),
-                   MakeUintegerAccessor (&OFSwitch13Queue::m_intQueues),
-                   MakeUintegerChecker<uint32_t> (1, NETDEV_MAX_QUEUES))
-    .AddAttribute ("QueueFactory",
-                   "The object factory for creating internal queues.",
-                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                   ObjectFactoryValue (GetDefaultQueueFactory ()),
-                   MakeObjectFactoryAccessor (&OFSwitch13Queue::m_qFactory),
-                   MakeObjectFactoryChecker ())
     .AddAttribute ("QueueList",
-                   "The list of internal queues available to the port.",
+                   "The list of internal queues.",
                    ObjectVectorValue (),
                    MakeObjectVectorAccessor (&OFSwitch13Queue::m_queues),
                    MakeObjectVectorChecker<Queue<Packet> > ())
@@ -76,12 +48,14 @@ OFSwitch13Queue::GetTypeId (void)
   return tid;
 }
 
-OFSwitch13Queue::OFSwitch13Queue (struct sw_port *port)
+OFSwitch13Queue::OFSwitch13Queue ()
   : Queue<Packet> (),
-  m_swPort (port),
+  m_dpId (0),
+  m_portNo (0),
+  m_swPort (0),
   NS_LOG_TEMPLATE_DEFINE ("OFSwitch13Queue")
 {
-  NS_LOG_FUNCTION (this << port);
+  NS_LOG_FUNCTION (this);
 }
 
 OFSwitch13Queue::~OFSwitch13Queue ()
@@ -89,68 +63,22 @@ OFSwitch13Queue::~OFSwitch13Queue ()
   NS_LOG_FUNCTION (this);
 }
 
-uint32_t
-OFSwitch13Queue::GetNQueues (void) const
-{
-  return m_intQueues;
-}
-
-void
-OFSwitch13Queue::DoDispose ()
-{
-  NS_LOG_FUNCTION (this);
-
-  // While m_swPort is valid, free internal stats and props
-  // structures for each available queue
-  if (m_swPort)
-    {
-      struct sw_queue *swQueue;
-      for (uint32_t i = 0; i < GetNQueues (); i++)
-        {
-          swQueue = &(m_swPort->queues[i]);
-          free (swQueue->stats);
-          free (swQueue->props);
-        }
-      m_swPort = 0;
-    }
-  m_queues.clear ();
-}
-
-void
-OFSwitch13Queue::NotifyConstructionCompleted (void)
-{
-  NS_LOG_FUNCTION (this);
-
-  // We are using a very large queue size for this queue interface. The real
-  // check for queue space is performed at DoEnqueue () by the internal queues.
-  SetAttribute ("MaxSize", StringValue ("100Mp"));
-
-  // Creating the internal queues, defined by the NumQueues attribute.
-  for (uint32_t i = 0; i < GetNQueues (); i++)
-    {
-      AddQueue (m_qFactory.Create<Queue<Packet> > ());
-    }
-
-  // Chain up.
-  Queue<Packet>::NotifyConstructionCompleted ();
-}
-
 bool
 OFSwitch13Queue::Enqueue (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
 
-  QueueTag queueNoTag;
-  packet->PeekPacketTag (queueNoTag);
-  uint32_t queueNo = queueNoTag.GetQueueId ();
-  NS_ASSERT_MSG (queueNo < GetNQueues (), "Queue id is out of range.");
-  NS_LOG_DEBUG ("Packet " << packet << " to be enqueued in queue id " << queueNo);
+  QueueTag queueTag;
+  packet->PeekPacketTag (queueTag);
+  int queueId = static_cast<int> (queueTag.GetQueueId ());
+  NS_ASSERT_MSG (queueId < GetNQueues (), "Queue ID is out of range.");
+  NS_LOG_DEBUG ("Packet to be enqueued in queue " << queueId);
 
   struct sw_queue *swQueue;
-  swQueue = dp_ports_lookup_queue (m_swPort, queueNo);
+  swQueue = dp_ports_lookup_queue (m_swPort, queueId);
   NS_ASSERT_MSG (swQueue, "Invalid queue id.");
 
-  bool retval = GetQueue (queueNo)->Enqueue (packet);
+  bool retval = GetQueue (queueId)->Enqueue (packet);
   if (retval)
     {
       swQueue->stats->tx_packets++;
@@ -163,7 +91,7 @@ OFSwitch13Queue::Enqueue (Ptr<Packet> packet)
     }
   else
     {
-      NS_LOG_DEBUG ("Packet enqueue dropped by internal queue " << queueNo);
+      NS_LOG_DEBUG ("Packet enqueue dropped by internal queue " << queueId);
       swQueue->stats->tx_errors++;
 
       // Drop the packet in this queue too.
@@ -173,86 +101,72 @@ OFSwitch13Queue::Enqueue (Ptr<Packet> packet)
   return retval;
 }
 
-Ptr<Packet>
-OFSwitch13Queue::Dequeue (void)
+int
+OFSwitch13Queue::GetNQueues (void) const
 {
-  NS_LOG_FUNCTION (this);
-
-  for (int32_t i = GetNQueues () - 1; i >= 0; i--)
-    {
-      if (GetQueue (i)->IsEmpty () == false)
-        {
-          NS_LOG_DEBUG ("Packet dequeued from queue id " << i);
-          Ptr<Packet> p = GetQueue (i)->Dequeue ();
-
-          // Dequeue the packet from this queue too. As we don't know the
-          // exactly packet location on this queue, we have to look for it.
-          for (auto it = Head (); it != Tail (); it++)
-            {
-              if ((*it) == p)
-                {
-                  DoDequeue (it);
-                  return p;
-                }
-            }
-
-          NS_LOG_WARN ("Packet " << p << " was not found on this queue.");
-          return p;
-        }
-    }
-
-  NS_LOG_DEBUG ("Queue empty");
-  return 0;
+  return m_queues.size ();
 }
 
-Ptr<Packet>
-OFSwitch13Queue::Remove (void)
+Ptr<Queue<Packet> >
+OFSwitch13Queue::GetQueue (int queueId) const
 {
-  NS_LOG_FUNCTION (this);
-
-  for (int32_t i = GetNQueues () - 1; i >= 0; i--)
-    {
-      if (GetQueue (i)->IsEmpty () == false)
-        {
-          NS_LOG_DEBUG ("Packet removed from queue id " << i);
-          Ptr<Packet> p = GetQueue (i)->Remove ();
-
-          // Remove the packet from this queue too. As we don't know the
-          // exactly packet location on this queue, we have to look for it.
-          for (auto it = Head (); it != Tail (); it++)
-            {
-              if ((*it) == p)
-                {
-                  DoDequeue (it);
-                  return p;
-                }
-            }
-
-          NS_LOG_WARN ("Packet " << p << " was not found on this queue.");
-          return p;
-        }
-    }
-
-  NS_LOG_DEBUG ("Queue empty");
-  return 0;
+  return m_queues.at (queueId);
 }
 
-Ptr<const Packet>
-OFSwitch13Queue::Peek (void) const
+void
+OFSwitch13Queue::SetPortStruct (struct sw_port *port)
+{
+  NS_LOG_FUNCTION (this << port);
+
+  m_swPort = port;
+  m_dpId = port->dp->id;
+  m_portNo = port->conf->port_no;
+}
+
+void
+OFSwitch13Queue::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  for (int32_t i = GetNQueues () - 1; i >= 0; i--)
+  // While m_swPort is valid, free internal stats and props
+  // structures for each available queue
+  if (m_swPort)
     {
-      if (GetQueue (i)->IsEmpty () == false)
+      struct sw_queue *swQueue;
+      for (int queueId = 0; queueId < GetNQueues (); queueId++)
         {
-          NS_LOG_DEBUG ("Packet peeked from queue id " << i);
-          return GetQueue (i)->Peek ();
+          swQueue = &(m_swPort->queues[queueId]);
+          free (swQueue->stats);
+          free (swQueue->props);
         }
+      m_swPort = 0;
     }
+  m_queues.clear ();
 
-  NS_LOG_DEBUG ("Queue empty");
-  return 0;
+  // Chain up.
+  Queue<Packet>::DoDispose ();
+}
+
+void
+OFSwitch13Queue::DoInitialize ()
+{
+  NS_LOG_FUNCTION (this);
+
+  // Chain up.
+  Queue<Packet>::DoInitialize ();
+}
+
+void
+OFSwitch13Queue::NotifyConstructionCompleted (void)
+{
+  NS_LOG_FUNCTION (this);
+
+  // We are using a very large queue size for this queue interface. The real
+  // check for queue space is performed at DoEnqueue () by the internal queues.
+  SetAttribute ("MaxSize", StringValue ("100Mp"));
+
+  // Chain up.
+  Queue<Packet>::NotifyConstructionCompleted ();
 }
 
 uint32_t
@@ -284,15 +198,45 @@ OFSwitch13Queue::AddQueue (Ptr<Queue<Packet> > queue)
 
   // Inserting the ns3::Queue object into queue list.
   m_queues.push_back (queue);
-  NS_LOG_DEBUG ("New queue with id " << queueId);
+  NS_LOG_DEBUG ("New queue with ID " << queueId);
 
   return queueId;
 }
 
-Ptr<Queue<Packet> >
-OFSwitch13Queue::GetQueue (uint32_t queueId) const
+void
+OFSwitch13Queue::NotifyDequeue (Ptr<Packet> packet)
 {
-  return m_queues.at (queueId);
+  NS_LOG_FUNCTION (this << packet);
+
+  // Dequeue the packet from this queue too. As we don't know the
+  // exactly packet location on this queue, we have to look for it.
+  for (auto it = Head (); it != Tail (); it++)
+    {
+      if ((*it) == packet)
+        {
+          DoDequeue (it);
+          return;
+        }
+    }
+  NS_LOG_WARN ("Packet was not found on this queue.");
+}
+
+void
+OFSwitch13Queue::NotifyRemove (Ptr<Packet> packet)
+{
+  NS_LOG_FUNCTION (this << packet);
+
+  // Remove the packet from this queue too. As we don't know the
+  // exactly packet location on this queue, we have to look for it.
+  for (auto it = Head (); it != Tail (); it++)
+    {
+      if ((*it) == packet)
+        {
+          DoRemove (it);
+          return;
+        }
+    }
+  NS_LOG_WARN ("Packet was not found on this queue.");
 }
 
 } // namespace ns3

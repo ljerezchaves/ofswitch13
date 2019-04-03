@@ -20,11 +20,9 @@
 #ifndef OFSWITCH13_QUEUE_H
 #define OFSWITCH13_QUEUE_H
 
-#include <queue>
-#include "ns3/packet.h"
-#include "ns3/queue.h"
+#include <ns3/packet.h>
+#include <ns3/queue.h>
 #include "ofswitch13-interface.h"
-#include "queue-tag.h"
 
 namespace ns3 {
 
@@ -34,20 +32,23 @@ extern template class Queue<Packet>;
 
 /**
  * \ingroup ofswitch13
+ * \brief The OpenFlow 1.3 queue interface.
  *
- * \brief The OpenFlow 1.3 queue interface for simple QoS management. An
- * OpenFlow switch provides limited Quality-of-Service support (QoS) through a
- * simple queuing mechanism. One (or more) queues can attach to a port and be
- * used to map flow entries on it. Flow entries mapped to a specific queue
- * will be treated according to that queue's configuration. Queue configuration
- * takes place outside the OpenFlow protocol. This class implements the queue
- * interface, extending the ns3::Queue class to allow compatibility with the
- * CsmaNetDevice used by OFSwitch13Port. Internally, it can hold a collection
- * of N priority queues, identified by IDs ranging from 0 to N in increasing
- * priority (queue ID 0 has the lowest priority). The ns3::QueueTag is used to
- * identify which internal queue will hold the packet, and the priority
- * algorithms ensures that higher-priority queues "always" get serviced
- * first.
+ * An OpenFlow switch provides limited Quality-of-Service support (QoS) through
+ * a simple queuing mechanism. One (or more) queues can attach to a port and be
+ * used to map flow entries on it. Flow entries mapped to a specific queue will
+ * be treated according to that queue's configuration. Queue configuration
+ * takes place outside the OpenFlow protocol.
+ *
+ * This class implements the queue interface, extending the ns3::Queue<Packet>
+ * class to allow compatibility with the CsmaNetDevice used by OFSwitch13Port.
+ * Internally, it holds a collection of N (possibly different) queues,
+ * identified by IDs ranging from 0 to N-1. The Enqueue () method uses the
+ * ns3::QueueTag to identify which internal queue will hold the packet.
+ * Subclasses can perform different output scheduling algorithms by
+ * implementing the Dequeue (), Remove () and Peek () methods, always calling
+ * the NotifyDequeue () and NotifyRemoved () methods from this base class to
+ * keep consistency.
  */
 class OFSwitch13Queue : public Queue<Packet>
 {
@@ -58,39 +59,17 @@ public:
    */
   static TypeId GetTypeId (void);
 
-  /**
-   * Complete constructor.
-   * \param port The pointer to the ofsoftswitch13 internal port structure.
-   */
-  OFSwitch13Queue (struct sw_port *port);
+  OFSwitch13Queue ();           //!< Default constructor.
   virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
 
   // Inherited from Queue.
   bool Enqueue (Ptr<Packet> packet);
-  Ptr<Packet> Dequeue (void);
-  Ptr<Packet> Remove (void);
-  Ptr<const Packet> Peek (void) const;
 
   /**
    * Get the number of internal queues.
    * \return The number of internal queues.
    */
-  uint32_t GetNQueues (void) const;
-
-protected:
-  /** Destructor implementation. */
-  virtual void DoDispose ();
-
-  // Inherited from ObjectBase.
-  virtual void NotifyConstructionCompleted (void);
-
-private:
-  /**
-   * Add a new internal queue to this OpenFlow queue interface.
-   * \param queue The queue pointer.
-   * \return The ID for this new internal queue.
-   */
-  uint32_t AddQueue (Ptr<Queue<Packet> > queue);
+  int GetNQueues (void) const;
 
   /**
    * Get a pointer to internal queue with specific id.
@@ -99,14 +78,52 @@ private:
    * \internal This function is marked as const to allow its usage inside
    *           DoPeek () member function.
    */
-  Ptr<Queue<Packet> > GetQueue (uint32_t queueId) const;
+  Ptr<Queue<Packet> > GetQueue (int queueId) const;
 
+  /**
+   * Set the pointer to the internal ofsoftswitch13 port structure.
+   * \param port The port structure pointer.
+   */
+  void SetPortStruct (struct sw_port *port);
+
+protected:
+  /** Destructor implementation. */
+  virtual void DoDispose ();
+
+  // Inherited from Object.
+  virtual void DoInitialize (void);
+
+  // Inherited from ObjectBase.
+  virtual void NotifyConstructionCompleted (void);
+
+  /**
+   * Add a new internal queue to this OpenFlow queue interface.
+   * \param queue The queue pointer.
+   * \return The ID for this new internal queue.
+   */
+  uint32_t AddQueue (Ptr<Queue<Packet> > queue);
+
+  /**
+   * Notify the parent class of a packet dequeued from any internal queue.
+   * \param packet The packet.
+   */
+  void NotifyDequeue (Ptr<Packet> packet);
+
+  /**
+   * Notify the parent class of a packet removed from any internal queue.
+   * \param packet The packet.
+   */
+  void NotifyRemove (Ptr<Packet> packet);
+
+  // Values used for logging context.
+  uint64_t              m_dpId;       //!< OpenFlow datapath ID.
+  uint32_t              m_portNo;     //!< OpenFlow port number.
+
+private:
   /** Structure to save the list of internal queues in this queue interface. */
   typedef std::vector<Ptr<Queue> > QueueList_t;
 
-  struct sw_port*       m_swPort;     //!< ofsoftswitch13 struct sw_port.
-  ObjectFactory         m_qFactory;   //!< Factory for internal queues.
-  uint32_t              m_intQueues;  //!< Number of internal queues.
+  struct sw_port*       m_swPort;     //!< ofsoftswitch13 port structure.
   QueueList_t           m_queues;     //!< List of internal queues.
 
   NS_LOG_TEMPLATE_DECLARE;            //!< Redefinition of the log component.

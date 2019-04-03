@@ -24,25 +24,32 @@
 #include <ns3/csma-net-device.h>
 #include <ns3/virtual-net-device.h>
 #include "ofswitch13-device.h"
-#include "ofswitch13-queue.h"
 #include "ofswitch13-port.h"
 #include "tunnel-id-tag.h"
+#include "queue-tag.h"
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT                                   \
-  if (m_swPort != 0)                                            \
-    {                                                           \
-      std::clog << "[dp " << m_swPort->dp->id                   \
-                << " port " << m_swPort->conf->port_no << "] "; \
-    }
+#define NS_LOG_APPEND_CONTEXT \
+  std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
 
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("OFSwitch13Port");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Port);
 
+static ObjectFactory
+GetDefaultQueueFactory ()
+{
+  // Setting default internal queue configuration.
+  ObjectFactory queueFactory;
+  queueFactory.SetTypeId ("ns3::OFSwitch13PriorityQueue");
+  return queueFactory;
+}
+
 OFSwitch13Port::OFSwitch13Port ()
-  : m_swPort (0),
+  : m_dpId (0),
+  m_portNo (0),
+  m_swPort (0),
   m_netDev (0),
   m_openflowDev (0)
 {
@@ -79,10 +86,16 @@ OFSwitch13Port::GetTypeId (void)
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Port> ()
     .AddAttribute ("PortQueue",
-                   "The OpenFlow queue to use as the tx queue in this port.",
+                   "The OpenFlow queue to use as the TX queue in this port.",
                    PointerValue (),
                    MakePointerAccessor (&OFSwitch13Port::m_portQueue),
                    MakePointerChecker<OFSwitch13Queue> ())
+    .AddAttribute ("QueueFactory",
+                   "The object factory for the OpenFlow queue.",
+                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                   ObjectFactoryValue (GetDefaultQueueFactory ()),
+                   MakeObjectFactoryAccessor (&OFSwitch13Port::m_factQueue),
+                   MakeObjectFactoryChecker ())
 
     .AddTraceSource ("SwitchPortRx",
                      "Trace source indicating a packet received at this port.",
@@ -98,28 +111,38 @@ OFSwitch13Port::GetTypeId (void)
 
 OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
                                 Ptr<OFSwitch13Device> openflowDev)
-  : m_swPort (0),
+  : m_dpId (0),
+  m_portNo (0),
+  m_swPort (0),
   m_netDev (netDev),
   m_openflowDev (openflowDev)
 {
   NS_LOG_FUNCTION (this << netDev << openflowDev);
 
-  // Check for valid NetDevice type
-  Ptr<CsmaNetDevice> csmaDev = netDev->GetObject<CsmaNetDevice> ();
-  Ptr<VirtualNetDevice> virtDev = netDev->GetObject<VirtualNetDevice> ();
-  NS_ABORT_MSG_IF (!csmaDev && !virtDev,
-                   "NetDevice must be CsmaNetDevice or VirtualNetDevice.");
-
+  m_dpId = dp->id;
   m_portNo = ++(dp->ports_num);
   m_swPort = &dp->ports[m_portNo];
-
   memset (m_swPort, '\0', sizeof *m_swPort);
+
+  // Saving datapath pointer.
+  m_swPort->dp = dp;
+}
+
+void
+OFSwitch13Port::NotifyConstructionCompleted ()
+{
+  NS_LOG_FUNCTION (this);
+
+  // Check for valid NetDevice type
+  Ptr<CsmaNetDevice> csmaDev = m_netDev->GetObject<CsmaNetDevice> ();
+  Ptr<VirtualNetDevice> virtDev = m_netDev->GetObject<VirtualNetDevice> ();
+  NS_ABORT_MSG_IF (!csmaDev && !virtDev,
+                   "NetDevice must be CsmaNetDevice or VirtualNetDevice.");
 
   // Filling ofsoftswitch13 internal structures for this port.
   size_t oflPortSize = sizeof (struct ofl_port);
   size_t oflPortStatsSize = sizeof (struct ofl_port_stats);
 
-  m_swPort->dp = dp;
   m_swPort->conf = (struct ofl_port*)xmalloc (oflPortSize);
   memset (m_swPort->conf, 0x00, oflPortSize);
   m_swPort->conf->port_no = m_portNo;
@@ -145,13 +168,15 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
   // To avoid a null check failure in ofsoftswitch13
   // dp_ports_handle_stats_request_port (), we are pointing m_swPort->netdev to
   // corresponding ns3::NetDevice, but this pointer must not be used!
-  m_swPort->netdev = (struct netdev*)PeekPointer (netDev);
+  m_swPort->netdev = (struct netdev*)PeekPointer (m_netDev);
 
   // Creating the OFSwitch13Queue for this switch port
   memset (m_swPort->queues, 0x00, sizeof (m_swPort->queues));
-  m_swPort->max_queues = dp->max_queues;
+  m_swPort->max_queues = m_swPort->dp->max_queues;
   m_swPort->num_queues = 0;
-  m_portQueue = CreateObject<OFSwitch13Queue> (m_swPort);
+  m_portQueue = m_factQueue.Create<OFSwitch13Queue> ();
+  m_portQueue->SetPortStruct (m_swPort);
+  m_portQueue->Initialize ();
   if (csmaDev)
     {
       csmaDev->SetQueue (m_portQueue);
@@ -159,7 +184,7 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
 
   m_swPort->created = time_msec ();
 
-  list_push_back (&dp->port_list, &m_swPort->node);
+  list_push_back (&m_swPort->dp->port_list, &m_swPort->node);
 
   // Notify the controller that this port has been added/created
   struct ofl_msg_port_status msg;
@@ -182,10 +207,28 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
     }
 }
 
+Ptr<NetDevice>
+OFSwitch13Port::GetPortDevice (void) const
+{
+  return m_netDev;
+}
+
 uint32_t
 OFSwitch13Port::GetPortNo (void) const
 {
   return m_portNo;
+}
+
+Ptr<OFSwitch13Queue>
+OFSwitch13Port::GetPortQueue (void) const
+{
+  return m_portQueue;
+}
+
+Ptr<OFSwitch13Device>
+OFSwitch13Port::GetSwitchDevice (void) const
+{
+  return m_openflowDev;
 }
 
 bool
@@ -357,6 +400,12 @@ OFSwitch13Port::Send (Ptr<const Packet> packet, uint32_t queueNo,
       m_swPort->stats->tx_dropped++;
     }
   return status;
+}
+
+struct sw_port*
+OFSwitch13Port::GetPortStruct ()
+{
+  return m_swPort;
 }
 
 } // namespace ns3

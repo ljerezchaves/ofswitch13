@@ -49,21 +49,32 @@ extern "C"
 #define delete _delete
 #define list List
 
-#include "udatapath/packet.h"
-#include "udatapath/pipeline.h"
-#include "udatapath/flow_table.h"
-#include "udatapath/group_table.h"
-#include "udatapath/meter_table.h"
-#include "udatapath/dp_ports.h"
-#include "udatapath/dp_control.h"
+#include "udatapath/action_set.h"
+#include "udatapath/datapath.h"
 #include "udatapath/dp_actions.h"
 #include "udatapath/dp_buffers.h"
+#include "udatapath/dp_control.h"
+#include "udatapath/dp_ports.h"
+#include "udatapath/flow_table.h"
+#include "udatapath/flow_entry.h"
+#include "udatapath/group_table.h"
+#include "udatapath/group_entry.h"
+#include "udatapath/match_std.h"
+#include "udatapath/meter_table.h"
+#include "udatapath/meter_entry.h"
+#include "udatapath/packet.h"
+#include "udatapath/packet_handle_std.h"
+#include "udatapath/pipeline.h"
 
-#include "lib/ofpbuf.h"
-#include "lib/vlog.h"
-
+#include "oflib/ofl-actions.h"
+#include "oflib/ofl-messages.h"
+#include "oflib/ofl-print.h"
 #include "oflib/ofl-structs.h"
 #include "oflib/oxm-match.h"
+
+#include "lib/ofpbuf.h"
+#include "lib/timeval.h"
+#include "lib/vlog.h"
 
 #include "utilities/dpctl.h"
 

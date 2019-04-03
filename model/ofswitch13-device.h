@@ -28,7 +28,6 @@
 #include <ns3/tcp-header.h>
 #include <ns3/traced-value.h>
 #include "ofswitch13-interface.h"
-#include "ofswitch13-port.h"
 #include "ofswitch13-socket-handler.h"
 
 namespace ns3 {
@@ -130,10 +129,13 @@ public:
 private:
     bool                  m_valid;  //!< Valid flag.
     Ptr<Packet>           m_packet; //!< Packet pointer.
-    std::vector<uint64_t> m_ids;    //!< Internal list of IDs for this packet.
+    std::list<uint64_t>   m_ids;    //!< Internal list of IDs for this packet.
   }; // Struct PipelinePacket
 
 public:
+  OFSwitch13Device ();            //!< Default constructor
+  virtual ~OFSwitch13Device ();   //!< Dummy destructor, see DoDispose
+
   /**
    * Register this type.
    * \return The object TypeId.
@@ -141,41 +143,64 @@ public:
   static TypeId GetTypeId (void);
 
   /**
-   * Default constructor.
-   * \see ofsoftswitch dp_new () at udatapath/datapath.c
+   * Get the OpenFlow datapath ID.
+   * \return The datapath ID.
    */
-  OFSwitch13Device ();
+  uint64_t GetDatapathId (void) const;
 
   /**
-   * Dummy destructor, see DoDispose.
+   * Alias for the GetDatapathId () method.
+   * \return The datapath ID.
    */
-  virtual ~OFSwitch13Device ();
+  uint64_t GetDpId (void) const;
 
   /**
-   * \name Private member accessors.
+   * \name OpenFLow control channel counter accessors.
    * \return The requested value.
    */
   //\{
-  double   GetBufferUsage       (void) const;
-  uint64_t GetDatapathId        (void) const;
-  uint32_t GetFlowEntries       (size_t tableId) const;
-  uint64_t GetFlowModCounter    (void) const;
-  uint32_t GetFlowTableSize     (void) const;
-  uint32_t GetGroupEntries      (void) const;
-  uint64_t GetGroupModCounter   (void) const;
-  uint32_t GetGroupTableSize    (void) const;
-  uint32_t GetMeterEntries      (void) const;
-  uint64_t GetMeterModCounter   (void) const;
-  uint32_t GetMeterTableSize    (void) const;
-  uint32_t GetNPipelineTables   (void) const;
-  uint32_t GetNSwitchPorts      (void) const;
-  uint64_t GetPacketInCounter   (void) const;
-  uint64_t GetPacketOutCounter  (void) const;
-  DataRate GetPipelineCapacity  (void) const;
-  Time     GetPipelineDelay     (void) const;
-  DataRate GetPipelineLoad      (void) const;
-  uint32_t GetSumFlowEntries    (void) const;
+  uint64_t GetFlowModCounter      (void) const;
+  uint64_t GetGroupModCounter     (void) const;
+  uint64_t GetMeterModCounter     (void) const;
+  uint64_t GetPacketInCounter     (void) const;
+  uint64_t GetPacketOutCounter    (void) const;
   //\}
+
+  /**
+   * \name Datapath internal accessors.
+   * \param tableId The pipeline flow table ID.
+   * \return The requested value.
+   */
+  //\{
+  uint32_t GetBufferEntries       (void) const;
+  uint32_t GetBufferSize          (void) const;
+  double   GetBufferUsage         (void) const;
+  DataRate GetCpuCapacity         (void) const;
+  DataRate GetCpuLoad             (void) const;
+  double   GetCpuUsage            (void) const;
+  Time     GetDatapathTimeout     (void) const;
+  uint32_t GetDftFlowTableSize    (void) const;
+  uint32_t GetFlowTableEntries    (uint8_t tableId) const;
+  uint32_t GetFlowTableSize       (uint8_t tableId) const;
+  double   GetFlowTableUsage      (uint8_t tableId) const;
+  uint32_t GetGroupTableEntries   (void) const;
+  uint32_t GetGroupTableSize      (void) const;
+  double   GetGroupTableUsage     (void) const;
+  uint32_t GetMeterTableEntries   (void) const;
+  uint32_t GetMeterTableSize      (void) const;
+  double   GetMeterTableUsage     (void) const;
+  uint32_t GetNControllers        (void) const;
+  uint32_t GetNPipelineTables     (void) const;
+  uint32_t GetNSwitchPorts        (void) const;
+  Time     GetPipelineDelay       (void) const;
+  uint32_t GetSumFlowEntries      (void) const;
+  //\}
+
+  /**
+   * Get a pointer to the internal ofsoftswitch13 datapath structure.
+   * \return The requested pointer.
+   */
+  struct datapath* GetDatapathStruct ();
 
   /**
    * Add a 'port' to the switch device. This method adds a new switch port to a
@@ -189,6 +214,13 @@ public:
    * \return The OFSwitch13Port created.
    */
   Ptr<OFSwitch13Port> AddSwitchPort (Ptr<NetDevice> portDevice);
+
+  /**
+   * Get the OFSwitch13Port pointer from its number.
+   * \param no The port number (starting at 1).
+   * \return A pointer to the corresponding OFSwitch13Port.
+   */
+  Ptr<OFSwitch13Port> GetSwitchPort (uint32_t no) const;
 
   /**
    * Called when a packet is received on one of the switch's ports. This method
@@ -333,17 +365,20 @@ private:
   /**
    * Creates a new datapath.
    * \return The created datapath.
+   * \see ofsoftswitch dp_new () at udatapath/datapath.c
    */
   struct datapath* DatapathNew ();
 
   /**
    * \name Adjust OpenFlow switch table sizes.
+   * \param tableId The pipeline flow table ID.
    * \param value The value to set.
    */
   //\{
-  void AdjustFlowTableSize  (uint32_t value);
-  void AdjustGroupTableSize (uint32_t value);
-  void AdjustMeterTableSize (uint32_t value);
+  void SetFlowTableSize     (uint8_t tableId, uint32_t value);
+  void SetDftFlowTableSize  (uint32_t value);
+  void SetGroupTableSize    (uint32_t value);
+  void SetMeterTableSize    (uint32_t value);
   //\}
 
   /**
@@ -354,13 +389,6 @@ private:
    * \param dp The datapath.
    */
   void DatapathTimeout (struct datapath *dp);
-
-  /**
-   * Get the OFSwitch13Port pointer from its number.
-   * \param no The port number (starting at 1).
-   * \return A pointer to the corresponding OFSwitch13Port.
-   */
-  Ptr<OFSwitch13Port> GetOFSwitch13Port (uint32_t no);
 
   /**
    * Create an OpenFlow packet in message and send the packet to all
@@ -573,7 +601,7 @@ private:
   /** Trace source fired when the datapath timeout operation is completed. */
   TracedCallback<Ptr<const OFSwitch13Device> > m_datapathTimeoutTrace;
 
-  /** Trace source fired when a packet is dropped due to pipeline load. */
+  /** Trace source fired when a packet is dropped due to overloaded switch. */
   TracedCallback<Ptr<const Packet> > m_loadDropTrace;
 
   /** Trace source fired when a packet is dropped by a meter band. */
@@ -582,30 +610,27 @@ private:
   /** Trace source fired when a packet is sent to pipeline. */
   TracedCallback<Ptr<const Packet> > m_pipePacketTrace;
 
-  /** Buffer space usage in terms of packets. */
-  TracedValue<double> m_bufferUsage;
-
-  /** Sum of entries in all flow tables. */
-  TracedValue<uint32_t> m_sumFlowEntries;
-
   /** Number of entries in group table. */
   TracedValue<uint32_t> m_groupEntries;
 
   /** Number of entries in meter table. */
   TracedValue<uint32_t> m_meterEntries;
 
-  /** Average pipeline delay for packet processing. */
+  /** Sum of entries in all flow tables. */
+  TracedValue<uint32_t> m_sumFlowEntries;
+
+  /** Average delay for pipeline packet processing. */
   TracedValue<Time> m_pipeDelay;
 
-  /** Average pipeline load in terms of throughput. */
-  TracedValue<DataRate> m_pipeLoad;
+  /** Average CPU processing load. */
+  TracedValue<DataRate> m_cpuLoad;
 
   uint64_t          m_dpId;         //!< This datapath id.
   Time              m_timeout;      //!< Datapath timeout interval.
   Time              m_lastTimeout;  //!< Datapath last timeout.
   Time              m_tcamDelay;    //!< Flow Table TCAM lookup delay.
   std::string       m_libLog;       //!< The ofsoftswitch13 library log level.
-  struct datapath*  m_datapath;     //!< The OpenFlow datapath.
+  struct datapath*  m_datapath;     //!< ofsoftswitch13 datapath structure.
   PortList_t        m_ports;        //!< List of switch ports.
   CtrlList_t        m_controllers;  //!< Collection of active controllers.
   uint32_t          m_flowTabSize;  //!< Flow table maximum entries.
@@ -615,9 +640,9 @@ private:
   IdPacketMap_t     m_bufferPkts;   //!< Packets saved in switch buffer.
   uint32_t          m_bufferSize;   //!< Buffer size in terms of packets.
   PipelinePacket    m_pipePkt;      //!< Packet under switch pipeline.
-  DataRate          m_pipeCapacity; //!< Pipeline throughput capacity.
-  uint64_t          m_pipeTokens;   //!< Pipeline capacity available tokens.
-  uint64_t          m_pipeConsumed; //!< Pipeline capacity consumed tokens.
+  DataRate          m_cpuCapacity;  //!< CPU processing capacity.
+  uint64_t          m_cpuConsumed;  //!< CPU processing tokens consumed.
+  uint64_t          m_cpuTokens;    //!< CPU processing tokens available.
   uint64_t          m_cFlowMod;     //!< Pipeline flow mod counter.
   uint64_t          m_cGroupMod;    //!< Pipeline group mod counter.
   uint64_t          m_cMeterMod;    //!< Pipeline meter mod counter.

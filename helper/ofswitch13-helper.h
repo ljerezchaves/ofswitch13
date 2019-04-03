@@ -156,10 +156,20 @@ public:
    *
    * \param swNode The switch node where to install the OpenFlow device.
    * \param ports Container of devices to be added as physical switch ports.
-   * \return A container holding the single OpenFlow device created.
+   * \return The OpenFlow device created.
    */
-  OFSwitch13DeviceContainer InstallSwitch (
-    Ptr<Node> swNode, NetDeviceContainer ports = NetDeviceContainer ());
+  Ptr<OFSwitch13Device> InstallSwitch (Ptr<Node> swNode,
+                                       NetDeviceContainer &swPorts);
+
+  /**
+   * This method creates an OpenFlow device and aggregates it to the switch
+   * node. The switch configured by this method will have no switch ports.
+   * Don't forget to add ports do it later, or it will do nothing.
+   *
+   * \param swNode The switch node where to install the OpenFlow device.
+   * \return The OpenFlow device created.
+   */
+  Ptr<OFSwitch13Device> InstallSwitch (Ptr<Node> swNode);
 
   /**
    * This method creates and aggregates an OpenFlow device to each switch node
@@ -169,7 +179,7 @@ public:
    * \param swNodes The switch nodes where to install the OpenFlow devices.
    * \return A container holding all the OpenFlow devices created.
    */
-  OFSwitch13DeviceContainer InstallSwitch (NodeContainer swNodes);
+  OFSwitch13DeviceContainer InstallSwitch (NodeContainer &swNodes);
 
   /**
    * This virtual method must interconnect all switches to all controllers

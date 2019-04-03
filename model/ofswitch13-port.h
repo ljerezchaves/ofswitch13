@@ -26,10 +26,14 @@
 #include <ns3/packet.h>
 #include <ns3/traced-callback.h>
 #include "ofswitch13-interface.h"
+#include "ofswitch13-queue.h"
 
 namespace ns3 {
 
-class OFSwitch13Queue;
+// The following explicit template instantiation declaration prevents modules
+// including this header file from implicitly instantiating Queue<Packet>.
+extern template class Queue<Packet>;
+
 class OFSwitch13Device;
 
 /**
@@ -49,18 +53,6 @@ public:
   virtual ~OFSwitch13Port ();   //!< Dummy destructor, see DoDispose
 
   /**
-   * Register this type.
-   * \return The object TypeId.
-   */
-  static TypeId GetTypeId (void);
-
-  /**
-   * Get the OpenFlow port number for this port.
-   * \return The port number.
-   */
-  uint32_t GetPortNo (void) const;
-
-  /**
    * Complete Constructor. Create and populate a new datapath port, notifying
    * the controller of this new port.
    * \see ofsoftswitch new_port () at udatapath/dp_ports.c
@@ -70,6 +62,42 @@ public:
    */
   OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
                   Ptr<OFSwitch13Device> openflowDev);
+
+  /**
+   * Register this type.
+   * \return The object TypeId.
+   */
+  static TypeId GetTypeId (void);
+
+  /**
+   * Get the NetDevice pointer from the underlying port.
+   * \return A pointer to the corresponding underlying NetDevice.
+   */
+  Ptr<NetDevice> GetPortDevice (void) const;
+
+  /**
+   * Get the OpenFlow port number for this port.
+   * \return The port number.
+   */
+  uint32_t GetPortNo (void) const;
+
+  /**
+   * Get the OpenFlow queue for this port.
+   * \return The port queue.
+   */
+  Ptr<OFSwitch13Queue> GetPortQueue (void) const;
+
+  /**
+   * Get a pointer to the internal ofsoftswitch13 port structure.
+   * \return The requested pointer.
+   */
+  struct sw_port* GetPortStruct ();
+
+  /**
+   * Get the OFSwitch13Device pointer from this port.
+   * \return A pointer to the corresponding OFSwitch13Device.
+   */
+  Ptr<OFSwitch13Device> GetSwitchDevice (void) const;
 
   /**
    * Update the port state field based on NetDevice status, and notify the
@@ -94,6 +122,9 @@ public:
 protected:
   /** Destructor implementation */
   virtual void DoDispose ();
+
+  // Inherited from ObjectBase.
+  virtual void NotifyConstructionCompleted (void);
 
 private:
   /**
@@ -126,10 +157,12 @@ private:
   /** Trace source fired when a packet will be sent over this switch port. */
   TracedCallback<Ptr<const Packet> > m_txTrace;
 
+  uint64_t                  m_dpId;         //!< OpenFlow datapath ID.
   uint32_t                  m_portNo;       //!< Port number.
-  struct sw_port*           m_swPort;       //!< ofsoftswitch13 struct sw_port.
+  struct sw_port*           m_swPort;       //!< ofsoftswitch13 port structure.
   Ptr<NetDevice>            m_netDev;       //!< Underlying NetDevice.
-  Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow Port Queue.
+  Ptr<OFSwitch13Queue>      m_portQueue;    //!< OpenFlow port Queue.
+  ObjectFactory             m_factQueue;    //!< Factory for port queue.
   Ptr<OFSwitch13Device>     m_openflowDev;  //!< OpenFlow device.
 };
 

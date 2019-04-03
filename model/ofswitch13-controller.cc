@@ -77,25 +77,25 @@ OFSwitch13Controller::DpctlExecute (Ptr<const RemoteSwitch> swtch,
 {
   NS_LOG_FUNCTION (this << swtch << textCmd);
 
-  char **argv;
-  size_t argc;
-
   wordexp_t cmd;
   wordexp (textCmd.c_str (), &cmd, 0);
-  argv = cmd.we_wordv;
-  argc = cmd.we_wordc;
+  char **argv = cmd.we_wordv;
+  size_t argc = cmd.we_wordc;
 
-  if (!strcmp (argv[0], "set-table-match") || !strcmp (argv[0], "ping"))
+  if ((strcmp (argv[0], "ping") == 0)
+      || (strcmp (argv[0], "monitor") == 0)
+      || (strcmp (argv[0], "set-desc") == 0)
+      || (strcmp (argv[0], "queue-mod") == 0)
+      || (strcmp (argv[0], "queue-del") == 0))
     {
-      NS_LOG_ERROR ("Dpctl command currently not supported.");
-    }
-  else
-    {
-      return dpctl_exec_ns3_command ((void*)PeekPointer (swtch), argc, argv);
+      NS_LOG_ERROR ("Dpctl experimenter command currently not supported.");
+      wordfree (&cmd);
+      return EXIT_FAILURE;
     }
 
+  int ret = dpctl_exec_ns3_command ((void*)PeekPointer (swtch), argc, argv);
   wordfree (&cmd);
-  return 0;
+  return ret;
 }
 
 int
@@ -158,10 +158,9 @@ OFSwitch13Controller::StopApplication ()
 {
   NS_LOG_FUNCTION (this << m_port);
 
-  for (SwitchsMap_t::iterator it = m_switchesMap.begin ();
-       it != m_switchesMap.end (); it++)
+  for (auto const &it : m_switchesMap)
     {
-      Ptr<RemoteSwitch> swtch = it->second;
+      Ptr<RemoteSwitch> swtch = it.second;
       swtch->m_handler = 0;
     }
   m_switchesMap.clear ();
@@ -191,10 +190,9 @@ OFSwitch13Controller::GetRemoteSwitch (uint64_t dpId) const
 {
   NS_LOG_FUNCTION (this << dpId);
 
-  SwitchsMap_t::const_iterator it;
-  for (it = m_switchesMap.begin (); it != m_switchesMap.end (); it++)
+  for (auto const &it : m_switchesMap)
     {
-      Ptr<const RemoteSwitch> swtch = it->second;
+      Ptr<const RemoteSwitch> swtch = it.second;
       if (swtch->m_dpId == dpId)
         {
           return swtch;
@@ -246,8 +244,7 @@ OFSwitch13Controller::SendEchoRequest (Ptr<const RemoteSwitch> swtch,
   // Create and save the echo metadata for this request
   uint32_t xid = GetNextXid ();
   std::pair <uint32_t, EchoInfo> entry (xid, EchoInfo (swtch));
-  std::pair <EchoMsgMap_t::iterator, bool> ret;
-  ret = m_echoMap.insert (entry);
+  auto ret = m_echoMap.insert (entry);
   if (ret.second == false)
     {
       NS_LOG_ERROR ("Error requesting echo to switch " << swtch);
@@ -275,8 +272,7 @@ OFSwitch13Controller::SendBarrierRequest (Ptr<const RemoteSwitch> swtch)
   // Create and save the barrier metadata for this request
   uint32_t xid = GetNextXid ();
   std::pair <uint32_t, BarrierInfo> entry (xid, BarrierInfo (swtch));
-  std::pair <BarrierMsgMap_t::iterator, bool> ret;
-  ret = m_barrierMap.insert (entry);
+  auto ret = m_barrierMap.insert (entry);
   if (ret.second == false)
     {
       NS_LOG_ERROR ("Error requesting barrier to switch " << swtch);
@@ -311,7 +307,7 @@ OFSwitch13Controller::HandleEchoReply (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  EchoMsgMap_t::iterator it = m_echoMap.find (xid);
+  auto it = m_echoMap.find (xid);
   if (it == m_echoMap.end ())
     {
       NS_LOG_WARN ("Echo response for unknonw echo request.");
@@ -336,7 +332,7 @@ OFSwitch13Controller::HandleBarrierReply (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  BarrierMsgMap_t::iterator it = m_barrierMap.find (xid);
+  auto it = m_barrierMap.find (xid);
   if (it == m_barrierMap.end ())
     {
       NS_LOG_WARN ("Barrier response for unknonw barrier request.");
@@ -387,9 +383,8 @@ OFSwitch13Controller::HandleFeaturesReply (
   ofl_msg_free ((struct ofl_msg_header*)msg, 0);
 
   // Executing any scheduled commands for this OpenFlow datapath ID
-  std::pair <DpIdCmdMap_t::iterator, DpIdCmdMap_t::iterator> ret;
-  ret = m_schedCommands.equal_range (swtch->m_dpId);
-  for (DpIdCmdMap_t::iterator it = ret.first; it != ret.second; it++)
+  auto ret = m_schedCommands.equal_range (swtch->m_dpId);
+  for (auto it = ret.first; it != ret.second; it++)
     {
       DpctlExecute (swtch, it->second);
     }
@@ -584,8 +579,7 @@ OFSwitch13Controller::ReceiveFromSwitch (Ptr<Packet> packet, Address from)
   ofl_err error;
 
   // Get the openflow buffer, unpack the message and send to message handler
-  struct ofpbuf *buffer;
-  buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
+  struct ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
   error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, &xid, 0);
 
   if (!error)
@@ -618,7 +612,7 @@ OFSwitch13Controller::GetRemoteSwitch (Address address)
 {
   NS_LOG_FUNCTION (this << address);
 
-  SwitchsMap_t::const_iterator it = m_switchesMap.find (address);
+  auto it = m_switchesMap.find (address);
   if (it != m_switchesMap.end ())
     {
       return it->second;
@@ -664,8 +658,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
     MakeCallback (&OFSwitch13Controller::ReceiveFromSwitch, this));
 
   std::pair <Address, Ptr<RemoteSwitch> > entry (swtch->m_address, swtch);
-  std::pair <SwitchsMap_t::iterator, bool> ret;
-  ret = m_switchesMap.insert (entry);
+  auto ret = m_switchesMap.insert (entry);
   if (ret.second == false)
     {
       NS_LOG_ERROR ("This switch is already registered with this controller.");

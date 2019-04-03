@@ -28,23 +28,35 @@ namespace ns3 {
 /**
  * \ingroup ofswitch13
  * \brief This class monitors a single OpenFlow switch device to collect
- * statistics and write them to an output file. This stats calculator connects
- * to a collection of trace sources in the OpenFlow switch device to monitor
- * the following metrics:
- *  -# Pipeline load in terms of throughput (Kbits);
- *  -# Pipeline load in terms of packets;
- *  -# Packets dropped while exceeding pipeline load capacity;
- *  -# Packets dropped by meter bands;
- *  -# Flow-mod operations executed by the switch;
- *  -# Meter-mod operations executed by the switch;
- *  -# Group-mod operations executed by the switch;
- *  -# Packets-in sent from the switch to the controller;
- *  -# Packets-out sent from the controller to the switch;
- *  -# Average sum of flow entries in all pipeline tables;
- *  -# Average number of meter entries in meter table;
- *  -# Average number of group entries in group table;
- *  -# Average switch buffer space usage (percent);
- *  -# Average pipeline lookup delay for packet processing (microseconds).
+ * statistics and periodically write them to an output file. This stats
+ * calculator connects to a collection of trace sources in the OpenFlow switch
+ * device to monitor the following metrics:
+ *
+ * -# [LoaKbps] CPU porocessing load in the last interval (Kbps);
+ * -# [LoaUsag] Average CPU processing capacity usage (percent);
+ * -# [Packets] Packets processed by the pipeline in the last interval;
+ * -# [DlyUsec] EWMA pipeline lookup delay for packet processing (usecs);
+ * -# [LoaDrop] Packets dropped by capacity overloaded in the last interval;
+ * -# [MetDrps] Packets dropped by meter bands in the last interval;
+ * -# [FloMods] Flow-mod operations executed in the last interval;
+ * -# [MetMods] Meter-mod operations executed in the last interval;
+ * -# [GroMods] Group-mod operations executed in the last interval;
+ * -# [PktsIn]  Packets-in sent to the controller in the last interval;
+ * -# [PktsOut] Packets-out received from the controller in the last interval;
+ * -# [FloEntr] EWMA sum of entries in all pipeline flow tables;
+ * -# [FloUsag] Average flow table usage, considering the sum of entries in
+ *    all flow tables divided by the aggregated sizes of all flow tables with
+ *    at least one flow entry installed (percent);
+ * -# [MetEntr] EWMA number of entries in meter table;
+ * -# [MetUsag] Average meter table usage (percent);
+ * -# [GroEntr] EWMA number of entries in group table;
+ * -# [GroUsag] Average group table usage (percent);
+ * -# [BufPkts] EWMA number of packets in switch buffer;
+ * -# [BufUsag] Average switch buffer usage (percent);
+ *
+ * When the FlowTableDetails attribute is set to 'true', the EWMA number of
+ * entries and the average flow table usage for each pipeline flow table is
+ * also available under the columns ``T**Entr`` and ``T**Usag``.
  */
 class OFSwitch13StatsCalculator : public Object
 {
@@ -68,15 +80,35 @@ public:
    * \name EWMA statistics calculators.
    * Get the average metric values that are updated at every datapath timeout
    * operation using an Exponentially Weighted Moving Average.
+   * \param tableId The pipeline table ID.
    * \return The requested metric value.
    */
   //\{
-  uint32_t GetEwmaBufferUsage    (void) const;
-  uint32_t GetEwmaGroupEntries   (void) const;
-  uint32_t GetEwmaMeterEntries   (void) const;
-  Time     GetEwmaPipelineDelay  (void) const;
-  DataRate GetEwmaPipelineLoad   (void) const;
-  uint32_t GetEwmaSumFlowEntries (void) const;
+  uint32_t GetEwmaBufferEntries       (void) const;
+  DataRate GetEwmaCpuLoad             (void) const;
+  uint32_t GetEwmaFlowTableEntries    (uint8_t tableId) const;
+  uint32_t GetEwmaGroupTableEntries   (void) const;
+  uint32_t GetEwmaMeterTableEntries   (void) const;
+  Time     GetEwmaPipelineDelay       (void) const;
+  uint32_t GetEwmaSumFlowEntries      (void) const;
+  //\}
+
+  /**
+   * \name Datapath usage statistics.
+   * Get the usage statistics for datapath resources considering the EWMA
+   * values and resources size. For the flow table usage, only those tables
+   * with active flow entries are considered when calculating the average
+   * usage value.
+   * \param tableId The pipeline table ID.
+   * \return The requested metric value.
+   */
+  //\{
+  uint32_t GetAvgBufferUsage       (void) const;
+  uint32_t GetAvgCpuUsage          (void) const;
+  uint32_t GetAvgFlowTableUsage    (uint8_t tableId) const;
+  uint32_t GetAvgGroupTableUsage   (void) const;
+  uint32_t GetAvgMeterTableUsage   (void) const;
+  uint32_t GetAvgActFlowTableUsage (void) const;
   //\}
 
 protected:
@@ -97,7 +129,7 @@ private:
    * Notify when a packet is dropped due to pipeline load.
    * \param packet The packet.
    */
-  void NotifyLoadDrop (Ptr<const Packet> packet);
+  void NotifyOverloadDrop (Ptr<const Packet> packet);
 
   /**
    * Notify when a packet is dropped by a meter band.
@@ -124,15 +156,18 @@ private:
   Time                      m_timeout;      //!< Update timeout.
   Time                      m_lastUpdate;   //!< Last update time.
   double                    m_alpha;        //!< EWMA alpha parameter.
+  bool                      m_details;      //!< Pipeline table details.
 
   /** \name Internal counters, average values, and updated flags. */
   //\{
-  double    m_avgBufferUsage;
-  double    m_avgSumFlowEntries;
-  double    m_avgGroupEntries;
-  double    m_avgMeterEntries;
-  double    m_avgPipelineDelay;
-  double    m_avgPipelineLoad;
+  double    m_ewmaBufferEntries;
+  double    m_ewmaCpuLoad;
+  double    m_ewmaGroupEntries;
+  double    m_ewmaMeterEntries;
+  double    m_ewmaPipelineDelay;
+  double    m_ewmaSumFlowEntries;
+
+  std::vector<double> m_ewmaFlowEntries;
 
   uint64_t  m_bytes;
   uint64_t  m_lastFlowMods;

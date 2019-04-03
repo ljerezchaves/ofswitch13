@@ -20,6 +20,7 @@
 
 #ifdef NS3_OFSWITCH13
 
+#include <ns3/ofswitch13-port.h>
 #include "ofswitch13-helper.h"
 #include "ofswitch13-stats-calculator.h"
 
@@ -196,8 +197,27 @@ OFSwitch13Helper::EnableDatapathStats (std::string prefix, bool useNodeNames)
     }
 }
 
-OFSwitch13DeviceContainer
-OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
+Ptr<OFSwitch13Device>
+OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer &swPorts)
+{
+  NS_LOG_FUNCTION (this << swNode);
+
+  // Install the OpenFlow device into switch node.
+  Ptr<OFSwitch13Device> openFlowDev = InstallSwitch (swNode);
+
+  // Add switch ports.
+  NetDeviceContainer::Iterator it;
+  for (it = swPorts.Begin (); it != swPorts.End (); it++)
+    {
+      NS_LOG_INFO (" Adding switch port " << *it);
+      openFlowDev->AddSwitchPort (*it);
+    }
+
+  return openFlowDev;
+}
+
+Ptr<OFSwitch13Device>
+OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode)
 {
   NS_LOG_FUNCTION (this << swNode);
 
@@ -213,19 +233,11 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode, NetDeviceContainer ports)
   m_openFlowDevs.Add (openFlowDev);
   m_switchNodes.Add (swNode);
 
-  // Add switch ports.
-  NetDeviceContainer::Iterator it;
-  for (it = ports.Begin (); it != ports.End (); it++)
-    {
-      NS_LOG_INFO (" Adding switch port " << *it);
-      openFlowDev->AddSwitchPort (*it);
-    }
-
-  return OFSwitch13DeviceContainer (openFlowDev);
+  return openFlowDev;
 }
 
 OFSwitch13DeviceContainer
-OFSwitch13Helper::InstallSwitch (NodeContainer swNodes)
+OFSwitch13Helper::InstallSwitch (NodeContainer &swNodes)
 {
   NS_LOG_FUNCTION (this);
 

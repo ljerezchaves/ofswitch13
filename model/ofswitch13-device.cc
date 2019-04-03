@@ -18,15 +18,16 @@
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
  */
 
+#include <ns3/object-vector.h>
+#include "ofswitch13-device.h"
+#include "ofswitch13-port.h"
+
 #undef NS_LOG_APPEND_CONTEXT
 #define NS_LOG_APPEND_CONTEXT                 \
   if (m_dpId)                                 \
     {                                         \
       std::clog << "[dp " << m_dpId << "] ";  \
     }
-
-#include <ns3/object-vector.h>
-#include "ofswitch13-device.h"
 
 namespace ns3 {
 
@@ -39,6 +40,30 @@ uint64_t OFSwitch13Device::m_globalPktId = 0;
 OFSwitch13Device::DpIdDevMap_t OFSwitch13Device::m_globalSwitchMap;
 
 /********** Public methods **********/
+OFSwitch13Device::OFSwitch13Device ()
+  : m_dpId (0),
+  m_datapath (0),
+  m_cpuConsumed (0),
+  m_cpuTokens (0),
+  m_cFlowMod (0),
+  m_cGroupMod (0),
+  m_cMeterMod (0),
+  m_cPacketIn (0),
+  m_cPacketOut (0)
+{
+  NS_LOG_FUNCTION (this);
+  NS_LOG_INFO ("OpenFlow version: " << OFP_VERSION);
+
+  m_dpId = ++m_globalDpId;
+  NS_LOG_DEBUG ("New datapath ID " << m_dpId);
+  OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
+}
+
+OFSwitch13Device::~OFSwitch13Device ()
+{
+  NS_LOG_FUNCTION (this);
+}
+
 TypeId
 OFSwitch13Device::GetTypeId (void)
 {
@@ -46,6 +71,11 @@ OFSwitch13Device::GetTypeId (void)
     .SetParent<Object> ()
     .SetGroupName ("OFSwitch13")
     .AddConstructor<OFSwitch13Device> ()
+    .AddAttribute ("CpuCapacity",
+                   "CPU processing capacity (in terms of throughput).",
+                   DataRateValue (DataRate ("100Gb/s")),
+                   MakeDataRateAccessor (&OFSwitch13Device::m_cpuCapacity),
+                   MakeDataRateChecker ())
     .AddAttribute ("DatapathId",
                    "The unique identification of this OpenFlow switch.",
                    TypeId::ATTR_GET,
@@ -54,27 +84,22 @@ OFSwitch13Device::GetTypeId (void)
                    MakeUintegerChecker<uint64_t> ())
     .AddAttribute ("FlowTableSize",
                    "The maximum number of entries allowed on each flow table.",
-                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    UintegerValue (FLOW_TABLE_MAX_ENTRIES),
-                   MakeUintegerAccessor (&OFSwitch13Device::m_flowTabSize),
+                   MakeUintegerAccessor (&OFSwitch13Device::SetDftFlowTableSize,
+                                         &OFSwitch13Device::GetDftFlowTableSize),
                    MakeUintegerChecker<uint32_t> (0, FLOW_TABLE_MAX_ENTRIES))
     .AddAttribute ("GroupTableSize",
                    "The maximum number of entries allowed on group table.",
-                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    UintegerValue (GROUP_TABLE_MAX_ENTRIES),
-                   MakeUintegerAccessor (&OFSwitch13Device::m_groupTabSize),
+                   MakeUintegerAccessor (&OFSwitch13Device::SetGroupTableSize,
+                                         &OFSwitch13Device::GetGroupTableSize),
                    MakeUintegerChecker<uint32_t> (0, GROUP_TABLE_MAX_ENTRIES))
     .AddAttribute ("MeterTableSize",
                    "The maximum number of entries allowed on meter table.",
-                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                    UintegerValue (METER_TABLE_MAX_ENTRIES),
-                   MakeUintegerAccessor (&OFSwitch13Device::m_meterTabSize),
+                   MakeUintegerAccessor (&OFSwitch13Device::SetMeterTableSize,
+                                         &OFSwitch13Device::GetMeterTableSize),
                    MakeUintegerChecker<uint32_t> (0, METER_TABLE_MAX_ENTRIES))
-    .AddAttribute ("PipelineCapacity",
-                   "Pipeline processing capacity in terms of throughput.",
-                   DataRateValue (DataRate ("100Gb/s")),
-                   MakeDataRateAccessor (&OFSwitch13Device::m_pipeCapacity),
-                   MakeDataRateChecker ())
     .AddAttribute ("PipelineTables",
                    "The number of pipeline flow tables.",
                    TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
@@ -90,12 +115,12 @@ OFSwitch13Device::GetTypeId (void)
                    "Average time to perform a TCAM operation in pipeline.",
                    TimeValue (MicroSeconds (20)),
                    MakeTimeAccessor (&OFSwitch13Device::m_tcamDelay),
-                   MakeTimeChecker ())
+                   MakeTimeChecker (Time (0)))
     .AddAttribute ("TimeoutInterval",
                    "The interval between timeout operations on datapath.",
                    TimeValue (MilliSeconds (100)),
                    MakeTimeAccessor (&OFSwitch13Device::m_timeout),
-                   MakeTimeChecker ())
+                   MakeTimeChecker (MilliSeconds (1), MilliSeconds (1000)))
 
     .AddTraceSource ("BufferExpire",
                      "Trace source indicating an expired packet in buffer.",
@@ -112,16 +137,17 @@ OFSwitch13Device::GetTypeId (void)
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_bufferSaveTrace),
                      "ns3::Packet::TracedCallback")
-    .AddTraceSource ("LoadDrop",
-                     "Trace source indicating a packet dropped by pipe load.",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_loadDropTrace),
-                     "ns3::Packet::TracedCallback")
     .AddTraceSource ("MeterDrop",
                      "Trace source indicating a packet dropped by meter band.",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_meterDropTrace),
                      "ns3::OFSwitch13Device::MeterDropTracedCallback")
+    .AddTraceSource ("OverloadDrop",
+                     "Trace source indicating a packet dropped by CPU "
+                     "overloaded processing capacity.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_loadDropTrace),
+                     "ns3::Packet::TracedCallback")
     .AddTraceSource ("PipelinePacket",
                      "Trace source indicating a packet sent to pipeline.",
                      MakeTraceSourceAccessor (
@@ -133,69 +159,38 @@ OFSwitch13Device::GetTypeId (void)
                        &OFSwitch13Device::m_datapathTimeoutTrace),
                      "ns3::OFSwitch13Device::DeviceTracedCallback")
 
-    .AddTraceSource ("BufferUsage",
-                     "Traced value indicating the buffer space usage "
-                     "(periodically updated on datapath timeout operation).",
+    .AddTraceSource ("CpuLoad",
+                     "Traced value indicating the avg CPU processing load"
+                     " (periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_bufferUsage),
-                     "ns3::TracedValueCallback::Double")
+                       &OFSwitch13Device::m_cpuLoad),
+                     "ns3::TracedValueCallback::DataRate")
+    .AddTraceSource ("GroupEntries",
+                     "Traced value indicating the number of group entries"
+                     " (periodically updated on datapath timeout operation).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_groupEntries),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("MeterEntries",
+                     "Traced value indicating the number of meter entries"
+                     " (periodically updated on datapath timeout operation).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_meterEntries),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("PipelineDelay",
+                     "Traced value indicating the avg pipeline lookup delay"
+                     " (periodically updated on datapath timeout operation).",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_pipeDelay),
+                     "ns3::TracedValueCallback::Time")
     .AddTraceSource ("SumFlowEntries",
                      "Traced value indicating the total number of flow entries"
                      " (periodically updated on datapath timeout operation).",
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_sumFlowEntries),
                      "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("GroupEntries",
-                     "Traced value indicating the number of group entries "
-                     "(periodically updated on datapath timeout operation).",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_groupEntries),
-                     "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("MeterEntries",
-                     "Traced value indicating the number of meter entries "
-                     "(periodically updated on datapath timeout operation).",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_meterEntries),
-                     "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("PipelineDelay",
-                     "Traced value indicating the avg pipeline lookup delay "
-                     "(periodically updated on datapath timeout operation).",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_pipeDelay),
-                     "ns3::TracedValueCallback::Time")
-    .AddTraceSource ("PipelineLoad",
-                     "Traced value indicating the avg pipeline load "
-                     "(periodically updated on datapath timeout operation).",
-                     MakeTraceSourceAccessor (
-                       &OFSwitch13Device::m_pipeLoad),
-                     "ns3::TracedValueCallback::DataRate")
   ;
   return tid;
-}
-
-OFSwitch13Device::OFSwitch13Device ()
-  : m_dpId (0),
-  m_pipeTokens (0),
-  m_pipeConsumed (0),
-  m_cFlowMod (0),
-  m_cGroupMod (0),
-  m_cMeterMod (0),
-  m_cPacketIn (0),
-  m_cPacketOut (0)
-{
-  NS_LOG_FUNCTION (this);
-}
-
-OFSwitch13Device::~OFSwitch13Device ()
-{
-  NS_LOG_FUNCTION (this);
-  NS_LOG_INFO ("OpenFlow version: " << OFP_VERSION);
-}
-
-double
-OFSwitch13Device::GetBufferUsage (void) const
-{
-  return m_bufferUsage;
 }
 
 uint64_t
@@ -204,17 +199,10 @@ OFSwitch13Device::GetDatapathId (void) const
   return m_dpId;
 }
 
-uint32_t
-OFSwitch13Device::GetFlowEntries (size_t tableId) const
+uint64_t
+OFSwitch13Device::GetDpId (void) const
 {
-  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
-  uint32_t entries = 0;
-  struct flow_table *table = m_datapath->pipeline->tables [tableId];
-  if (!(table->disabled))
-    {
-      entries = table->stats->active_count;
-    }
-  return entries;
+  return m_dpId;
 }
 
 uint64_t
@@ -223,58 +211,16 @@ OFSwitch13Device::GetFlowModCounter (void) const
   return m_cFlowMod;
 }
 
-uint32_t
-OFSwitch13Device::GetFlowTableSize (void) const
-{
-  return m_flowTabSize;
-}
-
-uint32_t
-OFSwitch13Device::GetGroupEntries (void) const
-{
-  return m_groupEntries;
-}
-
 uint64_t
 OFSwitch13Device::GetGroupModCounter (void) const
 {
   return m_cGroupMod;
 }
 
-uint32_t
-OFSwitch13Device::GetGroupTableSize (void) const
-{
-  return m_groupTabSize;
-}
-
-uint32_t
-OFSwitch13Device::GetMeterEntries (void) const
-{
-  return m_meterEntries;
-}
-
 uint64_t
 OFSwitch13Device::GetMeterModCounter (void) const
 {
   return m_cMeterMod;
-}
-
-uint32_t
-OFSwitch13Device::GetMeterTableSize (void) const
-{
-  return m_meterTabSize;
-}
-
-uint32_t
-OFSwitch13Device::GetNPipelineTables (void) const
-{
-  return m_numPipeTabs;
-}
-
-uint32_t
-OFSwitch13Device::GetNSwitchPorts (void) const
-{
-  return m_datapath->ports_num;
 }
 
 uint64_t
@@ -289,10 +235,155 @@ OFSwitch13Device::GetPacketOutCounter (void) const
   return m_cPacketOut;
 }
 
-DataRate
-OFSwitch13Device::GetPipelineCapacity (void) const
+uint32_t
+OFSwitch13Device::GetBufferEntries (void) const
 {
-  return m_pipeCapacity;
+  return m_bufferPkts.size ();
+}
+
+uint32_t
+OFSwitch13Device::GetBufferSize (void) const
+{
+  return m_bufferSize;
+}
+
+double
+OFSwitch13Device::GetBufferUsage (void) const
+{
+  if (GetBufferSize () == 0)
+    {
+      return 0.0;
+    }
+  return static_cast<double> (GetBufferEntries ()) /
+         static_cast<double> (GetBufferSize ());
+}
+
+DataRate
+OFSwitch13Device::GetCpuCapacity (void) const
+{
+  return m_cpuCapacity;
+}
+
+DataRate
+OFSwitch13Device::GetCpuLoad (void) const
+{
+  return m_cpuLoad;
+}
+
+double
+OFSwitch13Device::GetCpuUsage (void) const
+{
+  if (GetCpuCapacity ().GetBitRate () == 0)
+    {
+      return 0.0;
+    }
+  return static_cast<double> (GetCpuLoad ().GetBitRate ()) /
+         static_cast<double> (GetCpuCapacity ().GetBitRate ());
+}
+
+Time
+OFSwitch13Device::GetDatapathTimeout (void) const
+{
+  return m_timeout;
+}
+
+uint32_t
+OFSwitch13Device::GetDftFlowTableSize (void) const
+{
+  return m_flowTabSize;
+}
+
+uint32_t
+OFSwitch13Device::GetFlowTableEntries (uint8_t tableId) const
+{
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+  NS_ASSERT_MSG (tableId < GetNPipelineTables (), "Invalid table ID.");
+  return m_datapath->pipeline->tables [tableId]->stats->active_count;
+}
+
+uint32_t
+OFSwitch13Device::GetFlowTableSize (uint8_t tableId) const
+{
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+  NS_ASSERT_MSG (tableId < GetNPipelineTables (), "Invalid table ID.");
+  return m_datapath->pipeline->tables [tableId]->features->max_entries;
+}
+
+double
+OFSwitch13Device::GetFlowTableUsage (uint8_t tableId) const
+{
+  if (GetFlowTableSize (tableId) == 0)
+    {
+      return 0.0;
+    }
+  return static_cast<double> (GetFlowTableEntries (tableId)) /
+         static_cast<double> (GetFlowTableSize (tableId));
+}
+
+uint32_t
+OFSwitch13Device::GetGroupTableEntries (void) const
+{
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+  return m_datapath->groups->entries_num;
+}
+
+uint32_t
+OFSwitch13Device::GetGroupTableSize (void) const
+{
+  return m_groupTabSize;
+}
+
+double
+OFSwitch13Device::GetGroupTableUsage (void) const
+{
+  if (GetGroupTableSize () == 0)
+    {
+      return 0.0;
+    }
+  return static_cast<double> (GetGroupTableEntries ()) /
+         static_cast<double> (GetGroupTableSize ());
+}
+
+uint32_t
+OFSwitch13Device::GetMeterTableEntries (void) const
+{
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+  return m_datapath->meters->entries_num;
+}
+
+uint32_t
+OFSwitch13Device::GetMeterTableSize (void) const
+{
+  return m_meterTabSize;
+}
+
+double
+OFSwitch13Device::GetMeterTableUsage (void) const
+{
+  if (GetMeterTableSize () == 0)
+    {
+      return 0.0;
+    }
+  return static_cast<double> (GetMeterTableEntries ()) /
+         static_cast<double> (GetMeterTableSize ());
+}
+
+uint32_t
+OFSwitch13Device::GetNControllers (void) const
+{
+  return m_controllers.size ();
+}
+
+uint32_t
+OFSwitch13Device::GetNPipelineTables (void) const
+{
+  return m_numPipeTabs;
+}
+
+uint32_t
+OFSwitch13Device::GetNSwitchPorts (void) const
+{
+  return m_ports.size ();
 }
 
 Time
@@ -301,16 +392,21 @@ OFSwitch13Device::GetPipelineDelay (void) const
   return m_pipeDelay;
 }
 
-DataRate
-OFSwitch13Device::GetPipelineLoad (void) const
-{
-  return m_pipeLoad;
-}
-
 uint32_t
 OFSwitch13Device::GetSumFlowEntries (void) const
 {
-  return m_sumFlowEntries;
+  uint32_t flowEntries = 0;
+  for (size_t i = 0; i < GetNPipelineTables (); i++)
+    {
+      flowEntries += GetFlowTableEntries (i);
+    }
+  return flowEntries;
+}
+
+struct datapath*
+OFSwitch13Device::GetDatapathStruct ()
+{
+  return m_datapath;
 }
 
 Ptr<OFSwitch13Port>
@@ -328,9 +424,20 @@ OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
 
   // Save port in port list (assert port no and vector index).
   m_ports.push_back (ofPort);
-  NS_ASSERT (m_ports.size () == ofPort->GetPortNo ());
+  NS_ASSERT ((m_ports.size () == ofPort->GetPortNo ())
+             && (m_ports.size () == m_datapath->ports_num));
 
   return ofPort;
+}
+
+Ptr<OFSwitch13Port>
+OFSwitch13Device::GetSwitchPort (uint32_t no) const
+{
+  NS_LOG_FUNCTION (this << no);
+
+  // Assert port no (starts at 1).
+  NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Port is out of range.");
+  return m_ports.at (no - 1);
 }
 
 void
@@ -339,19 +446,19 @@ OFSwitch13Device::ReceiveFromSwitchPort (Ptr<Packet> packet, uint32_t portNo,
 {
   NS_LOG_FUNCTION (this << packet << portNo << tunnelId);
 
-  // Check the packet for conformance to the pipeline capacity.
+  // Check the packet for conformance to CPU processing capacity.
   uint32_t pktSizeBits = packet->GetSize () * 8;
-  if (m_pipeTokens < pktSizeBits)
+  if (m_cpuTokens < pktSizeBits)
     {
       // Packet will be dropped. Increase counter and fire drop trace source.
-      NS_LOG_DEBUG ("Drop packet due to pipeline max processing capacity.");
+      NS_LOG_DEBUG ("Drop packet due to CPU overloaded capacity.");
       m_loadDropTrace (packet);
       return;
     }
 
   // Consume tokens, fire trace source and schedule the packet to the pipeline.
-  m_pipeTokens -= pktSizeBits;
-  m_pipeConsumed += pktSizeBits;
+  m_cpuTokens -= pktSizeBits;
+  m_cpuConsumed += pktSizeBits;
   m_pipePacketTrace (packet);
   Simulator::Schedule (m_pipeDelay, &OFSwitch13Device::SendToPipeline,
                        this, packet, portNo, tunnelId);
@@ -417,6 +524,8 @@ OFSwitch13Device::SendOpenflowBufferToRemote (struct ofpbuf *buffer,
   Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (remote->dp->id);
   Ptr<Packet> packet = ofs::PacketFromBuffer (buffer);
   Ptr<RemoteController> remoteCtrl = dev->GetRemoteController (remote);
+
+  ofpbuf_delete (buffer);
   return dev->SendToController (packet, remoteCtrl);
 }
 
@@ -527,8 +636,7 @@ OFSwitch13Device::BufferRetrieveCallback (struct packet *pkt)
 Ptr<OFSwitch13Device>
 OFSwitch13Device::GetDevice (uint64_t id)
 {
-  DpIdDevMap_t::iterator it;
-  it = OFSwitch13Device::m_globalSwitchMap.find (id);
+  auto it = OFSwitch13Device::m_globalSwitchMap.find (id);
   if (it != OFSwitch13Device::m_globalSwitchMap.end ())
     {
       return it->second;
@@ -542,23 +650,33 @@ OFSwitch13Device::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  OFSwitch13Device::UnregisterDatapath (m_dpId);
-
-  PortList_t::iterator it;
-  for (it = m_ports.begin (); it != m_ports.end (); it++)
+  for (auto &port : m_ports)
     {
-      Ptr<OFSwitch13Port> port = *it;
       port->Dispose ();
-      *it = 0;
+      port = 0;
     }
   m_ports.clear ();
   m_bufferPkts.clear ();
+
+  for (auto &ctrl : m_controllers)
+    {
+      free (ctrl->m_remote);
+    }
   m_controllers.clear ();
 
+  dp_buffers_destroy (m_datapath->buffers);
   pipeline_destroy (m_datapath->pipeline);
   group_table_destroy (m_datapath->groups);
   meter_table_destroy (m_datapath->meters);
+
+  free (m_datapath->mfr_desc);
+  free (m_datapath->hw_desc);
+  free (m_datapath->sw_desc);
+  free (m_datapath->dp_desc);
+  free (m_datapath->serial_num);
   free (m_datapath);
+
+  OFSwitch13Device::UnregisterDatapath (m_dpId);
 
   Object::DoDispose ();
 }
@@ -569,14 +687,12 @@ OFSwitch13Device::NotifyConstructionCompleted ()
   NS_LOG_FUNCTION (this);
 
   // Create the datapath.
-  m_dpId = ++m_globalDpId;
   m_datapath = DatapathNew ();
-  OFSwitch13Device::RegisterDatapath (m_dpId, Ptr<OFSwitch13Device> (this));
 
-  // Ajust datapath table sizes from attribute values.
-  AdjustFlowTableSize (GetFlowTableSize ());
-  AdjustGroupTableSize (GetGroupTableSize ());
-  AdjustMeterTableSize (GetMeterTableSize ());
+  // Set the attribute values again so it can now update the dapatah structs.
+  SetDftFlowTableSize (GetDftFlowTableSize ());
+  SetGroupTableSize   (GetGroupTableSize ());
+  SetMeterTableSize   (GetMeterTableSize ());
 
   // Execute the first datapath timeout.
   DatapathTimeout (m_datapath);
@@ -650,44 +766,60 @@ OFSwitch13Device::DatapathNew ()
 }
 
 void
-OFSwitch13Device::AdjustFlowTableSize (uint32_t value)
+OFSwitch13Device::SetFlowTableSize (uint8_t tableId, uint32_t value)
+{
+  NS_LOG_FUNCTION (this << tableId << value);
+
+  NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
+  NS_ABORT_MSG_IF (GetFlowTableEntries (tableId) > value,
+                   "Can't reduce table size to this value.");
+  m_datapath->pipeline->tables [tableId]->features->max_entries = value;
+}
+
+void
+OFSwitch13Device::SetDftFlowTableSize (uint32_t value)
 {
   NS_LOG_FUNCTION (this << value);
 
-  NS_ASSERT_MSG (m_datapath, "No datapath created yet.");
-  struct flow_table *table;
-  for (size_t i = 0; i < GetNPipelineTables (); i++)
+  m_flowTabSize = value;
+  if (m_datapath)
     {
-      table = m_datapath->pipeline->tables [i];
-      NS_ABORT_MSG_IF (table->stats->active_count > value,
+      for (size_t i = 0; i < GetNPipelineTables (); i++)
+        {
+          SetFlowTableSize (i, value);
+        }
+    }
+}
+
+void
+OFSwitch13Device::SetGroupTableSize (uint32_t value)
+{
+  NS_LOG_FUNCTION (this << value);
+
+  m_groupTabSize = value;
+  if (m_datapath)
+    {
+      NS_ABORT_MSG_IF (GetGroupTableEntries () > value,
                        "Can't reduce table size to this value.");
-      table->features->max_entries = value;
+      for (size_t i = 0; i < 4; i++)
+        {
+          m_datapath->groups->features->max_groups [i] = value;
+        }
     }
 }
 
 void
-OFSwitch13Device::AdjustGroupTableSize (uint32_t value)
+OFSwitch13Device::SetMeterTableSize (uint32_t value)
 {
   NS_LOG_FUNCTION (this << value);
 
-  NS_ASSERT_MSG (m_datapath, "No datapath created yet.");
-  NS_ABORT_MSG_IF (m_datapath->groups->entries_num > value,
-                   "Can't reduce table size to this value.");
-  for (size_t i = 0; i < 4; i++)
+  m_meterTabSize = value;
+  if (m_datapath)
     {
-      m_datapath->groups->features->max_groups [i] = value;
+      NS_ABORT_MSG_IF (GetMeterTableEntries () > value,
+                       "Can't reduce table size to this value.");
+      m_datapath->meters->features->max_meter = value;
     }
-}
-
-void
-OFSwitch13Device::AdjustMeterTableSize (uint32_t value)
-{
-  NS_LOG_FUNCTION (this << value);
-
-  NS_ASSERT_MSG (m_datapath, "No datapath created yet.");
-  NS_ABORT_MSG_IF (m_datapath->meters->entries_num > value,
-                   "Can't reduce table size to this value.");
-  m_datapath->meters->features->max_meter = value;
 }
 
 void
@@ -696,24 +828,16 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
   meter_table_add_tokens (dp->meters);
   pipeline_timeout (dp->pipeline);
 
-  // Check for changes in links (port) status.
-  PortList_t::iterator it;
-  for (it = m_ports.begin (); it != m_ports.end (); it++)
+  // Check for chan/s in links (port) status.
+  for (auto const &port : m_ports)
     {
-      Ptr<OFSwitch13Port> port = *it;
       port->PortUpdateState ();
     }
 
   // Update traced values.
-  m_bufferUsage = (double)m_bufferPkts.size () / m_bufferSize;
-  m_groupEntries =  m_datapath->groups->entries_num;
-  m_meterEntries = m_datapath->meters->entries_num;
-  uint32_t flowEntries = 0;
-  for (size_t i = 0; i < GetNPipelineTables (); i++)
-    {
-      flowEntries += GetFlowEntries (i);
-    }
-  m_sumFlowEntries = flowEntries;
+  m_groupEntries = GetGroupTableEntries ();
+  m_meterEntries = GetMeterTableEntries ();
+  m_sumFlowEntries = GetSumFlowEntries ();
 
   // The pipeline delay is estimated as k * log (n), where 'k' is the
   // m_tcamDelay set to the time for a single TCAM operation, and 'n' is the
@@ -721,33 +845,23 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
   m_pipeDelay = m_sumFlowEntries < 2U ? m_tcamDelay :
     m_tcamDelay * (int64_t)ceil (log2 (m_sumFlowEntries));
 
-  // The pipeline load is estimated based on the tokens removed from pipeline
-  // bucket since last timeout operation.
-  m_pipeLoad = DataRate (m_pipeConsumed / m_timeout.GetSeconds ());
-  m_pipeConsumed = 0;
+  // The CPU load is estimated based on the CPU consumed tokens since last
+  // timeout operation.
+  m_cpuLoad = DataRate (m_cpuConsumed / m_timeout.GetSeconds ());
+  m_cpuConsumed = 0;
 
   // Refill the pipeline bucket with tokens based on elapsed time
   // (bucket capacity is set to the number of tokens for an entire second).
   Time elapTime = Simulator::Now () - m_lastTimeout;
-  uint64_t addTokens = m_pipeCapacity.GetBitRate () * elapTime.GetSeconds ();
-  uint64_t maxTokens = m_pipeCapacity.GetBitRate ();
-  m_pipeTokens = std::min (m_pipeTokens + addTokens, maxTokens);
+  uint64_t addTokens = m_cpuCapacity.GetBitRate () * elapTime.GetSeconds ();
+  uint64_t maxTokens = m_cpuCapacity.GetBitRate ();
+  m_cpuTokens = std::min (m_cpuTokens + addTokens, maxTokens);
 
   dp->last_timeout = time_now ();
   m_lastTimeout = Simulator::Now ();
   m_datapathTimeoutTrace (this);
   Simulator::Schedule (m_timeout, &OFSwitch13Device::DatapathTimeout,
                        this, m_datapath);
-}
-
-Ptr<OFSwitch13Port>
-OFSwitch13Device::GetOFSwitch13Port (uint32_t no)
-{
-  NS_LOG_FUNCTION (this << no);
-
-  // Assert port no (starts at 1).
-  NS_ASSERT_MSG (no > 0 && no <= m_ports.size (), "Port is out of range.");
-  return m_ports.at (no - 1);
 }
 
 int
@@ -792,7 +906,7 @@ OFSwitch13Device::SendToSwitchPort (struct packet *pkt, uint32_t portNo,
 {
   NS_LOG_FUNCTION (this << pkt->ns3_uid << portNo);
 
-  Ptr<OFSwitch13Port> port = GetOFSwitch13Port (portNo);
+  Ptr<OFSwitch13Port> port = GetSwitchPort (portNo);
   if (!port)
     {
       NS_LOG_ERROR ("Can't forward packet to invalid port.");
@@ -894,8 +1008,7 @@ OFSwitch13Device::ReceiveFromController (Ptr<Packet> packet, Address from)
   senderCtrl.conn_id = 0; // TODO No support for auxiliary connections
 
   // Get the OpenFlow buffer and unpack the message.
-  struct ofpbuf *buffer;
-  buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
+  struct ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
   error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg,
                           &senderCtrl.xid, m_datapath->exp);
 
@@ -1037,6 +1150,7 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
   struct sender senderCtrl;
   senderCtrl.remote = remoteCtrl->m_remote;
   senderCtrl.conn_id = 0; // TODO No support for auxiliary connections.
+  senderCtrl.xid = 0;
   dp_send_message (m_datapath, &msg, &senderCtrl);
 }
 
@@ -1049,8 +1163,7 @@ OFSwitch13Device::SocketCtrlFailed (Ptr<Socket> socket)
 
   // Loop over controllers looking for the one associated to this socket and
   // remove it from the collection.
-  CtrlList_t::iterator it;
-  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+  for (auto it = m_controllers.begin (); it != m_controllers.end (); it++)
     {
       Ptr<RemoteController> remoteCtrl = *it;
       if (remoteCtrl->m_socket == socket)
@@ -1147,8 +1260,7 @@ OFSwitch13Device::BufferPacketSave (uint64_t packetId, time_t timeout)
 
   // Remove from pipeline and save into buffer.
   std::pair <uint64_t, Ptr<Packet> > entry (packetId, m_pipePkt.GetPacket ());
-  std::pair <IdPacketMap_t::iterator, bool> ret;
-  ret = m_bufferPkts.insert (entry);
+  auto ret = m_bufferPkts.insert (entry);
   if (ret.second == true)
     {
       NS_LOG_DEBUG ("Packet " << packetId << " saved into buffer.");
@@ -1176,7 +1288,7 @@ OFSwitch13Device::BufferPacketRetrieve (uint64_t packetId)
   NS_ASSERT_MSG (!m_pipePkt.IsValid (), "Another packet in pipeline.");
 
   // Find packet in buffer.
-  IdPacketMap_t::iterator it = m_bufferPkts.find (packetId);
+  auto it = m_bufferPkts.find (packetId);
   NS_ASSERT_MSG (it != m_bufferPkts.end (), "Packet not found in buffer.");
 
   // Save packet into pipeline structure.
@@ -1194,7 +1306,7 @@ OFSwitch13Device::BufferPacketDelete (uint64_t packetId)
   NS_LOG_FUNCTION (this << packetId);
 
   // Delete from buffer map.
-  IdPacketMap_t::iterator it = m_bufferPkts.find (packetId);
+  auto it = m_bufferPkts.find (packetId);
   if (it != m_bufferPkts.end ())
     {
       NS_LOG_DEBUG ("Expired packet " << packetId << " deleted from buffer.");
@@ -1208,12 +1320,11 @@ OFSwitch13Device::GetRemoteController (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
 
-  CtrlList_t::iterator it;
-  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+  for (auto const &ctrl : m_controllers)
     {
-      if ((*it)->m_socket == socket)
+      if (ctrl->m_socket == socket)
         {
-          return *it;
+          return ctrl;
         }
     }
   NS_ABORT_MSG ("Error returning controller for this socket.");
@@ -1224,12 +1335,11 @@ OFSwitch13Device::GetRemoteController (Address address)
 {
   NS_LOG_FUNCTION (this << address);
 
-  CtrlList_t::iterator it;
-  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+  for (auto const &ctrl : m_controllers)
     {
-      if ((*it)->m_address == address)
+      if (ctrl->m_address == address)
         {
-          return *it;
+          return ctrl;
         }
     }
   return 0;
@@ -1240,12 +1350,11 @@ OFSwitch13Device::GetRemoteController (struct remote *remote)
 {
   NS_LOG_FUNCTION (this << remote);
 
-  CtrlList_t::iterator it;
-  for (it = m_controllers.begin (); it != m_controllers.end (); it++)
+  for (auto const &ctrl : m_controllers)
     {
-      if ((*it)->m_remote == remote)
+      if (ctrl->m_remote == remote)
         {
-          return *it;
+          return ctrl;
         }
     }
   NS_ABORT_MSG ("Error returning controller for this remote pointer.");
@@ -1291,16 +1400,14 @@ void
 OFSwitch13Device::RegisterDatapath (uint64_t id, Ptr<OFSwitch13Device> dev)
 {
   std::pair<uint64_t, Ptr<OFSwitch13Device> > entry (id, dev);
-  std::pair<DpIdDevMap_t::iterator, bool> ret;
-  ret = OFSwitch13Device::m_globalSwitchMap.insert (entry);
+  auto ret = OFSwitch13Device::m_globalSwitchMap.insert (entry);
   NS_ABORT_MSG_IF (ret.second == false, "Error when registering datapath.");
 }
 
 void
 OFSwitch13Device::UnregisterDatapath (uint64_t id)
 {
-  DpIdDevMap_t::iterator it;
-  it = OFSwitch13Device::m_globalSwitchMap.find (id);
+  auto it = OFSwitch13Device::m_globalSwitchMap.find (id);
   if (it != OFSwitch13Device::m_globalSwitchMap.end ())
     {
       OFSwitch13Device::m_globalSwitchMap.erase (it);
@@ -1365,8 +1472,7 @@ OFSwitch13Device::PipelinePacket::DelCopy (uint64_t id)
 {
   NS_ASSERT_MSG (m_valid, "Invalid packet metadata.");
 
-  std::vector<uint64_t>::iterator it;
-  for (it = m_ids.begin (); it != m_ids.end (); it++)
+  for (auto it = m_ids.begin (); it != m_ids.end (); it++)
     {
       if (*it == id)
         {
@@ -1386,8 +1492,7 @@ OFSwitch13Device::PipelinePacket::HasId (uint64_t id)
 {
   NS_ASSERT_MSG (m_valid, "Invalid packet metadata.");
 
-  std::vector<uint64_t>::iterator it;
-  for (it = m_ids.begin (); it != m_ids.end (); it++)
+  for (auto it = m_ids.begin (); it != m_ids.end (); it++)
     {
       if (*it == id)
         {

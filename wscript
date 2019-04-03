@@ -61,9 +61,8 @@ def configure(conf):
 
     # Checking for required libraries
     conf.env.DL = conf.check(mandatory=False, lib='dl', define_name='DL', uselib_store='DL')
-    conf.env.NBEE = conf.check(mandatory=False, lib='nbee', define_name='NBEE', uselib_store='NBEE')
-    conf.env.OFSWITCH13 = conf.check(mandatory=False, lib='ns3ofswitch13', use='NBEE', libpath=os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'udatapath')))
-    libs_found = conf.env.DL and conf.env.NBEE and conf.env.OFSWITCH13
+    conf.env.OFSWITCH13 = conf.check(mandatory=False, lib='ns3ofswitch13', libpath=os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'udatapath')))
+    libs_found = conf.env.DL and conf.env.OFSWITCH13
     conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 integration", libs_found, "Required libraries not found")
     if not libs_found:
         conf.env.MODULES_NOT_BUILT.append('ofswitch13')
@@ -79,7 +78,7 @@ def configure(conf):
             os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'oflib-exp')),
             os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'secchan')),
             os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'udatapath'))];
-    conf.env.LIB_OFSWITCH13 = ['dl', 'nbee', 'ns3ofswitch13']
+    conf.env.LIB_OFSWITCH13 = ['dl', 'ns3ofswitch13']
     conf.env.LIBPATH_OFSWITCH13 = [os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'udatapath'))]
 
 
@@ -94,8 +93,9 @@ def build(bld):
         'model/ofswitch13-device.cc',
         'model/ofswitch13-interface.cc',
         'model/ofswitch13-learning-controller.cc',
-        'model/ofswitch13-port.cc',
         'model/ofswitch13-queue.cc',
+        'model/ofswitch13-priority-queue.cc',
+        'model/ofswitch13-port.cc',
         'model/ofswitch13-socket-handler.cc',
         'model/queue-tag.cc',
         'model/tunnel-id-tag.cc',
@@ -114,8 +114,9 @@ def build(bld):
         'model/ofswitch13-device.h',
         'model/ofswitch13-interface.h',
         'model/ofswitch13-learning-controller.h',
-        'model/ofswitch13-port.h',
         'model/ofswitch13-queue.h',
+        'model/ofswitch13-priority-queue.h',
+        'model/ofswitch13-port.h',
         'model/ofswitch13-socket-handler.h',
         'model/queue-tag.h',
         'model/tunnel-id-tag.h',

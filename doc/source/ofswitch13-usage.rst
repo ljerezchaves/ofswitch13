@@ -16,46 +16,23 @@ Building the Module
 The |ofs13| module was designed as an interface for interconnecting the |ns3|
 simulator to the |ofslib| software switch compiled as a library. Follow the
 instructions below to compile and link the |ns3| simulator to the |ofslib|
-library. *These instructions were tested on Ubuntu 16.04 LTS and Ubuntu 18.04
-LTS. Other distributions or versions may require different steps, especially
-regarding library compilation.*
+library. *These instructions were tested on Debian 8, Ubuntu 16.04 LTS, and
+Ubuntu 18.04 LTS. Other distributions or versions may require different steps,
+especially regarding library compilation.*
 
 Before starting
 ###############
 
 Before starting, ensure you have the following packages installed on your
-system:
+system [#f1]_:
 
 .. code-block:: bash
 
   $ sudo apt-get install build-essential gcc g++ python git mercurial unzip cmake
-  $ sudo apt-get install libpcap-dev libxerces-c-dev libpcre3-dev flex bison
   $ sudo apt-get install pkg-config autoconf libtool libboost-dev
 
-The |ofslib| depends on the *NetBee* library
-(https://github.com/netgroup-polito/netbee), which is used to parse the network
-packets (there is an ongoing work to remove this dependence). So we need to
-manually compile and install this library. First, clone the *NetBee* repository
-and compile the library:
-
-.. code-block:: bash
-
-  $ git clone https://github.com/netgroup-polito/netbee.git
-  $ cd netbee/src/
-  $ cmake .
-  $ make
-
-Then, install the shared libraries, configure dynamic linker run-time bindings,
-and copy the include files:
-
-.. code-block:: bash
-
-  $ sudo cp ../bin/libn*.so /usr/local/lib
-  $ sudo ldconfig
-  $ sudo cp -R ../include/* /usr/include/
-  $ cd -
-
-We are done with prerequisites.
+.. [#f1] The *NetBee* library dependence was removed in |ofs13|
+         release version 4.0.0.
 
 Compiling the code
 ##################
@@ -77,10 +54,10 @@ will recursively download the |ofslib| code into the
   $ cd ns-3.29/src
   $ git clone --recurse-submodules https://github.com/ljerezchaves/ofswitch13.git
 
-Update the code to the desired release version (we are using release 3.3.0,
-which is compatible with ns-3.28 and ns-3.29) [#f1]_:
+Update the code to the desired release version (we are using release 4.0.0,
+which is compatible with ns-3.28 or later) [#f2]_:
 
-.. [#f1] For |ofs13| release versions prior to 3.2.2 (when no submodule
+.. [#f2] For |ofs13| release versions prior to 3.2.2 (when no submodule
          dependence was configured in the git repository), the |ofslib| code
          will not automatically update to the correct version. In this case,
          you must manually updated the |ofslib| code to the proper version
@@ -90,7 +67,7 @@ which is compatible with ns-3.28 and ns-3.29) [#f1]_:
 .. code-block:: bash
 
   $ cd ofswitch13
-  $ git checkout 3.3.0
+  $ git checkout 4.0.0 && git submodule update --recursive
 
 Now it is time to compile the |ofslib| as a static library. Configure and
 build the library (don't forget to add the ``--enable-ns3-lib`` during
@@ -339,14 +316,14 @@ OFSwitch13Device
   The datapath ID is a read-only attribute, automatically assigned by the
   object constructor.
 
+* ``CpuCapacity``: The data rate used to model the CPU processing capacity
+  (throughput). Packets exceeding this capacity are discarded.
+
 * ``FlowTableSize``: The maximum number of entries allowed on each flow table.
 
 * ``GroupTableSize``: The maximum number of entries allowed on group table.
 
 * ``MeterTableSize``: The maximum number of entries allowed on meter table.
-
-* ``PipelineCapacity``: The data rate used to model the pipeline processing
-  capacity (throughput). Packets exceeding the capacity are discarded.
 
 * ``PipelineTables``: The number of pipeline flow tables.
 
@@ -368,14 +345,21 @@ OFSwitch13Port
   set for use in the underlying device. When the port is constructed over a
   ``VirtualNetDevice``, this queue is not used.
 
+* ``QueueFactory``: The object factory describing the OpenFlow queue to be
+  created for this port.
+
 OFSwitch13Queue
 ###############
 
-* ``QueueFactory``: The object factory used when creating internal queues.
+* ``QueueList``: The list of internal queues.
 
-* ``QueueList``: The list of internal queues associated with this port queue.
+OFSwitch13PriorityQueue
+#######################
 
-* ``NumQueues``: The number of internal queues associated with this port queue.
+* ``QueueFactory``: The object factory describing the internal priority queues
+  to be created.
+
+* ``NumQueues``: The number of internal priority queues.
 
 OFSwitch13Helper
 ################
@@ -425,20 +409,31 @@ statistics of an OpenFlow switch datapath. The instances of this class connect
 to a collection of trace sources in the switch device and periodically dumps
 the following datapath metrics on the output file:
 
-#. Pipeline load regarding throughput (Kbits);
-#. Pipeline load regarding packets;
-#. Packets dropped while exceeding pipeline load capacity;
-#. Packets dropped by meter bands;
-#. Flow-mod operations executed by the switch;
-#. Meter-mod operations executed by the switch;
-#. Group-mod operations executed by the switch;
-#. Packets-in sent from the switch to the controller;
-#. Packets-out sent from the controller to the switch;
-#. The average sum of flow entries in all pipeline tables;
-#. The average number of meter entries in meter table;
-#. The average number of group entries in group table;
-#. Average switch buffer space usage (percent);
-#. Average pipeline lookup delay for packet processing (microseconds).
+#. [``LoaKbps``] CPU porocessing load in the last interval (Kbps);
+#. [``LoaUsag``] Average CPU processing capacity usage (percent);
+#. [``Packets``] Packets processed by the pipeline in the last interval;
+#. [``DlyUsec``] EWMA pipeline lookup delay for packet processing (usecs);
+#. [``LoaDrop``] Packets dropped by capacity overloaded in the last interval;
+#. [``MetDrps``] Packets dropped by meter bands in the last interval;
+#. [``FloMods``] Flow-mod operations executed in the last interval;
+#. [``MetMods``] Meter-mod operations executed in the last interval;
+#. [``GroMods``] Group-mod operations executed in the last interval;
+#. [``PktsIn``]  Packets-in sent to the controller in the last interval;
+#. [``PktsOut``] Packets-out received from the controller in the last interval;
+#. [``FloEntr``] EWMA sum of entries in all pipeline flow tables;
+#. [``FloUsag``] Average flow table usage, considering the sum of entries in
+all flow tables divided by the aggregated sizes of all flow tables with at
+least one flow entry installed (percent);
+#. [``MetEntr``] EWMA number of entries in meter table;
+#. [``MetUsag``] Average meter table usage (percent);
+#. [``GroEntr``] EWMA number of entries in group table;
+#. [``GroUsag``] Average group table usage (percent);
+#. [``BufPkts``] EWMA number of packets in switch buffer;
+#. [``BufUsag``] Average switch buffer usage (percent);
+
+When the FlowTableDetails attribute is set to 'true', the EWMA number of
+entries and the average flow table usage for each pipeline flow table is also
+available under the columns ``T**Entr`` and ``T**Usag``.
 
 To enable performance monitoring, use the ``EnableDatapathStats()``
 helper member function *after* configuring the switches and creating the

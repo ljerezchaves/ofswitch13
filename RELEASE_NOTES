@@ -5,6 +5,94 @@ OFSwitch13 release notes
 This file contains OFSwitch13 release notes (most recent releases first).
 
 
+Release 4.0.0 (Apr 02, 2019)
+============================
+
+- BE AWARE THAT this release brings incompatible API changes in respect to
+  prior OFSwitch13 versions.
+
+- Refactoring the OpenFlow queue:
+  * The OFSwitch13Queue base class implements the queue interface, extending
+    the ns3::Queue<Packet> class to allow compatibility with the CsmaNetDevice
+    used by OFSwitch13Port. Internally, it holds a collection of N (possibly
+    different) queues, identified by IDs ranging from 0 to N-1. The Enqueue
+    method uses the ns3::QueueTag to identify which internal queue will hold
+    the packet.
+  * Specialized subclasses can perform different output scheduling algorithms
+    by implementing the Peek, Dequeue, and Remove methods. The last two methods
+    must call the NotifyDequeue and NotifyRemoved methods respectively, which
+    are used to update statistics and keep consistency with the base class.
+  * The OFSwitch13PriorityQueue implements the specialized priority queuing
+    discipline for a collection of N priority queues, identified by IDs ranging
+    from 0 to N-1 with decreasing priority (queue ID 0 has the highest
+    priority). The output scheduling algorithm ensures that higher-priority
+    queues are "always" served first. The OFSwitch13PriorityQueue::QueueFactory
+    and OFSwitch13PriorityQueue::NumQueues attributes can be used to configure
+    the type and the number of internal priority queues, respectively.
+  * The OpenFlow port queue can be configured by the
+    OFSwitch13Port::QueueFactory attribute at construction time.
+
+- Overriding the OFSwitch13Helper::InstallSwitch method. When the first
+  parameter is a node container, the method returns an OpenFlow device
+  container. When the first parameter is a node pointer, the method returns the
+  OpenFlow device pointer. For the latter, there's the optional second
+  parameter of a device container that will be configured as switch ports.
+
+- The OFSwitch13Device::FlowTableSize, GroupTableSize, and MeterTableSize
+  attributes can now be adjusted at any time.
+
+- New OFSwitch13Port::GetPortDevice, GetPortQueue and GetSwitchDevice methods.
+
+- New OFSwitch13Device::GetDpId method as an alias for the GetDatapathId
+  method.
+
+- New OFSwitch13Device::GetDatapathStruct and OFSwitch13Port::GetPortStruct
+  methods returning a pointer to the ofsoftswitch13 library structures.
+
+- Renaming OFSwitch13Device::GetOFSwitch13Port method to GetSwitchPort.
+
+- Renaming OFSwitch13Device attributes and trace sources to better reflect what
+  they really represent: PipelineCapacity attribute was renamed to CpuCapacity,
+  PipelineLoad traced value was renamed to CpuLoad, and LoadDrop trace source
+  was renamed to OverloadDrop. The methods GetPipelineLoad and
+  GetPipelineCapacity were also renamed to GetCpuLoad and GetCpuCapacity. These
+  changes also reflects on the OFSwitch13StatsCalculator: GetEwmaPipelineLoad
+  and GetAvgPipelineUsage were renamed to GetEwmaCpuLoad and GetAvgCpuUsage.
+
+- Updating OFSwitch13Device::Get* methods for improved datapath stats. The
+  GetFlowEntries, GetGroupEntries, and GetMeterEntries methods were replaced by
+  GetFlowTableEntries, GetGroupTableEntries, and GetMeterTableEntries. The
+  following new methods were included: GetDatapathTimeout, GetFlowTableUsage,
+  GetGroupTableUsage, GetMeterTableUsage, GetNControllers, GetBufferEntries,
+  GetBufferSize. The BufferUsage traced value was removed, but the method with
+  the same can be used to get this value on demand.
+
+- Improving OFSwitch13StatsCalculator with more statistics. It can now dump
+  individual flow table stats. This is an optional feature (disabled by
+  default), that can be enabled by the FlowTableDetails attribute.
+
+- Renaming OFSwitch13StatsCalculator column names in first row, removing any
+  special character from them.
+
+- Increasing the maximum number of OpenFlow switch ports to 4096
+  (see DP_MAX_PORTS at lib/ofsoftswitch13/udatapath/dp_ports.h)
+
+- Increasing the maximum number of output queues on ports to 32
+  (see NETDEV_MAX_QUEUES at lib/ofsoftswitch13/lib/netdev.h)
+
+- Removing the NetBee library dependence when compiling the ofsoftswitch13
+  library. The packet inspection is now performed by the packet_parse method
+  at lib/ofsoftswitch13/udatapath/packet_handle_std.c.
+
+- Improving ofsoftswitch13 library performance and fixing memory leak errors.
+
+- Merging new commits from the CPqD ofsoftswitch13 library.
+
+- This version is compatible with ofsoftswitch13 library release v4.0.x and
+  ns-3 versions 3.28 or later (including patches). There is no backward
+  compatibility with older ns-3 versions.
+
+
 Release 3.3.0 (Sep 29, 2018)
 ============================
 
@@ -15,7 +103,7 @@ Release 3.3.0 (Sep 29, 2018)
 
 - Introducing a new OFSwitch13Device PipelineTables attribute, allowing a
   custom number of pipeline flow tables in the switch.
-  
+
 - The OFSwitch13Device PipelineTables, FlowTableSize, GroupTableSize, and
   MeterTableSize attributes must now be adjusted at construction time. You can
   use the OFSwitch13Helper::SetDeviceAttribute to accomplish this task.
@@ -44,8 +132,8 @@ Release 3.2.2 (Jul 05, 2018)
   changes.
 
 - Configuring the ofsoftswitch13 project as a submodule within the OFSwitch13
-  project, which will automatically handle source code compatibility. 
-  
+  project, which will automatically handle source code compatibility.
+
 - Updating the waf configuration script to automatically detect the library
   source code at lib/ofsoftswitch13 folder.
 
