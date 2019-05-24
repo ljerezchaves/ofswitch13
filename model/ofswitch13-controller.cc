@@ -64,10 +64,10 @@ OFSwitch13Controller::DoDispose ()
 
   m_serverSocket = 0;
   m_addrSwMap.clear ();
+  m_barrierMap.clear ();
+  m_commandsMap.clear ();
   m_dpIdSwMap.clear ();
   m_echoMap.clear ();
-  m_barrierMap.clear ();
-  m_schedCommands.clear ();
 
   Application::DoDispose ();
 }
@@ -159,13 +159,11 @@ OFSwitch13Controller::StopApplication ()
 {
   NS_LOG_FUNCTION (this << m_port);
 
-  for (auto const &it : m_addrSwMap)
+  for (auto const &it : m_dpIdSwMap)
     {
       Ptr<RemoteSwitch> swtch = it.second;
       swtch->m_handler = 0;
     }
-  m_addrSwMap.clear ();
-  m_dpIdSwMap.clear ();
 
   if (m_serverSocket)
     {
@@ -173,6 +171,12 @@ OFSwitch13Controller::StopApplication ()
       m_serverSocket->SetRecvCallback (
         MakeNullCallback<void, Ptr<Socket> > ());
     }
+
+  m_addrSwMap.clear ();
+  m_barrierMap.clear ();
+  m_commandsMap.clear ();
+  m_dpIdSwMap.clear ();
+  m_echoMap.clear ();
 }
 
 uint32_t
