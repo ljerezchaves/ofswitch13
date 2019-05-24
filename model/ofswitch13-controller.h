@@ -181,15 +181,6 @@ public:
   int DpctlExecute (uint64_t dpId, const std::string textCmd);
 
   /**
-   * Schedule a dpctl command to be executed after a successfull handshake with
-   * the remote switch.
-   * \param dpId The OpenFlow datapath ID.
-   * \param textCmd The dpctl command to be executed.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  int DpctlSchedule (uint64_t dpId, const std::string textCmd);
-
-  /**
    * Overriding ofsoftswitch13 dpctl_send_and_print  and
    * dpctl_transact_and_print weak functions from utilities/dpctl.c. Send a
    * message from controller to switch.

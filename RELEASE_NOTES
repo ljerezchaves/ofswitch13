@@ -5,7 +5,7 @@ OFSwitch13 release notes
 This file contains OFSwitch13 release notes (most recent releases first).
 
 
-Release 5.0.X (XXX XX, XXXX)
+Release X.X.X (XXX XX, XXXX)
 ============================
 
 - BE AWARE THAT this release brings incompatible API changes in respect to
@@ -17,8 +17,13 @@ Release 5.0.X (XXX XX, XXXX)
     signature using the Ptr<const RemoteSwitch> swtch pointer was removed.
     Users can fix compilation errors by just using swtch->GetDpId () when
     invoking DpctlExecute ();
+  * The old DpctlSchedule () method was merged to the DpctlExecute ().
+    When the switch is not connected to the controller, the DpctlExecute ()
+    will automatically schedule the command for execution just after the
+    handshake procedure. This is particularly useful for executing dpctl
+    commands when creating the topology, before invoking Simulator::Run ().
 
-- This version is compatible with ofsoftswitch13 library release v5.0.x and
+- This version is compatible with ofsoftswitch13 library release vX.X.x and
   ns-3 versions 3.28 or later (including patches). There is no backward
   compatibility with older ns-3 versions.
 

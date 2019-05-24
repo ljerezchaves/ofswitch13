@@ -560,10 +560,11 @@ switch. With this tool, it is possible to add flows to the flow table, query
 for switch features and status, and change other configurations. The
 ``DpctlExecute()`` function can be used by derived controllers to convert a
 variety of ``dpctl`` commands into OpenFlow messages and send it to the target
-switch. There's also the ``DpctlSchedule()`` variant, which can be used to
-schedule commands to be executed just after the handshake procedure between the
-controller and the switch (this can be useful for scheduling commands during
-the topology creation, before the simulation start).
+switch. If the switch is not connected to the controller yet, this method will
+automatically schedule the commands for execution just after the handshake
+procedure between the controller and the switch. This is particularly useful
+for executing dpctl commands when creating the topology, before invoking
+``Simulator::Run ()``.
 
 Check the `utility documentation
 <https://github.com/CPqD/ofsoftswitch13/wiki/Dpctl-Documentation>`_ for details

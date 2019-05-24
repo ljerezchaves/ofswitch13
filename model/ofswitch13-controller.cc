@@ -78,13 +78,36 @@ OFSwitch13Controller::DpctlExecute (uint64_t dpId, const std::string textCmd)
   NS_LOG_FUNCTION (this << dpId << textCmd);
 
   Ptr<const RemoteSwitch> swtch = GetRemoteSwitch (dpId);
-  NS_ASSERT_MSG (swtch, "Can't execute command for an unregistered switch.");
+  if (!swtch)
+    {
+      // Save this command for further execution after handshake procedure.
+      NS_LOG_DEBUG ("Schedulling command for an unregistered switch.");
+      auto it = m_commandsMap.find (dpId);
+      if (it == m_commandsMap.end ())
+        {
+          // Create a new pending commands object for this datapath id.
+          Ptr<PendingCommands> pendCmds = Create<PendingCommands> ();
+          std::pair <uint64_t, Ptr<PendingCommands> > entry (dpId, pendCmds);
+          auto ret = m_commandsMap.insert (entry);
+          if (ret.second == false)
+            {
+              NS_LOG_ERROR ("Error when creating pending commands object.");
+            }
+          it = ret.first;
+        }
 
+      // Save the dpctl command in the pending queue and return.
+      it->second->m_queue.push (textCmd);
+      return 0;
+    }
+
+  // Parse the textCmd.
   wordexp_t cmd;
   wordexp (textCmd.c_str (), &cmd, 0);
   char **argv = cmd.we_wordv;
   size_t argc = cmd.we_wordc;
 
+  // Check for unsupported commands.
   if ((strcmp (argv[0], "ping") == 0)
       || (strcmp (argv[0], "monitor") == 0)
       || (strcmp (argv[0], "set-desc") == 0)
@@ -96,37 +119,10 @@ OFSwitch13Controller::DpctlExecute (uint64_t dpId, const std::string textCmd)
       return EXIT_FAILURE;
     }
 
+  // Execute the command.
   int ret = dpctl_exec_ns3_command ((void*)PeekPointer (swtch), argc, argv);
   wordfree (&cmd);
   return ret;
-}
-
-int
-OFSwitch13Controller::DpctlSchedule (uint64_t dpId, const std::string textCmd)
-{
-  NS_LOG_FUNCTION (this << textCmd);
-
-  Ptr<const RemoteSwitch> swtch = GetRemoteSwitch (dpId);
-  NS_ASSERT_MSG (!swtch, "Can't schedule command for a registered switch.");
-
-  // Save this command for further execution after handshake procedure.
-  auto it = m_commandsMap.find (dpId);
-  if (it == m_commandsMap.end ())
-    {
-      // Create a new pending commands object for this datapath id.
-      Ptr<PendingCommands> pendCommands = Create<PendingCommands> ();
-      std::pair <uint64_t, Ptr<PendingCommands> > entry (dpId, pendCommands);
-      auto ret = m_commandsMap.insert (entry);
-      if (ret.second == false)
-        {
-          NS_LOG_ERROR ("Error when creating new pending commands object.");
-        }
-      it = ret.first;
-    }
-
-  // Save the dpctl command in the pending queue.
-  it->second->m_queue.push (textCmd);
-  return 0;
 }
 
 void
