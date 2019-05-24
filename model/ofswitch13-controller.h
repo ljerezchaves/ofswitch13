@@ -140,6 +140,23 @@ private:
     Ptr<const RemoteSwitch> m_swtch;      //!< Remote switch.
   };
 
+private:
+  /**
+   * \ingroup ofswitch13
+   * Inner class to save pending commands waiting for handshake procedure.
+   */
+  class PendingCommands : public SimpleRefCount<PendingCommands>
+  {
+    friend class OFSwitch13Controller;
+
+public:
+    /** Default (empty) constructor. */
+    PendingCommands ();
+
+private:
+    std::queue<std::string> m_queue; //!< Queue of pending dpctl commands.
+  };
+
 public:
   OFSwitch13Controller ();          //!< Default constructor
   virtual ~OFSwitch13Controller (); //!< Dummy destructor, see DoDispose.
@@ -373,8 +390,8 @@ private:
   /** Map to store barrier information by transaction id */
   typedef std::map <uint32_t, BarrierInfo> BarrierMsgMap_t;
 
-  /** Multimap saving pair <datapath id / dpctl commands> */
-  typedef std::multimap <uint64_t, std::string> DpIdCmdMap_t;
+  /** Map saving pair <datapath id / pending commands> */
+  typedef std::map <uint64_t, Ptr<PendingCommands> > DpIdCmdMap_t;
 
   /** Map to store switch info by ip address */
   typedef std::map <Address, Ptr<RemoteSwitch> > AddrSwMap_t;
@@ -388,7 +405,7 @@ private:
 
   EchoMsgMap_t    m_echoMap;          //!< Metadata for echo requests.
   BarrierMsgMap_t m_barrierMap;       //!< Metadata for barrier requests.
-  DpIdCmdMap_t    m_schedCommands;    //!< Scheduled commands for execution.
+  DpIdCmdMap_t    m_commandsMap;      //!< Commands scheduled for execution.
   AddrSwMap_t     m_addrSwMap;        //!< Registered switches by address.
   DpIdSwMap_t     m_dpIdSwMap;        //!< Registered switches by datapath id.
 };

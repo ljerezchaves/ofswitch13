@@ -117,8 +117,23 @@ OFSwitch13Controller::DpctlSchedule (uint64_t dpId, const std::string textCmd)
   Ptr<const RemoteSwitch> swtch = GetRemoteSwitch (dpId);
   NS_ASSERT_MSG (!swtch, "Can't schedule command for a registered switch.");
 
-  std::pair <uint64_t, std::string> entry (dpId, textCmd);
-  m_schedCommands.insert (entry);
+  // Save this command for further execution after handshake procedure.
+  auto it = m_commandsMap.find (dpId);
+  if (it == m_commandsMap.end ())
+    {
+      // Create a new pending commands object for this datapath id.
+      Ptr<PendingCommands> pendCommands = Create<PendingCommands> ();
+      std::pair <uint64_t, Ptr<PendingCommands> > entry (dpId, pendCommands);
+      auto ret = m_commandsMap.insert (entry);
+      if (ret.second == false)
+        {
+          NS_LOG_ERROR ("Error when creating new pending commands object.");
+        }
+      it = ret.first;
+    }
+
+  // Save the dpctl command in the pending queue.
+  it->second->m_queue.push (textCmd);
   return 0;
 }
 
@@ -392,13 +407,18 @@ OFSwitch13Controller::HandleFeaturesReply (
       NS_LOG_ERROR ("This switch is already registered with this controller.");
     }
 
-  // Executing any scheduled commands for this OpenFlow datapath ID
-  auto retIt = m_schedCommands.equal_range (swtch->m_dpId);
-  for (auto it = retIt.first; it != retIt.second; it++)
+  // Execute any pending command for this OpenFlow datapath ID.
+  auto it = m_commandsMap.find (swtch->m_dpId);
+  if (it != m_commandsMap.end ())
     {
-      DpctlExecute (swtch, it->second);
+      Ptr<PendingCommands> pendCommands = it->second;
+      while (!pendCommands->m_queue.empty ())
+        {
+          DpctlExecute (swtch->m_dpId, pendCommands->m_queue.front ());
+          pendCommands->m_queue.pop ();
+        }
+      m_commandsMap.erase (swtch->m_dpId);
     }
-  m_schedCommands.erase (retIt.first, retIt.second);
 
   // Notify listeners that the handshake procedure is concluded.
   HandshakeSuccessful (swtch);
@@ -751,6 +771,10 @@ OFSwitch13Controller::EchoInfo::GetRtt (void) const
 OFSwitch13Controller::BarrierInfo::BarrierInfo (Ptr<const RemoteSwitch> swtch)
   : m_waiting (true),
   m_swtch (swtch)
+{
+}
+
+OFSwitch13Controller::PendingCommands::PendingCommands ()
 {
 }
 
