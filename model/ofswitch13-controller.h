@@ -376,8 +376,11 @@ private:
   /** Multimap saving pair <datapath id / dpctl commands> */
   typedef std::multimap <uint64_t, std::string> DpIdCmdMap_t;
 
-  /** Map to store switch info by Address */
-  typedef std::map <Address, Ptr<RemoteSwitch> > SwitchsMap_t;
+  /** Map to store switch info by ip address */
+  typedef std::map <Address, Ptr<RemoteSwitch> > AddrSwMap_t;
+
+  /** Map to store switch info by datapath id */
+  typedef std::map <uint64_t, Ptr<RemoteSwitch> > DpIdSwMap_t;
 
   uint32_t        m_xid;              //!< Global transaction idx.
   uint16_t        m_port;             //!< Local controller tcp port.
@@ -386,7 +389,8 @@ private:
   EchoMsgMap_t    m_echoMap;          //!< Metadata for echo requests.
   BarrierMsgMap_t m_barrierMap;       //!< Metadata for barrier requests.
   DpIdCmdMap_t    m_schedCommands;    //!< Scheduled commands for execution.
-  SwitchsMap_t    m_switchesMap;      //!< Registered switches metadata's.
+  AddrSwMap_t     m_addrSwMap;        //!< Registered switches by address.
+  DpIdSwMap_t     m_dpIdSwMap;        //!< Registered switches by datapath id.
 };
 
 } // namespace ns3

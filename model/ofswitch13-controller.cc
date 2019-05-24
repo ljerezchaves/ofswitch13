@@ -63,7 +63,8 @@ OFSwitch13Controller::DoDispose ()
   NS_LOG_FUNCTION (this);
 
   m_serverSocket = 0;
-  m_switchesMap.clear ();
+  m_addrSwMap.clear ();
+  m_dpIdSwMap.clear ();
   m_echoMap.clear ();
   m_barrierMap.clear ();
   m_schedCommands.clear ();
@@ -158,12 +159,13 @@ OFSwitch13Controller::StopApplication ()
 {
   NS_LOG_FUNCTION (this << m_port);
 
-  for (auto const &it : m_switchesMap)
+  for (auto const &it : m_addrSwMap)
     {
       Ptr<RemoteSwitch> swtch = it.second;
       swtch->m_handler = 0;
     }
-  m_switchesMap.clear ();
+  m_addrSwMap.clear ();
+  m_dpIdSwMap.clear ();
 
   if (m_serverSocket)
     {
@@ -190,13 +192,10 @@ OFSwitch13Controller::GetRemoteSwitch (uint64_t dpId) const
 {
   NS_LOG_FUNCTION (this << dpId);
 
-  for (auto const &it : m_switchesMap)
+  auto it = m_dpIdSwMap.find (dpId);
+  if (it != m_dpIdSwMap.end ())
     {
-      Ptr<const RemoteSwitch> swtch = it.second;
-      if (swtch->m_dpId == dpId)
-        {
-          return swtch;
-        }
+      return it->second;
     }
   return 0;
 }
@@ -382,13 +381,20 @@ OFSwitch13Controller::HandleFeaturesReply (
   swtch->m_capabilities = msg->capabilities;
   ofl_msg_free ((struct ofl_msg_header*)msg, 0);
 
+  std::pair <uint64_t, Ptr<RemoteSwitch> > entry (swtch->m_dpId, swtch);
+  auto ret = m_dpIdSwMap.insert (entry);
+  if (ret.second == false)
+    {
+      NS_LOG_ERROR ("This switch is already registered with this controller.");
+    }
+
   // Executing any scheduled commands for this OpenFlow datapath ID
-  auto ret = m_schedCommands.equal_range (swtch->m_dpId);
-  for (auto it = ret.first; it != ret.second; it++)
+  auto retIt = m_schedCommands.equal_range (swtch->m_dpId);
+  for (auto it = retIt.first; it != retIt.second; it++)
     {
       DpctlExecute (swtch, it->second);
     }
-  m_schedCommands.erase (ret.first, ret.second);
+  m_schedCommands.erase (retIt.first, retIt.second);
 
   // Notify listeners that the handshake procedure is concluded.
   HandshakeSuccessful (swtch);
@@ -612,8 +618,8 @@ OFSwitch13Controller::GetRemoteSwitch (Address address)
 {
   NS_LOG_FUNCTION (this << address);
 
-  auto it = m_switchesMap.find (address);
-  if (it != m_switchesMap.end ())
+  auto it = m_addrSwMap.find (address);
+  if (it != m_addrSwMap.end ())
     {
       return it->second;
     }
@@ -658,7 +664,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
     MakeCallback (&OFSwitch13Controller::ReceiveFromSwitch, this));
 
   std::pair <Address, Ptr<RemoteSwitch> > entry (swtch->m_address, swtch);
-  auto ret = m_switchesMap.insert (entry);
+  auto ret = m_addrSwMap.insert (entry);
   if (ret.second == false)
     {
       NS_LOG_ERROR ("This switch is already registered with this controller.");
