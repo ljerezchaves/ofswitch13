@@ -149,7 +149,7 @@ protected:
 void
 Controller0::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
 {
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=1 in_port=1 write:output=2");
+  DpctlExecute (swtch->GetDpId (), "flow-mod cmd=add,table=0,prio=1 in_port=1 write:output=2");
 }
 
 /** Controller 1 installs the rule to forward packets from host 1 to 0 (port 2 to 1). */
@@ -163,5 +163,5 @@ protected:
 void
 Controller1::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
 {
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=1 in_port=2 write:output=1");
+  DpctlExecute (swtch->GetDpId (), "flow-mod cmd=add,table=0,prio=1 in_port=2 write:output=1");
 }

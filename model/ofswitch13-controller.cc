@@ -73,10 +73,12 @@ OFSwitch13Controller::DoDispose ()
 }
 
 int
-OFSwitch13Controller::DpctlExecute (Ptr<const RemoteSwitch> swtch,
-                                    const std::string textCmd)
+OFSwitch13Controller::DpctlExecute (uint64_t dpId, const std::string textCmd)
 {
-  NS_LOG_FUNCTION (this << swtch << textCmd);
+  NS_LOG_FUNCTION (this << dpId << textCmd);
+
+  Ptr<const RemoteSwitch> swtch = GetRemoteSwitch (dpId);
+  NS_ASSERT_MSG (swtch, "Can't execute command for an unregistered switch.");
 
   wordexp_t cmd;
   wordexp (textCmd.c_str (), &cmd, 0);
@@ -97,16 +99,6 @@ OFSwitch13Controller::DpctlExecute (Ptr<const RemoteSwitch> swtch,
   int ret = dpctl_exec_ns3_command ((void*)PeekPointer (swtch), argc, argv);
   wordfree (&cmd);
   return ret;
-}
-
-int
-OFSwitch13Controller::DpctlExecute (uint64_t dpId, const std::string textCmd)
-{
-  NS_LOG_FUNCTION (this << dpId << textCmd);
-
-  Ptr<const RemoteSwitch> swtch = GetRemoteSwitch (dpId);
-  NS_ASSERT_MSG (swtch, "Can't execute command for an unregistered switch.");
-  return DpctlExecute (swtch, textCmd);
 }
 
 int

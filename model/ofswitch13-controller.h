@@ -174,14 +174,6 @@ public:
 
   /**
    * Execute a dpctl command to interact with the remote switch.
-   * \param swtch The target remote switch.
-   * \param textCmd The dpctl command to execute.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  int DpctlExecute (Ptr<const RemoteSwitch> swtch, const std::string textCmd);
-
-  /**
-   * Execute a dpctl command to interact with the remote switch.
    * \param dpId The OpenFlow datapath ID.
    * \param textCmd The dpctl command to execute.
    * \return 0 if everything's ok, otherwise an error number.

@@ -144,18 +144,21 @@ QosController::ConfigureBorderSwitch (Ptr<const RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 
+  // Get the switch datapath ID
+  uint64_t swDpId = swtch->GetDpId ();
+
   // For packet-in messages, send only the first 128 bytes to the controller
-  DpctlExecute (swtch, "set-config miss=128");
+  DpctlExecute (swDpId, "set-config miss=128");
 
   // Redirect ARP requests to the controller
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=20 "
+  DpctlExecute (swDpId, "flow-mod cmd=add,table=0,prio=20 "
                 "eth_type=0x0806,arp_op=1 apply:output=ctrl");
 
   // Using group #3 for rewriting headers and forwarding packets to clients
   if (m_linkAggregation)
     {
       // Configure Group #3 for aggregating links 1 and 2
-      DpctlExecute (swtch, "group-mod cmd=add,type=sel,group=3 "
+      DpctlExecute (swDpId, "group-mod cmd=add,type=sel,group=3 "
                     "weight=1,port=any,group=any set_field=ip_src:10.1.1.1"
                     ",set_field=eth_src:00:00:00:00:00:01,output=1 "
                     "weight=1,port=any,group=any set_field=ip_src:10.1.1.1"
@@ -164,31 +167,31 @@ QosController::ConfigureBorderSwitch (Ptr<const RemoteSwitch> swtch)
   else
     {
       // Configure Group #3 for sending packets only over link 1
-      DpctlExecute (swtch, "group-mod cmd=add,type=ind,group=3 "
+      DpctlExecute (swDpId, "group-mod cmd=add,type=ind,group=3 "
                     "weight=0,port=any,group=any set_field=ip_src:10.1.1.1"
                     ",set_field=eth_src:00:00:00:00:00:01,output=1");
     }
 
   // Groups #1 and #2 send traffic to internal servers (ports 3 and 4)
-  DpctlExecute (swtch, "group-mod cmd=add,type=ind,group=1 "
+  DpctlExecute (swDpId, "group-mod cmd=add,type=ind,group=1 "
                 "weight=0,port=any,group=any set_field=ip_dst:10.1.1.2,"
                 "set_field=eth_dst:00:00:00:00:00:08,output=3");
-  DpctlExecute (swtch, "group-mod cmd=add,type=ind,group=2 "
+  DpctlExecute (swDpId, "group-mod cmd=add,type=ind,group=2 "
                 "weight=0,port=any,group=any set_field=ip_dst:10.1.1.3,"
                 "set_field=eth_dst:00:00:00:00:00:0a,output=4");
 
   // Incoming TCP connections (ports 1 and 2) are sent to the controller
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=500 "
+  DpctlExecute (swDpId, "flow-mod cmd=add,table=0,prio=500 "
                 "in_port=1,eth_type=0x0800,ip_proto=6,ip_dst=10.1.1.1,"
                 "eth_dst=00:00:00:00:00:01 apply:output=ctrl");
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=500 "
+  DpctlExecute (swDpId, "flow-mod cmd=add,table=0,prio=500 "
                 "in_port=2,eth_type=0x0800,ip_proto=6,ip_dst=10.1.1.1,"
                 "eth_dst=00:00:00:00:00:01 apply:output=ctrl");
 
   // TCP packets from servers are sent to the external network through group 3
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=700 "
+  DpctlExecute (swDpId, "flow-mod cmd=add,table=0,prio=700 "
                 "in_port=3,eth_type=0x0800,ip_proto=6 apply:group=3");
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=700 "
+  DpctlExecute (swDpId, "flow-mod cmd=add,table=0,prio=700 "
                 "in_port=4,eth_type=0x0800,ip_proto=6 apply:group=3");
 }
 
@@ -197,28 +200,31 @@ QosController::ConfigureAggregationSwitch (Ptr<const RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 
+  // Get the switch datapath ID
+  uint64_t swDpId = swtch->GetDpId ();
+
   if (m_linkAggregation)
     {
       // Configure Group #1 for aggregating links 1 and 2
-      DpctlExecute (swtch, "group-mod cmd=add,type=sel,group=1 "
+      DpctlExecute (swDpId, "group-mod cmd=add,type=sel,group=1 "
                     "weight=1,port=any,group=any output=1 "
                     "weight=1,port=any,group=any output=2");
     }
   else
     {
       // Configure Group #1 for sending packets only over link 1
-      DpctlExecute (swtch, "group-mod cmd=add,type=ind,group=1 "
+      DpctlExecute (swDpId, "group-mod cmd=add,type=ind,group=1 "
                     "weight=0,port=any,group=any output=1");
     }
 
   // Packets from input ports 1 and 2 are redirecte to port 3
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=500 "
+  DpctlExecute (swDpId, "flow-mod cmd=add,table=0,prio=500 "
                 "in_port=1 write:output=3");
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=500 "
+  DpctlExecute (swDpId, "flow-mod cmd=add,table=0,prio=500 "
                 "in_port=2 write:output=3");
 
   // Packets from input port 3 are redirected to group 1
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=500 "
+  DpctlExecute (swDpId, "flow-mod cmd=add,table=0,prio=500 "
                 "in_port=3 write:group=1");
 }
 
@@ -374,13 +380,16 @@ QosController::HandleConnectionRequest (
   NS_LOG_INFO ("Connection " << connectionCounter <<
                " redirected to server " << serverNumber);
 
+  // Get the switch datapath ID
+  uint64_t swDpId = swtch->GetDpId ();
+
   // If enable, install the metter entry for this connection
   if (m_meterEnable)
     {
       std::ostringstream meterCmd;
       meterCmd << "meter-mod cmd=add,flags=1,meter=" << connectionCounter
                << " drop:rate=" << m_meterRate.GetBitRate () / 1000;
-      DpctlExecute (swtch, meterCmd.str ());
+      DpctlExecute (swDpId, meterCmd.str ());
     }
 
   // Install the flow entry for this TCP connection
@@ -395,7 +404,7 @@ QosController::HandleConnectionRequest (
       flowCmd << " meter:" << connectionCounter;
     }
   flowCmd << " write:group=" << serverNumber;
-  DpctlExecute (swtch, flowCmd.str ());
+  DpctlExecute (swDpId, flowCmd.str ());
 
   // Create group action with server number
   struct ofl_action_group *action =
