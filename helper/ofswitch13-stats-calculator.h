@@ -36,7 +36,7 @@ namespace ns3 {
  * -# [LoaUsag] Average CPU processing capacity usage (percent);
  * -# [Packets] Packets processed by the pipeline in the last interval;
  * -# [DlyUsec] EWMA pipeline lookup delay for packet processing (usecs);
- * -# [LoaDrop] Packets dropped by capacity overloaded in the last interval;
+ * -# [LoaDrps] Packets dropped by capacity overloaded in the last interval;
  * -# [MetDrps] Packets dropped by meter bands in the last interval;
  * -# [FloMods] Flow-mod operations executed in the last interval;
  * -# [MetMods] Meter-mod operations executed in the last interval;

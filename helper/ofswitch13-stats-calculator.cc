@@ -109,7 +109,7 @@ OFSwitch13StatsCalculator::HookSinks (Ptr<OFSwitch13Device> device)
     << " " << setw (7)  << "LoaUsag"
     << " " << setw (7)  << "Packets"
     << " " << setw (7)  << "DlyUsec"
-    << " " << setw (7)  << "LoaDrop"
+    << " " << setw (7)  << "LoaDrps"
     << " " << setw (7)  << "MetDrps"
     << " " << setw (7)  << "FloMods"
     << " " << setw (7)  << "MetMods"
