@@ -23,6 +23,10 @@ Release X.X.X (XXX XX, XXXX)
     handshake procedure. This is particularly useful for executing dpctl
     commands when creating the topology, before invoking Simulator::Run ().
 
+- Creating a new OFSwitch13Device::TableDrop trace source to notify unmatched
+  packets dropped by flow tables without table-miss entries. A new TabDrps
+  column was also inserted in the OFSwitch13StatsCalculator output file.
+
 - This version is compatible with ofsoftswitch13 library release vX.X.x and
   ns-3 versions 3.28 or later (including patches). There is no backward
   compatibility with older ns-3 versions.

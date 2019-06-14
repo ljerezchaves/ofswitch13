@@ -304,6 +304,15 @@ public:
   MeterDropCallback (struct packet *pkt, struct meter_entry *entry);
 
   /**
+   * Callback fired when an unmatched packet is dropped by a flow table without
+   * a table-miss entry.
+   * \param pkt The original internal packet.
+   * \param table The flow table that dropped the packet.
+   */
+  static void
+  TableDropCallback (struct packet *pkt, struct flow_table *table);
+
+  /**
    * Callback fired when a packet is cloned.
    * \param pkt The internal original packet.
    * \param clone The internal cloned packet.
@@ -347,6 +356,15 @@ public:
    */
   typedef void (*MeterDropTracedCallback)(
     Ptr<const Packet> packet, uint32_t meterId);
+
+  /**
+   * TracedCallback signature for unmatched packets dropped by flow tables
+   * without table-miss entries.
+   * \param packet The dropped packet.
+   * \param tableId The flow table ID that dropped the packet.
+   */
+  typedef void (*TableDropTracedCallback)(
+    Ptr<const Packet> packet, uint8_t tableId);
 
   /**
    * TracedCallback signature for OpenFlow switch device.
@@ -501,6 +519,15 @@ private:
                                    struct meter_entry *entry);
 
   /**
+   * Notify this device of an unmatched packet dropped by OpenFlow flow table
+   * without a table-miss entry.
+   * \param pkt The ofsoftswitch13 packet.
+   * \param table The flow table that dropped the packet.
+   */
+  void NotifyPacketDroppedByTable (struct packet *pkt,
+                                   struct flow_table *table);
+
+  /**
    * Notify this device of a packet saved into buffer. This method will get the
    * ns-3 packet in pipeline and save into buffer map.
    * \param packetId The ns-3 packet id.
@@ -606,6 +633,9 @@ private:
 
   /** Trace source fired when a packet is dropped by a meter band. */
   TracedCallback<Ptr<const Packet>, uint32_t> m_meterDropTrace;
+
+  /** Trace source fired when an unmatched packet is dropped by flow table. */
+  TracedCallback<Ptr<const Packet>, uint8_t> m_tableDropTrace;
 
   /** Trace source fired when a packet is sent to pipeline. */
   TracedCallback<Ptr<const Packet> > m_pipePacketTrace;

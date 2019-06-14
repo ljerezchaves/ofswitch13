@@ -38,6 +38,7 @@ namespace ns3 {
  * -# [DlyUsec] EWMA pipeline lookup delay for packet processing (usecs);
  * -# [LoaDrps] Packets dropped by capacity overloaded in the last interval;
  * -# [MetDrps] Packets dropped by meter bands in the last interval;
+ * -# [TabDrps] Unmatched packets dropped by flow tables in the last interval;
  * -# [FloMods] Flow-mod operations executed in the last interval;
  * -# [MetMods] Meter-mod operations executed in the last interval;
  * -# [GroMods] Group-mod operations executed in the last interval;
@@ -139,6 +140,14 @@ private:
   void NotifyMeterDrop (Ptr<const Packet> packet, uint32_t meterId);
 
   /**
+   * Notify when an unmatched packet is dropped by a flow table without a
+   * table-miss entry.
+   * \param packet The packet.
+   * \param tableId The flow table ID.
+   */
+  void NotifyTableDrop (Ptr<const Packet> packet, uint8_t tableId);
+
+  /**
    * Notify when a packet is sent to pipeline.
    * \param packet The packet.
    */
@@ -177,6 +186,7 @@ private:
   uint64_t  m_lastPacketsOut;
   uint64_t  m_loadDrops;
   uint64_t  m_meterDrops;
+  uint64_t  m_tableDrops;
   uint64_t  m_packets;
   //\}
 };

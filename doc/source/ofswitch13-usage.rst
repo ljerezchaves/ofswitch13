@@ -415,6 +415,7 @@ the following datapath metrics on the output file:
 #. [``DlyUsec``] EWMA pipeline lookup delay for packet processing (usecs);
 #. [``LoaDrps``] Packets dropped by capacity overloaded in the last interval;
 #. [``MetDrps``] Packets dropped by meter bands in the last interval;
+#. [``TabDrps``] Unmatched packets dropped by flow tables in the last interval;
 #. [``FloMods``] Flow-mod operations executed in the last interval;
 #. [``MetMods``] Meter-mod operations executed in the last interval;
 #. [``GroMods``] Group-mod operations executed in the last interval;
