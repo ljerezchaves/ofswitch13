@@ -29,7 +29,7 @@ system [#f1]_:
 .. code-block:: bash
 
   $ sudo apt-get install build-essential gcc g++ python git mercurial unzip cmake
-  $ sudo apt-get install pkg-config autoconf libtool libboost-dev
+  $ sudo apt-get install pkg-config autoconf automake libtool libboost-dev
 
 .. [#f1] The *NetBee* library dependence was removed in |ofs13|
          release version 4.0.0.
