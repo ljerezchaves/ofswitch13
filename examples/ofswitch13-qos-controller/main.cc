@@ -260,7 +260,7 @@ main (int argc, char *argv[])
   if (getcwd (cwd, sizeof (cwd)) != NULL)
     {
       std::string path = std::string (cwd) +
-        "/src/ofswitch13/examples/qos-controller/images/";
+        "/src/ofswitch13/examples/ofswitch13-qos-controller/images/";
       uint32_t serverImg = anim.AddResource (path + "server.png");
       uint32_t switchImg = anim.AddResource (path + "switch.png");
       uint32_t controllerImg = anim.AddResource (path + "controller.png");
