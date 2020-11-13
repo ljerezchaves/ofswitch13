@@ -1,6 +1,7 @@
 /* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2017 University of Campinas (Unicamp)
+ *               2020 Federal University of Juiz de Fora (UFJF)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -16,17 +17,22 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ *         Arthur Boechat Mazzi <arthurmazzi@ice.ufjf.br>
  *
- * Two hosts connected to different OpenFlow switches.
- * Both switches are managed by the same external controller application.
+ * There are N switches connected in line and managed by an external controller.
+ * There are M hosts equally distributed among the switches.
+ * Random pings among hosts.
  *
- *                        External Controller
- *                                |
- *                         +-------------+
- *                         |             |
- *                  +----------+     +----------+
- *       Host 0 === | Switch 0 | === | Switch 1 | === Host 1
- *                  +----------+     +----------+
+ *               External controller
+ *                       |
+ *               +----------------+-------- ... --------+
+ *               |                |                     |
+ *         +----------+     +----------+           +----------+
+ *         | Switch 1 | === | Switch 2 | == ... == | Switch N |
+ *         +----------+     +----------+           +----------+
+ *              ||               ||                     ||
+ *            Hosts            Hosts                  Hosts
+ *          1, N+1, ...      2, N+2, ...            N, 2N, ...
  */
 
 #include <ns3/core-module.h>
@@ -42,15 +48,23 @@ using namespace ns3;
 int
 main (int argc, char *argv[])
 {
-  uint16_t simTime = 10;
+  uint16_t simTime = 100;
   bool verbose = false;
   bool trace = false;
+  uint16_t numHosts = 20;
+  uint16_t numSwitches = 3;
+  uint16_t numPings = 20;
+  uint16_t pingTime = 10;
 
   // Configure command line parameters
   CommandLine cmd;
   cmd.AddValue ("simTime", "Simulation time (seconds)", simTime);
   cmd.AddValue ("verbose", "Enable verbose output", verbose);
   cmd.AddValue ("trace", "Enable datapath stats and pcap traces", trace);
+  cmd.AddValue ("numHosts", "Number of hosts in the simulation", numHosts);
+  cmd.AddValue ("numSwitches", "Number of switches in the simulation", numSwitches);
+  cmd.AddValue ("numPings", "Number of ping apps int the simulation", numPings);
+  cmd.AddValue ("pingTime", "Ping time (seconds)", pingTime);
   cmd.Parse (argc, argv);
 
   if (verbose)
@@ -64,7 +78,7 @@ main (int argc, char *argv[])
       LogComponentEnable ("OFSwitch13Controller", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13LearningController", LOG_LEVEL_ALL);
       LogComponentEnable ("OFSwitch13Helper", LOG_LEVEL_ALL);
-      LogComponentEnable ("OFSwitch13ExternalHelper", LOG_LEVEL_ALL);
+      LogComponentEnable ("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
     }
 
   // Enable checksum computations (required by OFSwitch13 module)
@@ -73,15 +87,15 @@ main (int argc, char *argv[])
   // Set simulator to real time mode
   GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));
 
-  // Create two host nodes
+  // Create host nodes
   NodeContainer hosts;
-  hosts.Create (2);
+  hosts.Create (numHosts);
 
-  // Create two switch nodes
+  // Create switch nodes
   NodeContainer switches;
-  switches.Create (2);
+  switches.Create (numSwitches);
 
-  // Use the CsmaHelper to connect hosts and switches
+  // Use the CsmaHelper to connect host and switch
   CsmaHelper csmaHelper;
   csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
   csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
@@ -89,27 +103,30 @@ main (int argc, char *argv[])
   NodeContainer pair;
   NetDeviceContainer pairDevs;
   NetDeviceContainer hostDevices;
-  NetDeviceContainer switchPorts [2];
-  switchPorts [0] = NetDeviceContainer ();
-  switchPorts [1] = NetDeviceContainer ();
+  NetDeviceContainer switchPorts [numSwitches];
+  for (int i = 0; i < numSwitches; i++)
+  	{
+    	switchPorts [i] = NetDeviceContainer ();
+  	}
 
-  // Connect host 0 to first switch
-  pair = NodeContainer (hosts.Get (0), switches.Get (0));
-  pairDevs = csmaHelper.Install (pair);
-  hostDevices.Add (pairDevs.Get (0));
-  switchPorts [0].Add (pairDevs.Get (1));
+  // Connect hosts to switches in round robin
+  for (size_t i = 0; i < numHosts; i++)
+    {
+       int j = i % numSwitches;
+       pair = NodeContainer (hosts.Get (i), switches.Get (j));
+       pairDevs = csmaHelper.Install (pair);
+       hostDevices.Add (pairDevs.Get (0));
+       switchPorts [j].Add (pairDevs.Get (1));
+    }
 
-  // Connect host 1 to second switch
-  pair = NodeContainer (hosts.Get (1), switches.Get (1));
-  pairDevs = csmaHelper.Install (pair);
-  hostDevices.Add (pairDevs.Get (0));
-  switchPorts [1].Add (pairDevs.Get (1));
-
-  // Connect the switches
-  pair = NodeContainer (switches.Get (0), switches.Get (1));
-  pairDevs = csmaHelper.Install (pair);
-  switchPorts [0].Add (pairDevs.Get (0));
-  switchPorts [1].Add (pairDevs.Get (1));
+  // Connect the switches in chain
+  for (int i = 0; i < numSwitches - 1; i++)
+	{
+	  pair = NodeContainer (switches.Get (i), switches.Get (i + 1));
+	  pairDevs = csmaHelper.Install (pair);
+	  switchPorts [i].Add (pairDevs.Get (0));
+	  switchPorts [i + 1].Add (pairDevs.Get (1));
+	}
 
   // Create the controller node
   Ptr<Node> controllerNode = CreateObject<Node> ();
@@ -117,8 +134,10 @@ main (int argc, char *argv[])
   // Configure the OpenFlow network domain using an external controller
   Ptr<OFSwitch13ExternalHelper> of13Helper = CreateObject<OFSwitch13ExternalHelper> ();
   Ptr<NetDevice> ctrlDev = of13Helper->InstallExternalController (controllerNode);
-  of13Helper->InstallSwitch (switches.Get (0), switchPorts [0]);
-  of13Helper->InstallSwitch (switches.Get (1), switchPorts [1]);
+  for (int i = 0; i < numSwitches; i++)
+    {
+      of13Helper->InstallSwitch (switches.Get (i), switchPorts [i]);
+    }
   of13Helper->CreateOpenFlowChannels ();
 
   // TapBridge the controller device to local machine
@@ -138,20 +157,40 @@ main (int argc, char *argv[])
   ipv4helpr.SetBase ("10.1.1.0", "255.255.255.0");
   hostIpIfaces = ipv4helpr.Assign (hostDevices);
 
-  // Configure ping application between hosts
-  V4PingHelper pingHelper = V4PingHelper (hostIpIfaces.GetAddress (1));
-  pingHelper.SetAttribute ("Verbose", BooleanValue (true));
-  ApplicationContainer pingApps = pingHelper.Install (hosts.Get (0));
-  pingApps.Start (Seconds (1));
+  // Random number generators for ping applications
+  Ptr<UniformRandomVariable> randomHostRng = CreateObject<UniformRandomVariable> ();
+  randomHostRng->SetAttribute ("Min", DoubleValue (0));
+  randomHostRng->SetAttribute ("Max", DoubleValue (numHosts - 1));
+
+  Ptr<ExponentialRandomVariable> randomStartRng = CreateObject<ExponentialRandomVariable> ();
+  randomStartRng->SetAttribute ("Mean", DoubleValue (20));
+
+  // Configure ping application between random hosts
+  Time startTime = Seconds (1);
+  for (int i = 0; i < numPings; i++)
+    {
+      int srcHost = randomHostRng->GetInteger ();
+      int dstHost = randomHostRng->GetInteger ();
+
+      V4PingHelper pingHelper = V4PingHelper (hostIpIfaces.GetAddress (dstHost));
+      pingHelper.SetAttribute ("Verbose", BooleanValue (true));
+      Ptr<Application> pingApp = pingHelper.Install (hosts.Get (srcHost)).Get (0);
+
+      startTime += Seconds (std::abs (randomStartRng->GetValue ()));
+      pingApp->SetStartTime (Seconds (startTime));
+      pingApp->SetStopTime (Seconds (startTime + pingTime));
+    }
 
   // Enable datapath stats and pcap traces at hosts, switch(es), and controller(s)
   if (trace)
     {
       of13Helper->EnableOpenFlowPcap ("openflow");
       of13Helper->EnableDatapathStats ("switch-stats");
-      csmaHelper.EnablePcap ("switch", switchPorts [0], true);
-      csmaHelper.EnablePcap ("switch", switchPorts [1], true);
       csmaHelper.EnablePcap ("host", hostDevices);
+      for (int i = 0; i < numSwitches; i++)
+        {
+          csmaHelper.EnablePcap ("switch", switchPorts [i], true);
+        }
     }
 
   // Run the simulation
