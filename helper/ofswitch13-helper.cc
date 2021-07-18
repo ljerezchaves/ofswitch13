@@ -222,7 +222,7 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode)
   NS_LOG_FUNCTION (this << swNode);
 
   NS_LOG_INFO ("Installing OpenFlow device on node " << swNode->GetId ());
-  NS_ASSERT_MSG (!m_blocked, "OpenFlow channels already configured.");
+  NS_ABORT_MSG_IF (m_blocked, "OpenFlow channels already configured.");
 
   // Install the TCP/IP stack into switch node.
   m_internet.Install (swNode);
