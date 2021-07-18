@@ -71,7 +71,6 @@ protected:
   /** Destructor implementation. */
   virtual void DoDispose ();
 
-private:
   /**
    * Create an individual connection between the switch and the controller
    * node, using the already configured channel type.
