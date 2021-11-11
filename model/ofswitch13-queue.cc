@@ -87,7 +87,7 @@ OFSwitch13Queue::Enqueue (Ptr<Packet> packet)
       // Enqueue the packet in this queue too.
       // This is necessary to ensure consistent statistics. Otherwise, when the
       // NetDevice calls the IsEmpty () method, it will return true.
-      DoEnqueue (Tail (), packet);
+      DoEnqueue (end (), packet);
     }
   else
     {
@@ -210,7 +210,7 @@ OFSwitch13Queue::NotifyDequeue (Ptr<Packet> packet)
 
   // Dequeue the packet from this queue too. As we don't know the
   // exactly packet location on this queue, we have to look for it.
-  for (auto it = Head (); it != Tail (); it++)
+  for (auto it = begin (); it != end (); it++)
     {
       if ((*it) == packet)
         {
@@ -228,7 +228,7 @@ OFSwitch13Queue::NotifyRemove (Ptr<Packet> packet)
 
   // Remove the packet from this queue too. As we don't know the
   // exactly packet location on this queue, we have to look for it.
-  for (auto it = Head (); it != Tail (); it++)
+  for (auto it = begin (); it != end (); it++)
     {
       if ((*it) == packet)
         {
