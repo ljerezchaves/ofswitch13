@@ -121,12 +121,12 @@ main (int argc, char *argv[])
 
   // Connect the switches in chain
   for (int i = 0; i < numSwitches - 1; i++)
-	{
-	  pair = NodeContainer (switches.Get (i), switches.Get (i + 1));
-	  pairDevs = csmaHelper.Install (pair);
-	  switchPorts [i].Add (pairDevs.Get (0));
-	  switchPorts [i + 1].Add (pairDevs.Get (1));
-	}
+    {
+      pair = NodeContainer (switches.Get (i), switches.Get (i + 1));
+      pairDevs = csmaHelper.Install (pair);
+      switchPorts [i].Add (pairDevs.Get (0));
+      switchPorts [i + 1].Add (pairDevs.Get (1));
+    }
 
   // Create the controller node
   Ptr<Node> controllerNode = CreateObject<Node> ();
@@ -177,8 +177,8 @@ main (int argc, char *argv[])
       Ptr<Application> pingApp = pingHelper.Install (hosts.Get (srcHost)).Get (0);
 
       startTime += Seconds (std::abs (randomStartRng->GetValue ()));
-      pingApp->SetStartTime (Seconds (startTime));
-      pingApp->SetStopTime (Seconds (startTime + pingTime));
+      pingApp->SetStartTime (startTime);
+      pingApp->SetStopTime (startTime + Seconds (pingTime));
     }
 
   // Enable datapath stats and pcap traces at hosts, switch(es), and controller(s)
