@@ -267,7 +267,7 @@ QosController::HandleArpPacketIn (
       uint8_t replyData[64];
 
       // Check for destination IP
-      if (dstIp.IsEqual (serverIp))
+      if (dstIp == serverIp)
         {
           // Reply with virtual service IP/MAC addresses
           Ptr<Packet> pkt = CreateArpReply (serverMac, dstIp, srcMac, srcIp);
@@ -372,7 +372,7 @@ QosController::HandleConnectionRequest (
   free (arpAction);
 
   // Check for valid service connection request
-  NS_ASSERT_MSG (dstIp.IsEqual (serverIp) && dstPort == m_serverTcpPort,
+  NS_ASSERT_MSG ((dstIp == serverIp) && (dstPort == m_serverTcpPort),
                  "Invalid IP address / TCP port.");
 
   // Select an internal server to handle this connection
