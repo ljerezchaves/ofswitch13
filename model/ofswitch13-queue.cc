@@ -156,19 +156,6 @@ OFSwitch13Queue::DoInitialize ()
   Queue<Packet>::DoInitialize ();
 }
 
-void
-OFSwitch13Queue::NotifyConstructionCompleted (void)
-{
-  NS_LOG_FUNCTION (this);
-
-  // We are using a very large queue size for this queue interface. The real
-  // check for queue space is performed at DoEnqueue () by the internal queues.
-  SetAttribute ("MaxSize", StringValue ("100Mp"));
-
-  // Chain up.
-  Queue<Packet>::NotifyConstructionCompleted ();
-}
-
 uint32_t
 OFSwitch13Queue::AddQueue (Ptr<Queue<Packet> > queue)
 {
