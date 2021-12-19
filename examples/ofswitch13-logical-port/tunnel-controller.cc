@@ -97,12 +97,15 @@ TunnelController::HandshakeSuccessful (Ptr<const RemoteSwitch> swtch)
 {
   NS_LOG_FUNCTION (this << swtch);
 
+  // Get the switch datapath ID
+  uint64_t swDpId = swtch->GetDpId ();
+
   // Send ARP requests to controller.
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=16 eth_type=0x0806 "
+  DpctlExecute (swDpId, "flow-mod cmd=add,table=0,prio=16 eth_type=0x0806 "
                 "apply:output=ctrl");
 
   // Table miss entry.
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl");
+  DpctlExecute (swDpId, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl");
 }
 
 ofl_err
@@ -111,6 +114,9 @@ TunnelController::HandlePacketIn (
   uint32_t xid)
 {
   NS_LOG_FUNCTION (this << swtch << xid);
+
+  // Get the switch datapath ID
+  uint64_t swDpId = swtch->GetDpId ();
 
   struct ofl_match_tlv *tlv;
   enum ofp_packet_in_reason reason = msg->reason;
@@ -131,7 +137,7 @@ TunnelController::HandlePacketIn (
           // from the host node. In this case, identify and set TEID and tunnel
           // endpoint IPv4 address into tunnel metadata, and output the packet
           // on the logical port 2.
-          Ipv4Address dstAddr = GetTunnelEndpoint (swtch->GetDpId (), 2);
+          Ipv4Address dstAddr = GetTunnelEndpoint (swDpId, 2);
           uint64_t tunnelId = (uint64_t)dstAddr.Get () << 32;
           tunnelId |= 0xFFFF;
           char tunnelIdStr [20];
@@ -142,7 +148,7 @@ TunnelController::HandlePacketIn (
               << " in_port=1,eth_type=0x0800 "
               << "write:set_field=tunn_id:" << tunnelIdStr
               << ",output=2";
-          DpctlExecute (swtch, cmd.str ());
+          DpctlExecute (swDpId, cmd.str ());
 
           // All handlers must free the message when everything is ok
           ofl_msg_free ((struct ofl_msg_header*)msg, 0);
@@ -167,7 +173,7 @@ TunnelController::HandlePacketIn (
               << " in_port=2,eth_type=0x0800,tunn_id=0xFFFF "
               << "write:set_field=eth_dst:" << dstMac
               << ",output=1";
-          DpctlExecute (swtch, cmd.str ());
+          DpctlExecute (swDpId, cmd.str ());
 
           // All handlers must free the message when everything is ok
           ofl_msg_free ((struct ofl_msg_header*)msg, 0);

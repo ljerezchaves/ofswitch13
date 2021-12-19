@@ -175,8 +175,13 @@ OFSwitch13InternalHelper::InstallController (
   NS_LOG_INFO ("Installing OpenFlow controller on node " << cNode->GetId ());
   NS_ABORT_MSG_IF (m_blocked, "OpenFlow channels already configured.");
 
-  // Install the TCP/IP stack and the controller application into node.
-  m_internet.Install (cNode);
+  // Install the TCP/IP stack into controller node.
+  if (cNode->GetObject<Ipv4> () == 0)
+    {
+      m_internet.Install (cNode);
+    }
+
+  // Configure and save controller application and node.
   controller->SetStartTime (Seconds (0));
   cNode->AddApplication (controller);
   m_controlApps.Add (controller);

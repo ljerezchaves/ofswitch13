@@ -66,8 +66,10 @@ OFSwitch13LearningController::HandlePacketIn (
 
   static int prio = 100;
   uint32_t outPort = OFPP_FLOOD;
-  uint64_t dpId = swtch->GetDpId ();
   enum ofp_packet_in_reason reason = msg->reason;
+
+  // Get the switch datapath ID
+  uint64_t swDpId = swtch->GetDpId ();
 
   char *msgStr =
     ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, 0);
@@ -94,7 +96,7 @@ OFSwitch13LearningController::HandlePacketIn (
       dst48.CopyFrom (ethDst->value);
 
       // Get L2Table for this datapath
-      auto it = m_learnedInfo.find (dpId);
+      auto it = m_learnedInfo.find (swDpId);
       if (it != m_learnedInfo.end ())
         {
           L2Table_t *l2Table = &it->second;
@@ -136,7 +138,7 @@ OFSwitch13LearningController::HandlePacketIn (
                   cmd << "flow-mod cmd=add,table=0,idle=10,flags=0x0001"
                       << ",prio=" << ++prio << " eth_dst=" << src48
                       << " apply:output=" << inPort;
-                  DpctlExecute (swtch, cmd.str ());
+                  DpctlExecute (swDpId, cmd.str ());
                 }
             }
           else
@@ -147,7 +149,7 @@ OFSwitch13LearningController::HandlePacketIn (
         }
       else
         {
-          NS_LOG_ERROR ("No L2 table for this datapath id " << dpId);
+          NS_LOG_ERROR ("No L2 table for this datapath id " << swDpId);
         }
 
       // Lets send the packet out to switch.
@@ -195,9 +197,11 @@ OFSwitch13LearningController::HandleFlowRemoved (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
+  // Get the switch datapath ID
+  uint64_t swDpId = swtch->GetDpId ();
+
   NS_LOG_DEBUG ( "Flow entry expired. Removing from L2 switch table.");
-  uint64_t dpId = swtch->GetDpId ();
-  auto it = m_learnedInfo.find (dpId);
+  auto it = m_learnedInfo.find (swDpId);
   if (it != m_learnedInfo.end ())
     {
       Mac48Address mac48;
@@ -225,22 +229,23 @@ OFSwitch13LearningController::HandshakeSuccessful (
 {
   NS_LOG_FUNCTION (this << swtch);
 
+  // Get the switch datapath ID
+  uint64_t swDpId = swtch->GetDpId ();
+
   // After a successfull handshake, let's install the table-miss entry, setting
   // to 128 bytes the maximum amount of data from a packet that should be sent
   // to the controller.
-  DpctlExecute (swtch, "flow-mod cmd=add,table=0,prio=0 "
+  DpctlExecute (swDpId, "flow-mod cmd=add,table=0,prio=0 "
                 "apply:output=ctrl:128");
 
   // Configure te switch to buffer packets and send only the first 128 bytes of
   // each packet sent to the controller when not using an output action to the
   // OFPP_CONTROLLER logical port.
-  DpctlExecute (swtch, "set-config miss=128");
+  DpctlExecute (swDpId, "set-config miss=128");
 
   // Create an empty L2SwitchingTable and insert it into m_learnedInfo
   L2Table_t l2Table;
-  uint64_t dpId = swtch->GetDpId ();
-
-  std::pair<uint64_t, L2Table_t> entry (dpId, l2Table);
+  std::pair<uint64_t, L2Table_t> entry (swDpId, l2Table);
   auto ret = m_learnedInfo.insert (entry);
   if (ret.second == false)
     {

@@ -140,6 +140,23 @@ private:
     Ptr<const RemoteSwitch> m_swtch;      //!< Remote switch.
   };
 
+private:
+  /**
+   * \ingroup ofswitch13
+   * Inner class to save pending commands waiting for handshake procedure.
+   */
+  class PendingCommands : public SimpleRefCount<PendingCommands>
+  {
+    friend class OFSwitch13Controller;
+
+public:
+    /** Default (empty) constructor. */
+    PendingCommands ();
+
+private:
+    std::queue<std::string> m_queue; //!< Queue of pending dpctl commands.
+  };
+
 public:
   OFSwitch13Controller ();          //!< Default constructor
   virtual ~OFSwitch13Controller (); //!< Dummy destructor, see DoDispose.
@@ -157,28 +174,11 @@ public:
 
   /**
    * Execute a dpctl command to interact with the remote switch.
-   * \param swtch The target remote switch.
-   * \param textCmd The dpctl command to execute.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  int DpctlExecute (Ptr<const RemoteSwitch> swtch, const std::string textCmd);
-
-  /**
-   * Execute a dpctl command to interact with the remote switch.
    * \param dpId The OpenFlow datapath ID.
    * \param textCmd The dpctl command to execute.
    * \return 0 if everything's ok, otherwise an error number.
    */
   int DpctlExecute (uint64_t dpId, const std::string textCmd);
-
-  /**
-   * Schedule a dpctl command to be executed after a successfull handshake with
-   * the remote switch.
-   * \param dpId The OpenFlow datapath ID.
-   * \param textCmd The dpctl command to be executed.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  int DpctlSchedule (uint64_t dpId, const std::string textCmd);
 
   /**
    * Overriding ofsoftswitch13 dpctl_send_and_print  and
@@ -373,11 +373,14 @@ private:
   /** Map to store barrier information by transaction id */
   typedef std::map <uint32_t, BarrierInfo> BarrierMsgMap_t;
 
-  /** Multimap saving pair <datapath id / dpctl commands> */
-  typedef std::multimap <uint64_t, std::string> DpIdCmdMap_t;
+  /** Map saving pair <datapath id / pending commands> */
+  typedef std::map <uint64_t, Ptr<PendingCommands> > DpIdCmdMap_t;
 
-  /** Map to store switch info by Address */
-  typedef std::map <Address, Ptr<RemoteSwitch> > SwitchsMap_t;
+  /** Map to store switch info by ip address */
+  typedef std::map <Address, Ptr<RemoteSwitch> > AddrSwMap_t;
+
+  /** Map to store switch info by datapath id */
+  typedef std::map <uint64_t, Ptr<RemoteSwitch> > DpIdSwMap_t;
 
   uint32_t        m_xid;              //!< Global transaction idx.
   uint16_t        m_port;             //!< Local controller tcp port.
@@ -385,8 +388,9 @@ private:
 
   EchoMsgMap_t    m_echoMap;          //!< Metadata for echo requests.
   BarrierMsgMap_t m_barrierMap;       //!< Metadata for barrier requests.
-  DpIdCmdMap_t    m_schedCommands;    //!< Scheduled commands for execution.
-  SwitchsMap_t    m_switchesMap;      //!< Registered switches metadata's.
+  DpIdCmdMap_t    m_commandsMap;      //!< Commands scheduled for execution.
+  AddrSwMap_t     m_addrSwMap;        //!< Registered switches by address.
+  DpIdSwMap_t     m_dpIdSwMap;        //!< Registered switches by datapath id.
 };
 
 } // namespace ns3

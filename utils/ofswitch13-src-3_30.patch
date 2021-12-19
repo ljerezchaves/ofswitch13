@@ -1,7 +1,7 @@
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
 --- a/src/csma/model/csma-net-device.cc
 +++ b/src/csma/model/csma-net-device.cc
-@@ -831,6 +831,30 @@
+@@ -795,6 +795,30 @@ CsmaNetDevice::Receive (Ptr<Packet> packet, Ptr<CsmaNetDevice> senderDevice)
        packetType = PACKET_OTHERHOST;
      }
  
@@ -32,54 +32,54 @@ diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.
    // 
    // For all kinds of packetType we receive, we hit the promiscuous sniffer
    // hook and pass a copy up to the promiscuous callback.  Pass a copy to 
-@@ -1056,6 +1080,13 @@
+@@ -1019,6 +1043,13 @@ CsmaNetDevice::NeedsArp (void) const
+   return true;
  }
  
- void
++void
 +CsmaNetDevice::SetOpenFlowReceiveCallback (NetDevice::PromiscReceiveCallback cb)
 +{
 +  NS_LOG_FUNCTION (&cb);
 +  m_openFlowRxCallback = cb;
 +}
 +
-+void
+ void
  CsmaNetDevice::SetReceiveCallback (NetDevice::ReceiveCallback cb)
  {
-   NS_LOG_FUNCTION (&cb);
 diff --git a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
 --- a/src/csma/model/csma-net-device.h
 +++ b/src/csma/model/csma-net-device.h
-@@ -308,6 +308,14 @@
+@@ -306,6 +306,14 @@ public:
+    */
    virtual bool NeedsArp (void) const;
  
-   /**
++  /**
 +   * Set the callback used to notify the OpenFlow when a packet has been
 +   * received by this device.
 +   *
 +   * \param cb The callback.
 +   */
 +  virtual void SetOpenFlowReceiveCallback (NetDevice::PromiscReceiveCallback cb);
-+  
-+  /**
++
+   /**
     * Set the callback to be used to notify higher layers when a packet has been
     * received.
-    *
-@@ -698,6 +706,11 @@
+@@ -688,6 +696,11 @@ private:
+    */
    Mac48Address m_address;
  
-   /**
++  /**
 +   * The OpenFlow receive callback.
 +   */
 +  NetDevice::PromiscReceiveCallback m_openFlowRxCallback;
-+  
-+  /**
++
+   /**
     * The callback used to notify higher layers that a packet has been received.
     */
-   NetDevice::ReceiveCallback m_rxCallback;
 diff --git a/src/virtual-net-device/model/virtual-net-device.cc b/src/virtual-net-device/model/virtual-net-device.cc
 --- a/src/virtual-net-device/model/virtual-net-device.cc
 +++ b/src/virtual-net-device/model/virtual-net-device.cc
-@@ -141,6 +141,29 @@
+@@ -141,6 +141,29 @@ VirtualNetDevice::Receive (Ptr<Packet> packet, uint16_t protocol,
                             const Address &source, const Address &destination,
                             PacketType packetType)
  {
@@ -109,7 +109,7 @@ diff --git a/src/virtual-net-device/model/virtual-net-device.cc b/src/virtual-ne
    // 
    // For all kinds of packetType we receive, we hit the promiscuous sniffer
    // hook and pass a copy up to the promiscuous callback.  Pass a copy to 
-@@ -314,5 +337,11 @@
+@@ -314,5 +337,11 @@ bool VirtualNetDevice::IsBridge (void) const
    return false;
  }
  
@@ -124,7 +124,7 @@ diff --git a/src/virtual-net-device/model/virtual-net-device.cc b/src/virtual-ne
 diff --git a/src/virtual-net-device/model/virtual-net-device.h b/src/virtual-net-device/model/virtual-net-device.h
 --- a/src/virtual-net-device/model/virtual-net-device.h
 +++ b/src/virtual-net-device/model/virtual-net-device.h
-@@ -146,6 +146,14 @@
+@@ -146,6 +146,14 @@ public:
    virtual bool SupportsSendFrom () const;
    virtual bool IsBridge (void) const;
  
@@ -139,7 +139,7 @@ diff --git a/src/virtual-net-device/model/virtual-net-device.h b/src/virtual-net
  protected:
  
    virtual void DoDispose (void);
-@@ -168,6 +176,9 @@
+@@ -168,6 +176,9 @@ private:
    bool m_needsArp;
    bool m_supportsSendFrom;
    bool m_isPointToPoint;

@@ -12,7 +12,7 @@ diff --git a/doc/main.h b/doc/main.h
 diff --git a/doc/models/Makefile b/doc/models/Makefile
 --- a/doc/models/Makefile
 +++ b/doc/models/Makefile
-@@ -67,6 +67,10 @@
+@@ -67,6 +67,10 @@ SOURCES = \
  	$(SRC)/internet/doc/udp.rst \
  	$(SRC)/internet-apps/doc/internet-apps.rst \
  	$(SRC)/mobility/doc/mobility.rst \
@@ -23,7 +23,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(SRC)/olsr/doc/olsr.rst \
  	$(SRC)/openflow/doc/openflow-switch.rst \
  	$(SRC)/point-to-point/doc/point-to-point.rst \
-@@ -279,6 +283,12 @@
+@@ -302,6 +306,12 @@ SOURCEFIGS = \
  	$(SRC)/netanim/doc/figures/RoutingTables.pdf \
  	$(SRC)/netanim/doc/figures/PacketTimeline.png \
  	$(SRC)/netanim/doc/figures/PacketTimeline.pdf \
@@ -36,7 +36,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.png \
  	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.pdf \
  	$(SRC)/spectrum/doc/spectrum-analyzer-example.eps \
-@@ -376,6 +386,12 @@
+@@ -404,6 +414,12 @@ IMAGES_EPS = \
  	$(FIGURES)/lr-wpan-primitives.eps \
  	$(FIGURES)/lr-wpan-data-example.eps \
  	$(FIGURES)/lr-wpan-arch.eps \
@@ -49,7 +49,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(FIGURES)/802-15-4-ber.eps \
  	$(FIGURES)/802-15-4-per-sens.eps \
  	$(FIGURES)/802-15-4-psr-distance.eps \
-@@ -443,6 +459,12 @@
+@@ -476,6 +492,12 @@ $(FIGURES)/spectrum-analyzer-example.pdf_width = 15cm
  $(FIGURES)/spectrum-tv-rand-geo-points.pdf_width = 8cm
  $(FIGURES)/lr-wpan-primitives.pdf_width = 3in
  $(FIGURES)/lr-wpan-arch.pdf_width = 2in
@@ -65,7 +65,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
 diff --git a/doc/models/source/index.rst b/doc/models/source/index.rst
 --- a/doc/models/source/index.rst
 +++ b/doc/models/source/index.rst
-@@ -40,6 +40,7 @@
+@@ -40,6 +40,7 @@ This document is written in `reStructuredText <http://docutils.sourceforge.net/r
     mobility
     network
     nix-vector-routing
@@ -76,12 +76,12 @@ diff --git a/doc/models/source/index.rst b/doc/models/source/index.rst
 diff --git a/doc/ns3_html_theme/get_version.sh b/doc/ns3_html_theme/get_version.sh
 --- a/doc/ns3_html_theme/get_version.sh
 +++ b/doc/ns3_html_theme/get_version.sh
-@@ -191,7 +191,7 @@
+@@ -195,7 +195,7 @@ else
      echo "// ns3_version.js:  automatically generated"       >  $outf
      echo "//  private urls"                                  >> $outf
      echo "var ns3_host = \"file://$PWD/\";"                  >  $outf
 -    echo "var ns3_version = \"$repo @ $version$dirty\";"     >> $outf
-+    echo "var ns3_version = \"ns-3.28 + OFSwitch13 4.0.0\";" >> $outf
++    echo "var ns3_version = \"ns-3.30 + OFSwitch13 5.0.0\";" >> $outf
      echo "var ns3_release = \"doc/\";"                       >> $outf
      echo "var ns3_local = \"build/\";"                       >> $outf
      echo "var ns3_doxy  = \"html/\";"                        >> $outf

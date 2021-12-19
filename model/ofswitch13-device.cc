@@ -148,6 +148,12 @@ OFSwitch13Device::GetTypeId (void)
                      MakeTraceSourceAccessor (
                        &OFSwitch13Device::m_loadDropTrace),
                      "ns3::Packet::TracedCallback")
+    .AddTraceSource ("TableDrop",
+                     "Trace source indicating an unmatched packet dropped by "
+                     "a flow table without a table-miss entry.",
+                     MakeTraceSourceAccessor (
+                       &OFSwitch13Device::m_tableDropTrace),
+                     "ns3::OFSwitch13Device::TableDropTracedCallback")
     .AddTraceSource ("PipelinePacket",
                      "Trace source indicating a packet sent to pipeline.",
                      MakeTraceSourceAccessor (
@@ -605,6 +611,14 @@ OFSwitch13Device::MeterDropCallback (struct packet *pkt,
 }
 
 void
+OFSwitch13Device::TableDropCallback (struct packet *pkt,
+                                     struct flow_table *table)
+{
+  Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice (pkt->dp->id);
+  dev->NotifyPacketDroppedByTable (pkt, table);
+}
+
+void
 OFSwitch13Device::PacketCloneCallback (struct packet *pkt,
                                        struct packet *clone)
 {
@@ -760,6 +774,7 @@ OFSwitch13Device::DatapathNew ()
   dp->buff_save_cb = &OFSwitch13Device::BufferSaveCallback;
   dp->buff_retrieve_cb = &OFSwitch13Device::BufferRetrieveCallback;
   dp->meter_drop_cb = &OFSwitch13Device::MeterDropCallback;
+  dp->miss_drop_cb = &OFSwitch13Device::TableDropCallback;
   dp->meter_created_cb = &OFSwitch13Device::MeterCreatedCallback;
 
   return dp;
@@ -1247,8 +1262,23 @@ OFSwitch13Device::NotifyPacketDroppedByMeter (struct packet *pkt,
   NS_LOG_DEBUG ("OpenFlow meter id " << meterId <<
                 " dropped packet " << pkt->ns3_uid);
 
-  // Increase counter and fire drop trace source.
+  // Fire drop trace source.
   m_meterDropTrace (m_pipePkt.GetPacket (), meterId);
+}
+
+void
+OFSwitch13Device::NotifyPacketDroppedByTable (struct packet *pkt,
+                                              struct flow_table *table)
+{
+  NS_LOG_FUNCTION (this << pkt->ns3_uid << table->stats->table_id);
+
+  uint8_t tableId = table->stats->table_id;
+  NS_ASSERT_MSG (m_pipePkt.HasId (pkt->ns3_uid), "Invalid packet ID.");
+  NS_LOG_DEBUG ("OpenFlow table id " << static_cast<uint16_t> (tableId) <<
+                " dropped unmatched packet " << pkt->ns3_uid);
+
+  // Fire drop trace source.
+  m_tableDropTrace (m_pipePkt.GetPacket (), tableId);
 }
 
 void

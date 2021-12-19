@@ -63,25 +63,51 @@ OFSwitch13Controller::DoDispose ()
   NS_LOG_FUNCTION (this);
 
   m_serverSocket = 0;
-  m_switchesMap.clear ();
-  m_echoMap.clear ();
+  m_addrSwMap.clear ();
   m_barrierMap.clear ();
-  m_schedCommands.clear ();
+  m_commandsMap.clear ();
+  m_dpIdSwMap.clear ();
+  m_echoMap.clear ();
 
   Application::DoDispose ();
 }
 
 int
-OFSwitch13Controller::DpctlExecute (Ptr<const RemoteSwitch> swtch,
-                                    const std::string textCmd)
+OFSwitch13Controller::DpctlExecute (uint64_t dpId, const std::string textCmd)
 {
-  NS_LOG_FUNCTION (this << swtch << textCmd);
+  NS_LOG_FUNCTION (this << dpId << textCmd);
 
+  Ptr<const RemoteSwitch> swtch = GetRemoteSwitch (dpId);
+  if (!swtch)
+    {
+      // Save this command for further execution after handshake procedure.
+      NS_LOG_DEBUG ("Schedulling command for an unregistered switch.");
+      auto it = m_commandsMap.find (dpId);
+      if (it == m_commandsMap.end ())
+        {
+          // Create a new pending commands object for this datapath id.
+          Ptr<PendingCommands> pendCmds = Create<PendingCommands> ();
+          std::pair <uint64_t, Ptr<PendingCommands> > entry (dpId, pendCmds);
+          auto ret = m_commandsMap.insert (entry);
+          if (ret.second == false)
+            {
+              NS_LOG_ERROR ("Error when creating pending commands object.");
+            }
+          it = ret.first;
+        }
+
+      // Save the dpctl command in the pending queue and return.
+      it->second->m_queue.push (textCmd);
+      return 0;
+    }
+
+  // Parse the textCmd.
   wordexp_t cmd;
   wordexp (textCmd.c_str (), &cmd, 0);
   char **argv = cmd.we_wordv;
   size_t argc = cmd.we_wordc;
 
+  // Check for unsupported commands.
   if ((strcmp (argv[0], "ping") == 0)
       || (strcmp (argv[0], "monitor") == 0)
       || (strcmp (argv[0], "set-desc") == 0)
@@ -93,32 +119,10 @@ OFSwitch13Controller::DpctlExecute (Ptr<const RemoteSwitch> swtch,
       return EXIT_FAILURE;
     }
 
+  // Execute the command.
   int ret = dpctl_exec_ns3_command ((void*)PeekPointer (swtch), argc, argv);
   wordfree (&cmd);
   return ret;
-}
-
-int
-OFSwitch13Controller::DpctlExecute (uint64_t dpId, const std::string textCmd)
-{
-  NS_LOG_FUNCTION (this << dpId << textCmd);
-
-  Ptr<const RemoteSwitch> swtch = GetRemoteSwitch (dpId);
-  NS_ASSERT_MSG (swtch, "Can't execute command for an unregistered switch.");
-  return DpctlExecute (swtch, textCmd);
-}
-
-int
-OFSwitch13Controller::DpctlSchedule (uint64_t dpId, const std::string textCmd)
-{
-  NS_LOG_FUNCTION (this << textCmd);
-
-  Ptr<const RemoteSwitch> swtch = GetRemoteSwitch (dpId);
-  NS_ASSERT_MSG (!swtch, "Can't schedule command for a registered switch.");
-
-  std::pair <uint64_t, std::string> entry (dpId, textCmd);
-  m_schedCommands.insert (entry);
-  return 0;
 }
 
 void
@@ -158,12 +162,11 @@ OFSwitch13Controller::StopApplication ()
 {
   NS_LOG_FUNCTION (this << m_port);
 
-  for (auto const &it : m_switchesMap)
+  for (auto const &it : m_dpIdSwMap)
     {
       Ptr<RemoteSwitch> swtch = it.second;
       swtch->m_handler = 0;
     }
-  m_switchesMap.clear ();
 
   if (m_serverSocket)
     {
@@ -171,6 +174,12 @@ OFSwitch13Controller::StopApplication ()
       m_serverSocket->SetRecvCallback (
         MakeNullCallback<void, Ptr<Socket> > ());
     }
+
+  m_addrSwMap.clear ();
+  m_barrierMap.clear ();
+  m_commandsMap.clear ();
+  m_dpIdSwMap.clear ();
+  m_echoMap.clear ();
 }
 
 uint32_t
@@ -190,13 +199,10 @@ OFSwitch13Controller::GetRemoteSwitch (uint64_t dpId) const
 {
   NS_LOG_FUNCTION (this << dpId);
 
-  for (auto const &it : m_switchesMap)
+  auto it = m_dpIdSwMap.find (dpId);
+  if (it != m_dpIdSwMap.end ())
     {
-      Ptr<const RemoteSwitch> swtch = it.second;
-      if (swtch->m_dpId == dpId)
-        {
-          return swtch;
-        }
+      return it->second;
     }
   return 0;
 }
@@ -382,13 +388,25 @@ OFSwitch13Controller::HandleFeaturesReply (
   swtch->m_capabilities = msg->capabilities;
   ofl_msg_free ((struct ofl_msg_header*)msg, 0);
 
-  // Executing any scheduled commands for this OpenFlow datapath ID
-  auto ret = m_schedCommands.equal_range (swtch->m_dpId);
-  for (auto it = ret.first; it != ret.second; it++)
+  std::pair <uint64_t, Ptr<RemoteSwitch> > entry (swtch->m_dpId, swtch);
+  auto ret = m_dpIdSwMap.insert (entry);
+  if (ret.second == false)
     {
-      DpctlExecute (swtch, it->second);
+      NS_LOG_ERROR ("This switch is already registered with this controller.");
     }
-  m_schedCommands.erase (ret.first, ret.second);
+
+  // Execute any pending command for this OpenFlow datapath ID.
+  auto it = m_commandsMap.find (swtch->m_dpId);
+  if (it != m_commandsMap.end ())
+    {
+      Ptr<PendingCommands> pendCommands = it->second;
+      while (!pendCommands->m_queue.empty ())
+        {
+          DpctlExecute (swtch->m_dpId, pendCommands->m_queue.front ());
+          pendCommands->m_queue.pop ();
+        }
+      m_commandsMap.erase (swtch->m_dpId);
+    }
 
   // Notify listeners that the handshake procedure is concluded.
   HandshakeSuccessful (swtch);
@@ -612,8 +630,8 @@ OFSwitch13Controller::GetRemoteSwitch (Address address)
 {
   NS_LOG_FUNCTION (this << address);
 
-  auto it = m_switchesMap.find (address);
-  if (it != m_switchesMap.end ())
+  auto it = m_addrSwMap.find (address);
+  if (it != m_addrSwMap.end ())
     {
       return it->second;
     }
@@ -658,7 +676,7 @@ OFSwitch13Controller::SocketAccept (Ptr<Socket> socket, const Address& from)
     MakeCallback (&OFSwitch13Controller::ReceiveFromSwitch, this));
 
   std::pair <Address, Ptr<RemoteSwitch> > entry (swtch->m_address, swtch);
-  auto ret = m_switchesMap.insert (entry);
+  auto ret = m_addrSwMap.insert (entry);
   if (ret.second == false)
     {
       NS_LOG_ERROR ("This switch is already registered with this controller.");
@@ -741,6 +759,10 @@ OFSwitch13Controller::EchoInfo::GetRtt (void) const
 OFSwitch13Controller::BarrierInfo::BarrierInfo (Ptr<const RemoteSwitch> swtch)
   : m_waiting (true),
   m_swtch (swtch)
+{
+}
+
+OFSwitch13Controller::PendingCommands::PendingCommands ()
 {
 }
 

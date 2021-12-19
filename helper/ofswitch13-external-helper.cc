@@ -136,14 +136,17 @@ OFSwitch13ExternalHelper::InstallExternalController (Ptr<Node> cNode)
   NS_ABORT_MSG_IF (m_blocked || m_controlDevs.GetN () != 0,
                    "OpenFlow controller/channels already configured.");
 
-  // Install the TCP/IP stack and the controller application into node.
-  m_internet.Install (cNode);
-  m_controlNode = cNode;
+  // Install the TCP/IP stack into controller node.
+  if (cNode->GetObject<Ipv4> () == 0)
+    {
+      m_internet.Install (cNode);
+    }
 
   // Connect the controller node to the common channel and configure IP addrs.
   m_controlDevs = m_csmaHelper.Install (cNode, m_csmaChannel);
   Ipv4InterfaceContainer ctrlIface = m_ipv4helper.Assign (m_controlDevs);
   m_controlAddr = ctrlIface.GetAddress (0);
+  m_controlNode = cNode;
 
   return m_controlDevs.Get (0);
 }

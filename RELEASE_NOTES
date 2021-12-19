@@ -5,6 +5,44 @@ OFSwitch13 release notes
 This file contains OFSwitch13 release notes (most recent releases first).
 
 
+Release 5.0.0 (Dec 19, 2021)
+============================
+
+- BE AWARE THAT this release brings incompatible API changes in respect to
+  prior OFSwitch13 versions.
+
+- Refactoring OFSwitch13Controller::Dpctl* () methods:
+  * The DpctlExecute () method has no more overloaded definitions. The target
+    switch (first parameter) must be the switch's datapath IP. Previous
+    signature using the Ptr<const RemoteSwitch> swtch pointer was removed.
+    Users can fix compilation errors by just using swtch->GetDpId () when
+    invoking DpctlExecute ();
+  * The DpctlSchedule () method was deprecated in favor of DpctlExecute ().
+    When the switch is not connected to the controller, the DpctlExecute ()
+    will automatically schedule the command for execution just after the
+    handshake procedure. This is particularly useful for executing dpctl
+    commands when creating the topology, before invoking Simulator::Run ().
+
+- Creating a new OFSwitch13Device::TableDrop trace source to notify unmatched
+  packets dropped by flow tables without table-miss entries. A new TabDrps
+  column was also inserted in the OFSwitch13StatsCalculator output file.
+
+- Updating OFSwitch13Queue for compatibility with the ns-3 queue API.
+
+- Updating the ofswitch13-external-controller example with a custom topology
+  configuration. This example was tested with the Ryu controller.
+
+- Fixing incorrect Ethernet 802.3 packet header parsing.
+
+- Fixing errors when compiling the project with gcc 9.3.0 in Ubuntu 20.04.
+
+- This version is compatible with ofsoftswitch13 library release v5.0.x and
+  ns-3 version 3.30 (including patch). There is no backward compatibility with
+  older ns-3 versions.
+
+- Compilation was tested in Debian 8, Ubuntu 18.04 LTS, and Ubuntu 20.04 LTS.
+
+
 Release 4.0.0 (Apr 02, 2019)
 ============================
 
@@ -89,8 +127,10 @@ Release 4.0.0 (Apr 02, 2019)
 - Merging new commits from the CPqD ofsoftswitch13 library.
 
 - This version is compatible with ofsoftswitch13 library release v4.0.x and
-  ns-3 versions 3.28 or later (including patches). There is no backward
+  ns-3 versions 3.28 and 3.29 (including patches). There is no backward
   compatibility with older ns-3 versions.
+
+- Compilation was tested in Ubuntu 18.04 LTS.
 
 
 Release 3.3.0 (Sep 29, 2018)

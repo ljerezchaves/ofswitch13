@@ -16,6 +16,7 @@ Thanks to the main contributors:
 * Luciano Jerez Chaves
 * Vítor Marge Eichemberger
 * Islene Calciolari Garcia
+* Arthur Boeacht Mazzi
 * *"Your name here"*
 
 # Contact #

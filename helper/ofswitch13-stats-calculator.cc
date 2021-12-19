@@ -51,6 +51,7 @@ OFSwitch13StatsCalculator::OFSwitch13StatsCalculator ()
   m_lastPacketsOut (0),
   m_loadDrops (0),
   m_meterDrops (0),
+  m_tableDrops (0),
   m_packets (0)
 {
   NS_LOG_FUNCTION (this);
@@ -109,8 +110,9 @@ OFSwitch13StatsCalculator::HookSinks (Ptr<OFSwitch13Device> device)
     << " " << setw (7)  << "LoaUsag"
     << " " << setw (7)  << "Packets"
     << " " << setw (7)  << "DlyUsec"
-    << " " << setw (7)  << "LoaDrop"
+    << " " << setw (7)  << "LoaDrps"
     << " " << setw (7)  << "MetDrps"
+    << " " << setw (7)  << "TabDrps"
     << " " << setw (7)  << "FloMods"
     << " " << setw (7)  << "MetMods"
     << " " << setw (7)  << "GroMods"
@@ -151,6 +153,10 @@ OFSwitch13StatsCalculator::HookSinks (Ptr<OFSwitch13Device> device)
   device->TraceConnectWithoutContext (
     "MeterDrop", MakeCallback (
       &OFSwitch13StatsCalculator::NotifyMeterDrop,
+      Ptr<OFSwitch13StatsCalculator> (this)));
+  device->TraceConnectWithoutContext (
+    "TableDrop", MakeCallback (
+      &OFSwitch13StatsCalculator::NotifyTableDrop,
       Ptr<OFSwitch13StatsCalculator> (this)));
   device->TraceConnectWithoutContext (
     "PipelinePacket", MakeCallback (
@@ -349,6 +355,15 @@ OFSwitch13StatsCalculator::NotifyMeterDrop (Ptr<const Packet> packet,
 }
 
 void
+OFSwitch13StatsCalculator::NotifyTableDrop (Ptr<const Packet> packet,
+                                            uint8_t tableId)
+{
+  NS_LOG_FUNCTION (this << packet << static_cast<uint16_t> (tableId));
+
+  m_tableDrops++;
+}
+
+void
 OFSwitch13StatsCalculator::NotifyPipelinePacket (Ptr<const Packet> packet)
 {
   NS_LOG_FUNCTION (this << packet);
@@ -391,6 +406,7 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
     << " " << setw (7)  << GetEwmaPipelineDelay ().GetMicroSeconds ()
     << " " << setw (7)  << m_loadDrops
     << " " << setw (7)  << m_meterDrops
+    << " " << setw (7)  << m_tableDrops
     << " " << setw (7)  << flowMods - m_lastFlowMods
     << " " << setw (7)  << meterMods - m_lastMeterMods
     << " " << setw (7)  << groupMods - m_lastGroupMods
@@ -426,6 +442,7 @@ OFSwitch13StatsCalculator::DumpStatistics (void)
   m_lastPacketsOut = packetsOut;
   m_loadDrops = 0;
   m_meterDrops = 0;
+  m_tableDrops = 0;
   m_packets = 0;
 
   // Scheduling next update.
