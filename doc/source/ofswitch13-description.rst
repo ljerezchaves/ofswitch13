@@ -107,7 +107,7 @@ Packets coming back from the library for output action are sent to the OpenFlow
 queue provided by the module. An OpenFlow switch provides limited QoS support
 employing a simple queuing mechanism, where each port can have one or more
 queues attached to it. Packets sent to a specific queue are treated according
-to that queue’s configuration. Queue configuration takes place outside the
+to that queue's configuration. Queue configuration takes place outside the
 OpenFlow protocol. The ``OFSwitch13Queue`` abstract base class implements the
 queue interface, extending the |ns3| ``Queue<Packet>`` class to allow
 compatibility with the ``CsmaNetDevice`` used within ``OFSwitch13Port`` objects
@@ -359,13 +359,12 @@ receive callback into |ns3| source code, available under
 the receive callbacks inclusion, and an optional *doc* patch that can be used
 for including the |ofs13| when compiling Doxygen and Sphinx documentation.
 
-The current |ofs13| stable version is 4.0.0. This version is compatible with
-|ns3| version 3.28 or later, and will not compile with older |ns3|
-versions. If you need to use another |ns3| release, you can check the |ofs13|
-RELEASE_NOTES file for previous |ofs13| releases and their |ns3| version
-compatibility, but keep in mind that old releases may have known bugs and an
-old API. It is strongly recommended to use the latest module version for better
-results.
+The current |ofs13| stable version is 5.0.0. This version is compatible with
+|ns3| version 3.30, and will not compile with older |ns3| versions. If you need
+to use another |ns3| release, you can check the |ofs13| RELEASE_NOTES file for
+previous |ofs13| releases and their |ns3| version compatibility, but keep in
+mind that old releases may have known bugs and an old API. It is strongly
+recommended to use the latest module version for better results.
 
 References
 ==========
@@ -394,7 +393,7 @@ References
 
 .. [Risso2006] Fulvio Risso and Mario Baldi. `"Netpdl: An extensible xml-based language
    for packet header description" <http://dx.doi.org/10.1016/j.comnet.2005.05.029>`_.
-   Computer Networks, 50(5):688–706, 2006.
+   Computer Networks, 50(5):688-706, 2006.
 
 .. [Chaves2016] Luciano J. Chaves, Islene C. Garcia, and Edmundo R. M. Madeira.
    `"OFSwitch13: Enhancing ns-3 with OpenFlow 1.3 support"

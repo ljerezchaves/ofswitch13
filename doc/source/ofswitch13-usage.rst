@@ -16,33 +16,32 @@ Building the Module
 The |ofs13| module was designed as an interface for interconnecting the |ns3|
 simulator to the |ofslib| software switch compiled as a library. Follow the
 instructions below to compile and link the |ns3| simulator to the |ofslib|
-library. *These instructions were tested on Debian 8, Ubuntu 16.04 LTS, and
-Ubuntu 18.04 LTS. Other distributions or versions may require different steps,
+library. *These instructions were tested on Debian 8, Ubuntu 18.04.6 LTS, and
+Ubuntu 20.04.3 LTS. Other distributions or versions may require different steps,
 especially regarding library compilation.*
 
 Before starting
 ###############
 
 Before starting, ensure you have the following packages installed on your
-system [#f1]_:
+system:
 
 .. code-block:: bash
 
   $ sudo apt-get install build-essential gcc g++ python git mercurial unzip cmake
   $ sudo apt-get install pkg-config autoconf automake libtool libboost-dev
 
-.. [#f1] The *NetBee* library dependence was removed in |ofs13|
-         release version 4.0.0.
-
 Compiling the code
 ##################
 
-Download a recent stable |ns3| code into your machine (we are using the
-mercurial repository for ns-3.29):
+Clone the |ns3| source code repository into your machine and checkout a stable
+version (we are using the ns-3.30):
 
 .. code-block:: bash
 
-  $ hg clone http://code.nsnam.org/ns-3.29
+  $ git clone https://gitlab.com/nsnam/ns-3-dev.git
+  $ cd ns-3-dev
+  $ git checkout -b ns-3.30 ns-3.30
 
 Download the |ofs13| code into the ``src/`` folder (starting with ns-3.28, you
 can also download the code into the new ``contrib/`` folder). This procedure
@@ -51,13 +50,13 @@ will recursively download the |ofslib| code into the
 
 .. code-block:: bash
 
-  $ cd ns-3.29/src
+  $ cd src/
   $ git clone --recurse-submodules https://github.com/ljerezchaves/ofswitch13.git
 
-Update the code to the desired release version (we are using release 4.0.0,
-which is compatible with ns-3.28 or later) [#f2]_:
+Update the code to the desired release version (we are using the latest release
+5.0.0, which is compatible with ns-3.30) [#f1]_:
 
-.. [#f2] For |ofs13| release versions prior to 3.2.2 (when no submodule
+.. [#f1] For |ofs13| release versions prior to 3.2.2 (when no submodule
          dependence was configured in the git repository), the |ofslib| code
          will not automatically update to the correct version. In this case,
          you must manually updated the |ofslib| code to the proper version
@@ -67,7 +66,7 @@ which is compatible with ns-3.28 or later) [#f2]_:
 .. code-block:: bash
 
   $ cd ofswitch13
-  $ git checkout 4.0.0 && git submodule update --recursive
+  $ git checkout 5.0.0 && git submodule update --recursive
 
 Now it is time to compile the |ofslib| as a static library. Configure and
 build the library (don't forget to add the ``--enable-ns3-lib`` during
@@ -89,8 +88,8 @@ correct |ns3| version):
 .. code-block:: bash
 
   $ cd ../../../../
-  $ patch -p1 < src/ofswitch13/utils/ofswitch13-src-3_29.patch
-  $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_29.patch
+  $ patch -p1 < src/ofswitch13/utils/ofswitch13-src-3_30.patch
+  $ patch -p1 < src/ofswitch13/utils/ofswitch13-doc-3_30.patch
 
 The ``src`` patch creates the new OpenFlow receive callback at
 ``CsmaNetDevice`` and ``VirtualNetDevice``, allowing OpenFlow switch to get raw
@@ -653,10 +652,8 @@ controller is running on the local machine at port 6653 (the helper
 automatically sets the IP address). Users can modify the local port number
 setting the ``OFSwitch13ExternalHelper::Port`` attribute.
 
-This example was tested with the Floodlight 1.2 controller
-(http://www.projectfloodlight.org) running on the local machine. Consistent
-behavior was observed once sufficient time elapses (say 3 to 5 minutes) between
-any two executions.
+This example was tested with the Ryu controller (https://ryu-sdn.org) running
+on the local machine.
 
 Examples
 ========
