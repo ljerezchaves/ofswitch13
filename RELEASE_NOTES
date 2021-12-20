@@ -5,6 +5,20 @@ OFSwitch13 release notes
 This file contains OFSwitch13 release notes (most recent releases first).
 
 
+Release 5.0.1 (Dec 20, 2021)
+============================
+
+- Updating OFSwitch13Queue for compatibility with the ns-3 queue API.
+
+- Removing DL library dependency to prevent issues with boost library.
+
+- This version is compatible with ofsoftswitch13 library release v5.0.x and
+  ns-3 version 3.31 to 3.35 (including patch). There is no backward
+  compatibility with older ns-3 versions.
+
+- Compilation was tested in Ubuntu 20.04.3.
+
+
 Release 5.0.0 (Dec 19, 2021)
 ============================
 

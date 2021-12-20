@@ -93,9 +93,6 @@ protected:
   // Inherited from Object.
   virtual void DoInitialize (void);
 
-  // Inherited from ObjectBase.
-  virtual void NotifyConstructionCompleted (void);
-
   /**
    * Add a new internal queue to this OpenFlow queue interface.
    * \param queue The queue pointer.

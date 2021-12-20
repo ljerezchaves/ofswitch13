@@ -12,7 +12,7 @@ diff --git a/doc/main.h b/doc/main.h
 diff --git a/doc/models/Makefile b/doc/models/Makefile
 --- a/doc/models/Makefile
 +++ b/doc/models/Makefile
-@@ -67,6 +67,10 @@ SOURCES = \
+@@ -69,6 +69,10 @@ SOURCES = \
  	$(SRC)/internet/doc/udp.rst \
  	$(SRC)/internet-apps/doc/internet-apps.rst \
  	$(SRC)/mobility/doc/mobility.rst \
@@ -23,7 +23,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(SRC)/olsr/doc/olsr.rst \
  	$(SRC)/openflow/doc/openflow-switch.rst \
  	$(SRC)/point-to-point/doc/point-to-point.rst \
-@@ -302,6 +306,12 @@ SOURCEFIGS = \
+@@ -320,6 +324,12 @@ SOURCEFIGS = \
  	$(SRC)/netanim/doc/figures/RoutingTables.pdf \
  	$(SRC)/netanim/doc/figures/PacketTimeline.png \
  	$(SRC)/netanim/doc/figures/PacketTimeline.pdf \
@@ -36,7 +36,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.png \
  	$(SRC)/spectrum/doc/spectrum-channel-phy-interface.pdf \
  	$(SRC)/spectrum/doc/spectrum-analyzer-example.eps \
-@@ -404,6 +414,12 @@ IMAGES_EPS = \
+@@ -424,6 +434,12 @@ IMAGES_EPS = \
  	$(FIGURES)/lr-wpan-primitives.eps \
  	$(FIGURES)/lr-wpan-data-example.eps \
  	$(FIGURES)/lr-wpan-arch.eps \
@@ -49,7 +49,7 @@ diff --git a/doc/models/Makefile b/doc/models/Makefile
  	$(FIGURES)/802-15-4-ber.eps \
  	$(FIGURES)/802-15-4-per-sens.eps \
  	$(FIGURES)/802-15-4-psr-distance.eps \
-@@ -476,6 +492,12 @@ $(FIGURES)/spectrum-analyzer-example.pdf_width = 15cm
+@@ -500,6 +516,12 @@ $(FIGURES)/spectrum-analyzer-example.pdf_width = 15cm
  $(FIGURES)/spectrum-tv-rand-geo-points.pdf_width = 8cm
  $(FIGURES)/lr-wpan-primitives.pdf_width = 3in
  $(FIGURES)/lr-wpan-arch.pdf_width = 2in
@@ -81,7 +81,7 @@ diff --git a/doc/ns3_html_theme/get_version.sh b/doc/ns3_html_theme/get_version.
      echo "//  private urls"                                  >> $outf
      echo "var ns3_host = \"file://$PWD/\";"                  >  $outf
 -    echo "var ns3_version = \"$repo @ $version$dirty\";"     >> $outf
-+    echo "var ns3_version = \"ns-3.30 + OFSwitch13 5.0.0\";" >> $outf
++    echo "var ns3_version = \"ns-3.33 + OFSwitch13 5.0.1\";" >> $outf
      echo "var ns3_release = \"doc/\";"                       >> $outf
      echo "var ns3_local = \"build/\";"                       >> $outf
      echo "var ns3_doxy  = \"html/\";"                        >> $outf
