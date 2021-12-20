@@ -60,11 +60,9 @@ def configure(conf):
                 return
 
     # Checking for required libraries
-    conf.env.DL = conf.check(mandatory=False, lib='dl', define_name='DL', uselib_store='DL')
     conf.env.OFSWITCH13 = conf.check(mandatory=False, lib='ns3ofswitch13', libpath=os.path.abspath(os.path.join(conf.env.WITH_OFSWITCH13,'udatapath')))
-    libs_found = conf.env.DL and conf.env.OFSWITCH13
-    conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 integration", libs_found, "Required libraries not found")
-    if not libs_found:
+    conf.report_optional_feature("ofswitch13", "NS-3 OpenFlow 1.3 integration", conf.env.OFSWITCH13, "Required libraries not found")
+    if not conf.env.OFSWITCH13:
         conf.env.MODULES_NOT_BUILT.append('ofswitch13')
         return
 
