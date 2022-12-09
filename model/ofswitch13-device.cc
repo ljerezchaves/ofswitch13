@@ -858,7 +858,7 @@ OFSwitch13Device::DatapathTimeout (struct datapath *dp)
   // m_tcamDelay set to the time for a single TCAM operation, and 'n' is the
   // current number of entries on all flow tables.
   m_pipeDelay = m_sumFlowEntries < 2U ? m_tcamDelay :
-    m_tcamDelay * (int64_t)ceil (log2 (m_sumFlowEntries));
+    m_tcamDelay * (int64_t)ceil (log2 (static_cast<double> (m_sumFlowEntries)));
 
   // The CPU load is estimated based on the CPU consumed tokens since last
   // timeout operation.

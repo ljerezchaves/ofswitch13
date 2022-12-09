@@ -441,10 +441,10 @@ QosController::ExtractIpv4Address (uint32_t oxm_of, struct ofl_match* match)
 {
   switch (oxm_of)
     {
-    case OXM_OF_ARP_SPA:
-    case OXM_OF_ARP_TPA:
-    case OXM_OF_IPV4_DST:
-    case OXM_OF_IPV4_SRC:
+    case static_cast<uint32_t> (OXM_OF_ARP_SPA):
+    case static_cast<uint32_t> (OXM_OF_ARP_TPA):
+    case static_cast<uint32_t> (OXM_OF_IPV4_DST):
+    case static_cast<uint32_t> (OXM_OF_IPV4_SRC):
       {
         uint32_t ip;
         int size = OXM_LENGTH (oxm_of);
