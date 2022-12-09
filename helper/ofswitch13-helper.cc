@@ -225,7 +225,7 @@ OFSwitch13Helper::InstallSwitch (Ptr<Node> swNode)
   NS_ABORT_MSG_IF (m_blocked, "OpenFlow channels already configured.");
 
   // Install the TCP/IP stack into switch node.
-  if (swNode->GetObject<Ipv4> () == 0)
+  if (!swNode->GetObject<Ipv4> ())
     {
       m_internet.Install (swNode);
     }

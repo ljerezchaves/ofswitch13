@@ -137,7 +137,7 @@ OFSwitch13ExternalHelper::InstallExternalController (Ptr<Node> cNode)
                    "OpenFlow controller/channels already configured.");
 
   // Install the TCP/IP stack into controller node.
-  if (cNode->GetObject<Ipv4> () == 0)
+  if (!cNode->GetObject<Ipv4> ())
     {
       m_internet.Install (cNode);
     }
