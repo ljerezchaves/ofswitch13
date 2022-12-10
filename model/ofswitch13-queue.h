@@ -56,19 +56,19 @@ public:
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   OFSwitch13Queue ();           //!< Default constructor.
-  virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
+  ~OFSwitch13Queue () override;  //!< Dummy destructor, see DoDispose.
 
   // Inherited from Queue.
-  bool Enqueue (Ptr<Packet> packet);
+  bool Enqueue (Ptr<Packet> packet) override;
 
   /**
    * Get the number of internal queues.
    * \return The number of internal queues.
    */
-  int GetNQueues (void) const;
+  int GetNQueues () const;
 
   /**
    * Get a pointer to internal queue with specific id.
@@ -87,10 +87,10 @@ public:
 
 protected:
   /** Destructor implementation. */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
   // Inherited from Object.
-  virtual void DoInitialize (void);
+  void DoInitialize () override;
 
   /**
    * Add a new internal queue to this OpenFlow queue interface.

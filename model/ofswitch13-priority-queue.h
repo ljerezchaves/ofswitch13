@@ -43,26 +43,26 @@ public:
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   OFSwitch13PriorityQueue ();           //!< Default constructor.
-  virtual ~OFSwitch13PriorityQueue ();  //!< Dummy destructor, see DoDispose.
+  ~OFSwitch13PriorityQueue () override;  //!< Dummy destructor, see DoDispose.
 
   // Inherited from Queue.
-  Ptr<Packet> Dequeue (void);
-  Ptr<Packet> Remove (void);
-  Ptr<const Packet> Peek (void) const;
+  Ptr<Packet> Dequeue () override;
+  Ptr<Packet> Remove () override;
+  Ptr<const Packet> Peek () const override;
 
 protected:
   // Inherited from Object.
-  virtual void DoInitialize (void);
+  void DoInitialize () override;
 
 private:
   /**
    * Identify the highest-priority non-empty queue.
    * \return The queue ID.
    */
-  int GetNonEmptyQueue (void) const;
+  int GetNonEmptyQueue () const;
 
   ObjectFactory         m_facQueues;  //!< Factory for internal queues.
   int                   m_numQueues;  //!< Number of internal queues.

@@ -36,7 +36,7 @@ QueueTag::QueueTag (uint32_t id)
 }
 
 TypeId
-QueueTag::GetTypeId (void)
+QueueTag::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::QueueTag")
     .SetParent<Tag> ()
@@ -47,7 +47,7 @@ QueueTag::GetTypeId (void)
 }
 
 TypeId
-QueueTag::GetInstanceTypeId (void) const
+QueueTag::GetInstanceTypeId () const
 {
   return GetTypeId ();
 }
@@ -59,13 +59,13 @@ QueueTag::SetQueueId (uint32_t id)
 }
 
 uint32_t
-QueueTag::GetQueueId (void) const
+QueueTag::GetQueueId () const
 {
   return m_queueId;
 }
 
 uint32_t
-QueueTag::GetSerializedSize (void) const
+QueueTag::GetSerializedSize () const
 {
   return 4;
 }

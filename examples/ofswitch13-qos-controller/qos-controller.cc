@@ -44,7 +44,7 @@ QosController::DoDispose ()
 }
 
 TypeId
-QosController::GetTypeId (void)
+QosController::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::QosController")
     .SetParent<OFSwitch13Controller> ()
@@ -92,7 +92,7 @@ QosController::HandlePacketIn (
   NS_LOG_FUNCTION (this << swtch << xid);
 
   char *msgStr =
-    ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, 0);
+    ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, nullptr);
   NS_LOG_DEBUG ("Packet in match: " << msgStr);
   free (msgStr);
 
@@ -117,7 +117,7 @@ QosController::HandlePacketIn (
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -249,12 +249,14 @@ QosController::HandleArpPacketIn (
   memcpy (&inPort, tlv->value, OXM_LENGTH (OXM_OF_IN_PORT));
 
   // Get source and target IP address
-  Ipv4Address srcIp, dstIp;
+  Ipv4Address srcIp;
+  Ipv4Address dstIp;
   srcIp = ExtractIpv4Address (OXM_OF_ARP_SPA, (struct ofl_match*)msg->match);
   dstIp = ExtractIpv4Address (OXM_OF_ARP_TPA, (struct ofl_match*)msg->match);
 
   // Get Source MAC address
-  Mac48Address srcMac, dstMac;
+  Mac48Address srcMac;
+  Mac48Address dstMac;
   tlv = oxm_match_lookup (OXM_OF_ARP_SHA, (struct ofl_match*)msg->match);
   srcMac.CopyFrom (tlv->value);
   tlv = oxm_match_lookup (OXM_OF_ARP_THA, (struct ofl_match*)msg->match);
@@ -304,7 +306,7 @@ QosController::HandleArpPacketIn (
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -333,12 +335,14 @@ QosController::HandleConnectionRequest (
   srcMac.CopyFrom (tlv->value);
 
   // Get source and destination IP address
-  Ipv4Address srcIp, dstIp;
+  Ipv4Address srcIp;
+  Ipv4Address dstIp;
   srcIp = ExtractIpv4Address (OXM_OF_IPV4_SRC, (struct ofl_match*)msg->match);
   dstIp = ExtractIpv4Address (OXM_OF_IPV4_DST, (struct ofl_match*)msg->match);
 
   // Get source and destination TCP ports
-  uint16_t srcPort, dstPort;
+  uint16_t srcPort;
+  uint16_t dstPort;
   tlv = oxm_match_lookup (OXM_OF_TCP_SRC, (struct ofl_match*)msg->match);
   memcpy (&srcPort, tlv->value, OXM_LENGTH (OXM_OF_TCP_SRC));
   tlv = oxm_match_lookup (OXM_OF_TCP_DST, (struct ofl_match*)msg->match);
@@ -419,7 +423,7 @@ QosController::HandleConnectionRequest (
   reply.actions_num = 1;
   reply.actions = (struct ofl_action_header**)&action;
   reply.data_length = 0;
-  reply.data = 0;
+  reply.data = nullptr;
   if (msg->buffer_id == NO_BUFFER)
     {
       // No packet buffer. Send data back to switch
@@ -431,7 +435,7 @@ QosController::HandleConnectionRequest (
   free (action);
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 

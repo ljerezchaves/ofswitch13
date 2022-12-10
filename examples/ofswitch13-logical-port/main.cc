@@ -128,7 +128,8 @@ main (int argc, char *argv[])
   Ipv4Address ipDomain1 ("10.1.1.0");
   Ipv4Address ipDomain2 ("10.2.2.0");
   Ipv4Mask mask24 ("255.255.255.0");
-  Ipv4Address sw0GatewayIp, sw1GatewayIp;
+  Ipv4Address sw0GatewayIp;
+  Ipv4Address sw1GatewayIp;
 
   ipv4Helper.SetBase (ipDomain1, mask24);
   ipIfaces = ipv4Helper.Assign (NetDeviceContainer (hostDevices.Get (0)));

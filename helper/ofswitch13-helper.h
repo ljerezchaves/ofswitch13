@@ -82,13 +82,13 @@ public:
   };
 
   OFSwitch13Helper ();          //!< Default constructor.
-  virtual ~OFSwitch13Helper (); //!< Dummy destructor, see DoDispose.
+  ~OFSwitch13Helper () override; //!< Dummy destructor, see DoDispose.
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   /**
    * Set an attribute on each OpenFlow device created by this helper.
@@ -187,7 +187,7 @@ public:
    * \attention After calling this method, it will not be allowed to install
    *            more switches or controller using this helper.
    */
-  virtual void CreateOpenFlowChannels (void) = 0;
+  virtual void CreateOpenFlowChannels () = 0;
 
   /**
    * Set the IP network base address, used to assign IP addresses to switches
@@ -216,7 +216,7 @@ public:
 
 protected:
   /** Destructor implementation. */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
   ChannelType               m_channelType;      //!< OF channel type.
   DataRate                  m_channelDataRate;  //!< OF channel data rate.

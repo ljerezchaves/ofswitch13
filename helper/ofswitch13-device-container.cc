@@ -46,19 +46,19 @@ OFSwitch13DeviceContainer::OFSwitch13DeviceContainer (
 }
 
 OFSwitch13DeviceContainer::Iterator
-OFSwitch13DeviceContainer::Begin (void) const
+OFSwitch13DeviceContainer::Begin () const
 {
   return m_devices.begin ();
 }
 
 OFSwitch13DeviceContainer::Iterator
-OFSwitch13DeviceContainer::End (void) const
+OFSwitch13DeviceContainer::End () const
 {
   return m_devices.end ();
 }
 
 uint32_t
-OFSwitch13DeviceContainer::GetN (void) const
+OFSwitch13DeviceContainer::GetN () const
 {
   return m_devices.size ();
 }

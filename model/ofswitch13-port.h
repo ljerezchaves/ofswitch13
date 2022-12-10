@@ -49,7 +49,7 @@ class OFSwitch13Port : public Object
 {
 public:
   OFSwitch13Port ();            //!< Default constructor
-  virtual ~OFSwitch13Port ();   //!< Dummy destructor, see DoDispose
+  ~OFSwitch13Port () override;   //!< Dummy destructor, see DoDispose
 
   /**
    * Complete Constructor. Create and populate a new datapath port, notifying
@@ -66,25 +66,25 @@ public:
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   /**
    * Get the NetDevice pointer from the underlying port.
    * \return A pointer to the corresponding underlying NetDevice.
    */
-  Ptr<NetDevice> GetPortDevice (void) const;
+  Ptr<NetDevice> GetPortDevice () const;
 
   /**
    * Get the OpenFlow port number for this port.
    * \return The port number.
    */
-  uint32_t GetPortNo (void) const;
+  uint32_t GetPortNo () const;
 
   /**
    * Get the OpenFlow queue for this port.
    * \return The port queue.
    */
-  Ptr<OFSwitch13Queue> GetPortQueue (void) const;
+  Ptr<OFSwitch13Queue> GetPortQueue () const;
 
   /**
    * Get a pointer to the internal ofsoftswitch13 port structure.
@@ -96,7 +96,7 @@ public:
    * Get the OFSwitch13Device pointer from this port.
    * \return A pointer to the corresponding OFSwitch13Device.
    */
-  Ptr<OFSwitch13Device> GetSwitchDevice (void) const;
+  Ptr<OFSwitch13Device> GetSwitchDevice () const;
 
   /**
    * Update the port state field based on NetDevice status, and notify the
@@ -120,10 +120,10 @@ public:
 
 protected:
   /** Destructor implementation */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
   // Inherited from ObjectBase.
-  virtual void NotifyConstructionCompleted (void);
+  void NotifyConstructionCompleted () override;
 
 private:
   /**

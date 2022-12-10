@@ -25,7 +25,7 @@ NS_LOG_COMPONENT_DEFINE ("OFSwitch13SocketHandler");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13SocketHandler);
 
 TypeId
-OFSwitch13SocketHandler::GetTypeId (void)
+OFSwitch13SocketHandler::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13SocketHandler")
     .SetParent<Object> ()
@@ -36,7 +36,7 @@ OFSwitch13SocketHandler::GetTypeId (void)
 
 OFSwitch13SocketHandler::OFSwitch13SocketHandler (Ptr<Socket> socket)
   : m_socket (socket),
-  m_pendingPacket (0),
+  m_pendingPacket (nullptr),
   m_pendingBytes (0),
   m_txQueue ()
 {
@@ -78,8 +78,8 @@ OFSwitch13SocketHandler::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_socket = 0;
-  m_pendingPacket = 0;
+  m_socket = nullptr;
+  m_pendingPacket = nullptr;
 }
 
 void
@@ -155,7 +155,7 @@ OFSwitch13SocketHandler::Recv (Ptr<Socket> socket)
             {
               m_receivedMsg (m_pendingPacket, from);
             }
-          m_pendingPacket = 0;
+          m_pendingPacket = nullptr;
         }
     }
 }

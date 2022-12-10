@@ -42,18 +42,18 @@ class OFSwitch13ExternalHelper : public OFSwitch13Helper
 {
 public:
   OFSwitch13ExternalHelper ();          //!< Default constructor.
-  virtual ~OFSwitch13ExternalHelper (); //!< Dummy destructor, see DoDispose.
+  ~OFSwitch13ExternalHelper () override; //!< Dummy destructor, see DoDispose.
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   // Inherited from OFSwitch13Helper.
-  void SetChannelType (ChannelType type);
-  void SetChannelDataRate (DataRate rate);
-  void CreateOpenFlowChannels (void);
+  void SetChannelType (ChannelType type) override;
+  void SetChannelDataRate (DataRate rate) override;
+  void CreateOpenFlowChannels () override;
 
   /**
    * This method prepares the controller node so it can be used to connect
@@ -69,7 +69,7 @@ public:
 
 protected:
   /** Destructor implementation. */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
 private:
   Ptr<CsmaChannel>          m_csmaChannel;      //!< Common CSMA channel.

@@ -40,7 +40,7 @@ OFSwitch13InternalHelper::~OFSwitch13InternalHelper ()
 }
 
 TypeId
-OFSwitch13InternalHelper::GetTypeId (void)
+OFSwitch13InternalHelper::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13InternalHelper")
     .SetParent<OFSwitch13Helper> ()
@@ -51,7 +51,7 @@ OFSwitch13InternalHelper::GetTypeId (void)
 }
 
 void
-OFSwitch13InternalHelper::CreateOpenFlowChannels (void)
+OFSwitch13InternalHelper::CreateOpenFlowChannels ()
 {
   NS_LOG_FUNCTION (this);
 

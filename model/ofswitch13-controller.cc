@@ -29,7 +29,7 @@ NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Controller);
 
 /********** Public methods ***********/
 OFSwitch13Controller::OFSwitch13Controller ()
-  : m_serverSocket (0)
+  : m_serverSocket (nullptr)
 {
   NS_LOG_FUNCTION (this);
 
@@ -42,7 +42,7 @@ OFSwitch13Controller::~OFSwitch13Controller ()
 }
 
 TypeId
-OFSwitch13Controller::GetTypeId (void)
+OFSwitch13Controller::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Controller")
     .SetParent<Object> ()
@@ -61,7 +61,7 @@ OFSwitch13Controller::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_serverSocket = 0;
+  m_serverSocket = nullptr;
   m_addrSwMap.clear ();
   m_barrierMap.clear ();
   m_commandsMap.clear ();
@@ -164,7 +164,7 @@ OFSwitch13Controller::StopApplication ()
   for (auto const &it : m_dpIdSwMap)
     {
       Ptr<RemoteSwitch> swtch = it.second;
-      swtch->m_handler = 0;
+      swtch->m_handler = nullptr;
     }
 
   if (m_serverSocket)
@@ -203,7 +203,7 @@ OFSwitch13Controller::GetRemoteSwitch (uint64_t dpId) const
     {
       return it->second;
     }
-  return 0;
+  return nullptr;
 }
 
 int
@@ -212,7 +212,7 @@ OFSwitch13Controller::SendToSwitch (Ptr<const RemoteSwitch> swtch,
 {
   NS_LOG_FUNCTION (this << swtch);
 
-  char *msgStr = ofl_msg_to_string (msg, 0);
+  char *msgStr = ofl_msg_to_string (msg, nullptr);
   NS_LOG_DEBUG ("TX to switch " << swtch->GetIpv4 () <<
                 " [dp " << swtch->GetDpId () << "]: " << msgStr);
   free (msgStr);
@@ -237,7 +237,7 @@ OFSwitch13Controller::SendEchoRequest (Ptr<const RemoteSwitch> swtch,
   struct ofl_msg_echo msg;
   msg.header.type = OFPT_ECHO_REQUEST;
   msg.data_length = payloadSize;
-  msg.data = 0;
+  msg.data = nullptr;
 
   // Fill payload with random bytes
   if (payloadSize)
@@ -301,7 +301,7 @@ OFSwitch13Controller::HandleEchoRequest (
   reply.data_length = msg->data_length;
   reply.data = msg->data;
   SendToSwitch (swtch, (struct ofl_msg_header*)&reply, xid);
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -326,7 +326,7 @@ OFSwitch13Controller::HandleEchoReply (
       m_echoMap.erase (it);
     }
 
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -348,7 +348,7 @@ OFSwitch13Controller::HandleBarrierReply (
       m_barrierMap.erase (it);
     }
 
-  ofl_msg_free (msg, 0);
+  ofl_msg_free (msg, nullptr);
   return 0;
 }
 
@@ -361,7 +361,7 @@ OFSwitch13Controller::HandleHello (
 
   // We got the hello message from the switch. Let's proceed with the handshake
   // and request the switch features.
-  ofl_msg_free (msg, 0);
+  ofl_msg_free (msg, nullptr);
 
   struct ofl_msg_header features;
   features.type = OFPT_FEATURES_REQUEST;
@@ -385,7 +385,7 @@ OFSwitch13Controller::HandleFeaturesReply (
   swtch->m_nTables = msg->n_tables;
   swtch->m_auxiliaryId = msg->auxiliary_id;
   swtch->m_capabilities = msg->capabilities;
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
 
   std::pair <uint64_t, Ptr<RemoteSwitch> > entry (swtch->m_dpId, swtch);
   auto ret = m_dpIdSwMap.insert (entry);
@@ -419,7 +419,7 @@ OFSwitch13Controller::HandlePacketIn (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -430,11 +430,11 @@ OFSwitch13Controller::HandleError (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  char *msgStr = ofl_msg_to_string ((struct ofl_msg_header*)msg, 0);
+  char *msgStr = ofl_msg_to_string ((struct ofl_msg_header*)msg, nullptr);
   NS_LOG_ERROR ("OpenFlow error: " << msgStr);
   free (msgStr);
 
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -445,7 +445,7 @@ OFSwitch13Controller::HandleGetConfigReply (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -456,7 +456,7 @@ OFSwitch13Controller::HandleFlowRemoved (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free_flow_removed (msg, true, 0);
+  ofl_msg_free_flow_removed (msg, true, nullptr);
   return 0;
 }
 
@@ -467,7 +467,7 @@ OFSwitch13Controller::HandlePortStatus (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -478,7 +478,7 @@ OFSwitch13Controller::HandleAsyncReply (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -489,7 +489,7 @@ OFSwitch13Controller::HandleMultipartReply (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -500,7 +500,7 @@ OFSwitch13Controller::HandleRoleReply (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -511,7 +511,7 @@ OFSwitch13Controller::HandleQueueGetConfigReply (
 {
   NS_LOG_FUNCTION (this << swtch << xid);
 
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 // --- END: Handlers functions -------
@@ -597,12 +597,12 @@ OFSwitch13Controller::ReceiveFromSwitch (Ptr<Packet> packet, Address from)
 
   // Get the openflow buffer, unpack the message and send to message handler
   struct ofpbuf *buffer = ofs::BufferFromPacket (packet, packet->GetSize ());
-  error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, &xid, 0);
+  error = ofl_msg_unpack ((uint8_t*)buffer->data, buffer->size, &msg, &xid, nullptr);
 
   if (!error)
     {
       Ptr<RemoteSwitch> swtch = GetRemoteSwitch (from);
-      char *msgStr = ofl_msg_to_string (msg, 0);
+      char *msgStr = ofl_msg_to_string (msg, nullptr);
       NS_LOG_DEBUG ("RX from switch " << swtch->GetIpv4 () <<
                     " [dp " << swtch->GetDpId () << "]: " << msgStr);
       free (msgStr);
@@ -614,7 +614,7 @@ OFSwitch13Controller::ReceiveFromSwitch (Ptr<Packet> packet, Address from)
           // not use any part of the control message, thus it can be freed up.
           // If no error is returned however, the message must be freed inside
           // the handler (because the handler might keep parts of the message)
-          ofl_msg_free (msg, 0);
+          ofl_msg_free (msg, nullptr);
         }
     }
   if (error)
@@ -709,8 +709,8 @@ OFSwitch13Controller::SocketPeerError (Ptr<Socket> socket)
 }
 
 OFSwitch13Controller::RemoteSwitch::RemoteSwitch ()
-  : m_handler (0),
-  m_ctrlApp (0),
+  : m_handler (nullptr),
+  m_ctrlApp (nullptr),
   m_dpId (0),
   m_role (OFPCR_ROLE_EQUAL)
 {
@@ -718,19 +718,19 @@ OFSwitch13Controller::RemoteSwitch::RemoteSwitch ()
 }
 
 Ipv4Address
-OFSwitch13Controller::RemoteSwitch::GetIpv4 (void) const
+OFSwitch13Controller::RemoteSwitch::GetIpv4 () const
 {
   return InetSocketAddress::ConvertFrom (m_address).GetIpv4 ();
 }
 
 uint16_t
-OFSwitch13Controller::RemoteSwitch::GetPort (void) const
+OFSwitch13Controller::RemoteSwitch::GetPort () const
 {
   return InetSocketAddress::ConvertFrom (m_address).GetPort ();
 }
 
 uint64_t
-OFSwitch13Controller::RemoteSwitch::GetDpId (void) const
+OFSwitch13Controller::RemoteSwitch::GetDpId () const
 {
   return m_dpId;
 }
@@ -743,7 +743,7 @@ OFSwitch13Controller::EchoInfo::EchoInfo (Ptr<const RemoteSwitch> swtch)
 }
 
 Time
-OFSwitch13Controller::EchoInfo::GetRtt (void) const
+OFSwitch13Controller::EchoInfo::GetRtt () const
 {
   if (m_waiting)
     {

@@ -53,13 +53,13 @@ public:
    */
   GtpTunnelApp (Ptr<VirtualNetDevice> logicalPort,
                 Ptr<CsmaNetDevice> physicalDev);
-  virtual ~GtpTunnelApp ();  //!< Dummy destructor, see DoDispose.
+  ~GtpTunnelApp () override;  //!< Dummy destructor, see DoDispose.
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   /**
    * Method to be assigned to the send callback of the VirtualNetDevice
@@ -86,10 +86,10 @@ public:
 
 protected:
   /** Destructor implementation. */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
   // Inherited from Application.
-  virtual void StartApplication (void);
+  void StartApplication () override;
 
 private:
   /**

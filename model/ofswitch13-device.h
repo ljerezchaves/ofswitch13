@@ -94,16 +94,16 @@ public:
     void SetPacket (uint64_t id, Ptr<Packet> packet);
 
     /** \return The packet pointer. */
-    Ptr<Packet> GetPacket (void) const;
+    Ptr<Packet> GetPacket () const;
 
     /** Invalidate packet metatada.*/
-    void Invalidate (void);
+    void Invalidate ();
 
     /**
      * Check for valid packet metadata.
      * \return true when valid packet metadata.
      */
-    bool IsValid (void) const;
+    bool IsValid () const;
 
     /**
      * Notify a new copy for this packet, with a new unique ID.
@@ -133,36 +133,36 @@ private:
 
 public:
   OFSwitch13Device ();            //!< Default constructor
-  virtual ~OFSwitch13Device ();   //!< Dummy destructor, see DoDispose
+  ~OFSwitch13Device () override;   //!< Dummy destructor, see DoDispose
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   /**
    * Get the OpenFlow datapath ID.
    * \return The datapath ID.
    */
-  uint64_t GetDatapathId (void) const;
+  uint64_t GetDatapathId () const;
 
   /**
    * Alias for the GetDatapathId () method.
    * \return The datapath ID.
    */
-  uint64_t GetDpId (void) const;
+  uint64_t GetDpId () const;
 
   /**
    * \name OpenFLow control channel counter accessors.
    * \return The requested value.
    */
   //\{
-  uint64_t GetFlowModCounter      (void) const;
-  uint64_t GetGroupModCounter     (void) const;
-  uint64_t GetMeterModCounter     (void) const;
-  uint64_t GetPacketInCounter     (void) const;
-  uint64_t GetPacketOutCounter    (void) const;
+  uint64_t GetFlowModCounter      () const;
+  uint64_t GetGroupModCounter     () const;
+  uint64_t GetMeterModCounter     () const;
+  uint64_t GetPacketInCounter     () const;
+  uint64_t GetPacketOutCounter    () const;
   //\}
 
   /**
@@ -171,28 +171,28 @@ public:
    * \return The requested value.
    */
   //\{
-  uint32_t GetBufferEntries       (void) const;
-  uint32_t GetBufferSize          (void) const;
-  double   GetBufferUsage         (void) const;
-  DataRate GetCpuCapacity         (void) const;
-  DataRate GetCpuLoad             (void) const;
-  double   GetCpuUsage            (void) const;
-  Time     GetDatapathTimeout     (void) const;
-  uint32_t GetDftFlowTableSize    (void) const;
+  uint32_t GetBufferEntries       () const;
+  uint32_t GetBufferSize          () const;
+  double   GetBufferUsage         () const;
+  DataRate GetCpuCapacity         () const;
+  DataRate GetCpuLoad             () const;
+  double   GetCpuUsage            () const;
+  Time     GetDatapathTimeout     () const;
+  uint32_t GetDftFlowTableSize    () const;
   uint32_t GetFlowTableEntries    (uint8_t tableId) const;
   uint32_t GetFlowTableSize       (uint8_t tableId) const;
   double   GetFlowTableUsage      (uint8_t tableId) const;
-  uint32_t GetGroupTableEntries   (void) const;
-  uint32_t GetGroupTableSize      (void) const;
-  double   GetGroupTableUsage     (void) const;
-  uint32_t GetMeterTableEntries   (void) const;
-  uint32_t GetMeterTableSize      (void) const;
-  double   GetMeterTableUsage     (void) const;
-  uint32_t GetNControllers        (void) const;
-  uint32_t GetNPipelineTables     (void) const;
-  uint32_t GetNSwitchPorts        (void) const;
-  Time     GetPipelineDelay       (void) const;
-  uint32_t GetSumFlowEntries      (void) const;
+  uint32_t GetGroupTableEntries   () const;
+  uint32_t GetGroupTableSize      () const;
+  double   GetGroupTableUsage     () const;
+  uint32_t GetMeterTableEntries   () const;
+  uint32_t GetMeterTableSize      () const;
+  double   GetMeterTableUsage     () const;
+  uint32_t GetNControllers        () const;
+  uint32_t GetNPipelineTables     () const;
+  uint32_t GetNSwitchPorts        () const;
+  Time     GetPipelineDelay       () const;
+  uint32_t GetSumFlowEntries      () const;
   //\}
 
   /**
@@ -373,10 +373,10 @@ public:
 
 protected:
   // Inherited from Object
-  virtual void DoDispose (void);
+  void DoDispose () override;
 
   // Inherited from ObjectBase.
-  virtual void NotifyConstructionCompleted (void);
+  void NotifyConstructionCompleted () override;
 
 private:
   /**

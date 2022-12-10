@@ -36,7 +36,7 @@ TunnelIdTag::TunnelIdTag (uint64_t id)
 }
 
 TypeId
-TunnelIdTag::GetTypeId (void)
+TunnelIdTag::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::TunnelIdTag")
     .SetParent<Tag> ()
@@ -47,7 +47,7 @@ TunnelIdTag::GetTypeId (void)
 }
 
 TypeId
-TunnelIdTag::GetInstanceTypeId (void) const
+TunnelIdTag::GetInstanceTypeId () const
 {
   return GetTypeId ();
 }
@@ -59,13 +59,13 @@ TunnelIdTag::SetTunnelId (uint64_t id)
 }
 
 uint64_t
-TunnelIdTag::GetTunnelId (void) const
+TunnelIdTag::GetTunnelId () const
 {
   return m_tunnelId;
 }
 
 uint32_t
-TunnelIdTag::GetSerializedSize (void) const
+TunnelIdTag::GetSerializedSize () const
 {
   return 8;
 }

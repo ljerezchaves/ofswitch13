@@ -41,13 +41,13 @@ class TunnelController : public OFSwitch13Controller
 {
 public:
   TunnelController ();           //!< Default constructor.
-  virtual ~TunnelController ();  //!< Dummy destructor, see DoDispose.
+  ~TunnelController () override;  //!< Dummy destructor, see DoDispose.
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   /**
    * Save the pair IP / MAC address in ARP table.
@@ -66,10 +66,10 @@ public:
 
 protected:
   /** Destructor implementation */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
   // Inherited from OFSwitch13Controller
-  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
+  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch) override;
 
   /**
    * Handle a packet in message sent by the switch to this controller.
@@ -79,9 +79,9 @@ protected:
    * \param xid The transaction id from the request message.
    * \return 0 if everything's ok, otherwise an error number.
    */
-  virtual ofl_err HandlePacketIn (
+  ofl_err HandlePacketIn (
     struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
-    uint32_t xid);
+    uint32_t xid) override;
 
 private:
   /**

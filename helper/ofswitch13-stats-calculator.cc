@@ -33,8 +33,8 @@ NS_LOG_COMPONENT_DEFINE ("OFSwitch13StatsCalculator");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13StatsCalculator);
 
 OFSwitch13StatsCalculator::OFSwitch13StatsCalculator ()
-  : m_device (0),
-  m_wrapper (0),
+  : m_device (nullptr),
+  m_wrapper (nullptr),
   m_lastUpdate (Simulator::Now ()),
   m_ewmaBufferEntries (0.0),
   m_ewmaCpuLoad (0.0),
@@ -62,7 +62,7 @@ OFSwitch13StatsCalculator::~OFSwitch13StatsCalculator ()
 }
 
 TypeId
-OFSwitch13StatsCalculator::GetTypeId (void)
+OFSwitch13StatsCalculator::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13StatsCalculator")
     .SetParent<Object> ()
@@ -166,13 +166,13 @@ OFSwitch13StatsCalculator::HookSinks (Ptr<OFSwitch13Device> device)
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetEwmaBufferEntries (void) const
+OFSwitch13StatsCalculator::GetEwmaBufferEntries () const
 {
   return std::round (m_ewmaBufferEntries);
 }
 
 DataRate
-OFSwitch13StatsCalculator::GetEwmaCpuLoad (void) const
+OFSwitch13StatsCalculator::GetEwmaCpuLoad () const
 {
   return DataRate (std::round (m_ewmaCpuLoad));
 }
@@ -184,31 +184,31 @@ OFSwitch13StatsCalculator::GetEwmaFlowTableEntries (uint8_t tableId) const
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetEwmaGroupTableEntries (void) const
+OFSwitch13StatsCalculator::GetEwmaGroupTableEntries () const
 {
   return std::round (m_ewmaGroupEntries);
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetEwmaMeterTableEntries (void) const
+OFSwitch13StatsCalculator::GetEwmaMeterTableEntries () const
 {
   return std::round (m_ewmaMeterEntries);
 }
 
 Time
-OFSwitch13StatsCalculator::GetEwmaPipelineDelay (void) const
+OFSwitch13StatsCalculator::GetEwmaPipelineDelay () const
 {
   return Time (m_ewmaPipelineDelay);
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetEwmaSumFlowEntries (void) const
+OFSwitch13StatsCalculator::GetEwmaSumFlowEntries () const
 {
   return std::round (m_ewmaSumFlowEntries);
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetAvgBufferUsage (void) const
+OFSwitch13StatsCalculator::GetAvgBufferUsage () const
 {
   if (m_device->GetBufferSize () == 0)
     {
@@ -219,7 +219,7 @@ OFSwitch13StatsCalculator::GetAvgBufferUsage (void) const
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetAvgCpuUsage (void) const
+OFSwitch13StatsCalculator::GetAvgCpuUsage () const
 {
   if (m_device->GetCpuCapacity ().GetBitRate () == 0)
     {
@@ -243,7 +243,7 @@ OFSwitch13StatsCalculator::GetAvgFlowTableUsage (uint8_t tableId) const
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetAvgGroupTableUsage (void) const
+OFSwitch13StatsCalculator::GetAvgGroupTableUsage () const
 {
   if (m_device->GetGroupTableSize () == 0)
     {
@@ -254,7 +254,7 @@ OFSwitch13StatsCalculator::GetAvgGroupTableUsage (void) const
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetAvgMeterTableUsage (void) const
+OFSwitch13StatsCalculator::GetAvgMeterTableUsage () const
 {
   if (m_device->GetMeterTableSize () == 0)
     {
@@ -265,7 +265,7 @@ OFSwitch13StatsCalculator::GetAvgMeterTableUsage (void) const
 }
 
 uint32_t
-OFSwitch13StatsCalculator::GetAvgActFlowTableUsage (void) const
+OFSwitch13StatsCalculator::GetAvgActFlowTableUsage () const
 {
   uint32_t sumSize = 0;
   for (size_t i = 0; i < m_device->GetNPipelineTables (); i++)
@@ -289,12 +289,12 @@ OFSwitch13StatsCalculator::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_device = 0;
-  m_wrapper = 0;
+  m_device = nullptr;
+  m_wrapper = nullptr;
 }
 
 void
-OFSwitch13StatsCalculator::NotifyConstructionCompleted (void)
+OFSwitch13StatsCalculator::NotifyConstructionCompleted ()
 {
   NS_LOG_FUNCTION (this);
 
@@ -372,7 +372,7 @@ OFSwitch13StatsCalculator::NotifyPipelinePacket (Ptr<const Packet> packet)
 }
 
 void
-OFSwitch13StatsCalculator::DumpStatistics (void)
+OFSwitch13StatsCalculator::DumpStatistics ()
 {
   NS_LOG_FUNCTION (this);
 

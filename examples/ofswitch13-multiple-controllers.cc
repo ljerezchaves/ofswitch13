@@ -144,7 +144,7 @@ class Controller0 : public OFSwitch13Controller
 {
 protected:
   // Inherited from OFSwitch13Controller
-  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
+  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch) override;
 };
 
 void
@@ -158,7 +158,7 @@ class Controller1 : public OFSwitch13Controller
 {
 protected:
   // Inherited from OFSwitch13Controller
-  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
+  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch) override;
 };
 
 void

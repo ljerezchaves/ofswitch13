@@ -62,13 +62,13 @@ class OFSwitch13StatsCalculator : public Object
 {
 public:
   OFSwitch13StatsCalculator ();          //!< Default constructor.
-  virtual ~OFSwitch13StatsCalculator (); //!< Default destructor.
+  ~OFSwitch13StatsCalculator () override; //!< Default destructor.
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   /**
    * Hook switch device trace sources to internal stats calculator trace sinks.
@@ -84,13 +84,13 @@ public:
    * \return The requested metric value.
    */
   //\{
-  uint32_t GetEwmaBufferEntries       (void) const;
-  DataRate GetEwmaCpuLoad             (void) const;
+  uint32_t GetEwmaBufferEntries       () const;
+  DataRate GetEwmaCpuLoad             () const;
   uint32_t GetEwmaFlowTableEntries    (uint8_t tableId) const;
-  uint32_t GetEwmaGroupTableEntries   (void) const;
-  uint32_t GetEwmaMeterTableEntries   (void) const;
-  Time     GetEwmaPipelineDelay       (void) const;
-  uint32_t GetEwmaSumFlowEntries      (void) const;
+  uint32_t GetEwmaGroupTableEntries   () const;
+  uint32_t GetEwmaMeterTableEntries   () const;
+  Time     GetEwmaPipelineDelay       () const;
+  uint32_t GetEwmaSumFlowEntries      () const;
   //\}
 
   /**
@@ -103,20 +103,20 @@ public:
    * \return The requested metric value.
    */
   //\{
-  uint32_t GetAvgBufferUsage       (void) const;
-  uint32_t GetAvgCpuUsage          (void) const;
+  uint32_t GetAvgBufferUsage       () const;
+  uint32_t GetAvgCpuUsage          () const;
   uint32_t GetAvgFlowTableUsage    (uint8_t tableId) const;
-  uint32_t GetAvgGroupTableUsage   (void) const;
-  uint32_t GetAvgMeterTableUsage   (void) const;
-  uint32_t GetAvgActFlowTableUsage (void) const;
+  uint32_t GetAvgGroupTableUsage   () const;
+  uint32_t GetAvgMeterTableUsage   () const;
+  uint32_t GetAvgActFlowTableUsage () const;
   //\}
 
 protected:
   /** Destructor implementation. */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
   // Inherited from ObjectBase.
-  virtual void NotifyConstructionCompleted (void);
+  void NotifyConstructionCompleted () override;
 
 private:
   /**
@@ -156,7 +156,7 @@ private:
    * Read statistics from switch, update internal counters,
    * and dump data into output file.
    */
-  void DumpStatistics (void);
+  void DumpStatistics ();
 
   Ptr<OFSwitch13Device>     m_device;       //!< OpenFlow switch device.
   Ptr<OutputStreamWrapper>  m_wrapper;      //!< Output file wrapper.

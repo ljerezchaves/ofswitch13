@@ -58,19 +58,19 @@ public:
      * Get the IP from socket connection address.
      * \return the IPv4 address.
      */
-    Ipv4Address GetIpv4 (void) const;
+    Ipv4Address GetIpv4 () const;
 
     /**
      * Get the port from socket connection address.
      * \return the port number.
      */
-    uint16_t GetPort (void) const;
+    uint16_t GetPort () const;
 
     /**
      * Get the datapath ID.
      * \return the datapath ID.
      */
-    uint64_t GetDpId (void) const;
+    uint64_t GetDpId () const;
 
 private:
     Ptr<OFSwitch13SocketHandler>  m_handler;  //!< Socket handler.
@@ -110,7 +110,7 @@ public:
      * Compute the echo RTT time.
      * \return the RTT time.
      */
-    Time GetRtt (void) const;
+    Time GetRtt () const;
 
 private:
     bool                    m_waiting;    //!< True when waiting for reply.
@@ -158,18 +158,18 @@ private:
 
 public:
   OFSwitch13Controller ();          //!< Default constructor
-  virtual ~OFSwitch13Controller (); //!< Dummy destructor, see DoDispose.
+  ~OFSwitch13Controller () override; //!< Dummy destructor, see DoDispose.
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   /**
    * Destructor implementation
    */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
   /**
    * Execute a dpctl command to interact with the remote switch.
@@ -193,8 +193,8 @@ public:
 
 protected:
   // inherited from Application
-  virtual void StartApplication (void);
-  virtual void StopApplication (void);
+  void StartApplication () override;
+  void StopApplication () override;
 
   /**
    * \return The next (in sequence) transaction ID for this controller.

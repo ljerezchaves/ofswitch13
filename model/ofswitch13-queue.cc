@@ -33,7 +33,7 @@ NS_LOG_COMPONENT_DEFINE ("OFSwitch13Queue");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13Queue);
 
 TypeId
-OFSwitch13Queue::GetTypeId (void)
+OFSwitch13Queue::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Queue")
     .SetParent<Queue<Packet> > ()
@@ -51,7 +51,7 @@ OFSwitch13Queue::OFSwitch13Queue ()
   : Queue<Packet> (),
   m_dpId (0),
   m_portNo (0),
-  m_swPort (0),
+  m_swPort (nullptr),
   NS_LOG_TEMPLATE_DEFINE ("OFSwitch13Queue")
 {
   NS_LOG_FUNCTION (this);
@@ -101,7 +101,7 @@ OFSwitch13Queue::Enqueue (Ptr<Packet> packet)
 }
 
 int
-OFSwitch13Queue::GetNQueues (void) const
+OFSwitch13Queue::GetNQueues () const
 {
   return m_queues.size ();
 }
@@ -138,7 +138,7 @@ OFSwitch13Queue::DoDispose ()
           free (swQueue->stats);
           free (swQueue->props);
         }
-      m_swPort = 0;
+      m_swPort = nullptr;
     }
   m_queues.clear ();
 

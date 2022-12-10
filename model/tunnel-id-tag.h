@@ -38,8 +38,8 @@ public:
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
-  virtual TypeId GetInstanceTypeId (void) const;
+  static TypeId GetTypeId ();
+  TypeId GetInstanceTypeId () const override;
 
   TunnelIdTag ();            //!< Default constructor
 
@@ -56,13 +56,13 @@ public:
   void SetTunnelId (uint64_t id);
 
   /** \return The tunnel metadata information */
-  uint64_t GetTunnelId (void) const;
+  uint64_t GetTunnelId () const;
 
   // Inherited from Tag
-  virtual void Serialize (TagBuffer i) const;
-  virtual void Deserialize (TagBuffer i);
-  virtual uint32_t GetSerializedSize () const;
-  virtual void Print (std::ostream &os) const;
+  void Serialize (TagBuffer i) const override;
+  void Deserialize (TagBuffer i) override;
+  uint32_t GetSerializedSize () const override;
+  void Print (std::ostream &os) const override;
 
 private:
   uint64_t m_tunnelId;      //!< Tunnel metadata information.

@@ -42,7 +42,7 @@ OFSwitch13ExternalHelper::~OFSwitch13ExternalHelper ()
 }
 
 TypeId
-OFSwitch13ExternalHelper::GetTypeId (void)
+OFSwitch13ExternalHelper::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13ExternalHelper")
     .SetParent<OFSwitch13Helper> ()
@@ -79,7 +79,7 @@ OFSwitch13ExternalHelper::SetChannelDataRate (DataRate rate)
 }
 
 void
-OFSwitch13ExternalHelper::CreateOpenFlowChannels (void)
+OFSwitch13ExternalHelper::CreateOpenFlowChannels ()
 {
   NS_LOG_FUNCTION (this);
 
@@ -155,7 +155,7 @@ OFSwitch13ExternalHelper::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_csmaChannel = 0;
+  m_csmaChannel = nullptr;
   OFSwitch13Helper::DoDispose ();
 }
 

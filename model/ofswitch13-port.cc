@@ -48,9 +48,9 @@ GetDefaultQueueFactory ()
 OFSwitch13Port::OFSwitch13Port ()
   : m_dpId (0),
   m_portNo (0),
-  m_swPort (0),
-  m_netDev (0),
-  m_openflowDev (0)
+  m_swPort (nullptr),
+  m_netDev (nullptr),
+  m_openflowDev (nullptr)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -72,13 +72,13 @@ OFSwitch13Port::DoDispose ()
       free (m_swPort->stats);
     }
 
-  m_swPort = 0;
-  m_openflowDev = 0;
-  m_netDev = 0;
+  m_swPort = nullptr;
+  m_openflowDev = nullptr;
+  m_netDev = nullptr;
 }
 
 TypeId
-OFSwitch13Port::GetTypeId (void)
+OFSwitch13Port::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Port")
     .SetParent<Object> ()
@@ -112,7 +112,7 @@ OFSwitch13Port::OFSwitch13Port (struct datapath *dp, Ptr<NetDevice> netDev,
                                 Ptr<OFSwitch13Device> openflowDev)
   : m_dpId (0),
   m_portNo (0),
-  m_swPort (0),
+  m_swPort (nullptr),
   m_netDev (netDev),
   m_openflowDev (openflowDev)
 {
@@ -190,7 +190,7 @@ OFSwitch13Port::NotifyConstructionCompleted ()
   msg.header.type = OFPT_PORT_STATUS;
   msg.reason = OFPPR_ADD;
   msg.desc = m_swPort->conf;
-  dp_send_message (m_swPort->dp, (struct ofl_msg_header*)&msg, 0);
+  dp_send_message (m_swPort->dp, (struct ofl_msg_header*)&msg, nullptr);
 
   // Register the receive callback to get packets from the NetDevice.
   if (csmaDev)
@@ -207,25 +207,25 @@ OFSwitch13Port::NotifyConstructionCompleted ()
 }
 
 Ptr<NetDevice>
-OFSwitch13Port::GetPortDevice (void) const
+OFSwitch13Port::GetPortDevice () const
 {
   return m_netDev;
 }
 
 uint32_t
-OFSwitch13Port::GetPortNo (void) const
+OFSwitch13Port::GetPortNo () const
 {
   return m_portNo;
 }
 
 Ptr<OFSwitch13Queue>
-OFSwitch13Port::GetPortQueue (void) const
+OFSwitch13Port::GetPortQueue () const
 {
   return m_portQueue;
 }
 
 Ptr<OFSwitch13Device>
-OFSwitch13Port::GetSwitchDevice (void) const
+OFSwitch13Port::GetSwitchDevice () const
 {
   return m_openflowDev;
 }
@@ -251,7 +251,7 @@ OFSwitch13Port::PortUpdateState ()
       msg.header.type = OFPT_PORT_STATUS;
       msg.reason = OFPPR_MODIFY;
       msg.desc = m_swPort->conf;
-      dp_send_message (m_swPort->dp, (struct ofl_msg_header*)&msg, 0);
+      dp_send_message (m_swPort->dp, (struct ofl_msg_header*)&msg, nullptr);
       return true;
     }
   return false;

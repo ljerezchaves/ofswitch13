@@ -38,7 +38,7 @@ OFSwitch13LearningController::~OFSwitch13LearningController ()
 }
 
 TypeId
-OFSwitch13LearningController::GetTypeId (void)
+OFSwitch13LearningController::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13LearningController")
     .SetParent<OFSwitch13Controller> ()
@@ -72,7 +72,7 @@ OFSwitch13LearningController::HandlePacketIn (
   uint64_t swDpId = swtch->GetDpId ();
 
   char *msgStr =
-    ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, 0);
+    ofl_structs_match_to_string ((struct ofl_match_header*)msg->match, nullptr);
   NS_LOG_DEBUG ("Packet in match: " << msgStr);
   free (msgStr);
 
@@ -158,7 +158,7 @@ OFSwitch13LearningController::HandlePacketIn (
       reply.buffer_id = msg->buffer_id;
       reply.in_port = inPort;
       reply.data_length = 0;
-      reply.data = 0;
+      reply.data = nullptr;
 
       if (msg->buffer_id == NO_BUFFER)
         {
@@ -186,7 +186,7 @@ OFSwitch13LearningController::HandlePacketIn (
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -218,7 +218,7 @@ OFSwitch13LearningController::HandleFlowRemoved (
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free_flow_removed (msg, true, 0);
+  ofl_msg_free_flow_removed (msg, true, nullptr);
   return 0;
 }
 

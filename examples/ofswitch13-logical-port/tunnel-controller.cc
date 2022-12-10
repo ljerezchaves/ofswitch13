@@ -36,7 +36,7 @@ TunnelController::~TunnelController ()
 }
 
 TypeId
-TunnelController::GetTypeId (void)
+TunnelController::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::TunnelController")
     .SetParent<OFSwitch13Controller> ()
@@ -121,7 +121,7 @@ TunnelController::HandlePacketIn (
   enum ofp_packet_in_reason reason = msg->reason;
   if (reason == OFPR_NO_MATCH)
     {
-      char *msgStr = ofl_structs_match_to_string (msg->match, 0);
+      char *msgStr = ofl_structs_match_to_string (msg->match, nullptr);
       NS_LOG_INFO ("Packet in match: " << msgStr);
       free (msgStr);
 
@@ -150,7 +150,7 @@ TunnelController::HandlePacketIn (
           DpctlExecute (swDpId, cmd.str ());
 
           // All handlers must free the message when everything is ok
-          ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+          ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
           return 0;
         }
       else if (inPort == 2)
@@ -175,7 +175,7 @@ TunnelController::HandlePacketIn (
           DpctlExecute (swDpId, cmd.str ());
 
           // All handlers must free the message when everything is ok
-          ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+          ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
           return 0;
         }
 
@@ -198,7 +198,7 @@ TunnelController::HandlePacketIn (
   NS_LOG_WARN ("Ignoring packet sent to controller.");
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 
@@ -311,7 +311,7 @@ TunnelController::HandleArpPacketIn (
     }
 
   // All handlers must free the message when everything is ok
-  ofl_msg_free ((struct ofl_msg_header*)msg, 0);
+  ofl_msg_free ((struct ofl_msg_header*)msg, nullptr);
   return 0;
 }
 

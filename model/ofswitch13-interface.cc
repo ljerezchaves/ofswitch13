@@ -88,7 +88,7 @@ PacketFromMsg (struct ofl_msg_header *msg, uint32_t xid)
   struct ofpbuf *buffer;
 
   buffer = ofpbuf_new (0);
-  error = ofl_msg_pack (msg, xid, &buf, &buf_size, 0);
+  error = ofl_msg_pack (msg, xid, &buf, &buf_size, nullptr);
   if (!error)
     {
       ofpbuf_use (buffer, buf, buf_size);

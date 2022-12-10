@@ -41,7 +41,7 @@ GetDefaultQueueFactory ()
 }
 
 TypeId
-OFSwitch13PriorityQueue::GetTypeId (void)
+OFSwitch13PriorityQueue::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13PriorityQueue")
     .SetParent<OFSwitch13Queue> ()
@@ -78,7 +78,7 @@ OFSwitch13PriorityQueue::~OFSwitch13PriorityQueue ()
 }
 
 Ptr<Packet>
-OFSwitch13PriorityQueue::Dequeue (void)
+OFSwitch13PriorityQueue::Dequeue ()
 {
   NS_LOG_FUNCTION (this);
 
@@ -92,11 +92,11 @@ OFSwitch13PriorityQueue::Dequeue (void)
     }
 
   NS_LOG_DEBUG ("Queue empty");
-  return 0;
+  return nullptr;
 }
 
 Ptr<Packet>
-OFSwitch13PriorityQueue::Remove (void)
+OFSwitch13PriorityQueue::Remove ()
 {
   NS_LOG_FUNCTION (this);
 
@@ -110,11 +110,11 @@ OFSwitch13PriorityQueue::Remove (void)
     }
 
   NS_LOG_DEBUG ("Queue empty");
-  return 0;
+  return nullptr;
 }
 
 Ptr<const Packet>
-OFSwitch13PriorityQueue::Peek (void) const
+OFSwitch13PriorityQueue::Peek () const
 {
   NS_LOG_FUNCTION (this);
 
@@ -126,7 +126,7 @@ OFSwitch13PriorityQueue::Peek (void) const
     }
 
   NS_LOG_DEBUG ("Queue empty");
-  return 0;
+  return nullptr;
 }
 
 void
@@ -145,7 +145,7 @@ OFSwitch13PriorityQueue::DoInitialize ()
 }
 
 int
-OFSwitch13PriorityQueue::GetNonEmptyQueue (void) const
+OFSwitch13PriorityQueue::GetNonEmptyQueue () const
 {
   NS_LOG_FUNCTION (this);
 

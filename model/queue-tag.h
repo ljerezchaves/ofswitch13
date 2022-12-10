@@ -38,8 +38,8 @@ public:
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
-  virtual TypeId GetInstanceTypeId (void) const;
+  static TypeId GetTypeId ();
+  TypeId GetInstanceTypeId () const override;
 
   QueueTag ();            //!< Default constructor
 
@@ -56,13 +56,13 @@ public:
   void SetQueueId (uint32_t id);
 
   /** \return The queue id */
-  uint32_t GetQueueId (void) const;
+  uint32_t GetQueueId () const;
 
   // Inherited from Tag
-  virtual void Serialize (TagBuffer i) const;
-  virtual void Deserialize (TagBuffer i);
-  virtual uint32_t GetSerializedSize () const;
-  virtual void Print (std::ostream &os) const;
+  void Serialize (TagBuffer i) const override;
+  void Deserialize (TagBuffer i) override;
+  uint32_t GetSerializedSize () const override;
+  void Print (std::ostream &os) const override;
 
 private:
   uint32_t m_queueId;   //!< Packet sequence number

@@ -42,16 +42,16 @@ class OFSwitch13InternalHelper : public OFSwitch13Helper
 {
 public:
   OFSwitch13InternalHelper ();          //!< Default constructor.
-  virtual ~OFSwitch13InternalHelper (); //!< Dummy destructor, see DoDispose.
+  ~OFSwitch13InternalHelper () override; //!< Dummy destructor, see DoDispose.
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   // Inherited from OFSwitch13Helper.
-  void CreateOpenFlowChannels (void);
+  void CreateOpenFlowChannels () override;
 
   /**
    * This method installs the given controller application into the given
@@ -68,7 +68,7 @@ public:
 
 protected:
   /** Destructor implementation. */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
   /**
    * Create an individual connection between the switch and the controller

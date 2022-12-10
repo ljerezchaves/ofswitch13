@@ -96,7 +96,10 @@ main (int argc, char *argv[])
   Mac48Address::Allocate ();
 
   // Create nodes for servers, switches, controllers and clients
-  NodeContainer serverNodes, switchNodes, controllerNodes, clientNodes;
+  NodeContainer serverNodes;
+  NodeContainer switchNodes;
+  NodeContainer controllerNodes;
+  NodeContainer clientNodes;
   serverNodes.Create (2);
   switchNodes.Create (3);
   controllerNodes.Create (2);
@@ -123,8 +126,11 @@ main (int argc, char *argv[])
   mobilityHelper.Install (NodeContainer (serverNodes, switchNodes, controllerNodes, clientNodes));
 
   // Create device containers
-  NetDeviceContainer serverDevices, clientDevices;
-  NetDeviceContainer switch0Ports, switch1Ports, switch2Ports;
+  NetDeviceContainer serverDevices;
+  NetDeviceContainer clientDevices;
+  NetDeviceContainer switch0Ports;
+  NetDeviceContainer switch1Ports;
+  NetDeviceContainer switch2Ports;
   NetDeviceContainer link;
 
   // Create two 10Mbps connections between border and aggregation switches

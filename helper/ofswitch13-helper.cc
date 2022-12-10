@@ -48,7 +48,7 @@ OFSwitch13Helper::~OFSwitch13Helper ()
 }
 
 TypeId
-OFSwitch13Helper::GetTypeId (void)
+OFSwitch13Helper::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Helper")
     .SetParent<Object> ()

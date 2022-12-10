@@ -32,16 +32,16 @@ class OFSwitch13LearningController : public OFSwitch13Controller
 {
 public:
   OFSwitch13LearningController ();          //!< Default constructor
-  virtual ~OFSwitch13LearningController (); //!< Dummy destructor.
+  ~OFSwitch13LearningController () override; //!< Dummy destructor.
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   /** Destructor implementation */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
   /**
    * Handle packet-in messages sent from switch to this controller. Look for L2
@@ -54,7 +54,7 @@ public:
    */
   ofl_err HandlePacketIn (
     struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
-    uint32_t xid);
+    uint32_t xid) override;
 
   /**
    * Handle flow removed messages sent from switch to this controller. Look for
@@ -67,11 +67,11 @@ public:
    */
   ofl_err HandleFlowRemoved (
     struct ofl_msg_flow_removed *msg, Ptr<const RemoteSwitch> swtch,
-    uint32_t xid);
+    uint32_t xid) override;
 
 protected:
   // Inherited from OFSwitch13Controller
-  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
+  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch) override;
 
 private:
   /** Map saving <IPv4 address / MAC address> */

@@ -41,7 +41,7 @@ OFSwitch13Device::DpIdDevMap_t OFSwitch13Device::m_globalSwitchMap;
 /********** Public methods **********/
 OFSwitch13Device::OFSwitch13Device ()
   : m_dpId (0),
-  m_datapath (0),
+  m_datapath (nullptr),
   m_cpuConsumed (0),
   m_cpuTokens (0),
   m_cFlowMod (0),
@@ -64,7 +64,7 @@ OFSwitch13Device::~OFSwitch13Device ()
 }
 
 TypeId
-OFSwitch13Device::GetTypeId (void)
+OFSwitch13Device::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::OFSwitch13Device")
     .SetParent<Object> ()
@@ -199,61 +199,61 @@ OFSwitch13Device::GetTypeId (void)
 }
 
 uint64_t
-OFSwitch13Device::GetDatapathId (void) const
+OFSwitch13Device::GetDatapathId () const
 {
   return m_dpId;
 }
 
 uint64_t
-OFSwitch13Device::GetDpId (void) const
+OFSwitch13Device::GetDpId () const
 {
   return m_dpId;
 }
 
 uint64_t
-OFSwitch13Device::GetFlowModCounter (void) const
+OFSwitch13Device::GetFlowModCounter () const
 {
   return m_cFlowMod;
 }
 
 uint64_t
-OFSwitch13Device::GetGroupModCounter (void) const
+OFSwitch13Device::GetGroupModCounter () const
 {
   return m_cGroupMod;
 }
 
 uint64_t
-OFSwitch13Device::GetMeterModCounter (void) const
+OFSwitch13Device::GetMeterModCounter () const
 {
   return m_cMeterMod;
 }
 
 uint64_t
-OFSwitch13Device::GetPacketInCounter (void) const
+OFSwitch13Device::GetPacketInCounter () const
 {
   return m_cPacketIn;
 }
 
 uint64_t
-OFSwitch13Device::GetPacketOutCounter (void) const
+OFSwitch13Device::GetPacketOutCounter () const
 {
   return m_cPacketOut;
 }
 
 uint32_t
-OFSwitch13Device::GetBufferEntries (void) const
+OFSwitch13Device::GetBufferEntries () const
 {
   return m_bufferPkts.size ();
 }
 
 uint32_t
-OFSwitch13Device::GetBufferSize (void) const
+OFSwitch13Device::GetBufferSize () const
 {
   return m_bufferSize;
 }
 
 double
-OFSwitch13Device::GetBufferUsage (void) const
+OFSwitch13Device::GetBufferUsage () const
 {
   if (GetBufferSize () == 0)
     {
@@ -264,19 +264,19 @@ OFSwitch13Device::GetBufferUsage (void) const
 }
 
 DataRate
-OFSwitch13Device::GetCpuCapacity (void) const
+OFSwitch13Device::GetCpuCapacity () const
 {
   return m_cpuCapacity;
 }
 
 DataRate
-OFSwitch13Device::GetCpuLoad (void) const
+OFSwitch13Device::GetCpuLoad () const
 {
   return m_cpuLoad;
 }
 
 double
-OFSwitch13Device::GetCpuUsage (void) const
+OFSwitch13Device::GetCpuUsage () const
 {
   if (GetCpuCapacity ().GetBitRate () == 0)
     {
@@ -287,13 +287,13 @@ OFSwitch13Device::GetCpuUsage (void) const
 }
 
 Time
-OFSwitch13Device::GetDatapathTimeout (void) const
+OFSwitch13Device::GetDatapathTimeout () const
 {
   return m_timeout;
 }
 
 uint32_t
-OFSwitch13Device::GetDftFlowTableSize (void) const
+OFSwitch13Device::GetDftFlowTableSize () const
 {
   return m_flowTabSize;
 }
@@ -326,20 +326,20 @@ OFSwitch13Device::GetFlowTableUsage (uint8_t tableId) const
 }
 
 uint32_t
-OFSwitch13Device::GetGroupTableEntries (void) const
+OFSwitch13Device::GetGroupTableEntries () const
 {
   NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
   return m_datapath->groups->entries_num;
 }
 
 uint32_t
-OFSwitch13Device::GetGroupTableSize (void) const
+OFSwitch13Device::GetGroupTableSize () const
 {
   return m_groupTabSize;
 }
 
 double
-OFSwitch13Device::GetGroupTableUsage (void) const
+OFSwitch13Device::GetGroupTableUsage () const
 {
   if (GetGroupTableSize () == 0)
     {
@@ -350,20 +350,20 @@ OFSwitch13Device::GetGroupTableUsage (void) const
 }
 
 uint32_t
-OFSwitch13Device::GetMeterTableEntries (void) const
+OFSwitch13Device::GetMeterTableEntries () const
 {
   NS_ASSERT_MSG (m_datapath, "No datapath defined yet.");
   return m_datapath->meters->entries_num;
 }
 
 uint32_t
-OFSwitch13Device::GetMeterTableSize (void) const
+OFSwitch13Device::GetMeterTableSize () const
 {
   return m_meterTabSize;
 }
 
 double
-OFSwitch13Device::GetMeterTableUsage (void) const
+OFSwitch13Device::GetMeterTableUsage () const
 {
   if (GetMeterTableSize () == 0)
     {
@@ -374,31 +374,31 @@ OFSwitch13Device::GetMeterTableUsage (void) const
 }
 
 uint32_t
-OFSwitch13Device::GetNControllers (void) const
+OFSwitch13Device::GetNControllers () const
 {
   return m_controllers.size ();
 }
 
 uint32_t
-OFSwitch13Device::GetNPipelineTables (void) const
+OFSwitch13Device::GetNPipelineTables () const
 {
   return m_numPipeTabs;
 }
 
 uint32_t
-OFSwitch13Device::GetNSwitchPorts (void) const
+OFSwitch13Device::GetNSwitchPorts () const
 {
   return m_ports.size ();
 }
 
 Time
-OFSwitch13Device::GetPipelineDelay (void) const
+OFSwitch13Device::GetPipelineDelay () const
 {
   return m_pipeDelay;
 }
 
 uint32_t
-OFSwitch13Device::GetSumFlowEntries (void) const
+OFSwitch13Device::GetSumFlowEntries () const
 {
   uint32_t flowEntries = 0;
   for (size_t i = 0; i < GetNPipelineTables (); i++)
@@ -666,7 +666,7 @@ OFSwitch13Device::DoDispose ()
   for (auto &port : m_ports)
     {
       port->Dispose ();
-      port = 0;
+      port = nullptr;
     }
   m_ports.clear ();
   m_bufferPkts.clear ();
@@ -740,14 +740,14 @@ OFSwitch13Device::DatapathNew ()
 
   // unused
   dp->generation_id = -1;
-  dp->listeners = 0;
+  dp->listeners = nullptr;
   dp->n_listeners = 0;
-  dp->listeners_aux = 0;
+  dp->listeners_aux = nullptr;
   dp->n_listeners_aux = 0;
   // unused
 
   memset (dp->ports, 0x00, sizeof (dp->ports));
-  dp->local_port = 0;
+  dp->local_port = nullptr;
 
   // Set the number of flow tables from the PipelineTables attribute.
   dp->pipeline_num_tables = GetNPipelineTables ();
@@ -762,7 +762,7 @@ OFSwitch13Device::DatapathNew ()
   list_init (&dp->port_list);
   dp->ports_num = 0;
   dp->max_queues = NETDEV_MAX_QUEUES;
-  dp->exp = 0;
+  dp->exp = nullptr;
 
   dp->config.flags = OFPC_FRAG_NORMAL; // IP fragments with no special handling
   dp->config.miss_send_len = OFP_DEFAULT_MISS_SEND_LEN; // 128 bytes
@@ -911,7 +911,7 @@ OFSwitch13Device::SendPacketInMessage (struct packet *pkt, uint8_t tableId,
 
   // Increase packet-in counter and send the message.
   m_cPacketIn++;
-  return dp_send_message (pkt->dp, (struct ofl_msg_header *)&msg, 0);
+  return dp_send_message (pkt->dp, (struct ofl_msg_header *)&msg, nullptr);
 }
 
 bool
@@ -1132,7 +1132,7 @@ OFSwitch13Device::ReplyWithErrorMessage (ofl_err error, struct ofpbuf *buffer,
   err.data_length = buffer->size;
   err.data = (uint8_t*)buffer->data;
 
-  char *msgStr = ofl_msg_to_string ((struct ofl_msg_header*)&err, 0);
+  char *msgStr = ofl_msg_to_string ((struct ofl_msg_header*)&err, nullptr);
   NS_LOG_ERROR ("Error processing OpenFlow message. Reply with " << msgStr);
   free (msgStr);
 
@@ -1147,7 +1147,7 @@ OFSwitch13Device::SocketCtrlSucceeded (Ptr<Socket> socket)
 
   NS_LOG_INFO ("Controller accepted connection request!");
   Ptr<RemoteController> remoteCtrl = GetRemoteController (socket);
-  remoteCtrl->m_remote = remote_create (m_datapath, 0, 0);
+  remoteCtrl->m_remote = remote_create (m_datapath, nullptr, nullptr);
 
   // As we have more than one socket that is used for communication between
   // this OpenFlow switch device and controllers, we need to handle the process
@@ -1371,7 +1371,7 @@ OFSwitch13Device::GetRemoteController (Address address)
           return ctrl;
         }
     }
-  return 0;
+  return nullptr;
 }
 
 Ptr<OFSwitch13Device::RemoteController>
@@ -1446,16 +1446,16 @@ OFSwitch13Device::UnregisterDatapath (uint64_t id)
 }
 
 OFSwitch13Device::RemoteController::RemoteController ()
-  : m_socket (0),
-  m_handler (0),
-  m_remote (0)
+  : m_socket (nullptr),
+  m_handler (nullptr),
+  m_remote (nullptr)
 {
   m_address = Address ();
 }
 
 OFSwitch13Device::PipelinePacket::PipelinePacket ()
   : m_valid (false),
-  m_packet (0)
+  m_packet (nullptr)
 {
 }
 
@@ -1469,22 +1469,22 @@ OFSwitch13Device::PipelinePacket::SetPacket (uint64_t id, Ptr<Packet> packet)
 }
 
 Ptr<Packet>
-OFSwitch13Device::PipelinePacket::GetPacket (void) const
+OFSwitch13Device::PipelinePacket::GetPacket () const
 {
   NS_ASSERT_MSG (IsValid (), "Invalid packet metadata.");
   return m_packet;
 }
 
 void
-OFSwitch13Device::PipelinePacket::Invalidate (void)
+OFSwitch13Device::PipelinePacket::Invalidate ()
 {
   m_valid = false;
-  m_packet = 0;
+  m_packet = nullptr;
   m_ids.clear ();
 }
 
 bool
-OFSwitch13Device::PipelinePacket::IsValid (void) const
+OFSwitch13Device::PipelinePacket::IsValid () const
 {
   return m_valid;
 }

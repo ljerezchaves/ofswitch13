@@ -31,16 +31,16 @@ class QosController : public OFSwitch13Controller
 {
 public:
   QosController ();          //!< Default constructor.
-  virtual ~QosController (); //!< Dummy destructor.
+  ~QosController () override; //!< Dummy destructor.
 
   /** Destructor implementation */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
   /**
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   /**
    * Handle a packet in message sent by the switch to this controller.
@@ -52,11 +52,11 @@ public:
    */
   ofl_err HandlePacketIn (
     struct ofl_msg_packet_in *msg, Ptr<const RemoteSwitch> swtch,
-    uint32_t xid);
+    uint32_t xid) override;
 
 protected:
   // Inherited from OFSwitch13Controller
-  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch);
+  void HandshakeSuccessful (Ptr<const RemoteSwitch> swtch) override;
 
 private:
   /**

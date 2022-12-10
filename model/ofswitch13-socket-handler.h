@@ -48,14 +48,14 @@ public:
    * Register this type.
    * \return The object TypeId.
    */
-  static TypeId GetTypeId (void);
+  static TypeId GetTypeId ();
 
   /**
    * Complete constructor.
    * \param socket The socket pointer.
    */
   OFSwitch13SocketHandler (Ptr<Socket> socket);
-  virtual ~OFSwitch13SocketHandler ();   //!< Dummy destructor, see DoDispose.
+  ~OFSwitch13SocketHandler () override;   //!< Dummy destructor, see DoDispose.
 
   /**
    * \param packet The packet with the received OpenFlow message.
@@ -79,7 +79,7 @@ public:
 
 protected:
   /** Destructor implementation */
-  virtual void DoDispose ();
+  void DoDispose () override;
 
 private:
   /**

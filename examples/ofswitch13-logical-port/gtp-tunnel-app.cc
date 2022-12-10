@@ -44,7 +44,7 @@ GtpTunnelApp::~GtpTunnelApp ()
 }
 
 TypeId
-GtpTunnelApp::GetTypeId (void)
+GtpTunnelApp::GetTypeId ()
 {
   static TypeId tid = TypeId ("ns3::GtpTunnelApp")
     .SetParent<Application> ()
@@ -129,9 +129,9 @@ GtpTunnelApp::DoDispose ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_tunnelSocket = 0;
-  m_logicalPort = 0;
-  m_physicalDev = 0;
+  m_tunnelSocket = nullptr;
+  m_logicalPort = nullptr;
+  m_physicalDev = nullptr;
 }
 
 void
