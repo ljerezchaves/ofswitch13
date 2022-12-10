@@ -29,13 +29,13 @@ OFSwitch13DeviceContainer::OFSwitch13DeviceContainer ()
 OFSwitch13DeviceContainer::OFSwitch13DeviceContainer (
   Ptr<OFSwitch13Device> dev)
 {
-  m_devices.push_back (dev);
+  m_devices.emplace_back (dev);
 }
 
 OFSwitch13DeviceContainer::OFSwitch13DeviceContainer (std::string devName)
 {
   Ptr<OFSwitch13Device> dev = Names::Find<OFSwitch13Device> (devName);
-  m_devices.push_back (dev);
+  m_devices.emplace_back (dev);
 }
 
 OFSwitch13DeviceContainer::OFSwitch13DeviceContainer (
@@ -74,21 +74,21 @@ OFSwitch13DeviceContainer::Add (OFSwitch13DeviceContainer other)
 {
   for (Iterator i = other.Begin (); i != other.End (); i++)
     {
-      m_devices.push_back (*i);
+      m_devices.emplace_back (*i);
     }
 }
 
 void
 OFSwitch13DeviceContainer::Add (Ptr<OFSwitch13Device> device)
 {
-  m_devices.push_back (device);
+  m_devices.emplace_back (device);
 }
 
 void
 OFSwitch13DeviceContainer::Add (std::string deviceName)
 {
   Ptr<OFSwitch13Device> device = Names::Find<OFSwitch13Device> (deviceName);
-  m_devices.push_back (device);
+  m_devices.emplace_back (device);
 }
 
 } // namespace ns3

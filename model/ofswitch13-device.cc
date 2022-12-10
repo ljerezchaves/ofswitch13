@@ -428,7 +428,7 @@ OFSwitch13Device::AddSwitchPort (Ptr<NetDevice> portDevice)
   ofPort = CreateObject<OFSwitch13Port> (m_datapath, portDevice, this);
 
   // Save port in port list (assert port no and vector index).
-  m_ports.push_back (ofPort);
+  m_ports.emplace_back (ofPort);
   NS_ASSERT ((m_ports.size () == ofPort->GetPortNo ())
              && (m_ports.size () == m_datapath->ports_num));
 
@@ -508,7 +508,7 @@ OFSwitch13Device::StartControllerConnection (Address ctrlAddr)
   Ptr<RemoteController> remoteCtrl = Create<RemoteController> ();
   remoteCtrl->m_address = ctrlAddr;
   remoteCtrl->m_socket = ctrlSocket;
-  m_controllers.push_back (remoteCtrl);
+  m_controllers.emplace_back (remoteCtrl);
 }
 
 // ofsoftswitch13 overriding and callback functions.
@@ -1465,7 +1465,7 @@ OFSwitch13Device::PipelinePacket::SetPacket (uint64_t id, Ptr<Packet> packet)
   NS_ASSERT_MSG (id && packet, "Invalid packet metadata values.");
   m_valid = true;
   m_packet = packet;
-  m_ids.push_back (id);
+  m_ids.emplace_back (id);
 }
 
 Ptr<Packet>
@@ -1493,7 +1493,7 @@ void
 OFSwitch13Device::PipelinePacket::NewCopy (uint64_t id)
 {
   NS_ASSERT_MSG (m_valid, "Invalid packet metadata.");
-  m_ids.push_back (id);
+  m_ids.emplace_back (id);
 }
 
 bool

@@ -183,7 +183,7 @@ OFSwitch13Queue::AddQueue (Ptr<Queue<Packet> > queue)
   swQueue->props->properties_num = 0;
 
   // Inserting the ns3::Queue object into queue list.
-  m_queues.push_back (queue);
+  m_queues.emplace_back (queue);
   NS_LOG_DEBUG ("New queue with ID " << queueId);
 
   return queueId;
