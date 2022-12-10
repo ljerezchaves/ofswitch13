@@ -20,14 +20,15 @@
 #ifndef GTP_TUNNEL_APP_H
 #define GTP_TUNNEL_APP_H
 
-#include <ns3/core-module.h>
-#include <ns3/network-module.h>
-#include <ns3/internet-module.h>
 #include <ns3/applications-module.h>
-#include <ns3/virtual-net-device-module.h>
+#include <ns3/core-module.h>
 #include <ns3/csma-module.h>
+#include <ns3/internet-module.h>
+#include <ns3/network-module.h>
+#include <ns3/virtual-net-device-module.h>
 
-namespace ns3 {
+namespace ns3
+{
 
 /**
  * This GTP tunnel application is responsible for implementing the logical port
@@ -45,68 +46,70 @@ namespace ns3 {
  */
 class GtpTunnelApp : public Application
 {
-public:
-  /**
-   * Complete constructor.
-   * \param logicalPort The OpenFlow logical port device.
-   * \param physicalDev The physical network device on node.
-   */
-  GtpTunnelApp (Ptr<VirtualNetDevice> logicalPort,
-                Ptr<CsmaNetDevice> physicalDev);
-  ~GtpTunnelApp () override;  //!< Dummy destructor, see DoDispose.
+  public:
+    /**
+     * Complete constructor.
+     * \param logicalPort The OpenFlow logical port device.
+     * \param physicalDev The physical network device on node.
+     */
+    GtpTunnelApp(Ptr<VirtualNetDevice> logicalPort, Ptr<CsmaNetDevice> physicalDev);
+    ~GtpTunnelApp() override; //!< Dummy destructor, see DoDispose.
 
-  /**
-   * Register this type.
-   * \return The object TypeId.
-   */
-  static TypeId GetTypeId ();
+    /**
+     * Register this type.
+     * \return The object TypeId.
+     */
+    static TypeId GetTypeId();
 
-  /**
-   * Method to be assigned to the send callback of the VirtualNetDevice
-   * implementing the OpenFlow logical port. It is called when the OpenFlow
-   * switch sends a packet out over the logical port. The logical port
-   * callbacks here, and we must encapsulate the packet withing GTP and forward
-   * it to the UDP tunnel socket.
-   * \param packet The packet received from the logical port.
-   * \param source Ethernet source address.
-   * \param dest Ethernet destination address.
-   * \param protocolNo The type of payload contained in this packet.
-   * \return Whether the operation succeeded.
-   */
-  bool RecvFromLogicalPort (Ptr<Packet> packet, const Address& source,
-                            const Address& dest, uint16_t protocolNo);
+    /**
+     * Method to be assigned to the send callback of the VirtualNetDevice
+     * implementing the OpenFlow logical port. It is called when the OpenFlow
+     * switch sends a packet out over the logical port. The logical port
+     * callbacks here, and we must encapsulate the packet withing GTP and forward
+     * it to the UDP tunnel socket.
+     * \param packet The packet received from the logical port.
+     * \param source Ethernet source address.
+     * \param dest Ethernet destination address.
+     * \param protocolNo The type of payload contained in this packet.
+     * \return Whether the operation succeeded.
+     */
+    bool RecvFromLogicalPort(Ptr<Packet> packet,
+                             const Address& source,
+                             const Address& dest,
+                             uint16_t protocolNo);
 
-  /**
-   * Method to be assigned to the receive callback of the UDP tunnel socket. It
-   * is called when the tunnel socket receives a packet, and must forward the
-   * packet to the logical port.
-   * \param socket Pointer to the tunnel socket.
-   */
-  void RecvFromTunnelSocket (Ptr<Socket> socket);
+    /**
+     * Method to be assigned to the receive callback of the UDP tunnel socket. It
+     * is called when the tunnel socket receives a packet, and must forward the
+     * packet to the logical port.
+     * \param socket Pointer to the tunnel socket.
+     */
+    void RecvFromTunnelSocket(Ptr<Socket> socket);
 
-protected:
-  /** Destructor implementation. */
-  void DoDispose () override;
+  protected:
+    /** Destructor implementation. */
+    void DoDispose() override;
 
-  // Inherited from Application.
-  void StartApplication () override;
+    // Inherited from Application.
+    void StartApplication() override;
 
-private:
-  /**
-   * Adds the necessary Ethernet headers and trailers to a packet of data.
-   * \param packet Packet to which header should be added.
-   * \param source MAC source address from which packet should be sent.
-   * \param dest MAC destination address to which packet should be sent.
-   * \param protocolNo The type of payload contained in this packet.
-   */
-  void AddHeader (Ptr<Packet> packet, Mac48Address source = Mac48Address (),
-                  Mac48Address dest = Mac48Address (),
-                  uint16_t protocolNo = Ipv4L3Protocol::PROT_NUMBER);
+  private:
+    /**
+     * Adds the necessary Ethernet headers and trailers to a packet of data.
+     * \param packet Packet to which header should be added.
+     * \param source MAC source address from which packet should be sent.
+     * \param dest MAC destination address to which packet should be sent.
+     * \param protocolNo The type of payload contained in this packet.
+     */
+    void AddHeader(Ptr<Packet> packet,
+                   Mac48Address source = Mac48Address(),
+                   Mac48Address dest = Mac48Address(),
+                   uint16_t protocolNo = Ipv4L3Protocol::PROT_NUMBER);
 
-  Ptr<Socket>           m_tunnelSocket;   //!< UDP tunnel socket.
-  Ptr<VirtualNetDevice> m_logicalPort;    //!< OpenFlow logical port device.
-  Ptr<CsmaNetDevice>    m_physicalDev;    //!< Node physical network device.
-  const uint16_t        m_port = 2152;    //!< GTP tunnel port.
+    Ptr<Socket> m_tunnelSocket;          //!< UDP tunnel socket.
+    Ptr<VirtualNetDevice> m_logicalPort; //!< OpenFlow logical port device.
+    Ptr<CsmaNetDevice> m_physicalDev;    //!< Node physical network device.
+    const uint16_t m_port = 2152;        //!< GTP tunnel port.
 };
 
 } // namespace ns3

@@ -30,16 +30,16 @@
 #ifndef OFSWITCH13_INTERFACE_H
 #define OFSWITCH13_INTERFACE_H
 
-#include <cassert>
+#include "openflow/openflow.h"
 
-#include <ns3/simulator.h>
+#include <ns3/csma-module.h>
 #include <ns3/log.h>
 #include <ns3/packet.h>
-#include <ns3/csma-module.h>
+#include <ns3/simulator.h>
 #include <ns3/socket.h>
 
 #include <boost/static_assert.hpp>
-#include "openflow/openflow.h"
+#include <cassert>
 
 extern "C"
 {
@@ -48,49 +48,49 @@ extern "C"
 #define delete _delete
 #define list List
 
+#include "lib/ofpbuf.h"
+#include "lib/timeval.h"
+#include "lib/vlog.h"
+#include "oflib/ofl-actions.h"
+#include "oflib/ofl-messages.h"
+#include "oflib/ofl-print.h"
+#include "oflib/ofl-structs.h"
+#include "oflib/oxm-match.h"
 #include "udatapath/action_set.h"
 #include "udatapath/datapath.h"
 #include "udatapath/dp_actions.h"
 #include "udatapath/dp_buffers.h"
 #include "udatapath/dp_control.h"
 #include "udatapath/dp_ports.h"
-#include "udatapath/flow_table.h"
 #include "udatapath/flow_entry.h"
-#include "udatapath/group_table.h"
+#include "udatapath/flow_table.h"
 #include "udatapath/group_entry.h"
+#include "udatapath/group_table.h"
 #include "udatapath/match_std.h"
-#include "udatapath/meter_table.h"
 #include "udatapath/meter_entry.h"
+#include "udatapath/meter_table.h"
 #include "udatapath/packet.h"
 #include "udatapath/packet_handle_std.h"
 #include "udatapath/pipeline.h"
-
-#include "oflib/ofl-actions.h"
-#include "oflib/ofl-messages.h"
-#include "oflib/ofl-print.h"
-#include "oflib/ofl-structs.h"
-#include "oflib/oxm-match.h"
-
-#include "lib/ofpbuf.h"
-#include "lib/timeval.h"
-#include "lib/vlog.h"
-
 #include "utilities/dpctl.h"
 
-// From udatapath/datapath.c
-struct remote* remote_create (struct datapath *dp, struct rconn *rconn,
-                              struct rconn *rconn_aux);
+    // From udatapath/datapath.c
+    struct remote* remote_create(struct datapath* dp,
+                                 struct rconn* rconn,
+                                 struct rconn* rconn_aux);
 
-// From udatapath/dp_ports.c
-uint32_t port_speed (uint32_t conf);
+    // From udatapath/dp_ports.c
+    uint32_t port_speed(uint32_t conf);
 
 #undef list
 #undef private
 #undef delete
 }
 
-namespace ns3 {
-namespace ofs {
+namespace ns3
+{
+namespace ofs
+{
 
 /**
  * TracedCallback signature for sending packets from CsmaNetDevice to OpenFlow
@@ -112,9 +112,10 @@ typedef void (*OpenFlowCallback)(Ptr<Packet> packet);
  * \param explicitFilename Treat the prefix as an explicit filename if true.
  * \param customLevels Customize vlog levels.
  */
-void EnableLibraryLog (bool printToFile = false, std::string prefix = "",
-                       bool explicitFilename = false,
-                       std::string customLevels = "");
+void EnableLibraryLog(bool printToFile = false,
+                      std::string prefix = "",
+                      bool explicitFilename = false,
+                      std::string customLevels = "");
 
 /**
  * \ingroup ofswitch13
@@ -127,8 +128,9 @@ void EnableLibraryLog (bool printToFile = false, std::string prefix = "",
  * \param headRoom The size to allocate for headers (left unitialized).
  * \return The OpenFlow Buffer created from the packet.
  */
-struct ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
-                                 size_t headRoom = 0);
+struct ofpbuf* BufferFromPacket(Ptr<const Packet> packet,
+                                size_t bodyRoom,
+                                size_t headRoom = 0);
 
 /**
  * \ingroup ofswitch13
@@ -139,7 +141,7 @@ struct ofpbuf* BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom,
  * \param xid The transaction id to use.
  * \return The ns3::Packet created.
  */
-Ptr<Packet> PacketFromMsg (struct ofl_msg_header *msg, uint32_t xid = 0);
+Ptr<Packet> PacketFromMsg(struct ofl_msg_header* msg, uint32_t xid = 0);
 
 /**
  * \ingroup ofswitch13
@@ -149,7 +151,7 @@ Ptr<Packet> PacketFromMsg (struct ofl_msg_header *msg, uint32_t xid = 0);
  * \param buffer The internal buffer.
  * \return The ns3::Packet created.
  */
-Ptr<Packet> PacketFromBuffer (struct ofpbuf *buffer);
+Ptr<Packet> PacketFromBuffer(struct ofpbuf* buffer);
 
 } // namespace ofs
 } // namespace ns3

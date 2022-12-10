@@ -18,74 +18,75 @@
  */
 
 #include "queue-tag.h"
+
 #include <ns3/log.h>
 
-namespace ns3 {
+namespace ns3
+{
 
-NS_LOG_COMPONENT_DEFINE ("QueueTag");
-NS_OBJECT_ENSURE_REGISTERED (QueueTag);
+NS_LOG_COMPONENT_DEFINE("QueueTag");
+NS_OBJECT_ENSURE_REGISTERED(QueueTag);
 
-QueueTag::QueueTag ()
-  : m_queueId (0)
+QueueTag::QueueTag()
+    : m_queueId(0)
 {
 }
 
-QueueTag::QueueTag (uint32_t id)
-  : m_queueId (id)
+QueueTag::QueueTag(uint32_t id)
+    : m_queueId(id)
 {
-}
-
-TypeId
-QueueTag::GetTypeId ()
-{
-  static TypeId tid = TypeId ("ns3::QueueTag")
-    .SetParent<Tag> ()
-    .SetGroupName ("OFSwitch13")
-    .AddConstructor<QueueTag> ()
-  ;
-  return tid;
 }
 
 TypeId
-QueueTag::GetInstanceTypeId () const
+QueueTag::GetTypeId()
 {
-  return GetTypeId ();
+    static TypeId tid = TypeId("ns3::QueueTag")
+                            .SetParent<Tag>()
+                            .SetGroupName("OFSwitch13")
+                            .AddConstructor<QueueTag>();
+    return tid;
+}
+
+TypeId
+QueueTag::GetInstanceTypeId() const
+{
+    return GetTypeId();
 }
 
 void
-QueueTag::SetQueueId (uint32_t id)
+QueueTag::SetQueueId(uint32_t id)
 {
-  m_queueId = id;
+    m_queueId = id;
 }
 
 uint32_t
-QueueTag::GetQueueId () const
+QueueTag::GetQueueId() const
 {
-  return m_queueId;
+    return m_queueId;
 }
 
 uint32_t
-QueueTag::GetSerializedSize () const
+QueueTag::GetSerializedSize() const
 {
-  return 4;
+    return 4;
 }
 
 void
-QueueTag::Serialize (TagBuffer i) const
+QueueTag::Serialize(TagBuffer i) const
 {
-  i.WriteU32 (m_queueId);
+    i.WriteU32(m_queueId);
 }
 
 void
-QueueTag::Deserialize (TagBuffer i)
+QueueTag::Deserialize(TagBuffer i)
 {
-  m_queueId = i.ReadU32 ();
+    m_queueId = i.ReadU32();
 }
 
 void
-QueueTag::Print (std::ostream &os) const
+QueueTag::Print(std::ostream& os) const
 {
-  os << " QueueTag id=" << m_queueId;
+    os << " QueueTag id=" << m_queueId;
 }
 
 } // namespace ns3

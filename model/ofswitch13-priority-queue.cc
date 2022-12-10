@@ -17,148 +17,150 @@
  * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
  */
 
-#include "ns3/log.h"
-#include "ns3/string.h"
 #include "ofswitch13-priority-queue.h"
 
+#include "ns3/log.h"
+#include "ns3/string.h"
+
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT \
-  std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
+#define NS_LOG_APPEND_CONTEXT                                                  \
+    std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
 
-namespace ns3 {
+namespace ns3
+{
 
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13PriorityQueue");
-NS_OBJECT_ENSURE_REGISTERED (OFSwitch13PriorityQueue);
+NS_LOG_COMPONENT_DEFINE("OFSwitch13PriorityQueue");
+NS_OBJECT_ENSURE_REGISTERED(OFSwitch13PriorityQueue);
 
 static ObjectFactory
-GetDefaultQueueFactory ()
+GetDefaultQueueFactory()
 {
-  // Setting default internal queue configuration.
-  ObjectFactory queueFactory;
-  queueFactory.SetTypeId ("ns3::DropTailQueue<Packet>");
-  queueFactory.Set ("MaxSize", StringValue ("100p"));
-  return queueFactory;
+    // Setting default internal queue configuration.
+    ObjectFactory queueFactory;
+    queueFactory.SetTypeId("ns3::DropTailQueue<Packet>");
+    queueFactory.Set("MaxSize", StringValue("100p"));
+    return queueFactory;
 }
 
 TypeId
-OFSwitch13PriorityQueue::GetTypeId ()
+OFSwitch13PriorityQueue::GetTypeId()
 {
-  static TypeId tid = TypeId ("ns3::OFSwitch13PriorityQueue")
-    .SetParent<OFSwitch13Queue> ()
-    .SetGroupName ("OFSwitch13")
-    .AddConstructor<OFSwitch13PriorityQueue> ()
-    .AddAttribute ("NumQueues",
-                   "The number of internal priority queues.",
-                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                   UintegerValue (1),
-                   MakeUintegerAccessor (
-                     &OFSwitch13PriorityQueue::m_numQueues),
-                   MakeUintegerChecker<int> (1, NETDEV_MAX_QUEUES))
-    .AddAttribute ("QueueFactory",
-                   "The object factory for internal priority queues.",
-                   TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                   ObjectFactoryValue (GetDefaultQueueFactory ()),
-                   MakeObjectFactoryAccessor (
-                     &OFSwitch13PriorityQueue::m_facQueues),
-                   MakeObjectFactoryChecker ())
-  ;
-  return tid;
+    static TypeId tid =
+        TypeId("ns3::OFSwitch13PriorityQueue")
+            .SetParent<OFSwitch13Queue>()
+            .SetGroupName("OFSwitch13")
+            .AddConstructor<OFSwitch13PriorityQueue>()
+            .AddAttribute(
+                "NumQueues",
+                "The number of internal priority queues.",
+                TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                UintegerValue(1),
+                MakeUintegerAccessor(&OFSwitch13PriorityQueue::m_numQueues),
+                MakeUintegerChecker<int>(1, NETDEV_MAX_QUEUES))
+            .AddAttribute("QueueFactory",
+                          "The object factory for internal priority queues.",
+                          TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                          ObjectFactoryValue(GetDefaultQueueFactory()),
+                          MakeObjectFactoryAccessor(
+                              &OFSwitch13PriorityQueue::m_facQueues),
+                          MakeObjectFactoryChecker());
+    return tid;
 }
 
-OFSwitch13PriorityQueue::OFSwitch13PriorityQueue ()
-  : OFSwitch13Queue (),
-  NS_LOG_TEMPLATE_DEFINE ("OFSwitch13PriorityQueue")
+OFSwitch13PriorityQueue::OFSwitch13PriorityQueue()
+    : OFSwitch13Queue(),
+      NS_LOG_TEMPLATE_DEFINE("OFSwitch13PriorityQueue")
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 }
 
-OFSwitch13PriorityQueue::~OFSwitch13PriorityQueue ()
+OFSwitch13PriorityQueue::~OFSwitch13PriorityQueue()
 {
-  NS_LOG_FUNCTION (this);
-}
-
-Ptr<Packet>
-OFSwitch13PriorityQueue::Dequeue ()
-{
-  NS_LOG_FUNCTION (this);
-
-  int queueId = GetNonEmptyQueue ();
-  if (queueId >= 0)
-    {
-      NS_LOG_DEBUG ("Packet to be dequeued from queue " << queueId);
-      Ptr<Packet> packet = GetQueue (queueId)->Dequeue ();
-      NotifyDequeue (packet);
-      return packet;
-    }
-
-  NS_LOG_DEBUG ("Queue empty");
-  return nullptr;
+    NS_LOG_FUNCTION(this);
 }
 
 Ptr<Packet>
-OFSwitch13PriorityQueue::Remove ()
+OFSwitch13PriorityQueue::Dequeue()
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 
-  int queueId = GetNonEmptyQueue ();
-  if (queueId >= 0)
+    int queueId = GetNonEmptyQueue();
+    if (queueId >= 0)
     {
-      NS_LOG_DEBUG ("Packet to be removed from queue " << queueId);
-      Ptr<Packet> packet = GetQueue (queueId)->Remove ();
-      NotifyRemove (packet);
-      return packet;
+        NS_LOG_DEBUG("Packet to be dequeued from queue " << queueId);
+        Ptr<Packet> packet = GetQueue(queueId)->Dequeue();
+        NotifyDequeue(packet);
+        return packet;
     }
 
-  NS_LOG_DEBUG ("Queue empty");
-  return nullptr;
+    NS_LOG_DEBUG("Queue empty");
+    return nullptr;
+}
+
+Ptr<Packet>
+OFSwitch13PriorityQueue::Remove()
+{
+    NS_LOG_FUNCTION(this);
+
+    int queueId = GetNonEmptyQueue();
+    if (queueId >= 0)
+    {
+        NS_LOG_DEBUG("Packet to be removed from queue " << queueId);
+        Ptr<Packet> packet = GetQueue(queueId)->Remove();
+        NotifyRemove(packet);
+        return packet;
+    }
+
+    NS_LOG_DEBUG("Queue empty");
+    return nullptr;
 }
 
 Ptr<const Packet>
-OFSwitch13PriorityQueue::Peek () const
+OFSwitch13PriorityQueue::Peek() const
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 
-  int queueId = GetNonEmptyQueue ();
-  if (queueId >= 0)
+    int queueId = GetNonEmptyQueue();
+    if (queueId >= 0)
     {
-      NS_LOG_DEBUG ("Packet to be peeked from queue " << queueId);
-      return GetQueue (queueId)->Peek ();
+        NS_LOG_DEBUG("Packet to be peeked from queue " << queueId);
+        return GetQueue(queueId)->Peek();
     }
 
-  NS_LOG_DEBUG ("Queue empty");
-  return nullptr;
+    NS_LOG_DEBUG("Queue empty");
+    return nullptr;
 }
 
 void
-OFSwitch13PriorityQueue::DoInitialize ()
+OFSwitch13PriorityQueue::DoInitialize()
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 
-  // Creating the internal priority queues.
-  for (int queueId = 0; queueId < m_numQueues; queueId++)
+    // Creating the internal priority queues.
+    for (int queueId = 0; queueId < m_numQueues; queueId++)
     {
-      AddQueue (m_facQueues.Create<Queue<Packet> > ());
+        AddQueue(m_facQueues.Create<Queue<Packet>>());
     }
 
-  // Chain up.
-  OFSwitch13Queue::DoInitialize ();
+    // Chain up.
+    OFSwitch13Queue::DoInitialize();
 }
 
 int
-OFSwitch13PriorityQueue::GetNonEmptyQueue () const
+OFSwitch13PriorityQueue::GetNonEmptyQueue() const
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 
-  for (int queueId = 0; queueId < GetNQueues (); queueId++)
+    for (int queueId = 0; queueId < GetNQueues(); queueId++)
     {
-      if (GetQueue (queueId)->IsEmpty () == false)
+        if (GetQueue(queueId)->IsEmpty() == false)
         {
-          return queueId;
+            return queueId;
         }
     }
 
-  NS_LOG_DEBUG ("All internal queues are empty.");
-  return -1;
+    NS_LOG_DEBUG("All internal queues are empty.");
+    return -1;
 }
 
 } // namespace ns3

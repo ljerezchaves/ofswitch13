@@ -22,7 +22,8 @@
 
 #include <ns3/tag.h>
 
-namespace ns3 {
+namespace ns3
+{
 
 class Tag;
 
@@ -33,41 +34,40 @@ class Tag;
  */
 class QueueTag : public Tag
 {
-public:
-  /**
-   * Register this type.
-   * \return The object TypeId.
-   */
-  static TypeId GetTypeId ();
-  TypeId GetInstanceTypeId () const override;
+  public:
+    /**
+     * Register this type.
+     * \return The object TypeId.
+     */
+    static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
 
-  QueueTag ();            //!< Default constructor
+    QueueTag(); //!< Default constructor
 
-  /**
-   * Complete constructor.
-   * \param id The queue id.
-   */
-  QueueTag (uint32_t id);
+    /**
+     * Complete constructor.
+     * \param id The queue id.
+     */
+    QueueTag(uint32_t id);
 
-  /**
-   * Set the internal queue id.
-   * \param id The queue id.
-   */
-  void SetQueueId (uint32_t id);
+    /**
+     * Set the internal queue id.
+     * \param id The queue id.
+     */
+    void SetQueueId(uint32_t id);
 
-  /** \return The queue id */
-  uint32_t GetQueueId () const;
+    /** \return The queue id */
+    uint32_t GetQueueId() const;
 
-  // Inherited from Tag
-  void Serialize (TagBuffer i) const override;
-  void Deserialize (TagBuffer i) override;
-  uint32_t GetSerializedSize () const override;
-  void Print (std::ostream &os) const override;
+    // Inherited from Tag
+    void Serialize(TagBuffer i) const override;
+    void Deserialize(TagBuffer i) override;
+    uint32_t GetSerializedSize() const override;
+    void Print(std::ostream& os) const override;
 
-private:
-  uint32_t m_queueId;   //!< Packet sequence number
+  private:
+    uint32_t m_queueId; //!< Packet sequence number
 };
 
 } // namespace ns3
 #endif // QUEUE_TAG_H
-
