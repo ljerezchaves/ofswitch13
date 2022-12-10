@@ -15,9 +15,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
  *         Arthur Boechat Mazzi <arthurmazzi@ice.ufjf.br>
- *
+ */
+ 
+/*
  * There are N switches connected in line and managed by an external controller.
  * There are M hosts equally distributed among the switches.
  * Random pings among hosts.

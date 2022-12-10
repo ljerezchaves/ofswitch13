@@ -65,7 +65,7 @@ master_doc = 'ofswitch13'
 
 # General information about the project.
 project = u'OFSwitch13'
-author = u'Luciano Jerez chaves'
+author = u'Luciano Jerez Chaves'
 copyright = u'2022 Computer Networks Laboratory'
 
 # The version info for the project you're documenting, acts as replacement for
