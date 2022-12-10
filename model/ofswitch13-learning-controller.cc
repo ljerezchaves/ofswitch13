@@ -21,10 +21,9 @@
 
 #include "ofswitch13-learning-controller.h"
 
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13LearningController");
-
 namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("OFSwitch13LearningController");
 NS_OBJECT_ENSURE_REGISTERED (OFSwitch13LearningController);
 
 /********** Public methods ***********/
