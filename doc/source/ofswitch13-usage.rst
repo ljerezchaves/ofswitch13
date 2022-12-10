@@ -48,7 +48,7 @@ This procedure will recursively download the |ofslib| code into the ``lib/ofsoft
   $ cd contrib/
   $ git clone --recurse-submodules https://github.com/ljerezchaves/ofswitch13.git
 
-Update the code to the latest version (we are using release 5.1.0, which is compatible with ns-3.37) [#f2]_:
+Update the code to the latest stable version (we are using release 5.1.0, which is compatible with ns-3.37) [#f2]_:
 
 .. [#f2] For |ofs13| release versions prior to 3.2.2 (when no submodule dependence was configured in the git repository), the |ofslib| code will not automatically update to the correct version. 
          In this case, you must manually updated the |ofslib| code to the proper version before compiling the library in the next step (check the RELEASE_NOTES files for versions compatibility).
