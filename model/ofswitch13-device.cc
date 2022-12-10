@@ -1273,7 +1273,7 @@ OFSwitch13Device::NotifyPacketDroppedByTable (struct packet *pkt,
 
   uint8_t tableId = table->stats->table_id;
   NS_ASSERT_MSG (m_pipePkt.HasId (pkt->ns3_uid), "Invalid packet ID.");
-  NS_LOG_DEBUG ("OpenFlow table id " << static_cast<uint16_t> (tableId) <<
+  NS_LOG_DEBUG ("OpenFlow table id " << +tableId <<
                 " dropped unmatched packet " << pkt->ns3_uid);
 
   // Fire drop trace source.

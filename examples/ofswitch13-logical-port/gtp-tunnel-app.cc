@@ -83,7 +83,7 @@ GtpTunnelApp::RecvFromLogicalPort (Ptr<Packet> packet, const Address& source,
 
   // Send the packet to the tunnel socket.
   int bytes = m_tunnelSocket->SendTo (packet, 0, inetAddr);
-  if (bytes != (int)packet->GetSize ())
+  if (bytes != static_cast<int> (packet->GetSize ()))
     {
       NS_LOG_ERROR ("Not all bytes were copied to the socket buffer.");
       return false;

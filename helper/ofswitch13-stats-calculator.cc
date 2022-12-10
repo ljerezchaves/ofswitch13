@@ -357,7 +357,7 @@ void
 OFSwitch13StatsCalculator::NotifyTableDrop (Ptr<const Packet> packet,
                                             uint8_t tableId)
 {
-  NS_LOG_FUNCTION (this << packet << static_cast<uint16_t> (tableId));
+  NS_LOG_FUNCTION (this << packet << +tableId);
 
   m_tableDrops++;
 }

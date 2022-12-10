@@ -137,7 +137,7 @@ TunnelController::HandlePacketIn (
           // endpoint IPv4 address into tunnel metadata, and output the packet
           // on the logical port 2.
           Ipv4Address dstAddr = GetTunnelEndpoint (swDpId, 2);
-          uint64_t tunnelId = (uint64_t)dstAddr.Get () << 32;
+          uint64_t tunnelId = static_cast<uint64_t> (dstAddr.Get ()) << 32;
           tunnelId |= 0xFFFF;
           char tunnelIdStr [20];
           sprintf (tunnelIdStr, "0x%016lX", tunnelId);
