@@ -1,4 +1,19 @@
+diff --git a/build-support/custom-modules/ns3-configtable.cmake b/build-support/custom-modules/ns3-configtable.cmake
+index 40839ed2f..f6288086d 100644
+--- a/build-support/custom-modules/ns3-configtable.cmake
++++ b/build-support/custom-modules/ns3-configtable.cmake
+@@ -149,6 +149,9 @@ macro(write_configtable)
+   string(APPEND out "NS-3 Click Integration        : ")
+   check_on_or_off("ON" "${NS3_CLICK}")
+ 
++  string(APPEND out "NS-3 OFSwitch13 Integration   : ")
++  check_on_or_off("ON" "${NS3_OFSWITCH13}")
++
+   string(APPEND out "NS-3 OpenFlow Integration     : ")
+   check_on_or_off("ON" "${NS3_OPENFLOW}")
+ 
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
+index 9913e48b3..6b5dec7b0 100644
 --- a/src/csma/model/csma-net-device.cc
 +++ b/src/csma/model/csma-net-device.cc
 @@ -795,6 +795,30 @@ CsmaNetDevice::Receive (Ptr<Packet> packet, Ptr<CsmaNetDevice> senderDevice)
@@ -47,6 +62,7 @@ diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.
  CsmaNetDevice::SetReceiveCallback (NetDevice::ReceiveCallback cb)
  {
 diff --git a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
+index 97d158580..8f7bef8de 100644
 --- a/src/csma/model/csma-net-device.h
 +++ b/src/csma/model/csma-net-device.h
 @@ -306,6 +306,14 @@ public:
@@ -76,7 +92,40 @@ diff --git a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
    /**
     * The callback used to notify higher layers that a packet has been received.
     */
+diff --git a/src/network/utils/queue.h b/src/network/utils/queue.h
+index f26732b77..4deb54229 100644
+--- a/src/network/utils/queue.h
++++ b/src/network/utils/queue.h
+@@ -315,6 +315,13 @@ protected:
+   /// Iterator.
+   typedef typename std::list<Ptr<Item> >::iterator Iterator;
+ 
++  /**
++   * Get a const reference to the container of queue items.
++   *
++   * \return a const reference to the container of queue items
++   */
++  const std::list<Ptr<Item> >& GetContainer() const;
++
+   /**
+    * \brief Get a const iterator which refers to the first item in the queue.
+    *
+@@ -498,6 +505,13 @@ Queue<Item>::~Queue ()
+ {
+ }
+ 
++template <typename Item>
++const std::list<Ptr<Item>>&
++Queue<Item>::GetContainer() const
++{
++    return m_packets;
++}
++
+ template <typename Item>
+ bool
+ Queue<Item>::DoEnqueue (ConstIterator pos, Ptr<Item> item)
 diff --git a/src/virtual-net-device/model/virtual-net-device.cc b/src/virtual-net-device/model/virtual-net-device.cc
+index a0828900a..f8564cf09 100644
 --- a/src/virtual-net-device/model/virtual-net-device.cc
 +++ b/src/virtual-net-device/model/virtual-net-device.cc
 @@ -141,6 +141,29 @@ VirtualNetDevice::Receive (Ptr<Packet> packet, uint16_t protocol,
@@ -122,9 +171,10 @@ diff --git a/src/virtual-net-device/model/virtual-net-device.cc b/src/virtual-ne
  
  } // namespace ns3
 diff --git a/src/virtual-net-device/model/virtual-net-device.h b/src/virtual-net-device/model/virtual-net-device.h
+index 1bf53a2b1..696cf3c96 100644
 --- a/src/virtual-net-device/model/virtual-net-device.h
 +++ b/src/virtual-net-device/model/virtual-net-device.h
-@@ -146,6 +146,14 @@ public:
+@@ -151,6 +151,14 @@ public:
    virtual bool SupportsSendFrom () const;
    virtual bool IsBridge (void) const;
  
@@ -139,10 +189,10 @@ diff --git a/src/virtual-net-device/model/virtual-net-device.h b/src/virtual-net
  protected:
  
    virtual void DoDispose (void);
-@@ -168,6 +176,9 @@ private:
-   bool m_needsArp;
-   bool m_supportsSendFrom;
-   bool m_isPointToPoint;
+@@ -173,6 +181,9 @@ private:
+   bool m_needsArp;          //!< True if the device needs ARP
+   bool m_supportsSendFrom;  //!< True if the device supports SendFrm
+   bool m_isPointToPoint;    //!< True if the device is a PointToPoint type device
 +
 +  /** The OpenFlow receive callback. */
 +  NetDevice::PromiscReceiveCallback m_openFlowRxCallback;

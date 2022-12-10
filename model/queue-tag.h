@@ -1,4 +1,3 @@
-/* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2015 University of Campinas (Unicamp)
  *
@@ -15,7 +14,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
  */
 
 #ifndef QUEUE_TAG_H
@@ -23,7 +22,8 @@
 
 #include <ns3/tag.h>
 
-namespace ns3 {
+namespace ns3
+{
 
 class Tag;
 
@@ -34,41 +34,40 @@ class Tag;
  */
 class QueueTag : public Tag
 {
-public:
-  /**
-   * Register this type.
-   * \return The object TypeId.
-   */
-  static TypeId GetTypeId (void);
-  virtual TypeId GetInstanceTypeId (void) const;
+  public:
+    /**
+     * Register this type.
+     * \return The object TypeId.
+     */
+    static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
 
-  QueueTag ();            //!< Default constructor
+    QueueTag(); //!< Default constructor
 
-  /**
-   * Complete constructor.
-   * \param id The queue id.
-   */
-  QueueTag (uint32_t id);
+    /**
+     * Complete constructor.
+     * \param id The queue id.
+     */
+    QueueTag(uint32_t id);
 
-  /**
-   * Set the internal queue id.
-   * \param id The queue id.
-   */
-  void SetQueueId (uint32_t id);
+    /**
+     * Set the internal queue id.
+     * \param id The queue id.
+     */
+    void SetQueueId(uint32_t id);
 
-  /** \return The queue id */
-  uint32_t GetQueueId (void) const;
+    /** \return The queue id */
+    uint32_t GetQueueId() const;
 
-  // Inherited from Tag
-  virtual void Serialize (TagBuffer i) const;
-  virtual void Deserialize (TagBuffer i);
-  virtual uint32_t GetSerializedSize () const;
-  virtual void Print (std::ostream &os) const;
+    // Inherited from Tag
+    void Serialize(TagBuffer i) const override;
+    void Deserialize(TagBuffer i) override;
+    uint32_t GetSerializedSize() const override;
+    void Print(std::ostream& os) const override;
 
-private:
-  uint32_t m_queueId;   //!< Packet sequence number
+  private:
+    uint32_t m_queueId; //!< Packet sequence number
 };
 
 } // namespace ns3
 #endif // QUEUE_TAG_H
-

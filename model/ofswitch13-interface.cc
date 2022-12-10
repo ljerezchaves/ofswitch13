@@ -1,4 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2015 University of Campinas (Unicamp)
  *
@@ -15,96 +14,102 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
  */
 
 #include "ofswitch13-interface.h"
-#include "ofswitch13-device.h"
+
 #include "ofswitch13-controller.h"
+#include "ofswitch13-device.h"
 
-NS_LOG_COMPONENT_DEFINE ("OFSwitch13Interface");
+namespace ns3
+{
 
-namespace ns3 {
-namespace ofs {
+NS_LOG_COMPONENT_DEFINE("OFSwitch13Interface");
+
+namespace ofs
+{
 
 void
-EnableLibraryLog (bool printToFile, std::string prefix,
-                  bool explicitFilename, std::string customLevels)
+EnableLibraryLog(bool printToFile,
+                 std::string prefix,
+                 bool explicitFilename,
+                 std::string customLevels)
 {
-  set_program_name ("ns3-ofswitch13");
-  vlog_init ();
-  vlog_set_levels (VLM_ANY_MODULE, VLF_ANY_FACILITY, VLL_EMER);
-  vlog_set_pattern (VLF_ANY_FACILITY, "%d{%ss} [%c|%p] %m");
+    set_program_name("ns3-ofswitch13");
+    vlog_init();
+    vlog_set_levels(VLM_ANY_MODULE, VLF_ANY_FACILITY, VLL_EMER);
+    vlog_set_pattern(VLF_ANY_FACILITY, "%d{%ss} [%c|%p] %m");
 
-  if (printToFile)
+    if (printToFile)
     {
-      std::string filename = prefix;
-      if (!explicitFilename)
+        std::string filename = prefix;
+        if (!explicitFilename)
         {
-          if (filename.size () && filename.back () != '-')
+            if (filename.size() && filename.back() != '-')
             {
-              filename += "-";
+                filename += "-";
             }
-          filename += "ofsoftswitch13.log";
+            filename += "ofsoftswitch13.log";
         }
-      vlog_set_levels (VLM_ANY_MODULE, VLF_FILE, VLL_DBG);
-      vlog_set_log_file (filename.c_str ());
+        vlog_set_levels(VLM_ANY_MODULE, VLF_FILE, VLL_DBG);
+        vlog_set_log_file(filename.c_str());
     }
-  else
+    else
     {
-      vlog_set_levels (VLM_ANY_MODULE, VLF_CONSOLE, VLL_DBG);
+        vlog_set_levels(VLM_ANY_MODULE, VLF_CONSOLE, VLL_DBG);
     }
 
-  if (customLevels.size ())
+    if (customLevels.size())
     {
-      vlog_set_verbosity (customLevels.c_str ());
+        vlog_set_verbosity(customLevels.c_str());
     }
 }
 
 struct ofpbuf*
-BufferFromPacket (Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
+BufferFromPacket(Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+    NS_LOG_FUNCTION_NOARGS();
 
-  NS_ASSERT (packet->GetSize () <= bodyRoom);
-  struct ofpbuf *buffer;
-  uint32_t pktSize;
+    NS_ASSERT(packet->GetSize() <= bodyRoom);
+    struct ofpbuf* buffer;
+    uint32_t pktSize;
 
-  pktSize = packet->GetSize ();
-  buffer = ofpbuf_new_with_headroom (bodyRoom, headRoom);
-  packet->CopyData ((uint8_t*)ofpbuf_put_uninit (buffer, pktSize), pktSize);
-  return buffer;
+    pktSize = packet->GetSize();
+    buffer = ofpbuf_new_with_headroom(bodyRoom, headRoom);
+    packet->CopyData((uint8_t*)ofpbuf_put_uninit(buffer, pktSize), pktSize);
+    return buffer;
 }
 
 Ptr<Packet>
-PacketFromMsg (struct ofl_msg_header *msg, uint32_t xid)
+PacketFromMsg(struct ofl_msg_header* msg, uint32_t xid)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+    NS_LOG_FUNCTION_NOARGS();
 
-  int error;
-  uint8_t *buf;
-  size_t buf_size;
-  Ptr<Packet> packet;
-  struct ofpbuf *buffer;
+    int error;
+    uint8_t* buf;
+    size_t buf_size;
+    Ptr<Packet> packet;
+    struct ofpbuf* buffer;
 
-  buffer = ofpbuf_new (0);
-  error = ofl_msg_pack (msg, xid, &buf, &buf_size, 0);
-  if (!error)
+    buffer = ofpbuf_new(0);
+    error = ofl_msg_pack(msg, xid, &buf, &buf_size, nullptr);
+    if (!error)
     {
-      ofpbuf_use (buffer, buf, buf_size);
-      ofpbuf_put_uninit (buffer, buf_size);
-      packet = Create<Packet> ((uint8_t*)buffer->data, buffer->size);
-      ofpbuf_delete (buffer);
+        ofpbuf_use(buffer, buf, buf_size);
+        ofpbuf_put_uninit(buffer, buf_size);
+        packet = Create<Packet>((uint8_t*)buffer->data, buffer->size);
+        ofpbuf_delete(buffer);
     }
-  return packet;
+    return packet;
 }
 
 Ptr<Packet>
-PacketFromBuffer (struct ofpbuf *buffer)
+PacketFromBuffer(struct ofpbuf* buffer)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+    NS_LOG_FUNCTION_NOARGS();
 
-  return Create<Packet> ((uint8_t*)buffer->data, buffer->size);
+    return Create<Packet>((uint8_t*)buffer->data, buffer->size);
 }
 
 } // namespace ofs
@@ -117,9 +122,9 @@ using namespace ns3;
  * \return The current simulation time, in seconds.
  */
 time_t
-time_now (void)
+time_now(void)
 {
-  return static_cast<time_t> (Simulator::Now ().ToInteger (Time::S));
+    return static_cast<time_t>(Simulator::Now().ToInteger(Time::S));
 }
 
 /**
@@ -127,46 +132,55 @@ time_now (void)
  * \return The current simulation time, in ms.
  */
 long long int
-time_msec (void)
+time_msec(void)
 {
-  return static_cast<long long int> (Simulator::Now ().GetMilliSeconds ());
+    return static_cast<long long int>(Simulator::Now().GetMilliSeconds());
 }
 
 /** Overriding ofsoftswitch weak functions using static member functions. */
 void
-send_packet_to_controller (struct pipeline *pl, struct packet *pkt,
-                           uint8_t table_id, uint8_t reason)
+send_packet_to_controller(struct pipeline* pl,
+                          struct packet* pkt,
+                          uint8_t table_id,
+                          uint8_t reason)
 {
-  return OFSwitch13Device::SendPacketToController (pl, pkt, table_id, reason);
+    return OFSwitch13Device::SendPacketToController(pl, pkt, table_id, reason);
 }
 
 int
-send_openflow_buffer_to_remote (struct ofpbuf *buffer, struct remote *remote)
+send_openflow_buffer_to_remote(struct ofpbuf* buffer, struct remote* remote)
 {
-  return OFSwitch13Device::SendOpenflowBufferToRemote (buffer, remote);
+    return OFSwitch13Device::SendOpenflowBufferToRemote(buffer, remote);
 }
 
 void
-dp_actions_output_port (struct packet *pkt, uint32_t out_port,
-                        uint32_t out_queue, uint16_t max_len, uint64_t cookie)
+dp_actions_output_port(struct packet* pkt,
+                       uint32_t out_port,
+                       uint32_t out_queue,
+                       uint16_t max_len,
+                       uint64_t cookie)
 {
-  OFSwitch13Device::DpActionsOutputPort (pkt, out_port, out_queue, max_len,
-                                         cookie);
+    OFSwitch13Device::DpActionsOutputPort(pkt,
+                                          out_port,
+                                          out_queue,
+                                          max_len,
+                                          cookie);
 }
 
 void
-dpctl_send_and_print (struct vconn *vconn, struct ofl_msg_header *msg)
+dpctl_send_and_print(struct vconn* vconn, struct ofl_msg_header* msg)
 {
-  OFSwitch13Controller::DpctlSendAndPrint (vconn, msg);
+    OFSwitch13Controller::DpctlSendAndPrint(vconn, msg);
 }
 
 void
-dpctl_transact_and_print (struct vconn *vconn, struct ofl_msg_header *req,
-                          struct ofl_msg_header **repl)
+dpctl_transact_and_print(struct vconn* vconn,
+                         struct ofl_msg_header* req,
+                         struct ofl_msg_header** repl)
 {
-  // Different from ofsoftswitch13 dpctl, this transaction doesn't wait for a
-  // reply, as ns-3 socket library doesn't provide blocking sockets. So, we
-  // send the request and return. The reply will came later, using the ns-3
-  // callback mechanism.
-  OFSwitch13Controller::DpctlSendAndPrint (vconn, req);
+    // Different from ofsoftswitch13 dpctl, this transaction doesn't wait for a
+    // reply, as ns-3 socket library doesn't provide blocking sockets. So, we
+    // send the request and return. The reply will came later, using the ns-3
+    // callback mechanism.
+    OFSwitch13Controller::DpctlSendAndPrint(vconn, req);
 }

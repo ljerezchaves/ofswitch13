@@ -1,4 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2019 University of Campinas (Unicamp)
  *
@@ -15,14 +14,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
  */
 #ifndef OFSWITCH13_PRIORITY_QUEUE_H
 #define OFSWITCH13_PRIORITY_QUEUE_H
 
 #include "ofswitch13-queue.h"
 
-namespace ns3 {
+namespace ns3
+{
 
 // The following explicit template instantiation declaration prevents modules
 // including this header file from implicitly instantiating Queue<Packet>.
@@ -39,36 +39,36 @@ extern template class Queue<Packet>;
  */
 class OFSwitch13PriorityQueue : public OFSwitch13Queue
 {
-public:
-  /**
-   * Register this type.
-   * \return The object TypeId.
-   */
-  static TypeId GetTypeId (void);
+  public:
+    /**
+     * Register this type.
+     * \return The object TypeId.
+     */
+    static TypeId GetTypeId();
 
-  OFSwitch13PriorityQueue ();           //!< Default constructor.
-  virtual ~OFSwitch13PriorityQueue ();  //!< Dummy destructor, see DoDispose.
+    OFSwitch13PriorityQueue();           //!< Default constructor.
+    ~OFSwitch13PriorityQueue() override; //!< Dummy destructor, see DoDispose.
 
-  // Inherited from Queue.
-  Ptr<Packet> Dequeue (void);
-  Ptr<Packet> Remove (void);
-  Ptr<const Packet> Peek (void) const;
+    // Inherited from Queue.
+    Ptr<Packet> Dequeue() override;
+    Ptr<Packet> Remove() override;
+    Ptr<const Packet> Peek() const override;
 
-protected:
-  // Inherited from Object.
-  virtual void DoInitialize (void);
+  protected:
+    // Inherited from Object.
+    void DoInitialize() override;
 
-private:
-  /**
-   * Identify the highest-priority non-empty queue.
-   * \return The queue ID.
-   */
-  int GetNonEmptyQueue (void) const;
+  private:
+    /**
+     * Identify the highest-priority non-empty queue.
+     * \return The queue ID.
+     */
+    int GetNonEmptyQueue() const;
 
-  ObjectFactory         m_facQueues;  //!< Factory for internal queues.
-  int                   m_numQueues;  //!< Number of internal queues.
+    ObjectFactory m_facQueues; //!< Factory for internal queues.
+    int m_numQueues;           //!< Number of internal queues.
 
-  NS_LOG_TEMPLATE_DECLARE;            //!< Redefinition of the log component.
+    NS_LOG_TEMPLATE_DECLARE; //!< Redefinition of the log component.
 };
 
 } // namespace ns3

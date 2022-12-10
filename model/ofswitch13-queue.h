@@ -1,4 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2015 University of Campinas (Unicamp)
  *
@@ -15,16 +14,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
  */
 #ifndef OFSWITCH13_QUEUE_H
 #define OFSWITCH13_QUEUE_H
 
-#include <ns3/packet.h>
-#include <ns3/queue.h>
 #include "ofswitch13-interface.h"
 
-namespace ns3 {
+#include <ns3/packet.h>
+#include <ns3/queue.h>
+
+namespace ns3
+{
 
 // The following explicit template instantiation declaration prevents modules
 // including this header file from implicitly instantiating Queue<Packet>.
@@ -52,78 +53,79 @@ extern template class Queue<Packet>;
  */
 class OFSwitch13Queue : public Queue<Packet>
 {
-public:
-  /**
-   * Register this type.
-   * \return The object TypeId.
-   */
-  static TypeId GetTypeId (void);
+  public:
+    /**
+     * Register this type.
+     * \return The object TypeId.
+     */
+    static TypeId GetTypeId();
 
-  OFSwitch13Queue ();           //!< Default constructor.
-  virtual ~OFSwitch13Queue ();  //!< Dummy destructor, see DoDispose.
+    OFSwitch13Queue();           //!< Default constructor.
+    ~OFSwitch13Queue() override; //!< Dummy destructor, see DoDispose.
 
-  // Inherited from Queue.
-  bool Enqueue (Ptr<Packet> packet);
+    // Inherited from Queue.
+    bool Enqueue(Ptr<Packet> packet) override;
 
-  /**
-   * Get the number of internal queues.
-   * \return The number of internal queues.
-   */
-  int GetNQueues (void) const;
+    /**
+     * Get the number of internal queues.
+     * \return The number of internal queues.
+     */
+    int GetNQueues() const;
 
-  /**
-   * Get a pointer to internal queue with specific id.
-   * \param queueId The queue id.
-   * \return The queue pointer.
-   * \internal This function is marked as const to allow its usage inside
-   *           DoPeek () member function.
-   */
-  Ptr<Queue<Packet> > GetQueue (int queueId) const;
+    /**
+     * Get a pointer to internal queue with specific id.
+     * \param queueId The queue id.
+     * \return The queue pointer.
+     * \internal This function is marked as const to allow its usage inside
+     *           DoPeek () member function.
+     */
+    Ptr<Queue<Packet>> GetQueue(int queueId) const;
 
-  /**
-   * Set the pointer to the internal ofsoftswitch13 port structure.
-   * \param port The port structure pointer.
-   */
-  void SetPortStruct (struct sw_port *port);
+    /**
+     * Set the pointer to the internal ofsoftswitch13 port structure.
+     * \param port The port structure pointer.
+     */
+    void SetPortStruct(struct sw_port* port);
 
-protected:
-  /** Destructor implementation. */
-  virtual void DoDispose ();
+  protected:
+    /** Destructor implementation. */
+    void DoDispose() override;
 
-  // Inherited from Object.
-  virtual void DoInitialize (void);
+    // Inherited from Object.
+    void DoInitialize() override;
 
-  /**
-   * Add a new internal queue to this OpenFlow queue interface.
-   * \param queue The queue pointer.
-   * \return The ID for this new internal queue.
-   */
-  uint32_t AddQueue (Ptr<Queue<Packet> > queue);
+    /**
+     * Add a new internal queue to this OpenFlow queue interface.
+     * \param queue The queue pointer.
+     * \return The ID for this new internal queue.
+     */
+    uint32_t AddQueue(Ptr<Queue<Packet>> queue);
 
-  /**
-   * Notify the parent class of a packet dequeued from any internal queue.
-   * \param packet The packet.
-   */
-  void NotifyDequeue (Ptr<Packet> packet);
+    /**
+     * Notify the parent class of a packet dequeued from any internal queue.
+     * \param packet The packet.
+     */
+    void NotifyDequeue(Ptr<Packet> packet);
 
-  /**
-   * Notify the parent class of a packet removed from any internal queue.
-   * \param packet The packet.
-   */
-  void NotifyRemove (Ptr<Packet> packet);
+    /**
+     * Notify the parent class of a packet removed from any internal queue.
+     * \param packet The packet.
+     */
+    void NotifyRemove(Ptr<Packet> packet);
 
-  // Values used for logging context.
-  uint64_t              m_dpId;       //!< OpenFlow datapath ID.
-  uint32_t              m_portNo;     //!< OpenFlow port number.
+    // Values used for logging context.
+    uint64_t m_dpId;   //!< OpenFlow datapath ID.
+    uint32_t m_portNo; //!< OpenFlow port number.
 
-private:
-  /** Structure to save the list of internal queues in this queue interface. */
-  typedef std::vector<Ptr<Queue> > QueueList_t;
+  private:
+    /** Structure to save the list of internal queues in this queue interface.
+     */
+    typedef std::vector<Ptr<Queue>> QueueList_t;
 
-  struct sw_port*       m_swPort;     //!< ofsoftswitch13 port structure.
-  QueueList_t           m_queues;     //!< List of internal queues.
+    struct sw_port* m_swPort; //!< ofsoftswitch13 port structure.
+    QueueList_t m_queues;     //!< List of internal queues.
 
-  NS_LOG_TEMPLATE_DECLARE;            //!< Redefinition of the log component.
+    NS_LOG_TEMPLATE_DECLARE; //!< Redefinition of the log component.
 };
 
 } // namespace ns3

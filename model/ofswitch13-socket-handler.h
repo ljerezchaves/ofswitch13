@@ -1,4 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2017 University of Campinas (Unicamp)
  *
@@ -15,20 +14,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
  */
 
 #ifndef OFSWITCH13_SOCKET_HANDLER_H
 #define OFSWITCH13_SOCKET_HANDLER_H
 
-#include <ns3/simulator.h>
+#include "ofswitch13-interface.h"
+
 #include <ns3/log.h>
 #include <ns3/packet.h>
+#include <ns3/simulator.h>
 #include <ns3/socket.h>
-#include "ofswitch13-interface.h"
+
 #include <queue>
 
-namespace ns3 {
+namespace ns3
+{
 
 /**
  * \ingroup ofswitch13
@@ -44,63 +46,63 @@ namespace ns3 {
  */
 class OFSwitch13SocketHandler : public Object
 {
-public:
-  /**
-   * Register this type.
-   * \return The object TypeId.
-   */
-  static TypeId GetTypeId (void);
+  public:
+    /**
+     * Register this type.
+     * \return The object TypeId.
+     */
+    static TypeId GetTypeId();
 
-  /**
-   * Complete constructor.
-   * \param socket The socket pointer.
-   */
-  OFSwitch13SocketHandler (Ptr<Socket> socket);
-  virtual ~OFSwitch13SocketHandler ();   //!< Dummy destructor, see DoDispose.
+    /**
+     * Complete constructor.
+     * \param socket The socket pointer.
+     */
+    OFSwitch13SocketHandler(Ptr<Socket> socket);
+    ~OFSwitch13SocketHandler() override; //!< Dummy destructor, see DoDispose.
 
-  /**
-   * \param packet The packet with the received OpenFlow message.
-   * \param sender The address of the sender.
-   */
-  typedef Callback <void, Ptr<Packet>, Address > MessageCallback;
+    /**
+     * \param packet The packet with the received OpenFlow message.
+     * \param sender The address of the sender.
+     */
+    typedef Callback<void, Ptr<Packet>, Address> MessageCallback;
 
-  /**
-   * Set the callback to invoke whenever an OpenFlow message has been received
-   * at the associated socket.
-   * \param cb The callback to invoke.
-   */
-  void SetReceiveCallback (MessageCallback cb);
+    /**
+     * Set the callback to invoke whenever an OpenFlow message has been received
+     * at the associated socket.
+     * \param cb The callback to invoke.
+     */
+    void SetReceiveCallback(MessageCallback cb);
 
-  /**
-   * Send an OpenFlow message to the TCP socket.
-   * \param packet The packet with the OpenFlow message.
-   * \return 0 if everything's ok, otherwise an error number.
-   */
-  int SendMessage (Ptr<Packet> packet);
+    /**
+     * Send an OpenFlow message to the TCP socket.
+     * \param packet The packet with the OpenFlow message.
+     * \return 0 if everything's ok, otherwise an error number.
+     */
+    int SendMessage(Ptr<Packet> packet);
 
-protected:
-  /** Destructor implementation */
-  virtual void DoDispose ();
+  protected:
+    /** Destructor implementation */
+    void DoDispose() override;
 
-private:
-  /**
-   * Callback for bytes available in tx buffer.
-   * \param socket The connected socket.
-   * \param available The number of bytes available into tx buffer.
-   */
-  void Send (Ptr<Socket> socket, uint32_t available);
+  private:
+    /**
+     * Callback for bytes available in tx buffer.
+     * \param socket The connected socket.
+     * \param available The number of bytes available into tx buffer.
+     */
+    void Send(Ptr<Socket> socket, uint32_t available);
 
-  /**
-   * Callback for bytes available in rx buffer.
-   * \param socket The connected socket.
-   */
-  void Recv (Ptr<Socket> socket);
+    /**
+     * Callback for bytes available in rx buffer.
+     * \param socket The connected socket.
+     */
+    void Recv(Ptr<Socket> socket);
 
-  Ptr<Socket>               m_socket;         //!< TCP socket.
-  Ptr<Packet>               m_pendingPacket;  //!< Buffer for receiving bytes.
-  uint32_t                  m_pendingBytes;   //!< Pending bytes for message.
-  MessageCallback           m_receivedMsg;    //!< OpenFlow message callback.
-  std::queue<Ptr<Packet> >  m_txQueue;        //!< TX queue.
+    Ptr<Socket> m_socket;              //!< TCP socket.
+    Ptr<Packet> m_pendingPacket;       //!< Buffer for receiving bytes.
+    uint32_t m_pendingBytes;           //!< Pending bytes for message.
+    MessageCallback m_receivedMsg;     //!< OpenFlow message callback.
+    std::queue<Ptr<Packet>> m_txQueue; //!< TX queue.
 };
 
 } // namespace ns3

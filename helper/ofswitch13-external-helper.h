@@ -1,4 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2017 University of Campinas (Unicamp)
  *
@@ -15,7 +14,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
  */
 
 #ifndef OFSWITCH13_EXTERNAL_HELPER_H
@@ -23,7 +22,8 @@
 
 #include <ns3/ofswitch13-helper.h>
 
-namespace ns3 {
+namespace ns3
+{
 
 class Node;
 class AttributeValue;
@@ -41,44 +41,43 @@ class OFSwitch13LearningController;
  */
 class OFSwitch13ExternalHelper : public OFSwitch13Helper
 {
-public:
-  OFSwitch13ExternalHelper ();          //!< Default constructor.
-  virtual ~OFSwitch13ExternalHelper (); //!< Dummy destructor, see DoDispose.
+  public:
+    OFSwitch13ExternalHelper();           //!< Default constructor.
+    ~OFSwitch13ExternalHelper() override; //!< Dummy destructor, see DoDispose.
 
-  /**
-   * Register this type.
-   * \return The object TypeId.
-   */
-  static TypeId GetTypeId (void);
+    /**
+     * Register this type.
+     * \return The object TypeId.
+     */
+    static TypeId GetTypeId();
 
-  // Inherited from OFSwitch13Helper.
-  void SetChannelType (ChannelType type);
-  void SetChannelDataRate (DataRate rate);
-  void CreateOpenFlowChannels (void);
+    // Inherited from OFSwitch13Helper.
+    void SetChannelType(ChannelType type) override;
+    void SetChannelDataRate(DataRate rate) override;
+    void CreateOpenFlowChannels() override;
 
-  /**
-   * This method prepares the controller node so it can be used to connect
-   * internal simulated switches to an external OpenFlow controller running on
-   * the local machine over a TapBridge device. It installs the TCP/IP stack
-   * into controller node, attach it to the common CSMA channel and configure
-   * IP address for it.
-   *
-   * \param cNode The node to configure as the controller.
-   * \return The network device to bind to the TapBridge.
-   */
-  Ptr<NetDevice> InstallExternalController (Ptr<Node> cNode);
+    /**
+     * This method prepares the controller node so it can be used to connect
+     * internal simulated switches to an external OpenFlow controller running on
+     * the local machine over a TapBridge device. It installs the TCP/IP stack
+     * into controller node, attach it to the common CSMA channel and configure
+     * IP address for it.
+     *
+     * \param cNode The node to configure as the controller.
+     * \return The network device to bind to the TapBridge.
+     */
+    Ptr<NetDevice> InstallExternalController(Ptr<Node> cNode);
 
-protected:
-  /** Destructor implementation. */
-  virtual void DoDispose ();
+  protected:
+    /** Destructor implementation. */
+    void DoDispose() override;
 
-private:
-  Ptr<CsmaChannel>          m_csmaChannel;      //!< Common CSMA channel.
-  Ptr<Node>                 m_controlNode;      //!< OF controller node.
-  uint16_t                  m_controlPort;      //!< OF controller TCP port.
-  Ipv4Address               m_controlAddr;      //!< OF IP controller addr.
+  private:
+    Ptr<CsmaChannel> m_csmaChannel; //!< Common CSMA channel.
+    Ptr<Node> m_controlNode;        //!< OF controller node.
+    uint16_t m_controlPort;         //!< OF controller TCP port.
+    Ipv4Address m_controlAddr;      //!< OF IP controller addr.
 };
 
 } // namespace ns3
 #endif /* OFSWITCH13_EXTERNAL_HELPER_H */
-

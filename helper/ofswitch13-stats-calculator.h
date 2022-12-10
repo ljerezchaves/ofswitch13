@@ -1,4 +1,3 @@
-/* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2017 University of Campinas (Unicamp)
  *
@@ -15,7 +14,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
  */
 
 #ifndef OFSWITCH13_STATS_CALCULATOR_H
@@ -23,7 +22,8 @@
 
 #include <ns3/ofswitch13-device.h>
 
-namespace ns3 {
+namespace ns3
+{
 
 /**
  * \ingroup ofswitch13
@@ -61,134 +61,134 @@ namespace ns3 {
  */
 class OFSwitch13StatsCalculator : public Object
 {
-public:
-  OFSwitch13StatsCalculator ();          //!< Default constructor.
-  virtual ~OFSwitch13StatsCalculator (); //!< Default destructor.
+  public:
+    OFSwitch13StatsCalculator();           //!< Default constructor.
+    ~OFSwitch13StatsCalculator() override; //!< Default destructor.
 
-  /**
-   * Register this type.
-   * \return The object TypeId.
-   */
-  static TypeId GetTypeId (void);
+    /**
+     * Register this type.
+     * \return The object TypeId.
+     */
+    static TypeId GetTypeId();
 
-  /**
-   * Hook switch device trace sources to internal stats calculator trace sinks.
-   * \param device The OpenFlow switch device to monitor.
-   */
-  void HookSinks (Ptr<OFSwitch13Device> device);
+    /**
+     * Hook switch device trace sources to internal stats calculator trace
+     * sinks. \param device The OpenFlow switch device to monitor.
+     */
+    void HookSinks(Ptr<OFSwitch13Device> device);
 
-  /**
-   * \name EWMA statistics calculators.
-   * Get the average metric values that are updated at every datapath timeout
-   * operation using an Exponentially Weighted Moving Average.
-   * \param tableId The pipeline table ID.
-   * \return The requested metric value.
-   */
-  //\{
-  uint32_t GetEwmaBufferEntries       (void) const;
-  DataRate GetEwmaCpuLoad             (void) const;
-  uint32_t GetEwmaFlowTableEntries    (uint8_t tableId) const;
-  uint32_t GetEwmaGroupTableEntries   (void) const;
-  uint32_t GetEwmaMeterTableEntries   (void) const;
-  Time     GetEwmaPipelineDelay       (void) const;
-  uint32_t GetEwmaSumFlowEntries      (void) const;
-  //\}
+    /**
+     * \name EWMA statistics calculators.
+     * Get the average metric values that are updated at every datapath timeout
+     * operation using an Exponentially Weighted Moving Average.
+     * \param tableId The pipeline table ID.
+     * \return The requested metric value.
+     */
+    //\{
+    uint32_t GetEwmaBufferEntries() const;
+    DataRate GetEwmaCpuLoad() const;
+    uint32_t GetEwmaFlowTableEntries(uint8_t tableId) const;
+    uint32_t GetEwmaGroupTableEntries() const;
+    uint32_t GetEwmaMeterTableEntries() const;
+    Time GetEwmaPipelineDelay() const;
+    uint32_t GetEwmaSumFlowEntries() const;
+    //\}
 
-  /**
-   * \name Datapath usage statistics.
-   * Get the usage statistics for datapath resources considering the EWMA
-   * values and resources size. For the flow table usage, only those tables
-   * with active flow entries are considered when calculating the average
-   * usage value.
-   * \param tableId The pipeline table ID.
-   * \return The requested metric value.
-   */
-  //\{
-  uint32_t GetAvgBufferUsage       (void) const;
-  uint32_t GetAvgCpuUsage          (void) const;
-  uint32_t GetAvgFlowTableUsage    (uint8_t tableId) const;
-  uint32_t GetAvgGroupTableUsage   (void) const;
-  uint32_t GetAvgMeterTableUsage   (void) const;
-  uint32_t GetAvgActFlowTableUsage (void) const;
-  //\}
+    /**
+     * \name Datapath usage statistics.
+     * Get the usage statistics for datapath resources considering the EWMA
+     * values and resources size. For the flow table usage, only those tables
+     * with active flow entries are considered when calculating the average
+     * usage value.
+     * \param tableId The pipeline table ID.
+     * \return The requested metric value.
+     */
+    //\{
+    uint32_t GetAvgBufferUsage() const;
+    uint32_t GetAvgCpuUsage() const;
+    uint32_t GetAvgFlowTableUsage(uint8_t tableId) const;
+    uint32_t GetAvgGroupTableUsage() const;
+    uint32_t GetAvgMeterTableUsage() const;
+    uint32_t GetAvgActFlowTableUsage() const;
+    //\}
 
-protected:
-  /** Destructor implementation. */
-  virtual void DoDispose ();
+  protected:
+    /** Destructor implementation. */
+    void DoDispose() override;
 
-  // Inherited from ObjectBase.
-  virtual void NotifyConstructionCompleted (void);
+    // Inherited from ObjectBase.
+    void NotifyConstructionCompleted() override;
 
-private:
-  /**
-   * Notify when a datapath timeout operation is completed.
-   * \param device The OpenFlow device pointer.
-   */
-  void NotifyDatapathTimeout (Ptr<const OFSwitch13Device> device);
+  private:
+    /**
+     * Notify when a datapath timeout operation is completed.
+     * \param device The OpenFlow device pointer.
+     */
+    void NotifyDatapathTimeout(Ptr<const OFSwitch13Device> device);
 
-  /**
-   * Notify when a packet is dropped due to pipeline load.
-   * \param packet The packet.
-   */
-  void NotifyOverloadDrop (Ptr<const Packet> packet);
+    /**
+     * Notify when a packet is dropped due to pipeline load.
+     * \param packet The packet.
+     */
+    void NotifyOverloadDrop(Ptr<const Packet> packet);
 
-  /**
-   * Notify when a packet is dropped by a meter band.
-   * \param packet The packet.
-   * \param meterId The meter ID.
-   */
-  void NotifyMeterDrop (Ptr<const Packet> packet, uint32_t meterId);
+    /**
+     * Notify when a packet is dropped by a meter band.
+     * \param packet The packet.
+     * \param meterId The meter ID.
+     */
+    void NotifyMeterDrop(Ptr<const Packet> packet, uint32_t meterId);
 
-  /**
-   * Notify when an unmatched packet is dropped by a flow table without a
-   * table-miss entry.
-   * \param packet The packet.
-   * \param tableId The flow table ID.
-   */
-  void NotifyTableDrop (Ptr<const Packet> packet, uint8_t tableId);
+    /**
+     * Notify when an unmatched packet is dropped by a flow table without a
+     * table-miss entry.
+     * \param packet The packet.
+     * \param tableId The flow table ID.
+     */
+    void NotifyTableDrop(Ptr<const Packet> packet, uint8_t tableId);
 
-  /**
-   * Notify when a packet is sent to pipeline.
-   * \param packet The packet.
-   */
-  void NotifyPipelinePacket (Ptr<const Packet> packet);
+    /**
+     * Notify when a packet is sent to pipeline.
+     * \param packet The packet.
+     */
+    void NotifyPipelinePacket(Ptr<const Packet> packet);
 
-  /**
-   * Read statistics from switch, update internal counters,
-   * and dump data into output file.
-   */
-  void DumpStatistics (void);
+    /**
+     * Read statistics from switch, update internal counters,
+     * and dump data into output file.
+     */
+    void DumpStatistics();
 
-  Ptr<OFSwitch13Device>     m_device;       //!< OpenFlow switch device.
-  Ptr<OutputStreamWrapper>  m_wrapper;      //!< Output file wrapper.
-  std::string               m_filename;     //!< Output file name.
-  Time                      m_timeout;      //!< Update timeout.
-  Time                      m_lastUpdate;   //!< Last update time.
-  double                    m_alpha;        //!< EWMA alpha parameter.
-  bool                      m_details;      //!< Pipeline table details.
+    Ptr<OFSwitch13Device> m_device;     //!< OpenFlow switch device.
+    Ptr<OutputStreamWrapper> m_wrapper; //!< Output file wrapper.
+    std::string m_filename;             //!< Output file name.
+    Time m_timeout;                     //!< Update timeout.
+    Time m_lastUpdate;                  //!< Last update time.
+    double m_alpha;                     //!< EWMA alpha parameter.
+    bool m_details;                     //!< Pipeline table details.
 
-  /** \name Internal counters, average values, and updated flags. */
-  //\{
-  double    m_ewmaBufferEntries;
-  double    m_ewmaCpuLoad;
-  double    m_ewmaGroupEntries;
-  double    m_ewmaMeterEntries;
-  double    m_ewmaPipelineDelay;
-  double    m_ewmaSumFlowEntries;
+    /** \name Internal counters, average values, and updated flags. */
+    //\{
+    double m_ewmaBufferEntries;
+    double m_ewmaCpuLoad;
+    double m_ewmaGroupEntries;
+    double m_ewmaMeterEntries;
+    double m_ewmaPipelineDelay;
+    double m_ewmaSumFlowEntries;
 
-  std::vector<double> m_ewmaFlowEntries;
+    std::vector<double> m_ewmaFlowEntries;
 
-  uint64_t  m_bytes;
-  uint64_t  m_lastFlowMods;
-  uint64_t  m_lastGroupMods;
-  uint64_t  m_lastMeterMods;
-  uint64_t  m_lastPacketsIn;
-  uint64_t  m_lastPacketsOut;
-  uint64_t  m_loadDrops;
-  uint64_t  m_meterDrops;
-  uint64_t  m_tableDrops;
-  uint64_t  m_packets;
-  //\}
+    uint64_t m_bytes;
+    uint64_t m_lastFlowMods;
+    uint64_t m_lastGroupMods;
+    uint64_t m_lastMeterMods;
+    uint64_t m_lastPacketsIn;
+    uint64_t m_lastPacketsOut;
+    uint64_t m_loadDrops;
+    uint64_t m_meterDrops;
+    uint64_t m_tableDrops;
+    uint64_t m_packets;
+    //\}
 };
 
 } // namespace ns3

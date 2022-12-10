@@ -1,4 +1,3 @@
-/* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2015 University of Campinas (Unicamp)
  *
@@ -15,7 +14,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Luciano Chaves <luciano@lrc.ic.unicamp.br>
+ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
  */
 
 #ifndef TUNNEL_ID_TAG_H
@@ -23,7 +22,8 @@
 
 #include <ns3/tag.h>
 
-namespace ns3 {
+namespace ns3
+{
 
 class Tag;
 
@@ -34,41 +34,40 @@ class Tag;
  */
 class TunnelIdTag : public Tag
 {
-public:
-  /**
-   * Register this type.
-   * \return The object TypeId.
-   */
-  static TypeId GetTypeId (void);
-  virtual TypeId GetInstanceTypeId (void) const;
+  public:
+    /**
+     * Register this type.
+     * \return The object TypeId.
+     */
+    static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
 
-  TunnelIdTag ();            //!< Default constructor
+    TunnelIdTag(); //!< Default constructor
 
-  /**
-   * Complete constructor.
-   * \param id The tunnel metadata information.
-   */
-  TunnelIdTag (uint64_t id);
+    /**
+     * Complete constructor.
+     * \param id The tunnel metadata information.
+     */
+    TunnelIdTag(uint64_t id);
 
-  /**
-   * Set the internal tunnel metadata information.
-   * \param id The tunnel metadata information.
-   */
-  void SetTunnelId (uint64_t id);
+    /**
+     * Set the internal tunnel metadata information.
+     * \param id The tunnel metadata information.
+     */
+    void SetTunnelId(uint64_t id);
 
-  /** \return The tunnel metadata information */
-  uint64_t GetTunnelId (void) const;
+    /** \return The tunnel metadata information */
+    uint64_t GetTunnelId() const;
 
-  // Inherited from Tag
-  virtual void Serialize (TagBuffer i) const;
-  virtual void Deserialize (TagBuffer i);
-  virtual uint32_t GetSerializedSize () const;
-  virtual void Print (std::ostream &os) const;
+    // Inherited from Tag
+    void Serialize(TagBuffer i) const override;
+    void Deserialize(TagBuffer i) override;
+    uint32_t GetSerializedSize() const override;
+    void Print(std::ostream& os) const override;
 
-private:
-  uint64_t m_tunnelId;      //!< Tunnel metadata information.
+  private:
+    uint64_t m_tunnelId; //!< Tunnel metadata information.
 };
 
 } // namespace ns3
 #endif // TUNNEL_ID_TAG_H
-
