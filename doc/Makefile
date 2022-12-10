@@ -1,43 +1,46 @@
 EPSTOPDF = epstopdf
 DIA = dia
-CONVERT = convert -density 250
+CONVERT = convert
 
 SOURCE = source
 FIGURES = $(SOURCE)/figures
 
-# specify eps figures from which .png and .pdf figures need to be built
+# specify figures from which .png and .pdf figures need to be
+# generated (all dia and eps figures)
 IMAGES_EPS = \
-	$(FIGURES)/ofswitch13-controller.eps \
-	$(FIGURES)/ofswitch13-library.eps \
 	$(FIGURES)/ofswitch13-module.eps \
+	$(FIGURES)/ofswitch13-switch.eps \
+	$(FIGURES)/ofswitch13-controller.eps \
 	$(FIGURES)/ofswitch13-qos-topology.eps \
-	$(FIGURES)/ofswitch13-queue.eps \
-	$(FIGURES)/ofswitch13-switch.eps
-
-# specify .png or .pdf figures that don't need to be built
-IMAGES_NOBUILD =
 
 # rescale pdf figures as necessary
-$(FIGURES)/ofswitch13-controller.pdf_width = 10cm
-$(FIGURES)/ofswitch13-library.pdf_width = 14cm
-$(FIGURES)/ofswitch13-module.pdf_width = 14cm
-$(FIGURES)/ofswitch13-qos-topology.pdf_width = 12cm
-$(FIGURES)/ofswitch13-queue.pdf_width = 10cm
+$(FIGURES)/ofswitch13-module.pdf_width = 12cm
 $(FIGURES)/ofswitch13-switch.pdf_width = 10cm
+$(FIGURES)/ofswitch13-controller.pdf_width = 10cm
+$(FIGURES)/ofswitch13-qos-topology.pdf_width = 12cm
 
-IMAGES_BUILD = \
-	${IMAGES_EPS:.eps=.png} \
-	${IMAGES_EPS:.eps=.pdf} 
+IMAGES_PNG = ${IMAGES_EPS:.eps=.png}
+IMAGES_PDF = ${IMAGES_EPS:.eps=.pdf}
 
-IMAGES = $(IMAGES_NOBUILD) $(IMAGES_BUILD)
+IMAGES = $(IMAGES_PNG) $(IMAGES_PDF)
 
 RESCALE = ../../../utils/rescale-pdf.sh
 
-%.eps : %.dia; $(DIA) -t eps $< -e $@
-%.png : %.dia; $(DIA) -t png $< -e $@
-%.png : %.eps; $(CONVERT) $< $@
+%.eps : %.dia
+	@echo dia $(notdir $<)
+	@$(DIA) -t eps $< -e $@ >/dev/null
+
+%.png : %.dia
+	@echo dia $(notdir $<)
+	@$(DIA) -t png $< -e $@ >/dev/null
+
+%.png : %.eps
+	@echo convert $(notdir $<)
+	@$(CONVERT) $< $@ >/dev/null
+
 %.pdf : %.eps
-	$(EPSTOPDF) $< -o=$@
+	@echo epstopdf $(notdir $<)
+	@$(EPSTOPDF) $< -o=$@ >/dev/null
 	@if test x$($@_width) != x; then $(RESCALE) $($@_width) $@ ; fi
 
 # You can set these variables from the command line.
@@ -74,9 +77,9 @@ help:
 
 clean:
 	-rm -rf $(BUILDDIR)/*
-	-rm -f $(IMAGES_BUILD)
+	-rm -f $(IMAGES)
 
-images: $(IMAGES_NOBUILD) $(IMAGES_BUILD)
+images:  $(IMAGES)
 
 frag: pickle
 	@if test ! -d $(BUILDDIR)/frag; then mkdir $(BUILDDIR)/frag; fi
