@@ -4,14 +4,14 @@ OFSwitch13 release notes
 
 This file contains OFSwitch13 release notes (most recent releases first).
 
-Release 5.1.0 (XXX XX, 2022)
+Release 5.1.0 (Dec 10, 2022)
 ============================
 
-- Updating the build system to work with CMake.
+- Updating the build system to work with CMake to match ns-3.36.
 
-- Updating the module documentation and removing outdated figure.
+- Updating the source code formatting to match ns-3.37.
 
-- Updating code formatting to match ns-3.37 specifications.
+- Updating the module documentation, removing outdated figures.
 
 - Fixing errors when compiling the project with gcc 11.3.0 in Ubuntu 22.04.1.
 
@@ -33,7 +33,7 @@ Release 5.0.1 (Dec 20, 2021)
   ns-3 version 3.31 to 3.35 (including patches). There is no backward
   compatibility with older ns-3 versions.
 
-- Compilation was tested in Ubuntu 20.04.3.
+- Compilation was tested in Ubuntu 20.04.3 LTS.
 
 
 Release 5.0.0 (Dec 19, 2021)
