@@ -4,6 +4,21 @@ OFSwitch13 release notes
 
 This file contains OFSwitch13 release notes (most recent releases first).
 
+Release 5.1.0 (XXX XX, 2022)
+============================
+
+- Updating the build system to work with CMake.
+
+- Updating the module documentation and removing outdated figure.
+
+- Fixing errors when compiling the project with gcc 11.3.0 in Ubuntu 22.04.1.
+
+- This version is compatible with ofsoftswitch13 library release v5.1.x and
+  ns-3 versions 3.36 and 3.37 (including patches). There is no backward
+  compatibility with older ns-3 versions.
+
+- Compilation was tested in Ubuntu 22.04.1 LTS.
+
 
 Release 5.0.1 (Dec 20, 2021)
 ============================
@@ -13,7 +28,7 @@ Release 5.0.1 (Dec 20, 2021)
 - Removing DL library dependency to prevent issues with boost library.
 
 - This version is compatible with ofsoftswitch13 library release v5.0.x and
-  ns-3 version 3.31 to 3.35 (including patch). There is no backward
+  ns-3 version 3.31 to 3.35 (including patches). There is no backward
   compatibility with older ns-3 versions.
 
 - Compilation was tested in Ubuntu 20.04.3.
