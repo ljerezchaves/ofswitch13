@@ -13,6 +13,8 @@ Release 5.1.0 (Dec 10, 2022)
 
 - Updating the module documentation, removing outdated figures.
 
+- New CSMA full-duplex patch for improved channel operation.
+
 - Fixing errors when compiling the project with gcc 11.3.0 in Ubuntu 22.04.1.
 
 - This version is compatible with ofsoftswitch13 library release v5.1.x and
