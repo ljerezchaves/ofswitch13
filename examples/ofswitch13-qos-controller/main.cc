@@ -257,7 +257,7 @@ main (int argc, char *argv[])
 
   // Set NetAnim icon images and size
   char cwd [1024];
-  if (getcwd (cwd, sizeof (cwd)) != NULL)
+  if (getcwd (cwd, sizeof (cwd)) != nullptr)
     {
       std::string path = std::string (cwd) +
         "/src/ofswitch13/examples/ofswitch13-qos-controller/images/";
