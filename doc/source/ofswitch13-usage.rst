@@ -355,7 +355,7 @@ When necessary, it is also possible to enable the internal |ofslib| library ASCI
 
 #. The simplified ``OFSwitch13Helper::EnableDatapathLogs()`` static method dumps messages at debug level for all library internal modules into the output file (users can set the filename prefix);
 
-#. The advanced ``ofs::EnableLibraryLog()`` method allow users to define the target log facility (the console or a file), set the filename, and also customize the logging levels for different library internal modules.
+#. The advanced ``EnableBofussLog()`` method allow users to define the target log facility (the console or a file), set the filename, and also customize the logging levels for different library internal modules.
 
 .. _port-coding:
 

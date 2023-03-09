@@ -271,7 +271,7 @@ OFSwitch13Helper::EnableDatapathLogs(std::string prefix, bool explicitFilename)
     NS_LOG_FUNCTION_NOARGS();
 
     // Saving library logs into output file.
-    ofs::EnableLibraryLog(true, prefix, explicitFilename);
+    EnableBofussLog(true, prefix, explicitFilename);
 }
 
 void

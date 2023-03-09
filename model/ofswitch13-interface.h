@@ -90,10 +90,10 @@ typedef void (*OpenFlowCallback)(Ptr<Packet> packet);
  * \param explicitFilename Treat the prefix as an explicit filename if true.
  * \param customLevels Custom vlog levels mod1[:facility[:level]] mod2[...
  */
-void EnableLibraryLog(bool printToFile = false,
-                      std::string prefix = "",
-                      bool explicitFilename = false,
-                      std::string customLevels = "");
+void EnableBofussLog(bool printToFile = false,
+                     std::string prefix = "",
+                     bool explicitFilename = false,
+                     std::string customLevels = "");
 
 /**
  * \ingroup ofswitch13

@@ -28,10 +28,10 @@ namespace ns3
 NS_LOG_COMPONENT_DEFINE("OFSwitch13Interface");
 
 void
-EnableLibraryLog(bool printToFile,
-                 std::string prefix,
-                 bool explicitFilename,
-                 std::string customLevels)
+EnableBofussLog(bool printToFile,
+                std::string prefix,
+                bool explicitFilename,
+                std::string customLevels)
 {
     vlog_init();
     vlog_set_pattern(VLF_ANY_FACILITY, "%d{%ss} [%c|%p] %m");
