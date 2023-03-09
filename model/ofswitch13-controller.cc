@@ -109,17 +109,6 @@ OFSwitch13Controller::DpctlExecute(uint64_t dpId, const std::string textCmd)
     char** argv = cmd.we_wordv;
     size_t argc = cmd.we_wordc;
 
-    // Check for unsupported commands.
-    if ((strcmp(argv[0], "ping") == 0) || (strcmp(argv[0], "monitor") == 0) ||
-        (strcmp(argv[0], "set-desc") == 0) ||
-        (strcmp(argv[0], "queue-mod") == 0) ||
-        (strcmp(argv[0], "queue-del") == 0))
-    {
-        NS_LOG_ERROR("Dpctl experimenter command currently not supported.");
-        wordfree(&cmd);
-        return EXIT_FAILURE;
-    }
-
     // Execute the command.
     int ret = dpctl_exec_ns3_command((void*)PeekPointer(swtch), argc, argv);
     wordfree(&cmd);
@@ -226,7 +215,7 @@ OFSwitch13Controller::SendToSwitch(Ptr<const RemoteSwitch> swtch,
     }
 
     // Create the packet from the OpenFlow message and send it to the switch.
-    return swtch->m_handler->SendMessage(ofs::PacketFromMsg(msg, xid));
+    return swtch->m_handler->SendMessage(PacketFromMsg(msg, xid));
 }
 
 void
@@ -600,7 +589,7 @@ OFSwitch13Controller::ReceiveFromSwitch(Ptr<Packet> packet, Address from)
     ofl_err error;
 
     // Get the openflow buffer, unpack the message and send to message handler
-    struct ofpbuf* buffer = ofs::BufferFromPacket(packet, packet->GetSize());
+    struct ofpbuf* buffer = BufferFromPacket(packet, packet->GetSize());
     error = ofl_msg_unpack((uint8_t*)buffer->data,
                            buffer->size,
                            &msg,

@@ -56,7 +56,7 @@ OFSwitch13PriorityQueue::GetTypeId()
                 TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                 UintegerValue(1),
                 MakeUintegerAccessor(&OFSwitch13PriorityQueue::m_numQueues),
-                MakeUintegerChecker<int>(1, NETDEV_MAX_QUEUES))
+                MakeUintegerChecker<int>(1, PORT_MAX_QUEUES))
             .AddAttribute("QueueFactory",
                           "The object factory for internal priority queues.",
                           TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,

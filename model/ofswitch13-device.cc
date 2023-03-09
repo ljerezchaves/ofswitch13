@@ -548,7 +548,7 @@ OFSwitch13Device::SendOpenflowBufferToRemote(struct ofpbuf* buffer,
                                              struct remote* remote)
 {
     Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice(remote->dp->id);
-    Ptr<Packet> packet = ofs::PacketFromBuffer(buffer);
+    Ptr<Packet> packet = PacketFromBuffer(buffer);
     Ptr<RemoteController> remoteCtrl = dev->GetRemoteController(remote);
 
     ofpbuf_delete(buffer);
@@ -760,11 +760,6 @@ OFSwitch13Device::DatapathNew()
 
     // unused
     dp->generation_id = -1;
-    dp->listeners = nullptr;
-    dp->n_listeners = 0;
-    dp->listeners_aux = nullptr;
-    dp->n_listeners_aux = 0;
-    // unused
 
     memset(dp->ports, 0x00, sizeof(dp->ports));
     dp->local_port = nullptr;
@@ -781,7 +776,7 @@ OFSwitch13Device::DatapathNew()
 
     list_init(&dp->port_list);
     dp->ports_num = 0;
-    dp->max_queues = NETDEV_MAX_QUEUES;
+    dp->max_queues = PORT_MAX_QUEUES;
     dp->exp = nullptr;
 
     dp->config.flags =
@@ -974,7 +969,7 @@ OFSwitch13Device::SendToSwitchPort(struct packet* pkt,
             // Create a new packet with modified data and copy tags from the
             // original packet.
             NS_LOG_DEBUG("Packet " << pkt->ns3_uid << " modified by switch.");
-            packet = ofs::PacketFromBuffer(pkt->buffer);
+            packet = PacketFromBuffer(pkt->buffer);
             OFSwitch13Device::CopyTags(m_pipePkt.GetPacket(), packet);
         }
         else
@@ -989,7 +984,7 @@ OFSwitch13Device::SendToSwitchPort(struct packet* pkt,
         // the switch within an OpenFlow packet-out message.
         NS_ASSERT_MSG(pkt->ns3_uid == 0, "Invalid packet ID.");
         NS_LOG_DEBUG("Creating new ns-3 packet from OpenFlow buffer.");
-        packet = ofs::PacketFromBuffer(pkt->buffer);
+        packet = PacketFromBuffer(pkt->buffer);
     }
 
     // Send the packet to switch port.
@@ -1009,7 +1004,7 @@ OFSwitch13Device::SendToPipeline(Ptr<Packet> packet,
     // Allocate buffer with some extra space for OpenFlow packet modifications.
     uint32_t headRoom = 128 + 2;
     uint32_t bodyRoom = packet->GetSize() + VLAN_ETH_HEADER_LEN;
-    struct ofpbuf* buffer = ofs::BufferFromPacket(packet, bodyRoom, headRoom);
+    struct ofpbuf* buffer = BufferFromPacket(packet, bodyRoom, headRoom);
     struct packet* pkt =
         packet_create(m_datapath, portNo, buffer, tunnelId, false);
 
@@ -1052,7 +1047,7 @@ OFSwitch13Device::ReceiveFromController(Ptr<Packet> packet, Address from)
     senderCtrl.conn_id = 0; // TODO No support for auxiliary connections
 
     // Get the OpenFlow buffer and unpack the message.
-    struct ofpbuf* buffer = ofs::BufferFromPacket(packet, packet->GetSize());
+    struct ofpbuf* buffer = BufferFromPacket(packet, packet->GetSize());
     error = ofl_msg_unpack((uint8_t*)buffer->data,
                            buffer->size,
                            &msg,
@@ -1180,7 +1175,7 @@ OFSwitch13Device::SocketCtrlSucceeded(Ptr<Socket> socket)
 
     NS_LOG_INFO("Controller accepted connection request!");
     Ptr<RemoteController> remoteCtrl = GetRemoteController(socket);
-    remoteCtrl->m_remote = remote_create(m_datapath, nullptr, nullptr);
+    remoteCtrl->m_remote = remote_create(m_datapath);
 
     // As we have more than one socket that is used for communication between
     // this OpenFlow switch device and controllers, we need to handle the

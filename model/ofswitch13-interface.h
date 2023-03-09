@@ -18,19 +18,17 @@
  */
 
 /**
- * \defgroup ofswitch13 OpenFlow 1.3 softswitch
+ * \defgroup ofswitch13 OpenFlow 1.3 software switch
  *
  * This section documents the API of the ns-3 OpenFlow 1.3 compatible switch
  * and controller interface. It follows the OpenFlow 1.3 switch specification
  * <https://www.opennetworking.org/sdn-resources/technical-library>.
- * It depends on the CPqD ofsoftswitch13 software switch available at
+ * It depends on the CPqD bofuss software switch available at
  * <https://github.com/ljerezchaves/ofsoftswitch13>, compiled as a library.
  * Check the manual for tutorials on how to compile and use this module.
  */
 #ifndef OFSWITCH13_INTERFACE_H
 #define OFSWITCH13_INTERFACE_H
-
-#include "openflow/openflow.h"
 
 #include <ns3/csma-module.h>
 #include <ns3/log.h>
@@ -38,58 +36,38 @@
 #include <ns3/simulator.h>
 #include <ns3/socket.h>
 
-#include <boost/static_assert.hpp>
-#include <cassert>
-
 extern "C"
 {
-// Workaround, as ofsoftswitch13 uses these two reserved words as member names
-#define private _private
-#define delete _delete
-#define list List
-
-#include "lib/ofpbuf.h"
-#include "lib/timeval.h"
-#include "lib/vlog.h"
-#include "oflib/ofl-actions.h"
-#include "oflib/ofl-messages.h"
-#include "oflib/ofl-print.h"
-#include "oflib/ofl-structs.h"
-#include "oflib/oxm-match.h"
-#include "udatapath/action_set.h"
-#include "udatapath/datapath.h"
-#include "udatapath/dp_actions.h"
-#include "udatapath/dp_buffers.h"
-#include "udatapath/dp_control.h"
-#include "udatapath/dp_ports.h"
-#include "udatapath/flow_entry.h"
-#include "udatapath/flow_table.h"
-#include "udatapath/group_entry.h"
-#include "udatapath/group_table.h"
-#include "udatapath/match_std.h"
-#include "udatapath/meter_entry.h"
-#include "udatapath/meter_table.h"
-#include "udatapath/packet.h"
-#include "udatapath/packet_handle_std.h"
-#include "udatapath/pipeline.h"
-#include "utilities/dpctl.h"
-
-    // From udatapath/datapath.c
-    struct remote* remote_create(struct datapath* dp,
-                                 struct rconn* rconn,
-                                 struct rconn* rconn_aux);
-
-    // From udatapath/dp_ports.c
-    uint32_t port_speed(uint32_t conf);
-
-#undef list
-#undef private
-#undef delete
+#include <bofuss/action_set.h>
+#include <bofuss/datapath.h>
+#include <bofuss/dp_actions.h>
+#include <bofuss/dp_buffers.h>
+#include <bofuss/dp_control.h>
+#include <bofuss/dp_ports.h>
+#include <bofuss/dpctl.h>
+#include <bofuss/flow_entry.h>
+#include <bofuss/flow_table.h>
+#include <bofuss/group_entry.h>
+#include <bofuss/group_table.h>
+#include <bofuss/match_std.h>
+#include <bofuss/meter_entry.h>
+#include <bofuss/meter_table.h>
+#include <bofuss/ofl-actions.h>
+#include <bofuss/ofl-err.h>
+#include <bofuss/ofl-messages.h>
+#include <bofuss/ofl-print.h>
+#include <bofuss/ofl-structs.h>
+#include <bofuss/ofpbuf.h>
+#include <bofuss/openflow.h>
+#include <bofuss/oxm-match.h>
+#include <bofuss/packet_handle_std.h>
+#include <bofuss/packet.h>
+#include <bofuss/pipeline.h>
+#include <bofuss/timeval.h>
+#include <bofuss/vlog.h>
 }
 
 namespace ns3
-{
-namespace ofs
 {
 
 /**
@@ -103,14 +81,14 @@ typedef void (*OpenFlowCallback)(Ptr<Packet> packet);
 
 /**
  * \ingroup ofswitch13
- * Enable the logging system of the ofsoftswitch13 library.
+ * Enable the logging system of the bofuss library.
  * By default, it will configure de logging system for maximum verbose dump on
  * console. You can set the \p printToFile parameter to dump messages to file
  * instead.
  * \param printToFile Dump log messages to file instead of console.
  * \param prefix Filename prefix to use for log files.
  * \param explicitFilename Treat the prefix as an explicit filename if true.
- * \param customLevels Customize vlog levels.
+ * \param customLevels Custom vlog levels mod1[:facility[:level]] mod2[...
  */
 void EnableLibraryLog(bool printToFile = false,
                       std::string prefix = "",
@@ -119,10 +97,9 @@ void EnableLibraryLog(bool printToFile = false,
 
 /**
  * \ingroup ofswitch13
- * Create an internal ofsoftswitch13 buffer from ns3::Packet. Takes a
+ * Create an internal bofuss buffer from ns3::Packet. Takes a
  * Ptr<Packet> and generates a buffer (struct ofpbuf*) from it, loading the
  * packet data as well as its headers into the buffer.
- * \see ofsoftswitch13 function netdev_recv () at lib/netdev.c
  * \param packet The ns-3 packet.
  * \param bodyRoom The size to allocate for data.
  * \param headRoom The size to allocate for headers (left unitialized).
@@ -145,7 +122,7 @@ Ptr<Packet> PacketFromMsg(struct ofl_msg_header* msg, uint32_t xid = 0);
 
 /**
  * \ingroup ofswitch13
- * Create a new ns3::Packet from internal ofsoftswitch13 buffer. Takes a buffer
+ * Create a new ns3::Packet from internal bofuss buffer. Takes a buffer
  * (struct ofpbuf*) and generates a Ptr<Packet> from it, load the data as well
  * as its headers into the packet.
  * \param buffer The internal buffer.
@@ -153,6 +130,5 @@ Ptr<Packet> PacketFromMsg(struct ofl_msg_header* msg, uint32_t xid = 0);
  */
 Ptr<Packet> PacketFromBuffer(struct ofpbuf* buffer);
 
-} // namespace ofs
 } // namespace ns3
 #endif /* OFSWITCH13_INTERFACE_H */
