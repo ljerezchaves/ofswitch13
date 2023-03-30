@@ -73,13 +73,19 @@ if(NOT bofuss_FOUND AND NOT ${bofuss_FOUND})
   ExternalProject_Add(
     bofuss_dep
     GIT_REPOSITORY https://github.com/ljerezchaves/ofsoftswitch13.git
-    GIT_TAG f66bde6f83f648a48f121757db9cea5f718332a2
+    GIT_TAG 41f1dbfcdaef2489ab2c2980be89a7483e6a5650
     PREFIX bofuss_dep
     BUILD_IN_SOURCE TRUE
     UPDATE_DISCONNECTED TRUE
-    CONFIGURE_COMMAND autoreconf --install && ./configure --prefix ${CMAKE_OUTPUT_DIRECTORY}
+    CONFIGURE_COMMAND ./configure --prefix ${CMAKE_OUTPUT_DIRECTORY}
     BUILD_COMMAND make -j${NumThreads}
     INSTALL_COMMAND make install
+    LOG_DOWNLOAD true
+    LOG_UPDATE true
+    LOG_CONFIGURE true
+    LOG_BUILD true
+    LOG_INSTALL true
+    LOG_OUTPUT_ON_FAILURE true
   )
 
   set(bofuss_LIBRARIES bofuss)
