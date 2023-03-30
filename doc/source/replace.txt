@@ -4,5 +4,5 @@
 
 .. |ofs13| replace:: *OFSwitch13*
 
-.. |ofslib| replace:: *ofsoftswitch13*
+.. |bofuss| replace:: *BOFUSS*
 
