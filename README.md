@@ -1,7 +1,5 @@
 # OpenFlow 1.3 module for ns-3 #
-This is the OFSwitch13 module, which enhances the [ns-3 Network Simulator][ns-3] with [OpenFlow 1.3][ofp13] capabilities, allowing ns-3 users to simulate Software-Defined Networks (SDN). 
-In fact, this module implements the interface for interconnecting the ns-3 simulator to the [OpenFlow 1.3 Software Switch for ns-3][ofs13] (BOFUSS) library.
-It is the library that, in fact, provides the switch implementation, the library for converting to/from OpenFlow 1.3 wire format, and the dpctl tool for configuring the switch from the console.
+This is the OFSwitch13 module, which enhances the [ns-3 Network Simulator][ns-3] with [OpenFlow 1.3][ofp13] capabilities, allowing ns-3 users to simulate Software-Defined Networks (SDN). In fact, this module implements the interface for interconnecting the ns-3 simulator to the [BOFUSS library][ofs13]. It is the library that, in fact, provides the switch implementation, the support for converting to/from OpenFlow 1.3 wire format, and the dpctl tool for configuring the switch from the console.
 
 Please, visit the [OFSwitch13 project homepage][project] for detailed information on the module design, documentation, and *how to get started* tutorials.
 The code API documentation for the latest release of this project is available [here][apidoc].
