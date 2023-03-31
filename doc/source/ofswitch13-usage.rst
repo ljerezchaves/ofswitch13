@@ -32,13 +32,13 @@ Before starting, ensure you have the following minimal requirements installed on
 Compiling the code
 ##################
 
-Clone the |ns3| source code repository into your machine and checkout a stable version (we are using the ns-3.37):
+Clone the |ns3| source code repository into your machine and checkout a stable version (we are using the ns-3.38):
 
 .. code-block:: bash
 
   $ git clone https://gitlab.com/nsnam/ns-3-dev.git
   $ cd ns-3-dev
-  $ git checkout -b ns-3.37 ns-3.37
+  $ git checkout -b ns-3.38 ns-3.38
 
 Download the |ofs13| code into the ``contrib/`` folder.
 
@@ -47,7 +47,7 @@ Download the |ofs13| code into the ``contrib/`` folder.
   $ cd contrib/
   $ git clone https://github.com/ljerezchaves/ofswitch13.git
 
-Update the |ofs13| code to a stable version (we are using release 5.2.0, which is compatible with ns-3.37) [#f2]_:
+Update the |ofs13| code to a stable version (we are using release 5.2.1, which is compatible with ns-3.38) [#f2]_:
 
 .. [#f2] Starting at |ofs13| release 5.2.0, the ``cmake`` build system will automatically download and compile the correct version of |bofuss| library (Internet connection is required).
          For older |ofs13| releases, we suggest you check the documentation and follow the proper build steps.
@@ -55,14 +55,14 @@ Update the |ofs13| code to a stable version (we are using release 5.2.0, which i
 .. code-block:: bash
 
   $ cd ofswitch13
-  $ git checkout 5.2.0
+  $ git checkout 5.2.1
 
 Go back to the |ns3| root directory and patch the |ns3| code with the appropriated ``ofswitch13`` patch available under the ``ofswitch13/utils/`` directory (check for the correct |ns3| version):
 
 .. code-block:: bash
 
   $ cd ../../
-  $ patch -p1 < contrib/ofswitch13/utils/ofswitch13-3_37.patch
+  $ patch -p1 < contrib/ofswitch13/utils/ofswitch13-3_38.patch
 
 This patch creates the new OpenFlow receive callback at ``CsmaNetDevice`` and ``VirtualNetDevice``, allowing OpenFlow switch to get raw packets from these devices.
 The module also brings a ``csma-full-duplex`` patch for improving CSMA connections with full-duplex support.
@@ -146,8 +146,8 @@ This script connects two hosts to a single OpenFlow switch using CSMA links, and
     hostIpIfaces = ipv4helpr.Assign (hostDevices);
 
     // Configure ping application between hosts
-    V4PingHelper pingHelper = V4PingHelper (hostIpIfaces.GetAddress (1));
-    pingHelper.SetAttribute ("Verbose", BooleanValue (true));
+    PingHelper pingHelper(Ipv4Address(hostIpIfaces.GetAddress(1)));
+    pingHelper.SetAttribute("VerboseMode", EnumValue(Ping::VerboseMode::VERBOSE));
     ApplicationContainer pingApps = pingHelper.Install (hosts.Get (0));
     pingApps.Start (Seconds (1));
 
