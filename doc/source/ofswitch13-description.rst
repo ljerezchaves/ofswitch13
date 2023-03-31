@@ -204,8 +204,8 @@ For |ns3| OpenFlow users who want to port existing code to this new module, plea
 The only required modification to the |ns3| source code for |ofs13| integration is the inclusion of the new OpenFlow receive callback in the ``CsmaNetDevice`` and ``VirtualNetDevice``.
 The module brings the patch for including this receive callback into |ns3| source code, available under ``utils/`` directory.
 
-The current |ofs13| stable version is 5.2.0.
-This version is compatible with |ns3| versions 3.36 and 3.37, and will not compile with older |ns3| versions.
+The current |ofs13| stable version is 5.2.1.
+This version is compatible with |ns3| version 3.38, and will not compile with older |ns3| versions.
 If you need to use another |ns3| release, you can check the RELEASE_NOTES file for previous |ofs13| releases and their |ns3| version compatibility, but keep in mind that old releases may have known bugs and an old API.
 It is strongly recommended to use the latest module version.
 
