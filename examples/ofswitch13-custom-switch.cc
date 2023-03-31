@@ -130,8 +130,8 @@ main(int argc, char* argv[])
     hostIpIfaces = ipv4helpr.Assign(hostDevices);
 
     // Configure ping application between hosts
-    V4PingHelper pingHelper = V4PingHelper(hostIpIfaces.GetAddress(1));
-    pingHelper.SetAttribute("Verbose", BooleanValue(true));
+    PingHelper pingHelper(Ipv4Address(hostIpIfaces.GetAddress(1)));
+    pingHelper.SetAttribute("VerboseMode", EnumValue(Ping::VerboseMode::VERBOSE));
     ApplicationContainer pingApps = pingHelper.Install(hosts.Get(0));
     pingApps.Start(Seconds(1));
 

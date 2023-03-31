@@ -173,8 +173,8 @@ main(int argc, char* argv[])
         int srcHost = randomHostRng->GetInteger();
         int dstHost = randomHostRng->GetInteger();
 
-        V4PingHelper pingHelper = V4PingHelper(hostIpIfaces.GetAddress(dstHost));
-        pingHelper.SetAttribute("Verbose", BooleanValue(true));
+        PingHelper pingHelper(Ipv4Address(hostIpIfaces.GetAddress(dstHost)));
+        pingHelper.SetAttribute("VerboseMode", EnumValue(Ping::VerboseMode::VERBOSE));
         Ptr<Application> pingApp = pingHelper.Install(hosts.Get(srcHost)).Get(0);
 
         startTime += Seconds(std::abs(randomStartRng->GetValue()));
