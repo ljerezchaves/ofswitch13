@@ -1,8 +1,8 @@
 diff --git a/build-support/custom-modules/ns3-configtable.cmake b/build-support/custom-modules/ns3-configtable.cmake
-index 3b972d8fe..3d2ec356a 100644
+index c3baa514b..3b7434750 100644
 --- a/build-support/custom-modules/ns3-configtable.cmake
 +++ b/build-support/custom-modules/ns3-configtable.cmake
-@@ -155,6 +155,9 @@ macro(write_configtable)
+@@ -161,6 +161,9 @@ macro(write_configtable)
    string(APPEND out "ns-3 Click Integration        : ")
    check_on_or_off("ON" "${NS3_CLICK}")
  
@@ -12,20 +12,8 @@ index 3b972d8fe..3d2ec356a 100644
    string(APPEND out "ns-3 OpenFlow Integration     : ")
    check_on_or_off("ON" "${NS3_OPENFLOW}")
  
-diff --git a/build-support/macros-and-definitions.cmake b/build-support/macros-and-definitions.cmake
-index 3b962bdfc..5e59a1bfc 100644
---- a/build-support/macros-and-definitions.cmake
-+++ b/build-support/macros-and-definitions.cmake
-@@ -135,6 +135,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_OUTPUT_DIRECTORY})
- set(CMAKE_HEADER_OUTPUT_DIRECTORY ${CMAKE_OUTPUT_DIRECTORY}/include/ns3)
- set(THIRD_PARTY_DIRECTORY ${PROJECT_SOURCE_DIR}/3rd-party)
- set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-+link_directories(${CMAKE_OUTPUT_DIRECTORY}/lib)
- 
- # Get installation folder default values for each platform and include package
- # configuration macro
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
-index 9180e6c14..48932222d 100644
+index 33d555e15..e10648f96 100644
 --- a/src/csma/model/csma-net-device.cc
 +++ b/src/csma/model/csma-net-device.cc
 @@ -806,6 +806,34 @@ CsmaNetDevice::Receive(Ptr<Packet> packet, Ptr<CsmaNetDevice> senderDevice)
@@ -78,7 +66,7 @@ index 9180e6c14..48932222d 100644
  CsmaNetDevice::SetNode(Ptr<Node> node)
  {
 diff --git a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
-index 4c7af46c8..ca24e0d87 100644
+index 237daf37e..226ea7477 100644
 --- a/src/csma/model/csma-net-device.h
 +++ b/src/csma/model/csma-net-device.h
 @@ -312,6 +312,14 @@ class CsmaNetDevice : public NetDevice

@@ -1,21 +1,11 @@
-From e7fbbd6723000a63c073435e3958a0ed31271afb Mon Sep 17 00:00:00 2001
-From: Luciano J Chaves <ljerezchaves@gmail.com>
-Date: Sat, 10 Dec 2022 13:21:31 -0300
-Subject: [PATCH] CSMA full-duplex patch for ns-3.37
+commit b554673c2f54e3c703545ac65316b854bf5378b4
+Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
+Date:   Fri Mar 31 12:17:46 2023 -0300
 
----
- src/csma/doc/csma.rst             |  62 +++++++++-----
- src/csma/examples/CMakeLists.txt  |   1 +
- src/csma/examples/csma-duplex.cc  | 103 +++++++++++++++++++++++
- src/csma/model/csma-channel.cc    | 135 +++++++++++++++++++++++-------
- src/csma/model/csma-channel.h     | 132 ++++++++++++++++++++++++-----
- src/csma/model/csma-net-device.cc |  80 +++++++++++-------
- src/csma/test/examples-to-run.py  |   1 +
- 7 files changed, 410 insertions(+), 104 deletions(-)
- create mode 100644 src/csma/examples/csma-duplex.cc
+    CSMA full-duplex patch.
 
 diff --git a/src/csma/doc/csma.rst b/src/csma/doc/csma.rst
-index 647a2c295..3d4915bd1 100644
+index 13cc3c876..e2c444ad5 100644
 --- a/src/csma/doc/csma.rst
 +++ b/src/csma/doc/csma.rst
 @@ -14,6 +14,12 @@ The |ns3| CSMA device models a simple bus network in the spirit of Ethernet.
@@ -254,7 +244,7 @@ index 000000000..7d65f1096
 +    std::cout << "Total bytes sent from H1 to H0: " << pktSink0->GetTotalRx() << std::endl;
 +}
 diff --git a/src/csma/model/csma-channel.cc b/src/csma/model/csma-channel.cc
-index 959fbc51e..ad0b07c42 100644
+index 9f1fad3ce..fca9721cf 100644
 --- a/src/csma/model/csma-channel.cc
 +++ b/src/csma/model/csma-channel.cc
 @@ -1,5 +1,8 @@
@@ -519,7 +509,7 @@ index 959fbc51e..ad0b07c42 100644
  {
      active = false;
 diff --git a/src/csma/model/csma-channel.h b/src/csma/model/csma-channel.h
-index 8de1b5fd4..6883ceb61 100644
+index da4e948da..e3654cf59 100644
 --- a/src/csma/model/csma-channel.h
 +++ b/src/csma/model/csma-channel.h
 @@ -1,5 +1,8 @@
@@ -548,7 +538,7 @@ index 8de1b5fd4..6883ceb61 100644
  #include "ns3/data-rate.h"
  #include "ns3/nstime.h"
 @@ -68,16 +75,6 @@ class CsmaDeviceRec
-     bool IsActive();
+     bool IsActive() const;
  };
  
 -/**
@@ -757,7 +747,7 @@ index 8de1b5fd4..6883ceb61 100644
  
  } // namespace ns3
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
-index 48932222d..3d763a61e 100644
+index e10648f96..647ea50c3 100644
 --- a/src/csma/model/csma-net-device.cc
 +++ b/src/csma/model/csma-net-device.cc
 @@ -1,5 +1,8 @@
@@ -934,6 +924,3 @@ index eba7b5b77..b27be27b1 100644
      ("csma-multicast", "True", "True"),
      ("csma-one-subnet", "True", "True"),
      ("csma-packet-socket", "True", "True"),
--- 
-2.34.1
-
