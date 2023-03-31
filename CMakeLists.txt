@@ -19,54 +19,76 @@ if(NOT BOOST_STATIC_ASSERT_FOUND)
 endif()
 
 # Check for BOFUSS dependency
+
+# List of BOFUSS headers files required by OFSwtich13
+set(NS3_OFSWITCH13_BOFUSS_HEADERS
+  bofuss/action_set.h
+  bofuss/datapath.h
+  bofuss/dp_actions.h
+  bofuss/dp_buffers.h
+  bofuss/dp_control.h
+  bofuss/dp_ports.h
+  bofuss/dpctl.h
+  bofuss/flow_entry.h
+  bofuss/flow_table.h
+  bofuss/group_entry.h
+  bofuss/group_table.h
+  bofuss/match_std.h
+  bofuss/meter_entry.h
+  bofuss/meter_table.h
+  bofuss/ofl-actions.h
+  bofuss/ofl-err.h
+  bofuss/ofl-messages.h
+  bofuss/ofl-print.h
+  bofuss/ofl-structs.h
+  bofuss/ofpbuf.h
+  bofuss/openflow.h
+  bofuss/oxm-match.h
+  bofuss/packet_handle_std.h
+  bofuss/packet.h
+  bofuss/pipeline.h
+  bofuss/timeval.h
+  bofuss/vlog.h
+)
+
 set(NS3_OFSWITCH13_BOFUSS_PATH
-    ./lib/ofsoftswitch13/
+    ""
     CACHE PATH
     "The BOFUSS library path"
 )
 message(STATUS "Looking for BOFUSS library in ${NS3_OFSWITCH13_BOFUSS_PATH}")
 
-# List of BOFUSS headers files required by OFSwtich13
-set(NS3_OFSWITCH13_BOFUSS_HEADERS
-  include/openflow/openflow.h
-  udatapath/action_set.h
-  udatapath/datapath.h
-  udatapath/dp_actions.h
-  udatapath/dp_buffers.h
-  udatapath/dp_control.h
-  udatapath/dp_ports.h
-  udatapath/flow_table.h
-  udatapath/flow_entry.h
-  udatapath/group_table.h
-  udatapath/group_entry.h
-  udatapath/match_std.h
-  udatapath/meter_table.h
-  udatapath/meter_entry.h
-  udatapath/packet.h
-  udatapath/packet_handle_std.h
-  udatapath/pipeline.h
-  oflib/ofl-actions.h
-  oflib/ofl-messages.h
-  oflib/ofl-print.h
-  oflib/ofl-structs.h
-  oflib/oxm-match.h
-  lib/ofpbuf.h
-  lib/timeval.h
-  lib/vlog.h
-  utilities/dpctl.h
-)
-
 find_external_library(
-  DEPENDENCY_NAME BOFUSS
+  DEPENDENCY_NAME bofuss
+  LIBRARY_NAME bofuss
   HEADER_NAMES ${NS3_OFSWITCH13_BOFUSS_HEADERS}
-  LIBRARY_NAME udatapath/libns3ofswitch13.a
   SEARCH_PATHS ${NS3_OFSWITCH13_BOFUSS_PATH}
 )
 
-if(NOT BOFUSS_FOUND AND NOT ${BOFUSS_FOUND})
+if(NOT bofuss_FOUND AND NOT ${bofuss_FOUND})
   message(${HIGHLIGHTED_STATUS} "BOFUSS library was not found.")
-  message(${HIGHLIGHTED_STATUS} "Skipping OFSwitch13")
-  return()
+  message(${HIGHLIGHTED_STATUS} "The build system will try to download and compile it!")
+
+  include(ExternalProject)
+  ExternalProject_Add(
+    bofuss_dep
+    GIT_REPOSITORY https://github.com/ljerezchaves/ofsoftswitch13.git
+    GIT_TAG 0901aeb7f1612016e43e774381507c2aaef4afc2
+    PREFIX bofuss_dep
+    BUILD_IN_SOURCE TRUE
+    UPDATE_DISCONNECTED TRUE
+    CONFIGURE_COMMAND ./configure --prefix ${CMAKE_OUTPUT_DIRECTORY}
+    BUILD_COMMAND make -j${NumThreads}
+    INSTALL_COMMAND make install
+    LOG_DOWNLOAD true
+    LOG_UPDATE true
+    LOG_CONFIGURE true
+    LOG_BUILD true
+    LOG_INSTALL true
+    LOG_OUTPUT_ON_FAILURE true
+  )
+
+  set(bofuss_LIBRARIES bofuss)
 endif()
 
 # Enabling OFSwitch13 compilation
@@ -76,7 +98,7 @@ set(NS3_OFSWITCH13
     "ON if OFSwitch13 is found."
 )
 
-include_directories(${BOFUSS_INCLUDE_DIRS})
+include_directories(${bofuss_INCLUDE_DIRS})
 add_definitions(-DNS3_OFSWITCH13)
 
 # OFSwitch13 source files
@@ -128,15 +150,8 @@ set(libraries_to_link
   ${libapplications}
   ${libpoint-to-point}
   ${libvirtual-net-device}
-  ${BOFUSS_LIBRARIES}
+  ${bofuss_LIBRARIES}
 )
-
-# Don't export BOFUSS library
-set(NS3_OFSWITCH13_REEXPORT ${NS3_REEXPORT_THIRD_PARTY_LIBRARIES})
-if(${NS3_REEXPORT_THIRD_PARTY_LIBRARIES})
-  message(STATUS "Using -DNS3_REEXPORT_THIRD_PARTY_LIBRARIES=OFF with OFSwitch13")
-  set(NS3_REEXPORT_THIRD_PARTY_LIBRARIES OFF)
-endif()
 
 # Build the OFSwitch13 module
 build_lib(
@@ -147,4 +162,10 @@ build_lib(
   TEST_SOURCES ${test_sources}
 )
 
-set (NS3_REEXPORT_THIRD_PARTY_LIBRARIES ${NS3_OFSWITCH13_REEXPORT})
+# Add BOFUSS dependecy to OFswitch13 module
+if(NOT bofuss_FOUND AND NOT ${bofuss_FOUND})
+  add_dependencies(${libofswitch13} bofuss_dep)
+  if(NOT ${XCODE})
+    add_dependencies(${libofswitch13}-obj bofuss_dep)
+  endif()
+endif()

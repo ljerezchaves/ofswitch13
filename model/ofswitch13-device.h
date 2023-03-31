@@ -44,7 +44,7 @@ class OFSwitch13Port;
  * ports, receiving a packet from one port and forwarding it to another.
  *
  * The OpenFlow switch datapath implementation (flow tables, group table, and
- * meter table) is provided by the ofsoftswitch13 library. For this reason,
+ * meter table) is provided by the BOFUSS library. For this reason,
  * packets entering the switch are sent to the library for OpenFlow pipeline
  * processing before being forwarded to the correct output port(s). OpenFlow
  * messages received from the controller are also sent to the library for
@@ -198,7 +198,7 @@ class OFSwitch13Device : public Object
     //\}
 
     /**
-     * Get a pointer to the internal ofsoftswitch13 datapath structure.
+     * Get a pointer to the internal BOFUSS datapath structure.
      * \return The requested pointer.
      */
     struct datapath* GetDatapathStruct();
@@ -240,7 +240,7 @@ class OFSwitch13Device : public Object
     void StartControllerConnection(Address ctrlAddr);
 
     /**
-     * Overriding ofsoftswitch13 send_packet_to_controller weak function
+     * Overriding BOFUSS send_packet_to_controller weak function
      * from udatapath/pipeline.c. Sends the given packet to controller(s) in a
      * packet_in message.
      * \internal
@@ -257,7 +257,7 @@ class OFSwitch13Device : public Object
                                        uint8_t reason);
 
     /**
-     * Overriding ofsoftswitch13 send_openflow_buffer_to_remote weak function
+     * Overriding BOFUSS send_openflow_buffer_to_remote weak function
      * from udatapath/datapath.c. Sends the given OFLib buffer message to the
      * controller associated with remote connection structure.
      * \internal
@@ -271,7 +271,7 @@ class OFSwitch13Device : public Object
                                           struct remote* remote);
 
     /**
-     * Overriding ofsoftswitch13 dp_actions_output_port weak function from
+     * Overriding BOFUSS dp_actions_output_port weak function from
      * udatapath/dp_actions.c. Outputs a datapath packet on switch port. This
      * code is nearly the same on ofsoftswitch, but it gets the openflow device
      * from datapath id and uses member functions to send the packet over ns3
@@ -399,7 +399,7 @@ class OFSwitch13Device : public Object
      * Check if any flow in any table is timed out and update port status. This
      * method reschedules itself at every m_timout interval, to constantly check
      * the pipeline for timed out flow entries and update port status.
-     * \see ofsoftswitch13 function pipeline_timeout () at udatapath/pipeline.c
+     * \see BOFUSS function pipeline_timeout () at udatapath/pipeline.c
      * \param dp The datapath.
      */
     void DatapathTimeout(struct datapath* dp);
@@ -434,7 +434,7 @@ class OFSwitch13Device : public Object
                           uint32_t queueNo = 0);
 
     /**
-     * Send the packet to the OpenFlow ofsoftswitch13 pipeline.
+     * Send the packet to the OpenFlow BOFUSS pipeline.
      * \param packet The packet.
      * \param portNo The switch input port number.
      * \param tunnelId The metadata associated with a logical port.
@@ -500,20 +500,20 @@ class OFSwitch13Device : public Object
 
     /**
      * Notify this device of a packet cloned by the OpenFlow pipeline.
-     * \param pkt The original ofsoftswitch13 packet.
-     * \param clone The cloned ofsoftswitch13 packet.
+     * \param pkt The original BOFUSS packet.
+     * \param clone The cloned BOFUSS packet.
      */
     void NotifyPacketCloned(struct packet* pkt, struct packet* clone);
 
     /**
      * Notify this device of a packet destroyed by the OpenFlow pipeline.
-     * \param pkt The ofsoftswitch13 packet.
+     * \param pkt The BOFUSS packet.
      */
     void NotifyPacketDestroyed(struct packet* pkt);
 
     /**
      * Notify this device of a packet dropped by OpenFlow meter band.
-     * \param pkt The ofsoftswitch13 packet.
+     * \param pkt The BOFUSS packet.
      * \param entry The meter entry that dropped the packet.
      */
     void NotifyPacketDroppedByMeter(struct packet* pkt,
@@ -522,7 +522,7 @@ class OFSwitch13Device : public Object
     /**
      * Notify this device of an unmatched packet dropped by OpenFlow flow table
      * without a table-miss entry.
-     * \param pkt The ofsoftswitch13 packet.
+     * \param pkt The BOFUSS packet.
      * \param table The flow table that dropped the packet.
      */
     void NotifyPacketDroppedByTable(struct packet* pkt,
@@ -565,8 +565,8 @@ class OFSwitch13Device : public Object
         Address address);
 
     /**
-     * Get the remote controller for this ofsoftswitch13 remote pointer.
-     * \param remote The ofsoftswitch13 remote pointer.
+     * Get the remote controller for this BOFUSS remote pointer.
+     * \param remote The BOFUSS remote pointer.
      * \return The remote controller.
      */
     Ptr<OFSwitch13Device::RemoteController> GetRemoteController(
@@ -659,8 +659,8 @@ class OFSwitch13Device : public Object
     Time m_timeout;              //!< Datapath timeout interval.
     Time m_lastTimeout;          //!< Datapath last timeout.
     Time m_tcamDelay;            //!< Flow Table TCAM lookup delay.
-    std::string m_libLog;        //!< The ofsoftswitch13 library log level.
-    struct datapath* m_datapath; //!< ofsoftswitch13 datapath structure.
+    std::string m_libLog;        //!< The BOFUSS library log level.
+    struct datapath* m_datapath; //!< BOFUSS datapath structure.
     PortList_t m_ports;          //!< List of switch ports.
     CtrlList_t m_controllers;    //!< Collection of active controllers.
     uint32_t m_flowTabSize;      //!< Flow table maximum entries.
@@ -683,7 +683,7 @@ class OFSwitch13Device : public Object
     static uint64_t m_globalPktId; //!< Global counter for packets IDs.
 
     /**
-     * As the integration of ofsoftswitch13 and ns-3 involve overriding some C
+     * As the integration of BOFUSS and ns-3 involve overriding some C
      * functions, we are using a global map to store a pointer to all
      * OFSwitch13Device objects in simulation, and allow faster object retrieve
      * by datapath id. In this way, static functions like

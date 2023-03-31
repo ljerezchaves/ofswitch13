@@ -13,21 +13,21 @@ Usage
 Building the Module
 ===================
 
-The |ofs13| module interconnects the |ns3| simulator and the |ofslib| software switch compiled as a library.
+The |ofs13| module interconnects the |ns3| simulator and the |bofuss| software switch compiled as a library.
 Follow the instructions below to compile the |ofs13| module.
-*Instructions tested on Ubuntu 22.04.1 LTS.* [#f1]_
+*Instructions were tested on Ubuntu 22.04.1 LTS.* [#f1]_
 
 .. [#f1] Other distributions or versions may require different steps, especially regarding library compilation.
 
 Before starting
 ###############
 
-Before starting, ensure you have the following packages installed on your system:
+Before starting, ensure you have the following minimal requirements installed on your system:
 
 .. code-block:: bash
 
-  $ sudo apt install g++ python3 cmake ninja-build git ccache
-  $ sudo apt install pkg-config autoconf automake libtool libboost-dev
+  $ sudo apt install g++ python3 cmake ninja-build git
+  $ sudo apt install make pkg-config libtool libboost-dev
 
 Compiling the code
 ##################
@@ -41,45 +41,35 @@ Clone the |ns3| source code repository into your machine and checkout a stable v
   $ git checkout -b ns-3.37 ns-3.37
 
 Download the |ofs13| code into the ``contrib/`` folder.
-This procedure will recursively download the |ofslib| code into the ``lib/ofsoftswitch13/`` directory.
 
 .. code-block:: bash
 
   $ cd contrib/
-  $ git clone --recurse-submodules https://github.com/ljerezchaves/ofswitch13.git
+  $ git clone https://github.com/ljerezchaves/ofswitch13.git
 
-Update the code to the latest stable version (we are using release 5.1.0, which is compatible with ns-3.37) [#f2]_:
+Update the |ofs13| code to a stable version (we are using release 5.2.0, which is compatible with ns-3.37) [#f2]_:
 
-.. [#f2] For |ofs13| release versions prior to 3.2.2 (when no submodule dependence was configured in the git repository), the |ofslib| code will not automatically update to the correct version.
-         In this case, you must manually updated the |ofslib| code to the proper version before compiling the library in the next step (check the RELEASE_NOTES files for versions compatibility).
+.. [#f2] Starting at |ofs13| release 5.2.0, the ``cmake`` build system will automatically download and compile the correct version of |bofuss| library (Internet connection is required).
+         For older |ofs13| releases, we suggest you check the documentation and follow the proper build steps.
 
 .. code-block:: bash
 
   $ cd ofswitch13
-  $ git checkout 5.1.0
-  $ git submodule update --recursive
+  $ git checkout 5.2.0
 
-Now it is time to compile the |ofslib| as a static library.
-Configure and build the library (don't forget to add the ``--enable-ns3-lib`` during configuration process):
+Go back to the |ns3| root directory and patch the |ns3| code with the appropriated ``ofswitch13`` patch available under the ``ofswitch13/utils/`` directory (check for the correct |ns3| version):
 
 .. code-block:: bash
 
-  $ cd lib/ofsoftswitch13
-  $ ./boot.sh
-  $ ./configure --enable-ns3-lib
-  $ make
-
-Once everything gets compiled, the static library ``libns3ofswitch13.a`` file will be available under the ``lib/ofsoftswitch13/udatapath`` directory.
-Go back to the |ns3| root directory and patch the |ns3| code with the appropriated patch available under the ``ofswitch13/utils`` directory (check for the correct |ns3| version):
-
-.. code-block:: bash
-
-  $ cd ../../../../
+  $ cd ../../
   $ patch -p1 < contrib/ofswitch13/utils/ofswitch13-3_37.patch
 
 This patch creates the new OpenFlow receive callback at ``CsmaNetDevice`` and ``VirtualNetDevice``, allowing OpenFlow switch to get raw packets from these devices.
+The module also brings a ``csma-full-duplex`` patch for improving CSMA connections with full-duplex support.
+This is an optional patch that can be applyed *after* the ``ofswitch13`` patch.
 
-Now, configure the |ns3|. By default, the configuration script will look for the |ofslib| library in the ``lib/ofsoftswitch13/`` directory (use the ``-DNS3_OFSWITCH13_BOFUSS_PATH`` option to specify a different location):
+Now, configure the |ns3|. By default, the ``cmake`` build system will handle |bofuss| library download and compilation.
+Anyway, if your want to use a custom |bofuss| library, use the ``-DNS3_OFSWITCH13_BOFUSS_PATH`` configuration option to specify its location:
 
 .. code-block:: bash
 
@@ -90,7 +80,7 @@ Finally, compile the simulator:
 
 .. code-block:: bash
 
-  $ ./ns3 build ofswitch13
+  $ ./ns3 build
 
 That's it! Enjoy your |ns3| fresh compilation with OpenFlow 1.3 capabilities.
 
@@ -351,11 +341,11 @@ To enable performance monitoring, use the ``EnableDatapathStats()`` helper membe
 By default, statistics are dumped every second, but users can adjust this interval with the ``OFSwitch13StatsCalculator::DumpTimeout`` attribute.
 Besides, an Exponentially Weighted Moving Average (EWMA) is used to update the average values, and the attribute ``OFSwitch13StatsCalculator::EwmaAlpha`` can be adjusted to reflect the desired weight given to most recent measured values.
 
-When necessary, it is also possible to enable the internal |ofslib| library ASCII logging mechanism using two different approaches:
+When necessary, it is also possible to enable the |bofuss| library logging mechanism using two different approaches:
 
 #. The simplified ``OFSwitch13Helper::EnableDatapathLogs()`` static method dumps messages at debug level for all library internal modules into the output file (users can set the filename prefix);
 
-#. The advanced ``ofs::EnableLibraryLog()`` method allow users to define the target log facility (the console or a file), set the filename, and also customize the logging levels for different library internal modules.
+#. The advanced ``EnableBofussLog()`` method allow users to define the target log facility (the console or a file), set the filename, and also customize the logging levels for different library internal modules.
 
 .. _port-coding:
 
@@ -446,7 +436,7 @@ The ``dpctl`` is a management utility that enables some control over the OpenFlo
 With this tool, it is possible to add flows to the flow table, query for switch features and status, and change other configurations.
 The ``DpctlExecute()`` function can be used by derived controllers to convert a variety of ``dpctl`` commands into OpenFlow messages and send it to the target switch.
 If the switch is not connected to the controller yet, this method will automatically schedule the commands for execution just after the handshake procedure between the controller and the switch.
-This is particularly useful for executing dpctl commands when creating the topology, before invoking ``Simulator::Run ()``.
+This is particularly useful for executing ``dpctl`` commands when creating the topology, before invoking ``Simulator::Run()``.
 
 Check the `utility documentation <https://github.com/CPqD/ofsoftswitch13/wiki/Dpctl-Documentation>`_ for details on how to create the commands.
 Note that the documentation is intended for terminal usage in Unix systems, which is a little different from the usage in the ``DpctlExecute()`` function.
@@ -474,7 +464,7 @@ It looks for L2 switching information and removes associated entry.
 
 The ``QosController`` example includes a non-trivial controller implementation that is used to configure the network described in :ref:`qos-controller` section.
 Several ``dpctl`` commands are used to configure the switches based on network topology and desired control logic, while the ``HandlePacketIn()`` is used to filter packets sent to the controller by the switch.
-Note that the |ofslib| function ``oxm_match_lookup()`` is used across the code to extract match information from the message received by the controller.
+Note that the |bofuss| function ``oxm_match_lookup()`` is used across the code to extract match information from the message received by the controller.
 For ARP messages, ``HandleArpPacketIn()`` exemplifies how to create a new packet at the controller and send to the network over a packet-out message.
 Developers are encouraged to study the library internal structures to understand better how the handlers are implemented and also how to build an OpenFlow message manually.
 
@@ -579,7 +569,7 @@ Each group receives packets as input and performs any OpenFlow actions on these 
 The power of a group is that it contains separate lists of actions, and each action list is referred to as an OpenFlow bucket.
 There are different types of groups, and the *select* group type can be used to perform link aggregation.
 Each bucket in a select group has an assigned weight, and each packet that enters the group is sent to a single bucket.
-The bucket selection algorithm is undefined and is dependent on the switch's implementation (the |ofslib| library implements the weighted round robin algorithm).
+The bucket selection algorithm is undefined and is dependent on the switch's implementation (the |bofuss| library implements the weighted round robin algorithm).
 
 In the proposed network topology, the QoS controller configures both the border and the aggregation switches to perform link aggregation over the two narrowband long-distance connections, providing a 20 Mbps connection between servers and clients (use the ``QosController::LinkAggregation`` attribute to enable/disable this feature).
 Each OpenFlow bucket has the same weight in the select group, so the load is evenly distributed among the links.
@@ -617,4 +607,4 @@ Troubleshooting
 
 * For simulating scenarios with more than one OpenFlow network domain configured with the ``OFSwtich13InternalHelper``, use a different helper instance for each domain.
 
-* For using ASCII traces it is necessary to include the ``ns3::PacketMetadata::Enable ()`` at the beginning of the program, before any packets being sent.
+* For using ASCII traces it is necessary to include the ``ns3::PacketMetadata::Enable()`` at the beginning of the program, before any packets being sent.

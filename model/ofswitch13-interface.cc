@@ -27,18 +27,13 @@ namespace ns3
 
 NS_LOG_COMPONENT_DEFINE("OFSwitch13Interface");
 
-namespace ofs
-{
-
 void
-EnableLibraryLog(bool printToFile,
-                 std::string prefix,
-                 bool explicitFilename,
-                 std::string customLevels)
+EnableBofussLog(bool printToFile,
+                std::string prefix,
+                bool explicitFilename,
+                std::string customLevels)
 {
-    set_program_name("ns3-ofswitch13");
     vlog_init();
-    vlog_set_levels(VLM_ANY_MODULE, VLF_ANY_FACILITY, VLL_EMER);
     vlog_set_pattern(VLF_ANY_FACILITY, "%d{%ss} [%c|%p] %m");
 
     if (printToFile)
@@ -50,10 +45,10 @@ EnableLibraryLog(bool printToFile,
             {
                 filename += "-";
             }
-            filename += "ofsoftswitch13.log";
+            filename += "BOFUSS.log";
         }
-        vlog_set_levels(VLM_ANY_MODULE, VLF_FILE, VLL_DBG);
         vlog_set_log_file(filename.c_str());
+        vlog_set_levels(VLM_ANY_MODULE, VLF_FILE, VLL_DBG);
     }
     else
     {
@@ -62,7 +57,7 @@ EnableLibraryLog(bool printToFile,
 
     if (customLevels.size())
     {
-        vlog_set_verbosity(customLevels.c_str());
+        vlog_set_levels_from_string(customLevels.c_str());
     }
 }
 
@@ -112,13 +107,12 @@ PacketFromBuffer(struct ofpbuf* buffer)
     return Create<Packet>((uint8_t*)buffer->data, buffer->size);
 }
 
-} // namespace ofs
 } // namespace ns3
 
 using namespace ns3;
 
 /**
- * Overriding ofsoftswitch13 time_now weak function from lib/timeval.c.
+ * Overriding BOFUSS time_now weak function from timeval.c.
  * \return The current simulation time, in seconds.
  */
 time_t
@@ -128,8 +122,8 @@ time_now(void)
 }
 
 /**
- * Overriding ofsoftswitch13 time_msec weak function from lib/timeval.c.
- * \return The current simulation time, in ms.
+ * Overriding BOFUSS time_msec weak function from timeval.c.
+ * \return The current simulation time, in milliseconds.
  */
 long long int
 time_msec(void)
@@ -137,7 +131,7 @@ time_msec(void)
     return static_cast<long long int>(Simulator::Now().GetMilliSeconds());
 }
 
-/** Overriding ofsoftswitch weak functions using static member functions. */
+/** Overriding BOFUSS weak functions using static member functions. */
 void
 send_packet_to_controller(struct pipeline* pl,
                           struct packet* pkt,
@@ -178,9 +172,9 @@ dpctl_transact_and_print(struct vconn* vconn,
                          struct ofl_msg_header* req,
                          struct ofl_msg_header** repl)
 {
-    // Different from ofsoftswitch13 dpctl, this transaction doesn't wait for a
-    // reply, as ns-3 socket library doesn't provide blocking sockets. So, we
-    // send the request and return. The reply will came later, using the ns-3
-    // callback mechanism.
+    // Different from bofus dpctl, this transaction doesn't wait for a reply,
+    // as ns-3 socket library doesn't provide blocking sockets. So, we send the
+    // request and return. The reply will came later, using the ns-3 callback
+    // mechanism.
     OFSwitch13Controller::DpctlSendAndPrint(vconn, req);
 }

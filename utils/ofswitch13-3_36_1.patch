@@ -12,6 +12,18 @@ index cf0a41ab2..05ec9a026 100644
    string(APPEND out "ns-3 OpenFlow Integration     : ")
    check_on_or_off("ON" "${NS3_OPENFLOW}")
  
+diff --git a/build-support/macros-and-definitions.cmake b/build-support/macros-and-definitions.cmake
+index 304ccdde7..8f837cdfa 100644
+--- a/build-support/macros-and-definitions.cmake
++++ b/build-support/macros-and-definitions.cmake
+@@ -122,6 +122,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_OUTPUT_DIRECTORY})
+ set(CMAKE_HEADER_OUTPUT_DIRECTORY ${CMAKE_OUTPUT_DIRECTORY}/include/ns3)
+ set(THIRD_PARTY_DIRECTORY ${PROJECT_SOURCE_DIR}/3rd-party)
+ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
++link_directories(${CMAKE_OUTPUT_DIRECTORY}/lib)
+ 
+ # Get installation folder default values for each platform and include package
+ # configuration macro
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
 index 9913e48b3..6b5dec7b0 100644
 --- a/src/csma/model/csma-net-device.cc

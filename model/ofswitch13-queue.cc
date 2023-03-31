@@ -170,7 +170,7 @@ OFSwitch13Queue::AddQueue(Ptr<Queue<Packet>> queue)
     struct sw_queue* swQueue = &(m_swPort->queues[queueId]);
     NS_ASSERT_MSG(!swQueue->port, "Queue id already in use.");
 
-    // Filling ofsoftswitch13 internal structures for this queue
+    // Filling BOFUSS internal structures for this queue
     swQueue->port = m_swPort;
     swQueue->created = time_msec();
 

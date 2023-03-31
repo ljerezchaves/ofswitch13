@@ -19,8 +19,8 @@ Alternatively, |ofs13| supports OpenFlow protocol version 1.3, bringing both a s
 With |ofs13|, it is possible to interconnect |ns3| nodes to send and receive traffic using ``CsmaNetDevice`` or ``VirtualNetDevice``.
 The controller application interface can be extended to implement any desired control logic to orchestrate the network.
 The communication between the controller and the switch is realized over standard |ns3| protocol stack, devices, and channels.
-The module also relies on the external `OpenFlow 1.3 Software Switch for ns-3 <https://github.com/ljerezchaves/ofsoftswitch13>`_ compiled as a library, namely the |ofslib| library.
-This library provides the switch datapath implementation, the code for converting OpenFlow messages to/from wire format, and the ``dpctl`` utility tool for configuring the switch from the command line.
+The |ofs13| module relies on the external `BOFUSS library for OFSwitch13 <https://github.com/ljerezchaves/ofsoftswitch13>`_.
+This library provides the switch datapath implementation, the support for converting OpenFlow messages to/from wire format, and the ``dpctl`` utility tool for configuring the switch from the command line.
 
 .. _fig-ofswitch13-module:
 
@@ -42,8 +42,7 @@ The OpenFlow 1.3 switch device, namely ``OFSwitch13Device``, can be used to inte
 In most cases, the ``CsmaNetDevice`` is used to build the ports, which will act as physical ports.
 However, it is possible to use the ``VirtualNetDevice`` to implement logical ports.
 The switch device acts as the intermediary between the ports, receiving a packet from one port and forwarding it to another.
-The |ofslib| library provides the OpenFlow switch datapath implementation (flow
-tables, group table, and meter table).
+The |bofuss| library provides the OpenFlow switch datapath implementation (flow tables, group table, and meter table).
 Thus, packets entering the switch are sent to the library for OpenFlow pipeline processing before being forwarded to the correct output port(s).
 OpenFlow messages received from the controller are also sent to the library for datapath configuration.
 
@@ -59,7 +58,7 @@ This callback is a promiscuous one, but in contrast to a promiscuous protocol ha
 Including this new callback in the ``NetDevice`` is the only required modification to the |ns3| source code for |ofs13| usage.
 
 The incoming packet is checked for conformance to the CPU processing capacity (throughput) defined by the ``OFSwitch13Device::CpuCapacity`` attribute.
-Packets exceeding CPU processing capacity are dropped, while conformant packets are sent to the pipeline at the |ofslib| library.
+Packets exceeding CPU processing capacity are dropped, while conformant packets are sent to the pipeline at the |bofuss| library.
 The module considers the concept of *virtual TCAM* (Ternary Content-Addressable Memory) to estimate the average flow table search time to model OpenFlow hardware operations.
 It considers that real OpenFlow implementations use sophisticated search algorithms for packet matching such as hierarchical hash tables or binary search trees.
 Because of that, the equation *K \* log_2 (n)* is used to estimate the delay, where *K* is the ``OFSwitch13Device::TcamDelay`` attribute set to the time for a single TCAM operation, and *n* is the current number of entries on pipeline flow tables.
@@ -71,8 +70,7 @@ Queue configuration takes place outside the OpenFlow protocol.
 The ``OFSwitch13Queue`` abstract base class implements the queue interface, extending the |ns3| ``Queue<Packet>`` class to allow compatibility with the ``CsmaNetDevice`` used within ``OFSwitch13Port`` objects (``VirtualNetDevice`` does not use queues).
 In this way, it is possible to replace the standard ``CsmaNetDevice::TxQueue`` attribute by this modified ``OFSwitch13Queue`` object.
 Internally, it can hold a collection of N (possibly different) queues, each one identified by a unique ID ranging from 0 to N-1. Packets sent to the OpenFlow queue for transmission by the ``CsmaNetDevice`` are expected to carry the ``QueueTag``, which is used by the ``OFSwitch13Queue::Enqueue`` method to identify the internal queue that will hold the packet.
-Specialized ``OFSwitch13Queue`` subclasses can perform different output scheduling algorithms by implementing the ``Peek``,
-``Dequeue``, and ``Remove`` pure virtual methods from |ns3| ``Queue``.
+Specialized ``OFSwitch13Queue`` subclasses can perform different output scheduling algorithms by implementing the ``Peek``, ``Dequeue``, and ``Remove`` pure virtual methods from |ns3| ``Queue``.
 The last two methods must call the ``NotifyDequeue`` and ``NotifyRemoved`` methods respectively, which are used by the ``OFSwitch13Queue`` to keep consistent statistics.
 
 The OpenFlow port type queue can be configured by the ``OFSwitch13Port::QueueFactory`` attribute at construction time.
@@ -87,7 +85,7 @@ OpenFlow 1.3 Controller Application Interface
 
 The OpenFlow 1.3 controller application interface, namely ``OFSwitch13Controller``, provides the necessary functionalities for controller implementation.
 It can handle a collection of OpenFlow switches, as illustrated in :ref:`fig-ofswitch13-controller` figure.
-For constructing OpenFlow configuration messages and sending them to the switches, the controller interface relies on the ``dpctl`` utility provided by the |ofslib| library.
+For constructing OpenFlow configuration messages and sending them to the switches, the controller interface relies on the ``dpctl`` utility provided by the |bofuss| library.
 With a simple command-line syntax, this utility can be used to add flows to the pipeline, query for switch features and status, and change other configurations.
 
 .. _fig-ofswitch13-controller:
@@ -115,21 +113,21 @@ It also simplifies the OpenFlow protocol analysis, as the |ns3| tracing subsyste
 
 Considering that the OpenFlow messages traversing the OpenFlow channel follow the standard wire format, it is also possible to use the |ns3| ``TapBridge`` module to integrate an external OpenFlow controller, running on the local machine, to the simulated environment.
 
-Library integration
-###################
+BOFUSS library integration
+##########################
 
-This module was designed to work together with a user-space software switch implementation.
-The original `Basic OpenFlow User Space Software Switch (BOFUSS) project <https://github.com/CPqD/ofsoftswitch13>`_ (also known as |ofslib|) [Fernandes2020]_ was forked and slightly modified, resulting in the `OpenFlow 1.3 Software Switch for ns-3 <https://github.com/ljerezchaves/ofsoftswitch13>`_ library.
-The ``ns3lib`` branch includes some callbacks, compiler directives and minor changes in structure declarations to allow the integration between the module and the |ns3|.
-The code does not modify the original switch datapath implementation, which is currently maintained in the original repository and regularly synced to the modified one.
+This module was designed to work together with a OpenFlow user-space software switch implementation.
+The original `Basic OpenFlow User Space Software Switch (BOFUSS) project <https://github.com/CPqD/ofsoftswitch13>`_ (previously known as *ofsoftswitch13*) [Fernandes2020]_ was forked and modified for proper integration with |ns3|, resulting in the `BOFUSS library for OFSwitch13 <https://github.com/ljerezchaves/ofsoftswitch13>`_ library.
+The ``master`` branch does not modify the original switch datapath implementation, which is currently maintained in the original repository and regularly synced to this one.
+The modified ``ns3lib`` branch includes only the necessary files for building the |bofuss| library and integrating it with the |ofs13| module.
 
-The |ofslib| library provides the complete OpenFlow switch datapath implementation, including input and output ports, the flow-table pipeline for packet matching, the group table, and the meter table.
-It also provides the ``OFLib`` library for converting internal messages to and from OpenFlow 1.3 wire format and the ``dpctl`` utility for converting text commands into internal messages.
+The |bofuss| library provides the complete OpenFlow switch datapath implementation, including input and output ports, the flow-table pipeline for packet matching, the group table, and the meter table.
+It also provides support for converting internal messages to and from OpenFlow 1.3 wire format and delivers the ``dpctl`` utility for converting text commands into internal messages.
 
-For proper |ns3| integration, the library was modified to receive and send packets directly to the |ns3| environment.
-To this, all library functions related to sending and receiving packets over ports were annotated as *weak symbols*, allowing the module to override them at link time.
+For proper |ofs13| integration, the library was modified to receive and send packets directly to the |ns3| environment.
+To this, all library functions related to sending and receiving packets over ports were annotated as *weak symbols*, allowing the |ofs13| module to override them at link time.
 This same strategy was used for overriding time-related functions, ensuring time consistency between the library and the simulator.
-The integration also relies on callbacks, which are used by the library to notify the module about internal packet events, like packets dropped by meter bands, packet content modifications by pipeline instructions, packets cloned by group actions, and buffered packets sent to the controller.
+The integration also relies on *callbacks*, which are used by |bofuss| to notify the |ofs13| module about internal packet events, like packets dropped by meter bands, packet content modifications by pipeline instructions, packets cloned by group actions, and buffered packets sent to the controller.
 As this integration involves callbacks and overridden functions, the module uses a global map to save pointers to all ``OFSwitch13Devices`` objects in the simulation, allowing faster object retrieve by datapath IP.
 
 One potential performance drawback is the conversion between the |ns3| packet representation and the serialized packet buffer used by the library.
@@ -167,8 +165,7 @@ They share some design principles, like the use of an external software library 
 However, this is an entirely new code and can be used to simulate a broad number of scenarios in comparison to the available implementation.
 
 One difference between the |ns3| OpenFlow model and the |ofs13| is the introduction of the OpenFlow channel, using |ns3| devices and channels to provide the control connection between the controller and the switches.
-It
-allows the user to collect PCAP traces for this control channel, simplifying the analysis of OpenFlow messages.
+It allows the user to collect PCAP traces for this control channel, simplifying the analysis of OpenFlow messages.
 It is also possible the use of the |ns3| ``TapBridge`` module to integrate a local external OpenFlow 1.3 controller to the simulated environment.
 
 In respect to the controller, this module provides a more flexible interface.
@@ -207,8 +204,8 @@ For |ns3| OpenFlow users who want to port existing code to this new module, plea
 The only required modification to the |ns3| source code for |ofs13| integration is the inclusion of the new OpenFlow receive callback in the ``CsmaNetDevice`` and ``VirtualNetDevice``.
 The module brings the patch for including this receive callback into |ns3| source code, available under ``utils/`` directory.
 
-The current |ofs13| stable version is 5.0.2.
-This version is compatible with |ns3| version 3.36 to 3.37, and will not compile with older |ns3| versions.
+The current |ofs13| stable version is 5.2.0.
+This version is compatible with |ns3| versions 3.36 and 3.37, and will not compile with older |ns3| versions.
 If you need to use another |ns3| release, you can check the RELEASE_NOTES file for previous |ofs13| releases and their |ns3| version compatibility, but keep in mind that old releases may have known bugs and an old API.
 It is strongly recommended to use the latest module version.
 
@@ -217,7 +214,7 @@ References
 #. The reference [Chaves2016a]_ presents the |ofs13| module, including details about module design and implementation.
    A case study scenario is also used to illustrate some of the available OpenFlow 1.3 module features.
 
-#. The reference [Fernandes2020]_ describes the design, implementation, evolution and the current state of the |ofslib| software switch.
+#. The reference [Fernandes2020]_ describes the design, implementation, evolution and the current state of the |bofuss| project.
 
 #. The references [Chaves2015]_, [Chaves2016b]_, and [Chaves2017]_ are related to the integration between OpenFlow and LTE technologies.
    The |ns3| simulator, enhanced with the |ofs13| module, was used as the performance evaluation tool for these works.

@@ -82,7 +82,7 @@ class OFSwitch13Queue : public Queue<Packet>
     Ptr<Queue<Packet>> GetQueue(int queueId) const;
 
     /**
-     * Set the pointer to the internal ofsoftswitch13 port structure.
+     * Set the pointer to the internal BOFUSS port structure.
      * \param port The port structure pointer.
      */
     void SetPortStruct(struct sw_port* port);
@@ -122,7 +122,7 @@ class OFSwitch13Queue : public Queue<Packet>
      */
     typedef std::vector<Ptr<Queue>> QueueList_t;
 
-    struct sw_port* m_swPort; //!< ofsoftswitch13 port structure.
+    struct sw_port* m_swPort; //!< BOFUSS port structure.
     QueueList_t m_queues;     //!< List of internal queues.
 
     NS_LOG_TEMPLATE_DECLARE; //!< Redefinition of the log component.

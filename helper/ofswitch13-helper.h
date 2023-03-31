@@ -209,7 +209,7 @@ class OFSwitch13Helper : public Object
     /**
      * Enable OpenFlow datapath logs at all OpenFlow switch devices on the
      * simulation. This method will enable vlog system at debug level on the
-     * ofsoftswitch13 library, dumping messages to output file.
+     * BOFUSS library, dumping messages to output file.
      *
      * \param prefix Filename prefix to use for log file.
      * \param explicitFilename Treat the prefix as an explicit filename if true.

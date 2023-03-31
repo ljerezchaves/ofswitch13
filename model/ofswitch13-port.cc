@@ -146,7 +146,7 @@ OFSwitch13Port::NotifyConstructionCompleted()
     NS_ABORT_MSG_IF(!csmaDev && !virtDev,
                     "NetDevice must be CsmaNetDevice or VirtualNetDevice.");
 
-    // Filling ofsoftswitch13 internal structures for this port.
+    // Filling BOFUSS internal structures for this port.
     size_t oflPortSize = sizeof(struct ofl_port);
     size_t oflPortStatsSize = sizeof(struct ofl_port_stats);
 
@@ -172,7 +172,7 @@ OFSwitch13Port::NotifyConstructionCompleted()
     m_swPort->stats->port_no = m_portNo;
     m_swPort->flags |= SWP_USED;
 
-    // To avoid a null check failure in ofsoftswitch13
+    // To avoid a null check failure in BOFUSS
     // dp_ports_handle_stats_request_port (), we are pointing m_swPort->netdev
     // to corresponding ns3::NetDevice, but this pointer must not be used!
     m_swPort->netdev = (struct netdev*)PeekPointer(m_netDev);

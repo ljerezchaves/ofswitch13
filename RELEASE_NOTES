@@ -4,6 +4,26 @@ OFSwitch13 release notes
 
 This file contains OFSwitch13 release notes (most recent releases first).
 
+Release 5.2.0 (Mar 31, 2023)
+============================
+
+- Updating CMakeLists.txt to automatically download and build the BOFUSS
+  library.
+
+- Updating the module documentation to reflext the changes in library building.
+
+- Replacing the outdated ofsoftswitch13 library name by BOFUSS in the project
+  (source code and documentation).
+
+- Refactoring the BOFUSS ns3lib branch to simplify library compilation.
+
+- This version is compatible with BOFUSS library release v5.2.x and ns-3
+  versions 3.36 and 3.37 (including patches). There is no backward
+  compatibility with older ns-3 versions.
+
+- Compilation was tested in Ubuntu 22.04.1 LTS.
+
+
 Release 5.1.0 (Dec 10, 2022)
 ============================
 

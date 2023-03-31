@@ -1,17 +1,17 @@
-EPSTOPDF = epstopdf
-DIA = dia
-CONVERT = convert
-
 SOURCE = source
 FIGURES = $(SOURCE)/figures
 
-# specify figures from which .png and .pdf figures need to be
-# generated (all dia and eps figures)
-IMAGES_EPS = \
-	$(FIGURES)/ofswitch13-module.eps \
-	$(FIGURES)/ofswitch13-switch.eps \
-	$(FIGURES)/ofswitch13-controller.eps \
-	$(FIGURES)/ofswitch13-qos-topology.eps \
+# specify .pdf figures (from which .png will be generated)
+IMAGES_PDF = \
+	$(FIGURES)/ofswitch13-module.pdf \
+	$(FIGURES)/ofswitch13-switch.pdf \
+	$(FIGURES)/ofswitch13-controller.pdf \
+	$(FIGURES)/ofswitch13-qos-topology.pdf \
+
+IMAGES_PNG = ${IMAGES_PDF:.pdf=.png}
+
+CONVERT = convert
+RESCALE = ../../../utils/rescale-pdf.sh
 
 # rescale pdf figures as necessary
 $(FIGURES)/ofswitch13-module.pdf_width = 12cm
@@ -19,29 +19,10 @@ $(FIGURES)/ofswitch13-switch.pdf_width = 10cm
 $(FIGURES)/ofswitch13-controller.pdf_width = 10cm
 $(FIGURES)/ofswitch13-qos-topology.pdf_width = 12cm
 
-IMAGES_PNG = ${IMAGES_EPS:.eps=.png}
-IMAGES_PDF = ${IMAGES_EPS:.eps=.pdf}
-
-IMAGES = $(IMAGES_PNG) $(IMAGES_PDF)
-
-RESCALE = ../../../utils/rescale-pdf.sh
-
-%.eps : %.dia
-	@echo dia $(notdir $<)
-	@$(DIA) -t eps $< -e $@ >/dev/null
-
-%.png : %.dia
-	@echo dia $(notdir $<)
-	@$(DIA) -t png $< -e $@ >/dev/null
-
-%.png : %.eps
-	@echo convert $(notdir $<)
+%.png : %.pdf
+	@if test x$($<_width) != x; then $(RESCALE) $($<_width) $< ; fi
+	@echo convert $(notdir $<) to $(notdir $@)
 	@$(CONVERT) $< $@ >/dev/null
-
-%.pdf : %.eps
-	@echo epstopdf $(notdir $<)
-	@$(EPSTOPDF) $< -o=$@ >/dev/null
-	@if test x$($@_width) != x; then $(RESCALE) $($@_width) $@ ; fi
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
@@ -77,47 +58,47 @@ help:
 
 clean:
 	-rm -rf $(BUILDDIR)/*
-	-rm -f $(IMAGES)
+	-rm -f $(IMAGES_PNG)
 
-images:  $(IMAGES)
+images:  $(IMAGES_PNG)
 
 frag: pickle
 	@if test ! -d $(BUILDDIR)/frag; then mkdir $(BUILDDIR)/frag; fi
 	pushd $(BUILDDIR)/frag && ../../pickle-to-xml.py ../pickle/index.fpickle  > navigation.xml && popd
 	cp -r $(BUILDDIR)/pickle/_images $(BUILDDIR)/frag
 
-html:  $(IMAGES)
+html:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-dirhtml:  $(IMAGES)
+dirhtml:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/dirhtml."
 
-singlehtml:  $(IMAGES)
+singlehtml:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b singlehtml $(ALLSPHINXOPTS) $(BUILDDIR)/singlehtml
 	@echo
 	@echo "Build finished. The HTML page is in $(BUILDDIR)/singlehtml."
 
-pickle:  $(IMAGES)
+pickle:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b pickle $(ALLSPHINXOPTS) $(BUILDDIR)/pickle
 	@echo
 	@echo "Build finished; now you can process the pickle files."
 
-json:  $(IMAGES)
+json:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b json $(ALLSPHINXOPTS) $(BUILDDIR)/json
 	@echo
 	@echo "Build finished; now you can process the JSON files."
 
-htmlhelp:  $(IMAGES)
+htmlhelp:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) $(BUILDDIR)/htmlhelp
 	@echo
 	@echo "Build finished; now you can run HTML Help Workshop with the" \
 	      ".hhp project file in $(BUILDDIR)/htmlhelp."
 
-qthelp:  $(IMAGES)
+qthelp:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b qthelp $(ALLSPHINXOPTS) $(BUILDDIR)/qthelp
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
@@ -126,7 +107,7 @@ qthelp:  $(IMAGES)
 	@echo "To view the help file:"
 	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/ns-3.qhc"
 
-devhelp:  $(IMAGES)
+devhelp:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
 	@echo
 	@echo "Build finished."
@@ -135,46 +116,46 @@ devhelp:  $(IMAGES)
 	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/ns-3"
 	@echo "# devhelp"
 
-epub:  $(IMAGES)
+epub:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b epub $(ALLSPHINXOPTS) $(BUILDDIR)/epub
 	@echo
 	@echo "Build finished. The epub file is in $(BUILDDIR)/epub."
 
-latex:  $(IMAGES)
+latex:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo
 	@echo "Build finished; the LaTeX files are in $(BUILDDIR)/latex."
 	@echo "Run \`make' in that directory to run these through (pdf)latex" \
 	      "(use \`make latexpdf' here to do that automatically)."
 
-latexpdf:  $(IMAGES)
+latexpdf:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
 
-text:  $(IMAGES)
+text:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b text $(ALLSPHINXOPTS) $(BUILDDIR)/text
 	@echo
 	@echo "Build finished. The text files are in $(BUILDDIR)/text."
 
-man:  $(IMAGES)
+man:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b man $(ALLSPHINXOPTS) $(BUILDDIR)/man
 	@echo
 	@echo "Build finished. The manual pages are in $(BUILDDIR)/man."
 
-changes:  $(IMAGES)
+changes:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) $(BUILDDIR)/changes
 	@echo
 	@echo "The overview file is in $(BUILDDIR)/changes."
 
-linkcheck:  $(IMAGEs)
+linkcheck:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) $(BUILDDIR)/linkcheck
 	@echo
 	@echo "Link check complete; look for any errors in the above output " \
 	      "or in $(BUILDDIR)/linkcheck/output.txt."
 
-doctest:  $(IMAGES)
+doctest:  $(IMAGES_PNG)
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."

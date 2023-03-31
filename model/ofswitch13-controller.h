@@ -184,7 +184,7 @@ class OFSwitch13Controller : public Application
     int DpctlExecute(uint64_t dpId, const std::string textCmd);
 
     /**
-     * Overriding ofsoftswitch13 dpctl_send_and_print  and
+     * Overriding BOFUSS dpctl_send_and_print  and
      * dpctl_transact_and_print weak functions from utilities/dpctl.c. Send a
      * message from controller to switch.
      * \param vconn The RemoteSwitch pointer, sent from controller to
