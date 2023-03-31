@@ -529,7 +529,7 @@ OFSwitch13Device::StartControllerConnection(Address ctrlAddr)
     m_controllers.emplace_back(remoteCtrl);
 }
 
-// ofsoftswitch13 overriding and callback functions.
+// BOFUSS overriding and callback functions.
 void
 OFSwitch13Device::SendPacketToController(struct pipeline* pl,
                                          struct packet* pkt,
@@ -750,7 +750,7 @@ OFSwitch13Device::DatapathNew()
     strncpy(dp->mfr_desc, "The ns-3 team", DESC_STR_LEN);
     strncpy(dp->hw_desc, "N/A", DESC_STR_LEN);
     strncpy(dp->sw_desc, "The ns-3 OFSwitch13 module", DESC_STR_LEN);
-    strncpy(dp->dp_desc, "Using ofsoftswitch13 (from CPqD)", DESC_STR_LEN);
+    strncpy(dp->dp_desc, "Using BOFUSS (from CPqD)", DESC_STR_LEN);
     strncpy(dp->serial_num, "3.1.0", DESC_STR_LEN);
 
     dp->id = m_dpId;
@@ -783,7 +783,7 @@ OFSwitch13Device::DatapathNew()
         OFPC_FRAG_NORMAL; // IP fragments with no special handling
     dp->config.miss_send_len = OFP_DEFAULT_MISS_SEND_LEN; // 128 bytes
 
-    // ofsoftswitch13 callbacks
+    // BOFUSS callbacks
     dp->pkt_clone_cb = &OFSwitch13Device::PacketCloneCallback;
     dp->pkt_destroy_cb = &OFSwitch13Device::PacketDestroyCallback;
     dp->buff_save_cb = &OFSwitch13Device::BufferSaveCallback;
@@ -1057,7 +1057,7 @@ OFSwitch13Device::ReceiveFromController(Ptr<Packet> packet, Address from)
     // Check for error while unpacking the message.
     if (error)
     {
-        // The ofsoftswitch13 librady only unpacks messages that has the same
+        // The BOFUSS librady only unpacks messages that has the same
         // OFP_VERSION that is supported by the datapath implementation.
         // However, when an OpenFlow connection is first established, each side
         // of the connection must immediately send an OFPT_HELLO message with

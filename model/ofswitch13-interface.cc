@@ -45,7 +45,7 @@ EnableBofussLog(bool printToFile,
             {
                 filename += "-";
             }
-            filename += "bofuss.log";
+            filename += "BOFUSS.log";
         }
         vlog_set_log_file(filename.c_str());
         vlog_set_levels(VLM_ANY_MODULE, VLF_FILE, VLL_DBG);
@@ -112,7 +112,7 @@ PacketFromBuffer(struct ofpbuf* buffer)
 using namespace ns3;
 
 /**
- * Overriding bofuss time_now weak function from timeval.c.
+ * Overriding BOFUSS time_now weak function from timeval.c.
  * \return The current simulation time, in seconds.
  */
 time_t
@@ -122,7 +122,7 @@ time_now(void)
 }
 
 /**
- * Overriding bofuss time_msec weak function from timeval.c.
+ * Overriding BOFUSS time_msec weak function from timeval.c.
  * \return The current simulation time, in milliseconds.
  */
 long long int
@@ -131,7 +131,7 @@ time_msec(void)
     return static_cast<long long int>(Simulator::Now().GetMilliSeconds());
 }
 
-/** Overriding bofuss weak functions using static member functions. */
+/** Overriding BOFUSS weak functions using static member functions. */
 void
 send_packet_to_controller(struct pipeline* pl,
                           struct packet* pkt,

@@ -42,8 +42,8 @@ class OFSwitch13Device;
  *
  * A OpenFlow switch port, interconnecting the underlying NetDevice to the
  * OpenFlow device through the OpenFlow receive callback. This class handles
- * the ofsoftswitch13 internal sw_port structure.
- * \see ofsoftswitch13 udatapath/dp_ports.h
+ * the BOFUSS internal sw_port structure.
+ * \see BOFUSS udatapath/dp_ports.h
  * \attention Each underlying NetDevice used as port must only be assigned
  *            a MAC Address. Adding an Ipv4/IPv6 layer to it may cause error.
  */
@@ -90,7 +90,7 @@ class OFSwitch13Port : public Object
     Ptr<OFSwitch13Queue> GetPortQueue() const;
 
     /**
-     * Get a pointer to the internal ofsoftswitch13 port structure.
+     * Get a pointer to the internal BOFUSS port structure.
      * \return The requested pointer.
      */
     struct sw_port* GetPortStruct();
@@ -112,7 +112,7 @@ class OFSwitch13Port : public Object
      * Send a packet over this OpenFlow switch port. It will check port
      * configuration, update counters and send the packet to the underlying
      * device.
-     * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
+     * \see BOFUSS function dp_ports_run () at udatapath/dp_ports.c
      * \param packet The Packet to send.
      * \param queueNo The queue to use.
      * \param tunnelId The metadata associated with a logical port.
@@ -141,7 +141,7 @@ class OFSwitch13Port : public Object
      * Called when a packet is received on this OpenFlow switch port by the
      * underlying NetDevice. It will check port configuration, update counter
      * and send the packet to the OpenFlow pipeline.
-     * \see ofsoftswitch13 function dp_ports_run () at udatapath/dp_ports.c
+     * \see BOFUSS function dp_ports_run () at udatapath/dp_ports.c
      * \param device Underlying ns-3 network device.
      * \param packet The received packet.
      * \param protocol Next protocol header value.
@@ -165,7 +165,7 @@ class OFSwitch13Port : public Object
 
     uint64_t m_dpId;                     //!< OpenFlow datapath ID.
     uint32_t m_portNo;                   //!< Port number.
-    struct sw_port* m_swPort;            //!< ofsoftswitch13 port structure.
+    struct sw_port* m_swPort;            //!< BOFUSS port structure.
     Ptr<NetDevice> m_netDev;             //!< Underlying NetDevice.
     Ptr<OFSwitch13Queue> m_portQueue;    //!< OpenFlow port Queue.
     ObjectFactory m_factQueue;           //!< Factory for port queue.

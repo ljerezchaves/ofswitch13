@@ -23,7 +23,7 @@
  * This section documents the API of the ns-3 OpenFlow 1.3 compatible switch
  * and controller interface. It follows the OpenFlow 1.3 switch specification
  * <https://www.opennetworking.org/sdn-resources/technical-library>.
- * It depends on the CPqD bofuss software switch available at
+ * It depends on the CPqD BOFUSS software switch available at
  * <https://github.com/ljerezchaves/ofsoftswitch13>, compiled as a library.
  * Check the manual for tutorials on how to compile and use this module.
  */
@@ -81,7 +81,7 @@ typedef void (*OpenFlowCallback)(Ptr<Packet> packet);
 
 /**
  * \ingroup ofswitch13
- * Enable the logging system of the bofuss library.
+ * Enable the logging system of the BOFUSS library.
  * By default, it will configure de logging system for maximum verbose dump on
  * console. You can set the \p printToFile parameter to dump messages to file
  * instead.
@@ -97,7 +97,7 @@ void EnableBofussLog(bool printToFile = false,
 
 /**
  * \ingroup ofswitch13
- * Create an internal bofuss buffer from ns3::Packet. Takes a
+ * Create an internal BOFUSS buffer from ns3::Packet. Takes a
  * Ptr<Packet> and generates a buffer (struct ofpbuf*) from it, loading the
  * packet data as well as its headers into the buffer.
  * \param packet The ns-3 packet.
@@ -122,7 +122,7 @@ Ptr<Packet> PacketFromMsg(struct ofl_msg_header* msg, uint32_t xid = 0);
 
 /**
  * \ingroup ofswitch13
- * Create a new ns3::Packet from internal bofuss buffer. Takes a buffer
+ * Create a new ns3::Packet from internal BOFUSS buffer. Takes a buffer
  * (struct ofpbuf*) and generates a Ptr<Packet> from it, load the data as well
  * as its headers into the packet.
  * \param buffer The internal buffer.
