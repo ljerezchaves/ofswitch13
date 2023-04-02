@@ -330,7 +330,7 @@ class OFSwitch13Device : public Object
      * \param pkt The internal packet saved into buffer.
      * \param timeout The timeout for this packet into buffer.
      */
-    static void BufferSaveCallback(struct packet* pkt, time_t timeout);
+    static void BufferSaveCallback(struct packet* pkt, uint64_t timeout);
 
     /**
      * Callback fired when a packet is retrieved from buffer.
@@ -533,7 +533,7 @@ class OFSwitch13Device : public Object
      * the ns-3 packet in pipeline and save into buffer map. \param packetId The
      * ns-3 packet id. \param timeout The buffer timeout.
      */
-    void BufferPacketSave(uint64_t packetId, time_t timeout);
+    void BufferPacketSave(uint64_t packetId, uint64_t timeout);
 
     /**
      * Notify this device of a packet retrieved from buffer. This method will

@@ -653,7 +653,7 @@ OFSwitch13Device::PacketDestroyCallback(struct packet* pkt)
 }
 
 void
-OFSwitch13Device::BufferSaveCallback(struct packet* pkt, time_t timeout)
+OFSwitch13Device::BufferSaveCallback(struct packet* pkt, uint64_t timeout)
 {
     Ptr<OFSwitch13Device> dev = OFSwitch13Device::GetDevice(pkt->dp->id);
     dev->BufferPacketSave(pkt->ns3_uid, timeout);
@@ -1310,7 +1310,7 @@ OFSwitch13Device::NotifyPacketDroppedByTable(struct packet* pkt,
 }
 
 void
-OFSwitch13Device::BufferPacketSave(uint64_t packetId, time_t timeout)
+OFSwitch13Device::BufferPacketSave(uint64_t packetId, uint64_t timeout)
 {
     NS_LOG_FUNCTION(this << packetId);
 
@@ -1331,10 +1331,8 @@ OFSwitch13Device::BufferPacketSave(uint64_t packetId, time_t timeout)
     m_pipePkt.DelCopy(packetId);
     NS_ASSERT_MSG(!m_pipePkt.IsValid(), "Packet copy still in pipeline.");
 
-    // Scheduling the buffer remove for expired packet. Since packet timeout
-    // resolution is expressed in seconds, let's double it to avoid rounding
-    // conflicts.
-    Simulator::Schedule(Time::FromInteger(2 * timeout, Time::S),
+    // Scheduling the buffer removal for expired packet.
+    Simulator::Schedule(Time::FromInteger(timeout, Time::MS),
                         &OFSwitch13Device::BufferPacketDelete,
                         this,
                         packetId);
@@ -1349,7 +1347,7 @@ OFSwitch13Device::BufferPacketRetrieve(uint64_t packetId)
 
     // Find packet in buffer.
     auto it = m_bufferPkts.find(packetId);
-    NS_ASSERT_MSG(it != m_bufferPkts.end(), "Packet not found in buffer.");
+    NS_ABORT_MSG_IF(it == m_bufferPkts.end(), "Packet not found in buffer.");
 
     // Save packet into pipeline structure.
     m_pipePkt.SetPacket(it->first, it->second);
