@@ -60,8 +60,8 @@ extern "C"
 #include <bofuss/ofpbuf.h>
 #include <bofuss/openflow.h>
 #include <bofuss/oxm-match.h>
-#include <bofuss/packet_handle_std.h>
 #include <bofuss/packet.h>
+#include <bofuss/packet_handle_std.h>
 #include <bofuss/pipeline.h>
 #include <bofuss/timeval.h>
 #include <bofuss/vlog.h>
@@ -81,10 +81,9 @@ typedef void (*OpenFlowCallback)(Ptr<Packet> packet);
 
 /**
  * \ingroup ofswitch13
- * Enable the logging system of the BOFUSS library.
- * By default, it will configure de logging system for maximum verbose dump on
- * console. You can set the \p printToFile parameter to dump messages to file
- * instead.
+ * Enable the logging system of the BOFUSS library. By default, it will
+ * configure de logging system for maximum verbose dump on console. You can set
+ * the \p printToFile parameter to dump messages to file instead.
  * \param printToFile Dump log messages to file instead of console.
  * \param prefix Filename prefix to use for log files.
  * \param explicitFilename Treat the prefix as an explicit filename if true.
@@ -97,17 +96,15 @@ void EnableBofussLog(bool printToFile = false,
 
 /**
  * \ingroup ofswitch13
- * Create an internal BOFUSS buffer from ns3::Packet. Takes a
- * Ptr<Packet> and generates a buffer (struct ofpbuf*) from it, loading the
- * packet data as well as its headers into the buffer.
+ * Create an internal BOFUSS buffer from ns3::Packet. Takes a Ptr<Packet> and
+ * generates a buffer (struct ofpbuf*) from it, loading the packet data as well
+ * as its headers into the buffer.
  * \param packet The ns-3 packet.
  * \param bodyRoom The size to allocate for data.
- * \param headRoom The size to allocate for headers (left unitialized).
+ * \param headRoom The size to allocate for headers (left uninitialized).
  * \return The OpenFlow Buffer created from the packet.
  */
-struct ofpbuf* BufferFromPacket(Ptr<const Packet> packet,
-                                size_t bodyRoom,
-                                size_t headRoom = 0);
+struct ofpbuf* BufferFromPacket(Ptr<const Packet> packet, size_t bodyRoom, size_t headRoom = 0);
 
 /**
  * \ingroup ofswitch13
@@ -122,9 +119,9 @@ Ptr<Packet> PacketFromMsg(struct ofl_msg_header* msg, uint32_t xid = 0);
 
 /**
  * \ingroup ofswitch13
- * Create a new ns3::Packet from internal BOFUSS buffer. Takes a buffer
- * (struct ofpbuf*) and generates a Ptr<Packet> from it, load the data as well
- * as its headers into the packet.
+ * Create a new ns3::Packet from internal BOFUSS buffer. Takes a buffer (struct
+ * ofpbuf*) and generates a Ptr<Packet> from it, load the data as well as its
+ * headers into the packet.
  * \param buffer The internal buffer.
  * \return The ns3::Packet created.
  */

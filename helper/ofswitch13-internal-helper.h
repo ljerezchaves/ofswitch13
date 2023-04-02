@@ -58,15 +58,13 @@ class OFSwitch13InternalHelper : public OFSwitch13Helper
      * This method installs the given controller application into the given
      * controller node. If no application is given, a new (default) learning
      * controller application is created and installed into controller node.
-     *
      * \param cNode The node to configure as controller.
      * \param controller The controller application to install into cNode
      * \return The installed controller application.
      */
     Ptr<OFSwitch13Controller> InstallController(
         Ptr<Node> cNode,
-        Ptr<OFSwitch13Controller> controller =
-            CreateObject<OFSwitch13LearningController>());
+        Ptr<OFSwitch13Controller> controller = CreateObject<OFSwitch13LearningController>());
 
   protected:
     /** Destructor implementation. */
@@ -75,7 +73,6 @@ class OFSwitch13InternalHelper : public OFSwitch13Helper
     /**
      * Create an individual connection between the switch and the controller
      * node, using the already configured channel type.
-     *
      * \param ctrl The controller node.
      * \param swtch The switch node.
      * \return The devices created on both nodes.

@@ -47,15 +47,14 @@ OFSwitch13Controller::~OFSwitch13Controller()
 TypeId
 OFSwitch13Controller::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::OFSwitch13Controller")
-            .SetParent<Object>()
-            .SetGroupName("OFSwitch13")
-            .AddAttribute("Port",
-                          "Port number to listen for incoming packets.",
-                          UintegerValue(6653),
-                          MakeUintegerAccessor(&OFSwitch13Controller::m_port),
-                          MakeUintegerChecker<uint16_t>());
+    static TypeId tid = TypeId("ns3::OFSwitch13Controller")
+                            .SetParent<Object>()
+                            .SetGroupName("OFSwitch13")
+                            .AddAttribute("Port",
+                                          "Port number to listen for incoming packets.",
+                                          UintegerValue(6653),
+                                          MakeUintegerAccessor(&OFSwitch13Controller::m_port),
+                                          MakeUintegerChecker<uint16_t>());
     return tid;
 }
 
@@ -83,7 +82,7 @@ OFSwitch13Controller::DpctlExecute(uint64_t dpId, const std::string textCmd)
     if (!swtch)
     {
         // Save this command for further execution after handshake procedure.
-        NS_LOG_DEBUG("Schedulling command for an unregistered switch.");
+        NS_LOG_DEBUG("Scheduling command for an unregistered switch.");
         auto it = m_commandsMap.find(dpId);
         if (it == m_commandsMap.end())
         {
@@ -116,8 +115,7 @@ OFSwitch13Controller::DpctlExecute(uint64_t dpId, const std::string textCmd)
 }
 
 void
-OFSwitch13Controller::DpctlSendAndPrint(struct vconn* vconn,
-                                        struct ofl_msg_header* msg)
+OFSwitch13Controller::DpctlSendAndPrint(struct vconn* vconn, struct ofl_msg_header* msg)
 {
     NS_LOG_FUNCTION_NOARGS();
 
@@ -139,12 +137,10 @@ OFSwitch13Controller::StartApplication()
     m_serverSocket->Listen();
 
     // Setting socket callbacks
-    m_serverSocket->SetAcceptCallback(
-        MakeCallback(&OFSwitch13Controller::SocketRequest, this),
-        MakeCallback(&OFSwitch13Controller::SocketAccept, this));
-    m_serverSocket->SetCloseCallbacks(
-        MakeCallback(&OFSwitch13Controller::SocketPeerClose, this),
-        MakeCallback(&OFSwitch13Controller::SocketPeerError, this));
+    m_serverSocket->SetAcceptCallback(MakeCallback(&OFSwitch13Controller::SocketRequest, this),
+                                      MakeCallback(&OFSwitch13Controller::SocketAccept, this));
+    m_serverSocket->SetCloseCallbacks(MakeCallback(&OFSwitch13Controller::SocketPeerClose, this),
+                                      MakeCallback(&OFSwitch13Controller::SocketPeerError, this));
 }
 
 void
@@ -204,8 +200,8 @@ OFSwitch13Controller::SendToSwitch(Ptr<const RemoteSwitch> swtch,
     NS_LOG_FUNCTION(this << swtch);
 
     char* msgStr = ofl_msg_to_string(msg, nullptr);
-    NS_LOG_DEBUG("TX to switch " << swtch->GetIpv4() << " [dp "
-                                 << swtch->GetDpId() << "]: " << msgStr);
+    NS_LOG_DEBUG("TX to switch " << swtch->GetIpv4() << " [dp " << swtch->GetDpId()
+                                 << "]: " << msgStr);
     free(msgStr);
 
     // Set the transaction ID only for unknown values
@@ -219,8 +215,7 @@ OFSwitch13Controller::SendToSwitch(Ptr<const RemoteSwitch> swtch,
 }
 
 void
-OFSwitch13Controller::SendEchoRequest(Ptr<const RemoteSwitch> swtch,
-                                      size_t payloadSize)
+OFSwitch13Controller::SendEchoRequest(Ptr<const RemoteSwitch> swtch, size_t payloadSize)
 {
     NS_LOG_FUNCTION(this << swtch);
 
@@ -306,14 +301,13 @@ OFSwitch13Controller::HandleEchoReply(struct ofl_msg_echo* msg,
     auto it = m_echoMap.find(xid);
     if (it == m_echoMap.end())
     {
-        NS_LOG_WARN("Echo response for unknonw echo request.");
+        NS_LOG_WARN("Echo response for unknown echo request.");
     }
     else
     {
         it->second.m_waiting = false;
         it->second.m_recv = Simulator::Now();
-        NS_LOG_INFO("Echo reply from " << it->second.m_swtch->GetIpv4()
-                                       << " with RTT "
+        NS_LOG_INFO("Echo reply from " << it->second.m_swtch->GetIpv4() << " with RTT "
                                        << it->second.GetRtt().As(Time::MS));
         m_echoMap.erase(it);
     }
@@ -332,7 +326,7 @@ OFSwitch13Controller::HandleBarrierReply(struct ofl_msg_header* msg,
     auto it = m_barrierMap.find(xid);
     if (it == m_barrierMap.end())
     {
-        NS_LOG_WARN("Barrier response for unknonw barrier request.");
+        NS_LOG_WARN("Barrier response for unknown barrier request.");
     }
     else
     {
@@ -475,10 +469,9 @@ OFSwitch13Controller::HandleAsyncReply(struct ofl_msg_async_config* msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleMultipartReply(
-    struct ofl_msg_multipart_reply_header* msg,
-    Ptr<const RemoteSwitch> swtch,
-    uint32_t xid)
+OFSwitch13Controller::HandleMultipartReply(struct ofl_msg_multipart_reply_header* msg,
+                                           Ptr<const RemoteSwitch> swtch,
+                                           uint32_t xid)
 {
     NS_LOG_FUNCTION(this << swtch << xid);
 
@@ -498,10 +491,9 @@ OFSwitch13Controller::HandleRoleReply(struct ofl_msg_role_request* msg,
 }
 
 ofl_err
-OFSwitch13Controller::HandleQueueGetConfigReply(
-    struct ofl_msg_queue_get_config_reply* msg,
-    Ptr<const RemoteSwitch> swtch,
-    uint32_t xid)
+OFSwitch13Controller::HandleQueueGetConfigReply(struct ofl_msg_queue_get_config_reply* msg,
+                                                Ptr<const RemoteSwitch> swtch,
+                                                uint32_t xid)
 {
     NS_LOG_FUNCTION(this << swtch << xid);
 
@@ -541,14 +533,10 @@ OFSwitch13Controller::HandleSwitchMsg(struct ofl_msg_header* msg,
         return HandleError((struct ofl_msg_error*)msg, swtch, xid);
 
     case OFPT_FEATURES_REPLY:
-        return HandleFeaturesReply((struct ofl_msg_features_reply*)msg,
-                                   swtch,
-                                   xid);
+        return HandleFeaturesReply((struct ofl_msg_features_reply*)msg, swtch, xid);
 
     case OFPT_GET_CONFIG_REPLY:
-        return HandleGetConfigReply((struct ofl_msg_get_config_reply*)msg,
-                                    swtch,
-                                    xid);
+        return HandleGetConfigReply((struct ofl_msg_get_config_reply*)msg, swtch, xid);
 
     case OFPT_FLOW_REMOVED:
         return HandleFlowRemoved((struct ofl_msg_flow_removed*)msg, swtch, xid);
@@ -560,18 +548,13 @@ OFSwitch13Controller::HandleSwitchMsg(struct ofl_msg_header* msg,
         return HandleAsyncReply((struct ofl_msg_async_config*)msg, swtch, xid);
 
     case OFPT_MULTIPART_REPLY:
-        return HandleMultipartReply((struct ofl_msg_multipart_reply_header*)msg,
-                                    swtch,
-                                    xid);
+        return HandleMultipartReply((struct ofl_msg_multipart_reply_header*)msg, swtch, xid);
 
     case OFPT_ROLE_REPLY:
         return HandleRoleReply((struct ofl_msg_role_request*)msg, swtch, xid);
 
     case OFPT_QUEUE_GET_CONFIG_REPLY:
-        return HandleQueueGetConfigReply(
-            (struct ofl_msg_queue_get_config_reply*)msg,
-            swtch,
-            xid);
+        return HandleQueueGetConfigReply((struct ofl_msg_queue_get_config_reply*)msg, swtch, xid);
 
     case OFPT_EXPERIMENTER:
     default:
@@ -590,18 +573,15 @@ OFSwitch13Controller::ReceiveFromSwitch(Ptr<Packet> packet, Address from)
 
     // Get the openflow buffer, unpack the message and send to message handler
     struct ofpbuf* buffer = BufferFromPacket(packet, packet->GetSize());
-    error = ofl_msg_unpack((uint8_t*)buffer->data,
-                           buffer->size,
-                           &msg,
-                           &xid,
-                           nullptr);
+    error = ofl_msg_unpack((uint8_t*)buffer->data, buffer->size, &msg, &xid, nullptr);
 
     if (!error)
     {
         Ptr<RemoteSwitch> swtch = GetRemoteSwitch(from);
         char* msgStr = ofl_msg_to_string(msg, nullptr);
-        NS_LOG_DEBUG("RX from switch " << swtch->GetIpv4() << " [dp "
-                                       << swtch->GetDpId() << "]: " << msgStr);
+        Ipv4Address swIpv4 = swtch->GetIpv4();
+        uint64_t swDpId = swtch->GetDpId();
+        NS_LOG_DEBUG("RX from switch " << swIpv4 << " [dp " << swDpId << "]: " << msgStr);
         free(msgStr);
 
         error = HandleSwitchMsg(msg, swtch, xid);

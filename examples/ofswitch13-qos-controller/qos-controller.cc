@@ -226,7 +226,7 @@ QosController::ConfigureAggregationSwitch(Ptr<const RemoteSwitch> swtch)
                      "weight=0,port=any,group=any output=1");
     }
 
-    // Packets from input ports 1 and 2 are redirecte to port 3
+    // Packets from input ports 1 and 2 are redirected to port 3
     DpctlExecute(swDpId,
                  "flow-mod cmd=add,table=0,prio=500 "
                  "in_port=1 write:output=3");

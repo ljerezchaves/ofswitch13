@@ -46,9 +46,12 @@ GtpTunnelApp::~GtpTunnelApp()
 TypeId
 GtpTunnelApp::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::GtpTunnelApp").SetParent<Application>().SetGroupName("OFSwitch13");
+    // clang-format off
+    static TypeId tid = TypeId("ns3::GtpTunnelApp")
+                            .SetParent<Application>()
+                            .SetGroupName("OFSwitch13");
     return tid;
+    // clang-format on
 }
 
 bool
@@ -116,9 +119,9 @@ GtpTunnelApp::RecvFromTunnelSocket(Ptr<Socket> socket)
     // and the source address we set here using the physical device.
     AddHeader(packet, Mac48Address::ConvertFrom(m_physicalDev->GetAddress()));
 
-    // Send the packet to the OpenFlow switch over the logical port.
-    // Don't worry about source and destination addresses becasu they are note
-    // used by the receive method.
+    // Send the packet to the OpenFlow switch over the logical port. Don't worry
+    // about source and destination addresses because they are note used by the
+    // receive method.
     m_logicalPort->Receive(packet,
                            Ipv4L3Protocol::PROT_NUMBER,
                            Mac48Address(),
@@ -163,8 +166,9 @@ GtpTunnelApp::AddHeader(Ptr<Packet> packet,
     NS_LOG_FUNCTION(this << packet << source << dest << protocolNo);
 
     // All Ethernet frames must carry a minimum payload of 46 bytes. We need to
-    // pad out if we don't have enough bytes. These must be real bytes since they
-    // will be written to pcap files and compared in regression trace files.
+    // pad out if we don't have enough bytes. These must be real bytes since
+    // they will be written to pcap files and compared in regression trace
+    // files.
     if (packet->GetSize() < 46)
     {
         uint8_t buffer[46];

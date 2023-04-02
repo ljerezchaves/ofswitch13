@@ -28,10 +28,12 @@ NS_OBJECT_ENSURE_REGISTERED(OFSwitch13SocketHandler);
 TypeId
 OFSwitch13SocketHandler::GetTypeId()
 {
+    // clang-format off
     static TypeId tid = TypeId("ns3::OFSwitch13SocketHandler")
                             .SetParent<Object>()
                             .SetGroupName("OFSwitch13");
     return tid;
+    // clang-format on
 }
 
 OFSwitch13SocketHandler::OFSwitch13SocketHandler(Ptr<Socket> socket)

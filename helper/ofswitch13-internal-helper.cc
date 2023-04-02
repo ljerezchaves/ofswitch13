@@ -66,13 +66,11 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels()
     switch (m_channelType)
     {
     case OFSwitch13InternalHelper::SINGLECSMA: {
-        NS_LOG_INFO("Attach all switches and controllers to the same "
-                    "CSMA network.");
+        NS_LOG_INFO("Attach all switches and controllers to the same CSMA network.");
 
         // Create the common channel for all switches and controllers.
-        Ptr<CsmaChannel> csmaChannel = CreateObjectWithAttributes<CsmaChannel>(
-            "DataRate",
-            DataRateValue(m_channelDataRate));
+        Ptr<CsmaChannel> csmaChannel =
+            CreateObjectWithAttributes<CsmaChannel>("DataRate", DataRateValue(m_channelDataRate));
 
         // Connecting all switches and controllers to the common channel.
         NetDeviceContainer switchDevices;
@@ -87,20 +85,14 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels()
         for (uint32_t ctIdx = 0; ctIdx < controllerAddrs.GetN(); ctIdx++)
         {
             m_controlApps.Get(ctIdx)->GetAttribute("Port", portValue);
-            InetSocketAddress addr(controllerAddrs.GetAddress(ctIdx),
-                                   portValue.Get());
+            InetSocketAddress addr(controllerAddrs.GetAddress(ctIdx), portValue.Get());
 
             OFSwitch13DeviceContainer::Iterator ofDev;
-            for (ofDev = m_openFlowDevs.Begin(); ofDev != m_openFlowDevs.End();
-                 ofDev++)
+            for (ofDev = m_openFlowDevs.Begin(); ofDev != m_openFlowDevs.End(); ofDev++)
             {
-                NS_LOG_INFO("Connect switch "
-                            << (*ofDev)->GetDatapathId() << " to controller "
-                            << addr.GetIpv4() << " port " << addr.GetPort());
-                Simulator::ScheduleNow(
-                    &OFSwitch13Device::StartControllerConnection,
-                    *ofDev,
-                    addr);
+                NS_LOG_INFO("Connect switch " << (*ofDev)->GetDatapathId() << " to controller "
+                                              << addr.GetIpv4() << " port " << addr.GetPort());
+                Simulator::ScheduleNow(&OFSwitch13Device::StartControllerConnection, *ofDev, addr);
             }
         }
         m_ipv4helper.NewNetwork();
@@ -109,25 +101,19 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels()
     case OFSwitch13InternalHelper::DEDICATEDCSMA:
     case OFSwitch13InternalHelper::DEDICATEDP2P: {
         // Setting channel/device data rates.
-        m_p2pHelper.SetDeviceAttribute("DataRate",
-                                       DataRateValue(m_channelDataRate));
-        m_csmaHelper.SetChannelAttribute("DataRate",
-                                         DataRateValue(m_channelDataRate));
+        m_p2pHelper.SetDeviceAttribute("DataRate", DataRateValue(m_channelDataRate));
+        m_csmaHelper.SetChannelAttribute("DataRate", DataRateValue(m_channelDataRate));
 
         // To avoid IP datagram fragmentation, we are configuring the OpenFlow
         // channel devices with a very large MTU value. The TCP sockets used to
-        // send packets to theses devices are also configured to use a large
+        // send packets to these devices are also configured to use a large
         // segment size at OFSwitch13Controller and OFSwitch13Device.
         m_csmaHelper.SetDeviceAttribute("Mtu", UintegerValue(9000));
         m_p2pHelper.SetDeviceAttribute("Mtu", UintegerValue(9000));
 
         // Using large queues on devices to avoid losing packets.
-        m_csmaHelper.SetQueue("ns3::DropTailQueue<Packet>",
-                              "MaxSize",
-                              StringValue("65536p"));
-        m_p2pHelper.SetQueue("ns3::DropTailQueue<Packet>",
-                             "MaxSize",
-                             StringValue("65536p"));
+        m_csmaHelper.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", StringValue("65536p"));
+        m_p2pHelper.SetQueue("ns3::DropTailQueue<Packet>", "MaxSize", StringValue("65536p"));
 
         // Create individual channels for each pair switch/controller.
         UintegerValue portValue;
@@ -143,21 +129,15 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels()
 
                 NetDeviceContainer pairDevs = Connect(ctNode, swNode);
                 m_controlDevs.Add(pairDevs.Get(0));
-                Ipv4InterfaceContainer pairIfaces =
-                    m_ipv4helper.Assign(pairDevs);
+                Ipv4InterfaceContainer pairIfaces = m_ipv4helper.Assign(pairDevs);
 
                 // Start this single connection between switch and controller.
                 m_controlApps.Get(ctIdx)->GetAttribute("Port", portValue);
-                InetSocketAddress addr(pairIfaces.GetAddress(0),
-                                       portValue.Get());
+                InetSocketAddress addr(pairIfaces.GetAddress(0), portValue.Get());
 
-                NS_LOG_INFO("Connect switch "
-                            << ofDev->GetDatapathId() << " to controller "
-                            << addr.GetIpv4() << " port " << addr.GetPort());
-                Simulator::ScheduleNow(
-                    &OFSwitch13Device::StartControllerConnection,
-                    ofDev,
-                    addr);
+                NS_LOG_INFO("Connect switch " << ofDev->GetDatapathId() << " to controller "
+                                              << addr.GetIpv4() << " port " << addr.GetPort());
+                Simulator::ScheduleNow(&OFSwitch13Device::StartControllerConnection, ofDev, addr);
                 m_ipv4helper.NewNetwork();
             }
         }
@@ -170,9 +150,7 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels()
 }
 
 Ptr<OFSwitch13Controller>
-OFSwitch13InternalHelper::InstallController(
-    Ptr<Node> cNode,
-    Ptr<OFSwitch13Controller> controller)
+OFSwitch13InternalHelper::InstallController(Ptr<Node> cNode, Ptr<OFSwitch13Controller> controller)
 {
     NS_LOG_FUNCTION(this << cNode << controller);
 

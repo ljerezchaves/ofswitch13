@@ -30,8 +30,7 @@
 #include <ns3/virtual-net-device.h>
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT                                                  \
-    std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
+#define NS_LOG_APPEND_CONTEXT std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
 
 namespace ns3
 {
@@ -88,30 +87,26 @@ OFSwitch13Port::GetTypeId()
             .SetParent<Object>()
             .SetGroupName("OFSwitch13")
             .AddConstructor<OFSwitch13Port>()
-            .AddAttribute(
-                "PortQueue",
-                "The OpenFlow queue to use as the TX queue in this port.",
-                PointerValue(),
-                MakePointerAccessor(&OFSwitch13Port::m_portQueue),
-                MakePointerChecker<OFSwitch13Queue>())
-            .AddAttribute(
-                "QueueFactory",
-                "The object factory for the OpenFlow queue.",
-                TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                ObjectFactoryValue(GetDefaultQueueFactory()),
-                MakeObjectFactoryAccessor(&OFSwitch13Port::m_factQueue),
-                MakeObjectFactoryChecker())
+            .AddAttribute("PortQueue",
+                          "The OpenFlow queue to use as the TX queue in this port.",
+                          PointerValue(),
+                          MakePointerAccessor(&OFSwitch13Port::m_portQueue),
+                          MakePointerChecker<OFSwitch13Queue>())
+            .AddAttribute("QueueFactory",
+                          "The object factory for the OpenFlow queue.",
+                          TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                          ObjectFactoryValue(GetDefaultQueueFactory()),
+                          MakeObjectFactoryAccessor(&OFSwitch13Port::m_factQueue),
+                          MakeObjectFactoryChecker())
 
-            .AddTraceSource(
-                "SwitchPortRx",
-                "Trace source indicating a packet received at this port.",
-                MakeTraceSourceAccessor(&OFSwitch13Port::m_rxTrace),
-                "ns3::Packet::TracedCallback")
-            .AddTraceSource(
-                "SwitchPortTx",
-                "Trace source indicating a packet sent at this port.",
-                MakeTraceSourceAccessor(&OFSwitch13Port::m_txTrace),
-                "ns3::Packet::TracedCallback");
+            .AddTraceSource("SwitchPortRx",
+                            "Trace source indicating a packet received at this port.",
+                            MakeTraceSourceAccessor(&OFSwitch13Port::m_rxTrace),
+                            "ns3::Packet::TracedCallback")
+            .AddTraceSource("SwitchPortTx",
+                            "Trace source indicating a packet sent at this port.",
+                            MakeTraceSourceAccessor(&OFSwitch13Port::m_txTrace),
+                            "ns3::Packet::TracedCallback");
     return tid;
 }
 
@@ -143,8 +138,7 @@ OFSwitch13Port::NotifyConstructionCompleted()
     // Check for valid NetDevice type
     Ptr<CsmaNetDevice> csmaDev = m_netDev->GetObject<CsmaNetDevice>();
     Ptr<VirtualNetDevice> virtDev = m_netDev->GetObject<VirtualNetDevice>();
-    NS_ABORT_MSG_IF(!csmaDev && !virtDev,
-                    "NetDevice must be CsmaNetDevice or VirtualNetDevice.");
+    NS_ABORT_MSG_IF(!csmaDev && !virtDev, "NetDevice must be CsmaNetDevice or VirtualNetDevice.");
 
     // Filling BOFUSS internal structures for this port.
     size_t oflPortSize = sizeof(struct ofl_port);
@@ -173,8 +167,8 @@ OFSwitch13Port::NotifyConstructionCompleted()
     m_swPort->flags |= SWP_USED;
 
     // To avoid a null check failure in BOFUSS
-    // dp_ports_handle_stats_request_port (), we are pointing m_swPort->netdev
-    // to corresponding ns3::NetDevice, but this pointer must not be used!
+    // dp_ports_handle_stats_request_port(), we are pointing m_swPort->netdev to
+    // corresponding ns3::NetDevice, but this pointer must not be used!
     m_swPort->netdev = (struct netdev*)PeekPointer(m_netDev);
 
     // Creating the OFSwitch13Queue for this switch port
@@ -203,14 +197,12 @@ OFSwitch13Port::NotifyConstructionCompleted()
     // Register the receive callback to get packets from the NetDevice.
     if (csmaDev)
     {
-        csmaDev->SetOpenFlowReceiveCallback(
-            MakeCallback(&OFSwitch13Port::Receive, this));
+        csmaDev->SetOpenFlowReceiveCallback(MakeCallback(&OFSwitch13Port::Receive, this));
     }
     else
     {
         NS_ASSERT(virtDev);
-        virtDev->SetOpenFlowReceiveCallback(
-            MakeCallback(&OFSwitch13Port::Receive, this));
+        virtDev->SetOpenFlowReceiveCallback(MakeCallback(&OFSwitch13Port::Receive, this));
     }
 }
 
@@ -335,7 +327,7 @@ OFSwitch13Port::Receive(Ptr<NetDevice> device,
     // Check port configuration.
     if ((m_swPort->conf->config & (OFPPC_NO_RECV | OFPPC_PORT_DOWN)) != 0)
     {
-        NS_LOG_WARN("This port is down or inoperating. Discarding packet");
+        NS_LOG_WARN("This port is down or inoperative. Discarding packet");
         return false;
     }
 
@@ -361,9 +353,7 @@ OFSwitch13Port::Receive(Ptr<NetDevice> device,
 }
 
 bool
-OFSwitch13Port::Send(Ptr<const Packet> packet,
-                     uint32_t queueNo,
-                     uint64_t tunnelId)
+OFSwitch13Port::Send(Ptr<const Packet> packet, uint32_t queueNo, uint64_t tunnelId)
 {
     NS_LOG_FUNCTION(this << packet << queueNo << tunnelId);
 
@@ -377,8 +367,7 @@ OFSwitch13Port::Send(Ptr<const Packet> packet,
     m_txTrace(packet);
 
     Ptr<Packet> packetCopy = packet->Copy();
-    NS_LOG_DEBUG("Pkt " << packetCopy->GetUid()
-                        << " will be sent at this port.");
+    NS_LOG_DEBUG("Pkt " << packetCopy->GetUid() << " will be sent at this port.");
 
     // Removing the Ethernet header and trailer from packet, which will be
     // included again by CsmaNetDevice

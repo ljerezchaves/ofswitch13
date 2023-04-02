@@ -153,10 +153,10 @@ main(int argc, char* argv[])
     internet.Install(hosts);
 
     // Set IPv4 host addresses
-    Ipv4AddressHelper ipv4helpr;
+    Ipv4AddressHelper ipv4Helper;
     Ipv4InterfaceContainer hostIpIfaces;
-    ipv4helpr.SetBase("10.1.1.0", "255.255.255.0");
-    hostIpIfaces = ipv4helpr.Assign(hostDevices);
+    ipv4Helper.SetBase("10.1.1.0", "255.255.255.0");
+    hostIpIfaces = ipv4Helper.Assign(hostDevices);
 
     // Random number generators for ping applications
     Ptr<UniformRandomVariable> randomHostRng = CreateObject<UniformRandomVariable>();

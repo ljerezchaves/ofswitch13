@@ -40,12 +40,12 @@ class OFSwitch13Device;
 /**
  * \ingroup ofswitch13
  *
- * A OpenFlow switch port, interconnecting the underlying NetDevice to the
- * OpenFlow device through the OpenFlow receive callback. This class handles
- * the BOFUSS internal sw_port structure.
+ * A OpenFlow switch port to interconnect the underlying NetDevice to the
+ * OpenFlow device through the OpenFlow receive callback. This class handles the
+ * BOFUSS internal sw_port structure.
  * \see BOFUSS udatapath/dp_ports.h
- * \attention Each underlying NetDevice used as port must only be assigned
- *            a MAC Address. Adding an Ipv4/IPv6 layer to it may cause error.
+ * \attention Each underlying NetDevice used as port must only be assigned a MAC
+ *            Address. Adding an Ipv4/IPv6 layer to it may cause error.
  */
 class OFSwitch13Port : public Object
 {
@@ -56,14 +56,12 @@ class OFSwitch13Port : public Object
     /**
      * Complete Constructor. Create and populate a new datapath port, notifying
      * the controller of this new port.
-     * \see ofsoftswitch new_port () at udatapath/dp_ports.c
+     * \see BOFUSS new_port() at udatapath/dp_ports.c
      * \param dp The datapath.
      * \param netDev The underlying NetDevice.
      * \param openflowDev The OpenFlow device.
      */
-    OFSwitch13Port(struct datapath* dp,
-                   Ptr<NetDevice> netDev,
-                   Ptr<OFSwitch13Device> openflowDev);
+    OFSwitch13Port(struct datapath* dp, Ptr<NetDevice> netDev, Ptr<OFSwitch13Device> openflowDev);
 
     /**
      * Register this type.
@@ -112,15 +110,13 @@ class OFSwitch13Port : public Object
      * Send a packet over this OpenFlow switch port. It will check port
      * configuration, update counters and send the packet to the underlying
      * device.
-     * \see BOFUSS function dp_ports_run () at udatapath/dp_ports.c
+     * \see BOFUSS function dp_ports_run() at udatapath/dp_ports.c
      * \param packet The Packet to send.
      * \param queueNo The queue to use.
      * \param tunnelId The metadata associated with a logical port.
      * \return true if the packet was sent successfully, false otherwise.
      */
-    bool Send(Ptr<const Packet> packet,
-              uint32_t queueNo = 0,
-              uint64_t tunnelId = 0);
+    bool Send(Ptr<const Packet> packet, uint32_t queueNo = 0, uint64_t tunnelId = 0);
 
   protected:
     /** Destructor implementation */
@@ -132,7 +128,7 @@ class OFSwitch13Port : public Object
   private:
     /**
      * Create the bitmaps of OFPPF_* describing port features.
-     * \see ofsoftswitch netdev_get_features () at lib/netdev.c
+     * \see BOFUSS netdev_get_features() at lib/netdev.c
      * \return Port features bitmap.
      */
     uint32_t GetPortFeatures();
@@ -141,11 +137,11 @@ class OFSwitch13Port : public Object
      * Called when a packet is received on this OpenFlow switch port by the
      * underlying NetDevice. It will check port configuration, update counter
      * and send the packet to the OpenFlow pipeline.
-     * \see BOFUSS function dp_ports_run () at udatapath/dp_ports.c
+     * \see BOFUSS function dp_ports_run() at udatapath/dp_ports.c
      * \param device Underlying ns-3 network device.
      * \param packet The received packet.
      * \param protocol Next protocol header value.
-     * \param from Address of the correspondant.
+     * \param from Address of the correspondent.
      * \param to Address of the destination.
      * \param packetType Type of the packet.
      * \return true.

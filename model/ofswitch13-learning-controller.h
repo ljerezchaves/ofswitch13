@@ -48,7 +48,6 @@ class OFSwitch13LearningController : public OFSwitch13Controller
      * Handle packet-in messages sent from switch to this controller. Look for
      * L2 switching information, update the structures and send a packet-out
      * back.
-     *
      * \param msg The packet-in message.
      * \param swtch The switch information.
      * \param xid Transaction id.
@@ -61,7 +60,6 @@ class OFSwitch13LearningController : public OFSwitch13Controller
     /**
      * Handle flow removed messages sent from switch to this controller. Look
      * for L2 switching information and removes associated entry.
-     *
      * \param msg The flow removed message.
      * \param swtch The switch information.
      * \param xid Transaction id.
@@ -90,7 +88,7 @@ class OFSwitch13LearningController : public OFSwitch13Controller
     /** Map datapathID to L2SwitchingTable */
     typedef std::map<uint64_t, L2Table_t> DatapathMap_t;
 
-    /** Switching information for all dapataths */
+    /** Switching information for every datapath */
     DatapathMap_t m_learnedInfo;
     //\}
 };

@@ -72,8 +72,8 @@ class OFSwitch13StatsCalculator : public Object
     static TypeId GetTypeId();
 
     /**
-     * Hook switch device trace sources to internal stats calculator trace
-     * sinks. \param device The OpenFlow switch device to monitor.
+     * Hook switch device trace sources to stats calculator trace sinks.
+     * \param device The OpenFlow switch device to monitor.
      */
     void HookSinks(Ptr<OFSwitch13Device> device);
 
@@ -154,8 +154,8 @@ class OFSwitch13StatsCalculator : public Object
     void NotifyPipelinePacket(Ptr<const Packet> packet);
 
     /**
-     * Read statistics from switch, update internal counters,
-     * and dump data into output file.
+     * Read statistics from switch, update internal counters, and dump data into
+     * output file.
      */
     void DumpStatistics();
 

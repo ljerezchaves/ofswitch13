@@ -31,9 +31,9 @@ extern template class Queue<Packet>;
 /**
  * \ingroup ofswitch13
  *
- * This class implements the priority queuing discipline for OpenFlow queue.
- * It creates a collection of N priority queues, identified by IDs ranging from
- * 0 to N-1 with decreasing priority (queue ID 0 has the highest priority). The
+ * This class implements the priority queuing discipline for OpenFlow queue. It
+ * creates a collection of N priority queues, identified by IDs ranging from 0
+ * to N-1 with decreasing priority (queue ID 0 has the highest priority). The
  * output scheduling algorithm ensures that higher-priority queues are always
  * served first.
  */

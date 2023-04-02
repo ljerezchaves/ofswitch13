@@ -31,8 +31,7 @@ namespace ns3
 NS_LOG_COMPONENT_DEFINE("OFSwitch13Helper");
 NS_OBJECT_ENSURE_REGISTERED(OFSwitch13Helper);
 
-Ipv4AddressHelper OFSwitch13Helper::m_ipv4helper =
-    Ipv4AddressHelper("10.100.0.0", "255.255.255.0");
+Ipv4AddressHelper OFSwitch13Helper::m_ipv4helper = Ipv4AddressHelper("10.100.0.0", "255.255.255.0");
 
 class OFSwitch13Controller;
 
@@ -57,24 +56,22 @@ OFSwitch13Helper::GetTypeId()
         TypeId("ns3::OFSwitch13Helper")
             .SetParent<Object>()
             .SetGroupName("OFSwitch13")
-            .AddAttribute(
-                "ChannelDataRate",
-                "The data rate to be used for the OpenFlow channel.",
-                DataRateValue(DataRate("10Gb/s")),
-                MakeDataRateAccessor(&OFSwitch13Helper::SetChannelDataRate),
-                MakeDataRateChecker())
-            .AddAttribute(
-                "ChannelType",
-                "The configuration used to create the OpenFlow channel",
-                TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                EnumValue(OFSwitch13Helper::SINGLECSMA),
-                MakeEnumAccessor(&OFSwitch13Helper::SetChannelType),
-                MakeEnumChecker(OFSwitch13Helper::SINGLECSMA,
-                                "SingleCsma",
-                                OFSwitch13Helper::DEDICATEDCSMA,
-                                "DedicatedCsma",
-                                OFSwitch13Helper::DEDICATEDP2P,
-                                "DedicatedP2p"));
+            .AddAttribute("ChannelDataRate",
+                          "The data rate to be used for the OpenFlow channel.",
+                          DataRateValue(DataRate("10Gb/s")),
+                          MakeDataRateAccessor(&OFSwitch13Helper::SetChannelDataRate),
+                          MakeDataRateChecker())
+            .AddAttribute("ChannelType",
+                          "The configuration used to create the OpenFlow channel",
+                          TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                          EnumValue(OFSwitch13Helper::SINGLECSMA),
+                          MakeEnumAccessor(&OFSwitch13Helper::SetChannelType),
+                          MakeEnumChecker(OFSwitch13Helper::SINGLECSMA,
+                                          "SingleCsma",
+                                          OFSwitch13Helper::DEDICATEDCSMA,
+                                          "DedicatedCsma",
+                                          OFSwitch13Helper::DEDICATEDP2P,
+                                          "DedicatedP2p"));
     return tid;
 }
 
@@ -91,7 +88,7 @@ OFSwitch13Helper::SetChannelType(ChannelType type)
 {
     NS_LOG_FUNCTION(this << type);
 
-    // Set the channel type and address, which will select proper netowrk mask.
+    // Set the channel type and address, which will select proper network mask.
     m_channelType = type;
 }
 
@@ -167,7 +164,7 @@ OFSwitch13Helper::EnableDatapathStats(std::string prefix, bool useNodeNames)
     const std::string extension = ".log";
 
     // Iterate over the container and for each OpenFlow devices create a stats
-    // calculator to monitor datapath statistcs.
+    // calculator to monitor datapath statistics.
     OFSwitch13DeviceContainer::Iterator it;
     for (it = m_openFlowDevs.Begin(); it != m_openFlowDevs.End(); it++)
     {
@@ -256,9 +253,7 @@ OFSwitch13Helper::InstallSwitch(NodeContainer& swNodes)
 }
 
 void
-OFSwitch13Helper::SetAddressBase(Ipv4Address network,
-                                 Ipv4Mask mask,
-                                 Ipv4Address base)
+OFSwitch13Helper::SetAddressBase(Ipv4Address network, Ipv4Mask mask, Ipv4Address base)
 {
     NS_LOG_FUNCTION_NOARGS();
 

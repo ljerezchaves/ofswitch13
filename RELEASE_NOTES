@@ -23,7 +23,7 @@ Release 5.2.0 (Mar 31, 2023)
 - Updating CMakeLists.txt to automatically download and build the BOFUSS
   library.
 
-- Updating the module documentation to reflext the changes in library building.
+- Updating the module documentation to reflect the changes in library building.
 
 - Replacing the outdated ofsoftswitch13 library name by BOFUSS in the project
   (source code and documentation).
@@ -77,17 +77,17 @@ Release 5.0.0 (Dec 19, 2021)
 - BE AWARE THAT this release brings incompatible API changes in respect to
   prior OFSwitch13 versions.
 
-- Refactoring OFSwitch13Controller::Dpctl* () methods:
-  * The DpctlExecute () method has no more overloaded definitions. The target
+- Refactoring OFSwitch13Controller::Dpctl*() methods:
+  * The DpctlExecute() method has no more overloaded definitions. The target
     switch (first parameter) must be the switch's datapath IP. Previous
     signature using the Ptr<const RemoteSwitch> swtch pointer was removed.
-    Users can fix compilation errors by just using swtch->GetDpId () when
-    invoking DpctlExecute ();
-  * The DpctlSchedule () method was deprecated in favor of DpctlExecute ().
-    When the switch is not connected to the controller, the DpctlExecute ()
+    Users can fix compilation errors by just using swtch->GetDpId() when
+    invoking DpctlExecute();
+  * The DpctlSchedule() method was deprecated in favor of DpctlExecute().
+    When the switch is not connected to the controller, the DpctlExecute()
     will automatically schedule the command for execution just after the
     handshake procedure. This is particularly useful for executing dpctl
-    commands when creating the topology, before invoking Simulator::Run ().
+    commands when creating the topology, before invoking Simulator::Run().
 
 - Creating a new OFSwitch13Device::TableDrop trace source to notify unmatched
   packets dropped by flow tables without table-miss entries. A new TabDrps
@@ -356,7 +356,7 @@ Release 3.0.0 (Feb 10, 2017)
 
 - Removing the controller address attribute from the OpenFlow device. It now
   must be indicated by the helper as a parameter to the
-  StartControllerConnection () device method.
+  StartControllerConnection() device method.
 
 - Creating the OFSwitch13StatsCalculator for switch performance monitoring.
 
@@ -372,7 +372,7 @@ Release 3.0.0 (Feb 10, 2017)
 - Refactoring the OFSwitch13Controller class:
   * Splitting the DpctlCommand into 'execute' and 'schedule' versions;
   * Removing dependence from OFSwitch13Device class;
-  * Renaming ConnectionStarted () method to HandshakeSuccessful () to reflect
+  * Renaming ConnectionStarted() method to HandshakeSuccessful() to reflect
     the method semantic;
   * Implementing the handshake procedure;
   * Implementing barrier reply, hello and features reply handlers;
@@ -386,7 +386,7 @@ Release 3.0.0 (Feb 10, 2017)
   * Supporting the configuration of OpenFlow networks domains with multiple
     controllers;
   * Removing the dependence of installing the controller before the switches;
-  * Introducing the CreateOpenFlowChannels () member function to effectively
+  * Introducing the CreateOpenFlowChannels() member function to effectively
     connect switches to controllers after installing switches and controllers
     into respective nodes (the use of this function is mandatory).
 

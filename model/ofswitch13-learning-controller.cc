@@ -71,9 +71,7 @@ OFSwitch13LearningController::HandlePacketIn(struct ofl_msg_packet_in* msg,
     // Get the switch datapath ID
     uint64_t swDpId = swtch->GetDpId();
 
-    char* msgStr =
-        ofl_structs_match_to_string((struct ofl_match_header*)msg->match,
-                                    nullptr);
+    char* msgStr = ofl_structs_match_to_string((struct ofl_match_header*)msg->match, nullptr);
     NS_LOG_DEBUG("Packet in match: " << msgStr);
     free(msgStr);
 
@@ -129,24 +127,25 @@ OFSwitch13LearningController::HandlePacketIn(struct ofl_msg_packet_in* msg,
                 }
                 else
                 {
-                    NS_LOG_DEBUG("Learning that mac "
-                                 << src48 << " can be found at port "
-                                 << inPort);
+                    NS_LOG_DEBUG("Learning mac " << src48 << " at port " << inPort);
 
                     // Send a flow-mod to switch creating this flow. Let's
                     // configure the flow entry to 10s idle timeout and to
                     // notify the controller when flow expires. (flags=0x0001)
+
+                    // clang-format off
                     std::ostringstream cmd;
                     cmd << "flow-mod cmd=add,table=0,idle=10,flags=0x0001"
-                        << ",prio=" << ++prio << " eth_dst=" << src48
+                        << ",prio=" << ++prio
+                        << " eth_dst=" << src48
                         << " apply:output=" << inPort;
+                    // clang-format on
                     DpctlExecute(swDpId, cmd.str());
                 }
             }
             else
             {
-                NS_ASSERT_MSG(itSrc->second == inPort,
-                              "Inconsistent L2 switching table");
+                NS_ASSERT_MSG(itSrc->second == inPort, "Inconsistent L2 switching table");
             }
         }
         else
@@ -170,8 +169,8 @@ OFSwitch13LearningController::HandlePacketIn(struct ofl_msg_packet_in* msg,
         }
 
         // Create output action
-        struct ofl_action_output* a = (struct ofl_action_output*)xmalloc(
-            sizeof(struct ofl_action_output));
+        struct ofl_action_output* a =
+            (struct ofl_action_output*)xmalloc(sizeof(struct ofl_action_output));
         a->header.type = OFPAT_OUTPUT;
         a->port = outPort;
         a->max_len = 0;
@@ -184,7 +183,7 @@ OFSwitch13LearningController::HandlePacketIn(struct ofl_msg_packet_in* msg,
     }
     else
     {
-        NS_LOG_WARN("This controller can't handle the packet. Unkwnon reason.");
+        NS_LOG_WARN("This controller can't handle the packet. Unknown reason.");
     }
 
     // All handlers must free the message when everything is ok
@@ -193,10 +192,9 @@ OFSwitch13LearningController::HandlePacketIn(struct ofl_msg_packet_in* msg,
 }
 
 ofl_err
-OFSwitch13LearningController::HandleFlowRemoved(
-    struct ofl_msg_flow_removed* msg,
-    Ptr<const RemoteSwitch> swtch,
-    uint32_t xid)
+OFSwitch13LearningController::HandleFlowRemoved(struct ofl_msg_flow_removed* msg,
+                                                Ptr<const RemoteSwitch> swtch,
+                                                uint32_t xid)
 {
     NS_LOG_FUNCTION(this << swtch << xid);
 
@@ -209,8 +207,7 @@ OFSwitch13LearningController::HandleFlowRemoved(
     {
         Mac48Address mac48;
         struct ofl_match_tlv* ethSrc =
-            oxm_match_lookup(OXM_OF_ETH_DST,
-                             (struct ofl_match*)msg->stats->match);
+            oxm_match_lookup(OXM_OF_ETH_DST, (struct ofl_match*)msg->stats->match);
         mac48.CopyFrom(ethSrc->value);
 
         L2Table_t* l2Table = &it->second;
@@ -235,12 +232,10 @@ OFSwitch13LearningController::HandshakeSuccessful(Ptr<const RemoteSwitch> swtch)
     // Get the switch datapath ID
     uint64_t swDpId = swtch->GetDpId();
 
-    // After a successfull handshake, let's install the table-miss entry,
-    // setting to 128 bytes the maximum amount of data from a packet that should
-    // be sent to the controller.
-    DpctlExecute(swDpId,
-                 "flow-mod cmd=add,table=0,prio=0 "
-                 "apply:output=ctrl:128");
+    // After a successful handshake, let's install the table-miss entry, setting
+    // to 128 bytes the maximum amount of data from a packet that should be sent
+    // to the controller.
+    DpctlExecute(swDpId, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl:128");
 
     // Configure te switch to buffer packets and send only the first 128 bytes
     // of each packet sent to the controller when not using an output action to

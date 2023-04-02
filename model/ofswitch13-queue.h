@@ -38,18 +38,18 @@ extern template class Queue<Packet>;
  * An OpenFlow switch provides limited Quality-of-Service support (QoS) through
  * a simple queuing mechanism. One (or more) queues can attach to a port and be
  * used to map flow entries on it. Flow entries mapped to a specific queue will
- * be treated according to that queue's configuration. Queue configuration
- * takes place outside the OpenFlow protocol.
+ * be treated according to that queue's configuration. Queue configuration takes
+ * place outside the OpenFlow protocol.
  *
  * This class implements the queue interface, extending the ns3::Queue<Packet>
  * class to allow compatibility with the CsmaNetDevice used by OFSwitch13Port.
  * Internally, it holds a collection of N (possibly different) queues,
- * identified by IDs ranging from 0 to N-1. The Enqueue () method uses the
+ * identified by IDs ranging from 0 to N-1. The Enqueue() method uses the
  * ns3::QueueTag to identify which internal queue will hold the packet.
- * Subclasses can perform different output scheduling algorithms by
- * implementing the Dequeue (), Remove () and Peek () methods, always calling
- * the NotifyDequeue () and NotifyRemoved () methods from this base class to
- * keep consistency.
+ * Subclasses can perform different output scheduling algorithms by implementing
+ * the Dequeue(), Remove() and Peek() methods, always calling the
+ * NotifyDequeue() and NotifyRemoved() methods from this base class to keep
+ * consistency.
  */
 class OFSwitch13Queue : public Queue<Packet>
 {
@@ -77,7 +77,7 @@ class OFSwitch13Queue : public Queue<Packet>
      * \param queueId The queue id.
      * \return The queue pointer.
      * \internal This function is marked as const to allow its usage inside
-     *           DoPeek () member function.
+     *           DoPeek() member function.
      */
     Ptr<Queue<Packet>> GetQueue(int queueId) const;
 
@@ -118,8 +118,7 @@ class OFSwitch13Queue : public Queue<Packet>
     uint32_t m_portNo; //!< OpenFlow port number.
 
   private:
-    /** Structure to save the list of internal queues in this queue interface.
-     */
+    /** Structure to save the list of internal queues in this interface. */
     typedef std::vector<Ptr<Queue>> QueueList_t;
 
     struct sw_port* m_swPort; //!< BOFUSS port structure.
