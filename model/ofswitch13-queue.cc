@@ -187,6 +187,17 @@ OFSwitch13Queue::AddQueue(Ptr<Queue<Packet>> queue)
     m_queues.emplace_back(queue);
     NS_LOG_DEBUG("New queue with ID " << queueId);
 
+    // Update the size of this queue.
+    uint32_t maxSizeValue = 0;
+    QueueSizeUnit maxSizeUnit = m_queues.at(0)->GetMaxSize().GetUnit();
+    for (const auto& queueIt : m_queues)
+    {
+        NS_ASSERT_MSG(queueIt->GetMaxSize().GetUnit() == maxSizeUnit,
+                      "Be consistent with queues operation modes.");
+        maxSizeValue += queueIt->GetMaxSize().GetValue();
+    }
+    SetMaxSize(QueueSize(maxSizeUnit, maxSizeValue));
+
     return queueId;
 }
 
