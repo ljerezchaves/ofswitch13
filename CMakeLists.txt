@@ -73,7 +73,7 @@ if(NOT bofuss_FOUND AND NOT ${bofuss_FOUND})
   ExternalProject_Add(
     bofuss_dep
     GIT_REPOSITORY https://github.com/ljerezchaves/ofsoftswitch13.git
-    GIT_TAG 625f01384522579db8f1c361209319530d53774a
+    GIT_TAG 1b6106e3e3814c50b323e43b6bb2dec5ab13ffe7
     PREFIX bofuss_dep
     BUILD_IN_SOURCE TRUE
     UPDATE_DISCONNECTED TRUE
