@@ -4,8 +4,7 @@ OFSwitch13 release notes
 
 This file contains OFSwitch13 release notes (most recent releases first).
 
-
-Release X.X.X (XXX XX, XXXX)
+Release 5.2.2 (Sep 01, 2023)
 ============================
 
 - Removing examples/ofswitch13-qos-controller dependency from netanim module.
@@ -15,6 +14,11 @@ Release X.X.X (XXX XX, XXXX)
 - Updating the maximum size of the parent OFSwitch13Queue class with the sum of
   maximum size of internal queues. The operation mode (packets or bytes) of all
   internal queues must be the same.
+
+- This version is compatible with ns-3 versions 3.38 and 3.39 (including
+  patches). There is no backward compatibility with older ns-3 versions.
+
+- Compilation was tested in Ubuntu 22.04.1 LTS.
 
 
 Release 5.2.1 (Mar 31, 2023)
