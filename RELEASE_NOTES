@@ -22,9 +22,8 @@ Release 5.2.1 (Mar 31, 2023)
 
 - Replacing V4PingHelper by PingHelper in examples for ns-3.38 compatibility.
 
-- This version is compatible with BOFUSS library release v5.2.x and ns-3
-  version 3.38 (including patches). There is no backward compatibility with
-  older ns-3 versions.
+- This version is compatible with ns-3 version 3.38 (including patches). There
+  is no backward compatibility with older ns-3 versions.
 
 - Compilation was tested in Ubuntu 22.04.1 LTS.
 
@@ -42,9 +41,8 @@ Release 5.2.0 (Mar 31, 2023)
 
 - Refactoring the BOFUSS ns3lib branch to simplify library compilation.
 
-- This version is compatible with BOFUSS library release v5.2.x and ns-3
-  versions 3.36 and 3.37 (including patches). There is no backward
-  compatibility with older ns-3 versions.
+- This version is compatible with ns-3 versions 3.36 and 3.37 (including
+  patches). There is no backward compatibility with older ns-3 versions.
 
 - Compilation was tested in Ubuntu 22.04.1 LTS.
 
