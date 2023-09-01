@@ -1,0 +1,908 @@
+From 176c16929aa15119f1d5a6b90b5fdfdf7406368d Mon Sep 17 00:00:00 2001
+From: Luciano J Chaves <ljerezchaves@gmail.com>
+Date: Fri, 1 Sep 2023 10:00:47 -0300
+Subject: [PATCH] CSMA full-duplex patch
+
+---
+ src/csma/doc/csma.rst             |  62 +++++++++-----
+ src/csma/examples/CMakeLists.txt  |   1 +
+ src/csma/examples/csma-duplex.cc  | 105 +++++++++++++++++++++++
+ src/csma/model/csma-channel.cc    | 133 +++++++++++++++++++++++-------
+ src/csma/model/csma-channel.h     | 112 ++++++++++++++++++++++---
+ src/csma/model/csma-net-device.cc |  80 +++++++++++-------
+ src/csma/test/examples-to-run.py  |   1 +
+ 7 files changed, 401 insertions(+), 93 deletions(-)
+ create mode 100644 src/csma/examples/csma-duplex.cc
+
+diff --git a/src/csma/doc/csma.rst b/src/csma/doc/csma.rst
+index 13cc3c876..c4f59ce47 100644
+--- a/src/csma/doc/csma.rst
++++ b/src/csma/doc/csma.rst
+@@ -14,6 +14,12 @@ The |ns3| CSMA device models a simple bus network in the spirit of Ethernet.
+ Although it does not model any real physical network you could ever build or
+ buy, it does provide some very useful functionality.
+ 
++When Ethernet was standardised, all communication was half-duplex. Half-duplex
++communication restricts a node to either transmit or receive at a time but not
++perform both actions concurrently. By default, the |ns3| CSMA device models a
++half-duplex bus network, with no fixed limit on the number of devices connected
++to the shared transmission medium.
++
+ Typically when one thinks of a bus network Ethernet or IEEE 802.3 comes to mind.
+ Ethernet uses CSMA/CD (Carrier Sense Multiple Access with Collision Detection
+ with exponentially increasing backoff to contend for the shared transmission
+@@ -23,6 +29,12 @@ light) carrier sense and priority-based collision "avoidance." Collisions in the
+ sense of Ethernet never happen and so the |ns3| CSMA device does not model
+ collision detection, nor will any transmission in progress be "jammed."
+ 
++This model also offers support for full-duplex communication, where the
++transmission medium can operate in both directions simultaneously but is
++restricted to a maximum of two devices connected on the single full-duplex
++link.  When in full-duplex operation, the original CSMA/CD protocol is shut off
++and the two devices on the link can send data independently.
++
+ CSMA Layer Model
+ ++++++++++++++++
+ 
+@@ -83,8 +95,7 @@ the protocol stack.
+ CSMA Channel Model
+ ******************
+ 
+-The class CsmaChannel models the actual transmission medium. There is no fixed
+-limit for the number of devices connected to the channel. The CsmaChannel models
++The class CsmaChannel models the actual transmission medium. The CsmaChannel models
+ a data rate and a speed-of-light delay which can be accessed via the attributes
+ "DataRate" and "Delay" respectively. The data rate provided to the channel is
+ used to set the data rates used by the transmitter sections of the CSMA devices
+@@ -94,6 +105,18 @@ limitation (other than by the data type holding the value) on the speed at which
+ CSMA channels and devices can operate; and no restriction based on any kind of
+ PHY characteristics.
+ 
++The CsmaChannel can operate in half-duplex or in full-duplex mode, which can be
++defined via the attribute "FullDuplex". The CsmaChannel holds two internal
++subchannels. When operating in half-duplex mode, only the first subchannel is
++used by all devices for both transmission and reception procedures. In this
++case, the CsmaChannel models a broadcast medium so the packet is delivered to
++all of the devices on the channel (except the source) at the end of the
++propagation time. It is the responsibility of the sending device to determine
++whether or not it receives a packet broadcast over the channel. When the
++CsmaChannel is operating in full-duplex mode (with a maximum of two devices
++attached to the channel), each device uses its exclusive subchannel for
++unidirectional packet transmission, getting rid of the CSMA/CD mechanism.
++
+ The CsmaChannel has three states, ``IDLE``, ``TRANSMITTING`` and
+ ``PROPAGATING``. These three states are "seen" instantaneously by all devices on
+ the channel. By this we mean that if one device begins or ends a simulated
+@@ -133,15 +156,11 @@ through its cable to the hub; plus 2) the time it takes for the hub to forward
+ the packet out a port; plus 3) the time it takes for the signal in question to
+ propagate to the destination net device.
+ 
+-The CsmaChannel models a broadcast medium so the packet is delivered to all of
+-the devices on the channel (including the source) at the end of the propagation
+-time. It is the responsibility of the sending device to determine whether or not
+-it receives a packet broadcast over the channel.
+-
+ The CsmaChannel provides following Attributes:
+ 
+ * DataRate:  The bitrate for packet transmission on connected devices;
+-* Delay: The speed of light transmission delay for the channel.
++* Delay: The speed of light transmission delay for the channel;
++* FullDuplex: Whether the channel is operating in full-duplex mode or not.
+ 
+ CSMA Net Device Model
+ *********************
+@@ -195,7 +214,9 @@ The CsmaNetDevice implements a random exponential backoff algorithm that is
+ executed if the channel is determined to be busy (``TRANSMITTING`` or
+ ``PPROPAGATING``) when the device wants to start propagating. This results in a
+ random delay of up to pow (2, retries) - 1 microseconds before a retry is
+-attempted. The default maximum number of retries is 1000.
++attempted. The default maximum number of retries is 1000. Note that the random
++exponential backoff algorithm is not used when the device is attached to a
++channel in full-duplex operation.
+ 
+ Using the CsmaNetDevice
+ ***********************
+@@ -349,16 +370,19 @@ net device.
+ Summary
+ *******
+ 
+-The ns3 CSMA model is a simplistic model of an Ethernet-like network.  It
+-supports a Carrier-Sense function and allows for Multiple Access to a
+-shared medium.  It is not physical in the sense that the state of the
+-medium is instantaneously shared among all devices.  This means that there
+-is no collision detection required in this model and none is implemented.
+-There will never be a "jam" of a packet already on the medium.  Access to
+-the shared channel is on a first-come first-served basis as determined by
+-the simulator scheduler.  If the channel is determined to be busy by looking
+-at the global state, a random exponential backoff is performed and a retry
+-is attempted.
++The ns3 CSMA model is a simplistic model of an Ethernet-like network that can
++operate in half-duplex or in full-duplex modes. In half-duplex mode, it
++supports a Carrier-Sense function and allows for Multiple Access to a shared
++medium. It is not physical in the sense that the state of the medium is
++instantaneously shared among all devices. This means that there is no collision
++detection required in this model and none is implemented. There will never be a
++"jam" of a packet already on the medium. Access to the shared channel is on a
++first-come first-served basis as determined by the simulator scheduler. If the
++channel is determined to be busy by looking at the global state, a random
++exponential backoff is performed and a retry is attempted. When operating in
++full-duplex mode, restricted to a maximum of two devices on the channel, the
++transmission medium can operate in both directions simultaneously and there is
++no need of the original CSMA/CD protocol.
+ 
+ Ns-3 Attributes provide a mechanism for setting various parameters in the
+ device and channel such as addresses, encapsulation modes and error model
+diff --git a/src/csma/examples/CMakeLists.txt b/src/csma/examples/CMakeLists.txt
+index 6bf85da2a..201fa9d3d 100644
+--- a/src/csma/examples/CMakeLists.txt
++++ b/src/csma/examples/CMakeLists.txt
+@@ -3,6 +3,7 @@ set(base_examples
+     csma-broadcast
+     csma-packet-socket
+     csma-multicast
++    csma-duplex
+ )
+ foreach(
+   example
+diff --git a/src/csma/examples/csma-duplex.cc b/src/csma/examples/csma-duplex.cc
+new file mode 100644
+index 000000000..c9a3a3f2b
+--- /dev/null
++++ b/src/csma/examples/csma-duplex.cc
+@@ -0,0 +1,105 @@
++/*
++ * Copyright (c) 2017 Luciano Jerez Chaves
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation;
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++ *
++ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
++ */
++
++#include "ns3/applications-module.h"
++#include "ns3/core-module.h"
++#include "ns3/csma-module.h"
++#include "ns3/internet-module.h"
++#include "ns3/network-module.h"
++
++using namespace ns3;
++
++int
++main(int argc, char* argv[])
++{
++    bool verbose = false;
++    bool trace = false;
++
++    CommandLine cmd;
++    cmd.AddValue("verbose", "Tell application to log if true", verbose);
++    cmd.AddValue("trace", "Tracing traffic to files", trace);
++    cmd.AddValue("duplex", "ns3::CsmaChannel::FullDuplex");
++    cmd.Parse(argc, argv);
++
++    if (verbose)
++    {
++        LogComponentEnable("CsmaNetDevice", LOG_LEVEL_ALL);
++        LogComponentEnable("CsmaChannel", LOG_LEVEL_ALL);
++        LogComponentEnable("Backoff", LOG_LEVEL_ALL);
++    }
++
++    // Create the host nodes
++    NodeContainer hosts;
++    hosts.Create(2);
++
++    // Connecting the hosts
++    CsmaHelper csmaHelper;
++    csmaHelper.SetChannelAttribute("DataRate", DataRateValue(DataRate("100Mbps")));
++    csmaHelper.SetChannelAttribute("Delay", TimeValue(MilliSeconds(1)));
++    NetDeviceContainer hostDevices = csmaHelper.Install(hosts);
++
++    // Enable pcap traces
++    if (trace)
++    {
++        csmaHelper.EnablePcap("csma-duplex", hostDevices);
++    }
++
++    // Installing the tcp/ip stack into hosts
++    InternetStackHelper internet;
++    internet.Install(hosts);
++
++    // Set IPv4 host address
++    Ipv4AddressHelper ipv4switches;
++    Ipv4InterfaceContainer internetIpIfaces;
++    ipv4switches.SetBase("10.1.1.0", "255.255.255.0");
++    internetIpIfaces = ipv4switches.Assign(hostDevices);
++    Ipv4Address h0Addr = internetIpIfaces.GetAddress(0);
++    Ipv4Address h1Addr = internetIpIfaces.GetAddress(1);
++
++    ApplicationContainer senderApps;
++    ApplicationContainer sinkApps;
++
++    // TCP traffic from host 0 to 1
++    BulkSendHelper sender0("ns3::TcpSocketFactory", InetSocketAddress(h1Addr, 10000));
++    PacketSinkHelper sink1("ns3::TcpSocketFactory",
++                           InetSocketAddress(Ipv4Address::GetAny(), 10000));
++    senderApps.Add(sender0.Install(hosts.Get(0)));
++    sinkApps.Add(sink1.Install(hosts.Get(1)));
++
++    // TCP traffic from host 1 to 0
++    BulkSendHelper sender1("ns3::TcpSocketFactory", InetSocketAddress(h0Addr, 10001));
++    PacketSinkHelper sink0("ns3::TcpSocketFactory",
++                           InetSocketAddress(Ipv4Address::GetAny(), 10001));
++    senderApps.Add(sender1.Install(hosts.Get(1)));
++    sinkApps.Add(sink0.Install(hosts.Get(0)));
++
++    sinkApps.Start(Seconds(0));
++    senderApps.Start(Seconds(0.01));
++    senderApps.Stop(Seconds(5));
++
++    // Run the simulation
++    Simulator::Run();
++    Simulator::Destroy();
++
++    // Transmitted bytes
++    Ptr<PacketSink> pktSink0 = DynamicCast<PacketSink>(sinkApps.Get(1));
++    Ptr<PacketSink> pktSink1 = DynamicCast<PacketSink>(sinkApps.Get(0));
++    std::cout << "Total bytes sent from H0 to H1: " << pktSink1->GetTotalRx() << std::endl;
++    std::cout << "Total bytes sent from H1 to H0: " << pktSink0->GetTotalRx() << std::endl;
++}
+diff --git a/src/csma/model/csma-channel.cc b/src/csma/model/csma-channel.cc
+index 9c9f253a6..e09138e45 100644
+--- a/src/csma/model/csma-channel.cc
++++ b/src/csma/model/csma-channel.cc
+@@ -1,5 +1,8 @@
+ /*
+  * Copyright (c) 2007 Emmanuelle Laprise
++ * Copyright (c) 2012 Jeff Young
++ * Copyright (c) 2014 Murphy McCauley
++ * Copyright (c) 2017 Luciano Jerez Chaves
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License version 2 as
+@@ -15,6 +18,9 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  *
+  * Author: Emmanuelle Laprise <emmanuelle.laprise@bluekazoo.ca>
++ * Author: Jeff Young <jyoung9@gatech.edu>
++ * Author: Murphy McCauley <murphy.mccauley@gmail.com>
++ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
+  */
+ 
+ #include "csma-channel.h"
+@@ -50,7 +56,13 @@ CsmaChannel::GetTypeId()
+                           "Transmission delay through the channel",
+                           TimeValue(Seconds(0)),
+                           MakeTimeAccessor(&CsmaChannel::m_delay),
+-                          MakeTimeChecker());
++                          MakeTimeChecker())
++            .AddAttribute("FullDuplex",
++                          "Whether the channel is full-duplex mode.",
++                          TypeId::ATTR_CONSTRUCT,
++                          BooleanValue(false),
++                          MakeBooleanAccessor(&CsmaChannel::m_fullDuplex),
++                          MakeBooleanChecker());
+     return tid;
+ }
+ 
+@@ -58,7 +70,6 @@ CsmaChannel::CsmaChannel()
+     : Channel()
+ {
+     NS_LOG_FUNCTION_NOARGS();
+-    m_state = IDLE;
+     m_deviceList.clear();
+ }
+ 
+@@ -74,9 +85,21 @@ CsmaChannel::Attach(Ptr<CsmaNetDevice> device)
+     NS_LOG_FUNCTION(this << device);
+     NS_ASSERT(device);
+ 
++    //
++    // For full-duplex links we can only attach two devices to the same channel
++    // since there is no backoff mechanism for concurrent transmissions.
++    //
++    if (m_fullDuplex && m_deviceList.size() >= 2)
++    {
++        NS_LOG_DEBUG("Falling back to half-duplex");
++        m_fullDuplex = false;
++    }
++
+     CsmaDeviceRec rec(device);
+ 
+     m_deviceList.push_back(rec);
++    SetState(m_deviceList.size() - 1, IDLE);
++    SetCurrentSrc(m_deviceList.size() - 1, m_deviceList.size() - 1);
+     return (m_deviceList.size() - 1);
+ }
+ 
+@@ -110,7 +133,7 @@ CsmaChannel::Reattach(uint32_t deviceId)
+ {
+     NS_LOG_FUNCTION(this << deviceId);
+ 
+-    if (deviceId < m_deviceList.size())
++    if (deviceId >= m_deviceList.size())
+     {
+         return false;
+     }
+@@ -141,7 +164,7 @@ CsmaChannel::Detach(uint32_t deviceId)
+ 
+         m_deviceList[deviceId].active = false;
+ 
+-        if ((m_state == TRANSMITTING) && (m_currentSrc == deviceId))
++        if ((GetState(deviceId) == TRANSMITTING) && (GetCurrentSrc(deviceId) == deviceId))
+         {
+             NS_LOG_WARN("CsmaChannel::Detach(): Device is currently"
+                         << "transmitting (" << deviceId << ")");
+@@ -179,7 +202,7 @@ CsmaChannel::TransmitStart(Ptr<const Packet> p, uint32_t srcId)
+     NS_LOG_FUNCTION(this << p << srcId);
+     NS_LOG_INFO("UID is " << p->GetUid() << ")");
+ 
+-    if (m_state != IDLE)
++    if (GetState(srcId) != IDLE)
+     {
+         NS_LOG_WARN("CsmaChannel::TransmitStart(): State is not IDLE");
+         return false;
+@@ -188,14 +211,14 @@ CsmaChannel::TransmitStart(Ptr<const Packet> p, uint32_t srcId)
+     if (!IsActive(srcId))
+     {
+         NS_LOG_ERROR(
+-            "CsmaChannel::TransmitStart(): Seclected source is not currently attached to network");
++            "CsmaChannel::TransmitStart(): Selected source is not currently attached to network");
+         return false;
+     }
+ 
+     NS_LOG_LOGIC("switch to TRANSMITTING");
+-    m_currentPkt = p->Copy();
+-    m_currentSrc = srcId;
+-    m_state = TRANSMITTING;
++    SetCurrentPkt(srcId, p->Copy());
++    SetCurrentSrc(srcId, srcId);
++    SetState(srcId, TRANSMITTING);
+     return true;
+ }
+ 
+@@ -206,17 +229,23 @@ CsmaChannel::IsActive(uint32_t deviceId)
+ }
+ 
+ bool
+-CsmaChannel::TransmitEnd()
++CsmaChannel::IsFullDuplex() const
++{
++    return m_fullDuplex;
++}
++
++bool
++CsmaChannel::TransmitEnd(uint32_t srcId)
+ {
+-    NS_LOG_FUNCTION(this << m_currentPkt << m_currentSrc);
+-    NS_LOG_INFO("UID is " << m_currentPkt->GetUid() << ")");
++    NS_LOG_FUNCTION(this << GetCurrentPkt(srcId) << GetCurrentSrc(srcId));
++    NS_LOG_INFO("UID is " << GetCurrentPkt(srcId)->GetUid() << ")");
+ 
+-    NS_ASSERT(m_state == TRANSMITTING);
+-    m_state = PROPAGATING;
++    NS_ASSERT(GetState(srcId) == TRANSMITTING);
++    SetState(srcId, PROPAGATING);
+ 
+     bool retVal = true;
+ 
+-    if (!IsActive(m_currentSrc))
++    if (!IsActive(GetCurrentSrc(srcId)))
+     {
+         NS_LOG_ERROR("CsmaChannel::TransmitEnd(): Seclected source was detached before the end of "
+                      "the transmission");
+@@ -230,31 +259,47 @@ CsmaChannel::TransmitEnd()
+     std::vector<CsmaDeviceRec>::iterator it;
+     for (it = m_deviceList.begin(); it < m_deviceList.end(); it++)
+     {
+-        if (it->IsActive() && it->devicePtr != m_deviceList[m_currentSrc].devicePtr)
++        if (it->IsActive() && it->devicePtr != m_deviceList[GetCurrentSrc(srcId)].devicePtr)
+         {
+             // schedule reception events
+             Simulator::ScheduleWithContext(it->devicePtr->GetNode()->GetId(),
+                                            m_delay,
+                                            &CsmaNetDevice::Receive,
+                                            it->devicePtr,
+-                                           m_currentPkt->Copy(),
+-                                           m_deviceList[m_currentSrc].devicePtr);
++                                           GetCurrentPkt(srcId)->Copy(),
++                                           m_deviceList[GetCurrentSrc(srcId)].devicePtr);
+         }
+     }
+ 
+-    // also schedule for the tx side to go back to IDLE
+-    Simulator::Schedule(m_delay, &CsmaChannel::PropagationCompleteEvent, this);
++    // Schedule for the TX side to go back to IDLE.
++    if (IsFullDuplex())
++    {
++        //
++        // In full-duplex mode, the channel should be IDLE during propagation
++        // since it's ok to start transmitting again. In this case, we don't need
++        // to wait for the channel delay.
++        //
++        PropagationCompleteEvent(srcId);
++    }
++    else
++    {
++        //
++        // In half-duplex mode, the channel can only go back to IDLE after
++        // propagation delay.
++        //
++        Simulator::Schedule(m_delay, &CsmaChannel::PropagationCompleteEvent, this, srcId);
++    }
+     return retVal;
+ }
+ 
+ void
+-CsmaChannel::PropagationCompleteEvent()
++CsmaChannel::PropagationCompleteEvent(uint32_t deviceId)
+ {
+-    NS_LOG_FUNCTION(this << m_currentPkt);
+-    NS_LOG_INFO("UID is " << m_currentPkt->GetUid() << ")");
++    NS_LOG_FUNCTION(this << GetCurrentPkt(deviceId));
++    NS_LOG_INFO("UID is " << GetCurrentPkt(deviceId)->GetUid() << ")");
+ 
+-    NS_ASSERT(m_state == PROPAGATING);
+-    m_state = IDLE;
++    NS_ASSERT(GetState(deviceId) == PROPAGATING);
++    SetState(deviceId, IDLE);
+ }
+ 
+ uint32_t
+@@ -308,9 +353,9 @@ CsmaChannel::GetDeviceNum(Ptr<CsmaNetDevice> device)
+ }
+ 
+ bool
+-CsmaChannel::IsBusy()
++CsmaChannel::IsBusy(uint32_t deviceId)
+ {
+-    return m_state != IDLE;
++    return GetState(deviceId) != IDLE;
+ }
+ 
+ DataRate
+@@ -326,9 +371,9 @@ CsmaChannel::GetDelay()
+ }
+ 
+ WireState
+-CsmaChannel::GetState()
++CsmaChannel::GetState(uint32_t deviceId)
+ {
+-    return m_state;
++    return m_state[m_fullDuplex ? deviceId : 0];
+ }
+ 
+ Ptr<NetDevice>
+@@ -337,6 +382,36 @@ CsmaChannel::GetDevice(std::size_t i) const
+     return GetCsmaDevice(i);
+ }
+ 
++Ptr<Packet>
++CsmaChannel::GetCurrentPkt(uint32_t deviceId)
++{
++    return m_currentPkt[m_fullDuplex ? deviceId : 0];
++}
++
++void
++CsmaChannel::SetCurrentPkt(uint32_t deviceId, Ptr<Packet> pkt)
++{
++    m_currentPkt[m_fullDuplex ? deviceId : 0] = pkt;
++}
++
++uint32_t
++CsmaChannel::GetCurrentSrc(uint32_t deviceId)
++{
++    return m_currentSrc[m_fullDuplex ? deviceId : 0];
++}
++
++void
++CsmaChannel::SetCurrentSrc(uint32_t deviceId, uint32_t transmitterId)
++{
++    m_currentSrc[m_fullDuplex ? deviceId : 0] = transmitterId;
++}
++
++void
++CsmaChannel::SetState(uint32_t deviceId, WireState state)
++{
++    m_state[m_fullDuplex ? deviceId : 0] = state;
++}
++
+ CsmaDeviceRec::CsmaDeviceRec()
+ {
+     active = false;
+diff --git a/src/csma/model/csma-channel.h b/src/csma/model/csma-channel.h
+index da4e948da..5d824f073 100644
+--- a/src/csma/model/csma-channel.h
++++ b/src/csma/model/csma-channel.h
+@@ -1,5 +1,8 @@
+ /*
+  * Copyright (c) 2007 Emmanuelle Laprise
++ * Copyright (c) 2012 Jeffrey Young
++ * Copyright (c) 2014 Murphy McCauley
++ * Copyright (c) 2017 Luciano Jerez Chaves
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License version 2 as
+@@ -15,11 +18,15 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  *
+  * Author: Emmanuelle Laprise<emmanuelle.laprise@bluekazoo.ca>
++ * Author: Jeff Young <jyoung9@gatech.edu>
++ * Author: Murphy McCauley <murphy.mccauley@gmail.com>
++ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
+  */
+ 
+ #ifndef CSMA_CHANNEL_H
+ #define CSMA_CHANNEL_H
+ 
++#include "ns3/boolean.h"
+ #include "ns3/channel.h"
+ #include "ns3/data-rate.h"
+ #include "ns3/nstime.h"
+@@ -86,7 +93,11 @@ enum WireState
+  * when many nodes are connected to one wire. It uses a single busy
+  * flag to indicate if the channel is currently in use. It does not
+  * take into account the distances between stations or the speed of
+- * light to determine collisions.
++ * light to determine collisions. Optionally, it allows for full-
++ * duplex operation when there are only two attached nodes. To
++ * implement full-duplex, we internally keep two TX "subchannels"
++ * (one for each attached node). When in half-duplex mode, only
++ * the first subchannel is used.
+  */
+ class CsmaChannel : public Channel
+ {
+@@ -201,19 +212,23 @@ class CsmaChannel : public Channel
+      * packet p as the m_currentPkt, the packet being currently
+      * transmitting.
+      *
++     * \param deviceId The ID that was assigned to the net device when
++     * it was attached to the channel.
+      * \return Returns true unless the source was detached before it
+      * completed its transmission.
+      */
+-    bool TransmitEnd();
++    bool TransmitEnd(uint32_t deviceId);
+ 
+     /**
+      * \brief Indicates that the channel has finished propagating the
+      * current packet. The channel is released and becomes free.
+      *
+-     * Calls the receive function of every active net device that is
++     * \param deviceId The ID that was assigned to the net device when
++     * it was attached to the channel.
++     * Calls the receive function of the other net device that is
+      * attached to the channel.
+      */
+-    void PropagationCompleteEvent();
++    void PropagationCompleteEvent(uint32_t deviceId);
+ 
+     /**
+      * \return Returns the device number assigned to a net device by the
+@@ -225,19 +240,25 @@ class CsmaChannel : public Channel
+     int32_t GetDeviceNum(Ptr<CsmaNetDevice> device);
+ 
+     /**
++     * \brief Checks the state of the channel.
++     *
++     * \param deviceId The ID that was assigned to the net device when
++     * it was attached to the channel.
+      * \return Returns the state of the channel (IDLE -- free,
+      * TRANSMITTING -- busy, PROPAGATING - busy )
+      */
+-    WireState GetState();
++    WireState GetState(uint32_t deviceId);
+ 
+     /**
+      * \brief Indicates if the channel is busy. The channel will only
+      * accept new packets for transmission if it is not busy.
+      *
++     * \param deviceId The ID that was assigned to the net device when
++     * it was attached to the channel.
+      * \return Returns true if the channel is busy and false if it is
+      * free.
+      */
+-    bool IsBusy();
++    bool IsBusy(uint32_t deviceId);
+ 
+     /**
+      * \brief Indicates if a net device is currently attached or
+@@ -250,6 +271,14 @@ class CsmaChannel : public Channel
+      */
+     bool IsActive(uint32_t deviceId);
+ 
++    /**
++     * \brief Indicates if channel is operating in full-duplex mode.
++     *
++     * \return Returns true if channel is in full-duplex mode, false if in
++     * half-duplex mode.
++     */
++    bool IsFullDuplex() const;
++
+     /**
+      * \return Returns the number of net devices that are currently
+      * attached to the channel.
+@@ -307,6 +336,11 @@ class CsmaChannel : public Channel
+      */
+     Time m_delay;
+ 
++    /**
++     * Whether the channel is in full-duplex mode.
++     */
++    bool m_fullDuplex;
++
+     /**
+      * List of the net devices that have been or are currently connected
+      * to the channel.
+@@ -321,23 +355,75 @@ class CsmaChannel : public Channel
+     std::vector<CsmaDeviceRec> m_deviceList;
+ 
+     /**
+-     * The Packet that is currently being transmitted on the channel (or last
+-     * packet to have been transmitted on the channel if the channel is
+-     * free.)
++     * The Packet that is currently being transmitted on the subchannel (or the
++     * last packet to have been transmitted if the subchannel is free).
++     * In half-duplex mode, only the first subchannel is used.
+      */
+-    Ptr<Packet> m_currentPkt;
++    Ptr<Packet> m_currentPkt[2];
+ 
+     /**
+      * Device Id of the source that is currently transmitting on the
++     * subchannel, or the last source to have transmitted a packet on the
++     * subchannel, if it is not currently busy.
++     * In half-duplex mode, only the first subchannel is used.
++     */
++    uint32_t m_currentSrc[2];
++
++    /**
++     * Current state of each subchannel.
++     * In half-duplex mode, only the first subchannel is used.
++     */
++    WireState m_state[2];
++
++    /**
++     * \brief Gets current packet
++     *
++     * \param deviceId The ID that was assigned to the net device when
++     * it was attached to the channel.
++     * \return Device Id of the source that is currently transmitting on the
++     * subchannel or the last source to have transmitted a packet on the
++     * subchannel, if it is not currently busy.
++     */
++    Ptr<Packet> GetCurrentPkt(uint32_t deviceId);
++
++    /**
++     * \brief Sets the current packet
++     *
++     * \param deviceId The ID that was assigned to the net device when
++     * it was attached to the channel.
++     * \param The Packet that is current being transmitted by deviceId (or last
++     * packet to have been transmitted on the channel if the channel is free.)
++     */
++    void SetCurrentPkt(uint32_t deviceId, Ptr<Packet> pkt);
++
++    /**
++     * \brief Gets current transmitter
++     *
++     * \param deviceId The ID that was assigned to the net device when
++     * it was attached to the channel.
++     * \return Device Id of the source that is currently transmitting on the
+      * channel. Or last source to have transmitted a packet on the
+      * channel, if the channel is currently not busy.
+      */
+-    uint32_t m_currentSrc;
++    uint32_t GetCurrentSrc(uint32_t deviceId);
+ 
+     /**
+-     * Current state of the channel
++     * \brief Sets the current transmitter
++     *
++     * \param deviceId The ID that was assigned to the net device when
++     * it was attached to the channel.
++     * \param transmitterId The ID of the transmitting device.
++     */
++    void SetCurrentSrc(uint32_t deviceId, uint32_t transmitterId);
++
++    /**
++     * \brief Sets the state of the channel
++     *
++     * \param deviceId The ID that was assigned to the net device when
++     * it was attached to the channel.
++     * \param state The new channel state.
+      */
+-    WireState m_state;
++    void SetState(uint32_t deviceId, WireState state);
+ };
+ 
+ } // namespace ns3
+diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
+index f6d3ff4ae..e2998cd19 100644
+--- a/src/csma/model/csma-net-device.cc
++++ b/src/csma/model/csma-net-device.cc
+@@ -1,5 +1,8 @@
+ /*
+  * Copyright (c) 2007 Emmanuelle Laprise
++ * Copyright (c) 2012 Jeffrey Young
++ * Copyright (c) 2014 Murphy McCauley
++ * Copyright (c) 2017 Luciano Jerez Chaves
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License version 2 as
+@@ -15,6 +18,9 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  *
+  * Author: Emmanuelle Laprise <emmanuelle.laprise@bluekazoo.ca>
++ * Author: Jeff Young <jyoung9@gatech.edu>
++ * Author: Murphy McCauley <murphy.mccauley@gmail.com>
++ * Author: Luciano Jerez Chaves <ljerezchaves@gmail.com>
+  */
+ 
+ #include "csma-net-device.h"
+@@ -455,6 +461,7 @@ CsmaNetDevice::TransmitStart()
+ 
+     NS_LOG_LOGIC("m_currentPkt = " << m_currentPkt);
+     NS_LOG_LOGIC("UID = " << m_currentPkt->GetUid());
++    NS_LOG_LOGIC("Device ID = " << m_deviceId);
+ 
+     //
+     // Only transmit if the send side of net device is enabled
+@@ -476,34 +483,38 @@ CsmaNetDevice::TransmitStart()
+                   "Must be READY to transmit. Tx state is: " << m_txMachineState);
+ 
+     //
+-    // Now we have to sense the state of the medium and either start transmitting
+-    // if it is idle, or backoff our transmission if someone else is on the wire.
++    // Now we sense the state of the medium. If idle, we start transmitting.
++    // Otherwise, we have to wait.
+     //
+-    if (m_channel->GetState() != IDLE)
++    if (m_channel->GetState(m_deviceId) != IDLE)
+     {
+         //
+-        // The channel is busy -- backoff and rechedule TransmitStart() unless
+-        // we have exhausted all of our retries.
++        // The (sub)channel is busy. If in half-duplex mode, backoff and
++        // reschedule TransmitStart() unless we have exhausted all of our
++        // retries. This is not supposed to happen in full-duplex mode.
+         //
+-        m_txMachineState = BACKOFF;
+-
+-        if (m_backoff.MaxRetriesReached())
+-        {
+-            //
+-            // Too many retries, abort transmission of packet
+-            //
+-            TransmitAbort();
+-        }
+-        else
++        if (m_channel->IsFullDuplex() == false)
+         {
+-            m_macTxBackoffTrace(m_currentPkt);
+-
+-            m_backoff.IncrNumRetries();
+-            Time backoffTime = m_backoff.GetBackoffTime();
+-
+-            NS_LOG_LOGIC("Channel busy, backing off for " << backoffTime.As(Time::S));
+-
+-            Simulator::Schedule(backoffTime, &CsmaNetDevice::TransmitStart, this);
++            m_txMachineState = BACKOFF;
++
++            if (m_backoff.MaxRetriesReached())
++            {
++                //
++                // Too many retries, abort transmission of packet
++                //
++                TransmitAbort();
++            }
++            else
++            {
++                m_macTxBackoffTrace(m_currentPkt);
++
++                m_backoff.IncrNumRetries();
++                Time backoffTime = m_backoff.GetBackoffTime();
++
++                NS_LOG_LOGIC("Channel busy, backing off for " << backoffTime.As(Time::S));
++
++                Simulator::Schedule(backoffTime, &CsmaNetDevice::TransmitStart, this);
++            }
+         }
+     }
+     else
+@@ -595,7 +606,7 @@ CsmaNetDevice::TransmitCompleteEvent()
+     //
+     NS_ASSERT_MSG(m_txMachineState == BUSY,
+                   "CsmaNetDevice::transmitCompleteEvent(): Must be BUSY if transmitting");
+-    NS_ASSERT(m_channel->GetState() == TRANSMITTING);
++    NS_ASSERT(m_channel->GetState(m_deviceId) == TRANSMITTING);
+     m_txMachineState = GAP;
+ 
+     //
+@@ -605,8 +616,9 @@ CsmaNetDevice::TransmitCompleteEvent()
+     NS_ASSERT_MSG(m_currentPkt, "CsmaNetDevice::TransmitCompleteEvent(): m_currentPkt zero");
+     NS_LOG_LOGIC("m_currentPkt=" << m_currentPkt);
+     NS_LOG_LOGIC("Pkt UID is " << m_currentPkt->GetUid() << ")");
++    NS_LOG_LOGIC("Device ID is " << m_deviceId);
+ 
+-    m_channel->TransmitEnd();
++    m_channel->TransmitEnd(m_deviceId);
+     m_phyTxEndTrace(m_currentPkt);
+     m_currentPkt = nullptr;
+ 
+@@ -663,6 +675,8 @@ CsmaNetDevice::Attach(Ptr<CsmaChannel> ch)
+ 
+     m_deviceId = m_channel->Attach(this);
+ 
++    NS_LOG_FUNCTION("Device ID is " << m_deviceId);
++
+     //
+     // The channel provides us with the transmitter data rate.
+     //
+@@ -699,6 +713,7 @@ CsmaNetDevice::Receive(Ptr<Packet> packet, Ptr<CsmaNetDevice> senderDevice)
+ {
+     NS_LOG_FUNCTION(packet << senderDevice);
+     NS_LOG_LOGIC("UID is " << packet->GetUid());
++    NS_LOG_LOGIC("Device ID is " << m_deviceId);
+ 
+     //
+     // We never forward up packets that we sent.  Real devices don't do this since
+@@ -996,6 +1011,7 @@ CsmaNetDevice::SendFrom(Ptr<Packet> packet,
+     NS_LOG_FUNCTION(packet << src << dest << protocolNumber);
+     NS_LOG_LOGIC("packet =" << packet);
+     NS_LOG_LOGIC("UID is " << packet->GetUid() << ")");
++    NS_LOG_LOGIC("Device ID is " << m_deviceId);
+ 
+     NS_ASSERT(IsLinkUp());
+ 
+@@ -1052,13 +1068,6 @@ CsmaNetDevice::GetNode() const
+     return m_node;
+ }
+ 
+-void
+-CsmaNetDevice::SetOpenFlowReceiveCallback(NetDevice::PromiscReceiveCallback cb)
+-{
+-    NS_LOG_FUNCTION(&cb);
+-    m_openFlowRxCallback = cb;
+-}
+-
+ void
+ CsmaNetDevice::SetNode(Ptr<Node> node)
+ {
+@@ -1074,6 +1083,13 @@ CsmaNetDevice::NeedsArp() const
+     return true;
+ }
+ 
++void
++CsmaNetDevice::SetOpenFlowReceiveCallback(NetDevice::PromiscReceiveCallback cb)
++{
++    NS_LOG_FUNCTION(&cb);
++    m_openFlowRxCallback = cb;
++}
++
+ void
+ CsmaNetDevice::SetReceiveCallback(NetDevice::ReceiveCallback cb)
+ {
+diff --git a/src/csma/test/examples-to-run.py b/src/csma/test/examples-to-run.py
+index 3e49f1972..c671e5427 100644
+--- a/src/csma/test/examples-to-run.py
++++ b/src/csma/test/examples-to-run.py
+@@ -8,6 +8,7 @@
+ # See test.py for more information.
+ cpp_examples = [
+     ("csma-broadcast", "True", "True"),
++    ("csma-duplex", "True", "True"),
+     ("csma-multicast", "True", "True"),
+     ("csma-one-subnet", "True", "True"),
+     ("csma-packet-socket", "True", "True"),
+-- 
+2.34.1
+
