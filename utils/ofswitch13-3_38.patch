@@ -1,3 +1,16 @@
+From 598058c4f0d47d8635b1b57d62068195cba7f006 Mon Sep 17 00:00:00 2001
+From: Luciano J Chaves <ljerezchaves@gmail.com>
+Date: Fri, 1 Sep 2023 10:03:56 -0300
+Subject: [PATCH] OFSwitch13 patch
+
+---
+ .../custom-modules/ns3-configtable.cmake      |  3 ++
+ src/csma/model/csma-net-device.cc             | 35 +++++++++++++++++++
+ src/csma/model/csma-net-device.h              | 13 +++++++
+ .../model/virtual-net-device.cc               | 30 ++++++++++++++++
+ .../model/virtual-net-device.h                | 11 ++++++
+ 5 files changed, 92 insertions(+)
+
 diff --git a/build-support/custom-modules/ns3-configtable.cmake b/build-support/custom-modules/ns3-configtable.cmake
 index c3baa514b..3b7434750 100644
 --- a/build-support/custom-modules/ns3-configtable.cmake
@@ -171,3 +184,6 @@ index 66718596a..c0eb0c468 100644
  };
  
  } // namespace ns3
+-- 
+2.34.1
+
