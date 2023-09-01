@@ -53,7 +53,7 @@ build_lib_example(
                ofswitch13-qos-controller/qos-controller.cc
   LIBRARIES_TO_LINK
     ${libofswitch13}
-    ${libnetanim}
+    ${libapplications}
 )
 
 build_lib_example(

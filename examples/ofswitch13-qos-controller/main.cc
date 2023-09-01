@@ -45,8 +45,6 @@
 #include <ns3/core-module.h>
 #include <ns3/csma-module.h>
 #include <ns3/internet-module.h>
-#include <ns3/mobility-module.h>
-#include <ns3/netanim-module.h>
 #include <ns3/network-module.h>
 #include <ns3/ofswitch13-module.h>
 
@@ -106,26 +104,6 @@ main(int argc, char* argv[])
     switchNodes.Create(3);
     controllerNodes.Create(2);
     clientNodes.Create(clients);
-
-    // Setting node positions for NetAnim support
-    Ptr<ListPositionAllocator> listPosAllocator;
-    listPosAllocator = CreateObject<ListPositionAllocator>();
-    listPosAllocator->Add(Vector(0, 0, 0));    // Server 0
-    listPosAllocator->Add(Vector(0, 75, 0));   // Server 1
-    listPosAllocator->Add(Vector(50, 50, 0));  // Border switch
-    listPosAllocator->Add(Vector(100, 50, 0)); // Aggregation switch
-    listPosAllocator->Add(Vector(150, 50, 0)); // Client switch
-    listPosAllocator->Add(Vector(75, 25, 0));  // QoS controller
-    listPosAllocator->Add(Vector(150, 25, 0)); // Learning controller
-    for (size_t i = 0; i < clients; i++)
-    {
-        listPosAllocator->Add(Vector(200, 25 * i, 0)); // Clients
-    }
-
-    MobilityHelper mobilityHelper;
-    mobilityHelper.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-    mobilityHelper.SetPositionAllocator(listPosAllocator);
-    mobilityHelper.Install(NodeContainer(serverNodes, switchNodes, controllerNodes, clientNodes));
 
     // Create device containers
     NetDeviceContainer serverDevices;
@@ -243,54 +221,6 @@ main(int argc, char* argv[])
         csmaHelper.EnablePcap("switch", switchNodes, true);
         csmaHelper.EnablePcap("server", serverDevices);
         csmaHelper.EnablePcap("client", clientDevices);
-    }
-
-    // Creating NetAnim output file
-    AnimationInterface anim("qosctrl-netanim.xml");
-    anim.SetStartTime(Seconds(0));
-    anim.SetStopTime(Seconds(4));
-
-    // Set NetAnim node descriptions
-    anim.UpdateNodeDescription(0, "Server 0");
-    anim.UpdateNodeDescription(1, "Server 1");
-    anim.UpdateNodeDescription(2, "Border switch");
-    anim.UpdateNodeDescription(3, "Aggregation switch");
-    anim.UpdateNodeDescription(4, "Client switch");
-    anim.UpdateNodeDescription(5, "QoS controller");
-    anim.UpdateNodeDescription(6, "Learning controller");
-    for (size_t i = 0; i < clients; i++)
-    {
-        std::ostringstream desc;
-        desc << "Client " << i;
-        anim.UpdateNodeDescription(7 + i, desc.str());
-    }
-
-    // Set NetAnim icon images and size
-    char cwd[1024];
-    if (getcwd(cwd, sizeof(cwd)) != nullptr)
-    {
-        std::string path =
-            std::string(cwd) + "/contrib/ofswitch13/examples/ofswitch13-qos-controller/images/";
-        uint32_t serverImg = anim.AddResource(path + "server.png");
-        uint32_t switchImg = anim.AddResource(path + "switch.png");
-        uint32_t controllerImg = anim.AddResource(path + "controller.png");
-        uint32_t clientImg = anim.AddResource(path + "client.png");
-
-        anim.UpdateNodeImage(0, serverImg);
-        anim.UpdateNodeImage(1, serverImg);
-        anim.UpdateNodeImage(2, switchImg);
-        anim.UpdateNodeImage(3, switchImg);
-        anim.UpdateNodeImage(4, switchImg);
-        anim.UpdateNodeImage(5, controllerImg);
-        anim.UpdateNodeImage(6, controllerImg);
-        for (size_t i = 0; i < clients; i++)
-        {
-            anim.UpdateNodeImage(i + 7, clientImg);
-        }
-        for (size_t i = 0; i < clients + 7U; i++)
-        {
-            anim.UpdateNodeSize(i, 10, 10);
-        }
     }
 
     // Run the simulation
