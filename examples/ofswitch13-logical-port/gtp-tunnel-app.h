@@ -65,8 +65,8 @@ class GtpTunnelApp : public Application
      * Method to be assigned to the send callback of the VirtualNetDevice
      * implementing the OpenFlow logical port. It is called when the OpenFlow
      * switch sends a packet out over the logical port. The logical port
-     * callbacks here, and we must encapsulate the packet withing GTP and forward
-     * it to the UDP tunnel socket.
+     * callbacks here, and we must encapsulate the packet withing GTP and
+     * forward it to the UDP tunnel socket.
      * \param packet The packet received from the logical port.
      * \param source Ethernet source address.
      * \param dest Ethernet destination address.
@@ -79,9 +79,9 @@ class GtpTunnelApp : public Application
                              uint16_t protocolNo);
 
     /**
-     * Method to be assigned to the receive callback of the UDP tunnel socket. It
-     * is called when the tunnel socket receives a packet, and must forward the
-     * packet to the logical port.
+     * Method to be assigned to the receive callback of the UDP tunnel socket.
+     * It is called when the tunnel socket receives a packet, and must forward
+     * the packet to the logical port.
      * \param socket Pointer to the tunnel socket.
      */
     void RecvFromTunnelSocket(Ptr<Socket> socket);

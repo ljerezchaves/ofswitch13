@@ -26,8 +26,7 @@
 #include "ns3/string.h"
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT                                                  \
-    std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
+#define NS_LOG_APPEND_CONTEXT std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
 
 namespace ns3
 {
@@ -38,15 +37,14 @@ NS_OBJECT_ENSURE_REGISTERED(OFSwitch13Queue);
 TypeId
 OFSwitch13Queue::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::OFSwitch13Queue")
-            .SetParent<Queue<Packet>>()
-            .SetGroupName("OFSwitch13")
-            .AddAttribute("QueueList",
-                          "The list of internal queues.",
-                          ObjectVectorValue(),
-                          MakeObjectVectorAccessor(&OFSwitch13Queue::m_queues),
-                          MakeObjectVectorChecker<Queue<Packet>>());
+    static TypeId tid = TypeId("ns3::OFSwitch13Queue")
+                            .SetParent<Queue<Packet>>()
+                            .SetGroupName("OFSwitch13")
+                            .AddAttribute("QueueList",
+                                          "The list of internal queues.",
+                                          ObjectVectorValue(),
+                                          MakeObjectVectorAccessor(&OFSwitch13Queue::m_queues),
+                                          MakeObjectVectorChecker<Queue<Packet>>());
     return tid;
 }
 
@@ -86,9 +84,9 @@ OFSwitch13Queue::Enqueue(Ptr<Packet> packet)
         swQueue->stats->tx_packets++;
         swQueue->stats->tx_bytes += packet->GetSize();
 
-        // Enqueue the packet in this queue too.
-        // This is necessary to ensure consistent statistics. Otherwise, when
-        // the NetDevice calls the IsEmpty () method, it will return true.
+        // Enqueue the packet in this queue too. This is necessary to ensure
+        // consistent statistics. Otherwise, when the NetDevice calls the
+        // IsEmpty() method, it will return true.
         DoEnqueue(GetContainer().end(), packet);
     }
     else
@@ -96,8 +94,8 @@ OFSwitch13Queue::Enqueue(Ptr<Packet> packet)
         NS_LOG_DEBUG("Packet enqueue dropped by internal queue " << queueId);
         swQueue->stats->tx_errors++;
 
-        // Drop the packet in this queue too.
-        // This is necessary to ensure consistent statistics.
+        // Drop the packet in this queue too. This is necessary to ensure
+        // consistent statistics.
         DropBeforeEnqueue(packet);
     }
     return retval;
@@ -130,8 +128,8 @@ OFSwitch13Queue::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
-    // While m_swPort is valid, free internal stats and props
-    // structures for each available queue
+    // While m_swPort is valid, free internal stats and props structures for
+    // each available queue
     if (m_swPort)
     {
         struct sw_queue* swQueue;
@@ -189,6 +187,17 @@ OFSwitch13Queue::AddQueue(Ptr<Queue<Packet>> queue)
     m_queues.emplace_back(queue);
     NS_LOG_DEBUG("New queue with ID " << queueId);
 
+    // Update the size of this queue.
+    uint32_t maxSizeValue = 0;
+    QueueSizeUnit maxSizeUnit = m_queues.at(0)->GetMaxSize().GetUnit();
+    for (const auto& queueIt : m_queues)
+    {
+        NS_ASSERT_MSG(queueIt->GetMaxSize().GetUnit() == maxSizeUnit,
+                      "Be consistent with queues operation modes.");
+        maxSizeValue += queueIt->GetMaxSize().GetValue();
+    }
+    SetMaxSize(QueueSize(maxSizeUnit, maxSizeValue));
+
     return queueId;
 }
 
@@ -197,8 +206,8 @@ OFSwitch13Queue::NotifyDequeue(Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(this << packet);
 
-    // Dequeue the packet from this queue too. As we don't know the
-    // exactly packet location on this queue, we have to look for it.
+    // Dequeue the packet from this queue too. As we don't know the exactly
+    // packet location on this queue, we have to look for it.
     for (auto it = GetContainer().begin(); it != GetContainer().end(); it++)
     {
         if ((*it) == packet)
@@ -215,8 +224,8 @@ OFSwitch13Queue::NotifyRemove(Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(this << packet);
 
-    // Remove the packet from this queue too. As we don't know the
-    // exactly packet location on this queue, we have to look for it.
+    // Remove the packet from this queue too. As we don't know the exactly
+    // packet location on this queue, we have to look for it.
     for (auto it = GetContainer().begin(); it != GetContainer().end(); it++)
     {
         if ((*it) == packet)

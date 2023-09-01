@@ -39,9 +39,8 @@ OFSwitch13DeviceContainer::OFSwitch13DeviceContainer(std::string devName)
     m_devices.emplace_back(dev);
 }
 
-OFSwitch13DeviceContainer::OFSwitch13DeviceContainer(
-    const OFSwitch13DeviceContainer& a,
-    const OFSwitch13DeviceContainer& b)
+OFSwitch13DeviceContainer::OFSwitch13DeviceContainer(const OFSwitch13DeviceContainer& a,
+                                                     const OFSwitch13DeviceContainer& b)
 {
     *this = a;
     Add(b);

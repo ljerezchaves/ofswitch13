@@ -34,15 +34,15 @@ namespace ns3
 
 /**
  * \ingroup ofswitch13
- * Class used to read/send single OpenFlow message from/to an open socket.
- * The TCP socket receive callback is connected to the Recv () method, which is
+ * Class used to read/send single OpenFlow message from/to an open socket. The
+ * TCP socket receive callback is connected to the Recv() method, which is
  * responsible for reading the correct number of bytes of a complete OpenFlow
  * message. When the OpenFlow message is completely received, it is sent to the
- * connected callback that was previously set using the SetReceiveCallback ()
+ * connected callback that was previously set using the SetReceiveCallback()
  * method. On the other direction, the TCP socket send callback is connected to
- * the Send () method that forwards OpenFlow message received by the
- * SendMessage () method to the open socket, respecting the original order of
- * the messages.
+ * the Send() method that forwards OpenFlow message received by the
+ * SendMessage() method to the open socket, respecting the original order of the
+ * messages.
  */
 class OFSwitch13SocketHandler : public Object
 {

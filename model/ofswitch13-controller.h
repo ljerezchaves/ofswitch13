@@ -34,12 +34,12 @@ namespace ns3
 /**
  * \ingroup ofswitch13
  * OpenFlow 1.3 controller base class that can handle a collection of OpenFlow
- * switches and provides the basic functionalities for controller
- * implementation. For constructing OpenFlow configuration messages and sending
- * them to the switches, this class uses the DpctlCommand function, which
- * relies on command-line syntax from the dpctl utility. For OpenFlow messages
- * coming from the switches, this class provides a collection of internal
- * handlers to deal with the different types of messages.
+ * switches and provides the basic functionality for controller implementation.
+ * For constructing OpenFlow configuration messages and sending them to the
+ * switches, this class uses the DpctlCommand function, which relies on
+ * command-line syntax from the dpctl utility. For OpenFlow messages coming from
+ * the switches, this class provides a collection of internal handlers to deal
+ * with the different types of messages.
  */
 class OFSwitch13Controller : public Application
 {
@@ -80,11 +80,10 @@ class OFSwitch13Controller : public Application
         Address m_address;                      //!< Switch connection address.
         Ptr<OFSwitch13Controller> m_ctrlApp;    //!< Controller application.
         uint64_t m_dpId;                        //!< OpenFlow datapath ID.
-        enum ofp_controller_role m_role; //!< Controller role over switch.
+        enum ofp_controller_role m_role;        //!< Controller role over switch.
 
         /**
-         * Switch features informed to the controller during handshake
-         * procedure.
+         * Switch features informed to controller during handshake procedure.
          */
         //\{
         uint32_t m_nBuffers;     //!< Max packets buffered at once.
@@ -184,16 +183,15 @@ class OFSwitch13Controller : public Application
     int DpctlExecute(uint64_t dpId, const std::string textCmd);
 
     /**
-     * Overriding BOFUSS dpctl_send_and_print  and
-     * dpctl_transact_and_print weak functions from utilities/dpctl.c. Send a
-     * message from controller to switch.
+     * Overriding BOFUSS dpctl_send_and_print() and dpctl_transact_and_print()
+     * weak functions from utilities/dpctl.c. Send a message from controller to
+     * switch.
      * \param vconn The RemoteSwitch pointer, sent from controller to
-     * dpctl_exec_ns3_command function and get back here to proper identify the
-     * controller object.
+     * dpctl_exec_ns3_command() function and get back here to proper identify
+     * the controller object.
      * \param msg The OFLib message to send.
      */
-    static void DpctlSendAndPrint(struct vconn* vconn,
-                                  struct ofl_msg_header* msg);
+    static void DpctlSendAndPrint(struct vconn* vconn, struct ofl_msg_header* msg);
 
   protected:
     // inherited from Application
@@ -206,10 +204,11 @@ class OFSwitch13Controller : public Application
     uint32_t GetNextXid();
 
     /**
-     * Function invoked after a successfully handshake procedure between
-     * this controller and a remote switch. Derived classes can override this
+     * Function invoked after a successfully handshake procedure between this
+     * controller and a remote switch. Derived classes can override this
      * function to implement any relevant logic, as sending initial
-     * configuration messages to the switch. \param swtch The remote switch.
+     * configuration messages to the switch.
+     * \param swtch The remote switch.
      */
     virtual void HandshakeSuccessful(Ptr<const RemoteSwitch> swtch);
 
@@ -227,23 +226,22 @@ class OFSwitch13Controller : public Application
      * \param xid The transaction id to use.
      * \return 0 if everything's ok, otherwise an error number.
      */
-    int SendToSwitch(Ptr<const RemoteSwitch> swtch,
-                     struct ofl_msg_header* msg,
-                     uint32_t xid = 0);
+    int SendToSwitch(Ptr<const RemoteSwitch> swtch, struct ofl_msg_header* msg, uint32_t xid = 0);
 
     /**
-     * Send an echo request message to switch, and wait for a non-blocking
-     * reply. \param swtch The remote switch to receive the message. \param
-     * payloadSize The ammount of dummy bytes in echo message.
+     * Send an echo request message to switch and wait for a non-blocking reply.
+     * \param swtch The remote switch to receive the message.
+     * \param payloadSize The amount of dummy bytes in echo message.
      */
     void SendEchoRequest(Ptr<const RemoteSwitch> swtch, size_t payloadSize = 0);
 
     /**
-     * Send a barrier request message to switch, and wait for a non-blocking
+     * Send a barrier request message to switch and wait for a non-blocking
      * reply. Note that current OpenFlow device implementation is
      * single-threaded and messages are processed in the same order that are
      * received from the controller, so a barrier request will simply be replied
-     * by the switch. \param swtch The remote switch to receive the message.
+     * by the switch.
+     * \param swtch The remote switch to receive the message.
      */
     void SendBarrierRequest(Ptr<const RemoteSwitch> swtch);
 
@@ -256,7 +254,7 @@ class OFSwitch13Controller : public Application
      * just free the received message and returns 0. Derived controllers can
      * override them as they wish to implement the desired control logic.
      *
-     * Note that for HandleMultipartReply there are several types of multipart
+     * Note that for HandleMultipartReply() there are several types of multipart
      * messages. Derived controllers can filter by the type they wish.
      *
      * \attention Handlers \em MUST free received msg when everything is ok.
@@ -266,6 +264,7 @@ class OFSwitch13Controller : public Application
      * \return 0 if everything's ok, otherwise an error number.
      */
     //\{
+    // clang-format off
     ofl_err HandleEchoRequest(struct ofl_msg_echo* msg,
                               Ptr<const RemoteSwitch> swtch,
                               uint32_t xid);
@@ -310,33 +309,30 @@ class OFSwitch13Controller : public Application
                                      Ptr<const RemoteSwitch> swtch,
                                      uint32_t xid);
 
-    virtual ofl_err HandleMultipartReply(
-        struct ofl_msg_multipart_reply_header* msg,
-        Ptr<const RemoteSwitch> swtch,
-        uint32_t xid);
+    virtual ofl_err HandleMultipartReply(struct ofl_msg_multipart_reply_header* msg,
+                                         Ptr<const RemoteSwitch> swtch,
+                                         uint32_t xid);
 
     virtual ofl_err HandleRoleReply(struct ofl_msg_role_request* msg,
                                     Ptr<const RemoteSwitch> swtch,
                                     uint32_t xid);
 
-    virtual ofl_err HandleQueueGetConfigReply(
-        struct ofl_msg_queue_get_config_reply* msg,
-        Ptr<const RemoteSwitch> swtch,
-        uint32_t xid);
+    virtual ofl_err HandleQueueGetConfigReply(struct ofl_msg_queue_get_config_reply* msg,
+                                              Ptr<const RemoteSwitch> swtch,
+                                              uint32_t xid);
+    // clang-format on
     //\}
 
   private:
     /**
-     * Called when an OpenFlow message is received from a switch.
-     * Dispatches control messages to appropriate handler functions.
+     * Called when an OpenFlow message is received from a switch. Dispatch
+     * control messages to appropriate handler functions.
      * \param msg The OFLib message received.
      * \param swtch The remote switch the message was received from.
      * \param xid The transaction id.
      * \return 0 if everything's ok, otherwise an error number.
      */
-    ofl_err HandleSwitchMsg(struct ofl_msg_header* msg,
-                            Ptr<RemoteSwitch> swtch,
-                            uint32_t xid);
+    ofl_err HandleSwitchMsg(struct ofl_msg_header* msg, Ptr<RemoteSwitch> swtch, uint32_t xid);
 
     /**
      * Receive an OpenFlow packet from switch.

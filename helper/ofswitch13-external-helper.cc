@@ -50,12 +50,11 @@ OFSwitch13ExternalHelper::GetTypeId()
             .SetParent<OFSwitch13Helper>()
             .SetGroupName("OFSwitch13")
             .AddConstructor<OFSwitch13ExternalHelper>()
-            .AddAttribute(
-                "Port",
-                "The port number where controller will be available.",
-                UintegerValue(6653),
-                MakeUintegerAccessor(&OFSwitch13ExternalHelper::m_controlPort),
-                MakeUintegerChecker<uint16_t>());
+            .AddAttribute("Port",
+                          "The port number where controller will be available.",
+                          UintegerValue(6653),
+                          MakeUintegerAccessor(&OFSwitch13ExternalHelper::m_controlPort),
+                          MakeUintegerChecker<uint16_t>());
     return tid;
 }
 
@@ -66,8 +65,7 @@ OFSwitch13ExternalHelper::SetChannelType(ChannelType type)
 
     // Check for valid channel type for this helper.
     NS_ABORT_MSG_IF(type != OFSwitch13Helper::SINGLECSMA,
-                    "Invalid channel "
-                    "type for OFSwitch13ExternalHelper (use SingleCsma).");
+                    "Invalid channel type for OFSwitch13ExternalHelper (use SingleCsma).");
     OFSwitch13Helper::SetChannelType(type);
 }
 
@@ -95,8 +93,7 @@ OFSwitch13ExternalHelper::CreateOpenFlowChannels()
     switch (m_channelType)
     {
     case OFSwitch13ExternalHelper::SINGLECSMA: {
-        NS_LOG_INFO("Attach all switches and controllers to the same "
-                    "CSMA network.");
+        NS_LOG_INFO("Attach all switches and controllers to the same CSMA network.");
 
         // Connecting all switches to the common channel.
         NetDeviceContainer switchDevices;
@@ -106,15 +103,11 @@ OFSwitch13ExternalHelper::CreateOpenFlowChannels()
 
         // Start the connections between controller and switches.
         OFSwitch13DeviceContainer::Iterator ofDev;
-        for (ofDev = m_openFlowDevs.Begin(); ofDev != m_openFlowDevs.End();
-             ofDev++)
+        for (ofDev = m_openFlowDevs.Begin(); ofDev != m_openFlowDevs.End(); ofDev++)
         {
-            NS_LOG_INFO("Connect switch " << (*ofDev)->GetDatapathId()
-                                          << " to controller " << addr.GetIpv4()
-                                          << " port " << addr.GetPort());
-            Simulator::ScheduleNow(&OFSwitch13Device::StartControllerConnection,
-                                   *ofDev,
-                                   addr);
+            NS_LOG_INFO("Connect switch " << (*ofDev)->GetDatapathId() << " to controller "
+                                          << addr.GetIpv4() << " port " << addr.GetPort());
+            Simulator::ScheduleNow(&OFSwitch13Device::StartControllerConnection, *ofDev, addr);
         }
         m_ipv4helper.NewNetwork();
         break;
@@ -133,8 +126,7 @@ OFSwitch13ExternalHelper::InstallExternalController(Ptr<Node> cNode)
     NS_LOG_FUNCTION(this << cNode);
 
     NS_LOG_INFO("Installing OpenFlow controller on node " << cNode->GetId());
-    NS_ABORT_MSG_IF(m_blocked || m_controlDevs.GetN() != 0,
-                    "OpenFlow controller/channels already configured.");
+    NS_ABORT_MSG_IF(m_blocked || m_controlDevs.GetN() != 0, "OpenFlow channel already configured.");
 
     // Install the TCP/IP stack into controller node.
     if (!cNode->GetObject<Ipv4>())

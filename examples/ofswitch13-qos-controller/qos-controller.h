@@ -140,7 +140,7 @@ class QosController : public OFSwitch13Controller
     Address m_serverIpAddress;  //!< Virtual server IP address
     uint16_t m_serverTcpPort;   //!< Virtual server TCP port
     Address m_serverMacAddress; //!< Border switch MAC address
-    bool m_meterEnable;         //!< Enable per-flow mettering
+    bool m_meterEnable;         //!< Enable per-flow metering
     DataRate m_meterRate;       //!< Per-flow meter rate
     bool m_linkAggregation;     //!< Enable link aggregation
 

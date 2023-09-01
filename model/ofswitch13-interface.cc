@@ -133,10 +133,7 @@ time_msec(void)
 
 /** Overriding BOFUSS weak functions using static member functions. */
 void
-send_packet_to_controller(struct pipeline* pl,
-                          struct packet* pkt,
-                          uint8_t table_id,
-                          uint8_t reason)
+send_packet_to_controller(struct pipeline* pl, struct packet* pkt, uint8_t table_id, uint8_t reason)
 {
     return OFSwitch13Device::SendPacketToController(pl, pkt, table_id, reason);
 }
@@ -154,11 +151,7 @@ dp_actions_output_port(struct packet* pkt,
                        uint16_t max_len,
                        uint64_t cookie)
 {
-    OFSwitch13Device::DpActionsOutputPort(pkt,
-                                          out_port,
-                                          out_queue,
-                                          max_len,
-                                          cookie);
+    OFSwitch13Device::DpActionsOutputPort(pkt, out_port, out_queue, max_len, cookie);
 }
 
 void
@@ -172,7 +165,7 @@ dpctl_transact_and_print(struct vconn* vconn,
                          struct ofl_msg_header* req,
                          struct ofl_msg_header** repl)
 {
-    // Different from bofus dpctl, this transaction doesn't wait for a reply,
+    // Different from BOFUSS dpctl, this transaction doesn't wait for a reply,
     // as ns-3 socket library doesn't provide blocking sockets. So, we send the
     // request and return. The reply will came later, using the ns-3 callback
     // mechanism.

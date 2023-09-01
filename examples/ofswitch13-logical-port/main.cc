@@ -163,9 +163,9 @@ main(int argc, char* argv[])
     hostStaticRouting->AddNetworkRouteTo(ipDomain1, mask24, sw1GatewayIp, 1);
 
     // Connect switch 0 to switch 1. These CSMA devices will not be added as
-    // switch ports. Instead, each one will be configured as standard ns-3 device
-    // (with IP address and an UDP socket binded to it). They will be used to
-    // implement the UDP/IP tunneling process. The GtpTunnelApp application
+    // switch ports. Instead, each one will be configured as standard ns-3
+    // device (with IP address and an UDP socket bound to it). They will be used
+    // to implement the UDP/IP tunneling process. The GtpTunnelApp application
     // running on top of the UDP socket will be in charge of adding and removing
     // the GTP headers, and forwarding the packets to a VirtualNetDevice device
     // on the same node. This VirtualNetDevice will be configured as switch port
@@ -214,7 +214,7 @@ main(int argc, char* argv[])
     ApplicationContainer pingApps = pingHelper.Install(hosts.Get(0));
     pingApps.Start(Seconds(1));
 
-    // Enable datapath stats and pcap traces at hosts, switch(es), and controller(s)
+    // Enable datapath stats and pcap traces at hosts, switches, and controllers
     if (trace)
     {
         of13Helper->EnableOpenFlowPcap("openflow");

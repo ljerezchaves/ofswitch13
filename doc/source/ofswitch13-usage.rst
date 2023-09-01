@@ -32,13 +32,13 @@ Before starting, ensure you have the following minimal requirements installed on
 Compiling the code
 ##################
 
-Clone the |ns3| source code repository into your machine and checkout a stable version (we are using the ns-3.38):
+Clone the |ns3| source code repository into your machine and checkout a stable version (we are using the ns-3.39):
 
 .. code-block:: bash
 
   $ git clone https://gitlab.com/nsnam/ns-3-dev.git
   $ cd ns-3-dev
-  $ git checkout -b ns-3.38 ns-3.38
+  $ git checkout -b ns-3.39 ns-3.39
 
 Download the |ofs13| code into the ``contrib/`` folder.
 
@@ -47,7 +47,7 @@ Download the |ofs13| code into the ``contrib/`` folder.
   $ cd contrib/
   $ git clone https://github.com/ljerezchaves/ofswitch13.git
 
-Update the |ofs13| code to a stable version (we are using release 5.2.1, which is compatible with ns-3.38) [#f2]_:
+Update the |ofs13| code to a stable version (we are using release 5.2.2, which is compatible with ns-3.39) [#f2]_:
 
 .. [#f2] Starting at |ofs13| release 5.2.0, the ``cmake`` build system will automatically download and compile the correct version of |bofuss| library (Internet connection is required).
          For older |ofs13| releases, we suggest you check the documentation and follow the proper build steps.
@@ -55,14 +55,14 @@ Update the |ofs13| code to a stable version (we are using release 5.2.1, which i
 .. code-block:: bash
 
   $ cd ofswitch13
-  $ git checkout 5.2.1
+  $ git checkout 5.2.2
 
 Go back to the |ns3| root directory and patch the |ns3| code with the appropriated ``ofswitch13`` patch available under the ``ofswitch13/utils/`` directory (check for the correct |ns3| version):
 
 .. code-block:: bash
 
   $ cd ../../
-  $ patch -p1 < contrib/ofswitch13/utils/ofswitch13-3_38.patch
+  $ patch -p1 < contrib/ofswitch13/utils/ofswitch13-3_39.patch
 
 This patch creates the new OpenFlow receive callback at ``CsmaNetDevice`` and ``VirtualNetDevice``, allowing OpenFlow switch to get raw packets from these devices.
 The module also brings a ``csma-full-duplex`` patch for improving CSMA connections with full-duplex support.
@@ -93,68 +93,68 @@ This script connects two hosts to a single OpenFlow switch using CSMA links, and
 .. code-block:: cpp
 
   #include <ns3/core-module.h>
-  #include <ns3/network-module.h>
   #include <ns3/csma-module.h>
-  #include <ns3/internet-module.h>
-  #include <ns3/ofswitch13-module.h>
   #include <ns3/internet-apps-module.h>
+  #include <ns3/internet-module.h>
+  #include <ns3/network-module.h>
+  #include <ns3/ofswitch13-module.h>
 
   using namespace ns3;
 
   int
-  main (int argc, char *argv[])
+  main(int argc, char* argv[])
   {
-    // Enable checksum computations (required by OFSwitch13 module)
-    GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
+      // Enable checksum computations (required by OFSwitch13 module)
+      GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
 
-    // Create two host nodes
-    NodeContainer hosts;
-    hosts.Create (2);
+      // Create two host nodes
+      NodeContainer hosts;
+      hosts.Create(2);
 
-    // Create the switch node
-    Ptr<Node> switchNode = CreateObject<Node> ();
+      // Create the switch node
+      Ptr<Node> switchNode = CreateObject<Node>();
 
-    // Use the CsmaHelper to connect the host nodes to the switch.
-    CsmaHelper csmaHelper;
-    NetDeviceContainer hostDevices;
-    NetDeviceContainer switchPorts;
-    for (size_t i = 0; i < hosts.GetN (); i++)
+      // Use the CsmaHelper to connect the host nodes to the switch.
+      CsmaHelper csmaHelper;
+      NetDeviceContainer hostDevices;
+      NetDeviceContainer switchPorts;
+      for (size_t i = 0; i < hosts.GetN(); i++)
       {
-        NodeContainer pair (hosts.Get (i), switchNode);
-        NetDeviceContainer link = csmaHelper.Install (pair);
-        hostDevices.Add (link.Get (0));
-        switchPorts.Add (link.Get (1));
+          NodeContainer pair(hosts.Get(i), switchNode);
+          NetDeviceContainer link = csmaHelper.Install(pair);
+          hostDevices.Add(link.Get(0));
+          switchPorts.Add(link.Get(1));
       }
 
-    // Create the controller node
-    Ptr<Node> controllerNode = CreateObject<Node> ();
+      // Create the controller node
+      Ptr<Node> controllerNode = CreateObject<Node>();
 
-    // Configure the OpenFlow network domain
-    Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper> ();
-    of13Helper->InstallController (controllerNode);
-    of13Helper->InstallSwitch (switchNode, switchPorts);
-    of13Helper->CreateOpenFlowChannels ();
+      // Configure the OpenFlow network domain
+      Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper>();
+      of13Helper->InstallController(controllerNode);
+      of13Helper->InstallSwitch(switchNode, switchPorts);
+      of13Helper->CreateOpenFlowChannels();
 
-    // Install the TCP/IP stack into hosts nodes
-    InternetStackHelper internet;
-    internet.Install (hosts);
+      // Install the TCP/IP stack into hosts nodes
+      InternetStackHelper internet;
+      internet.Install(hosts);
 
-    // Set IPv4 host addresses
-    Ipv4AddressHelper ipv4helpr;
-    Ipv4InterfaceContainer hostIpIfaces;
-    ipv4helpr.SetBase ("10.1.1.0", "255.255.255.0");
-    hostIpIfaces = ipv4helpr.Assign (hostDevices);
+      // Set IPv4 host addresses
+      Ipv4AddressHelper ipv4Helper;
+      Ipv4InterfaceContainer hostIpIfaces;
+      ipv4Helper.SetBase("10.1.1.0", "255.255.255.0");
+      hostIpIfaces = ipv4Helper.Assign(hostDevices);
 
-    // Configure ping application between hosts
-    PingHelper pingHelper(Ipv4Address(hostIpIfaces.GetAddress(1)));
-    pingHelper.SetAttribute("VerboseMode", EnumValue(Ping::VerboseMode::VERBOSE));
-    ApplicationContainer pingApps = pingHelper.Install (hosts.Get (0));
-    pingApps.Start (Seconds (1));
+      // Configure ping application between hosts
+      PingHelper pingHelper(Ipv4Address(hostIpIfaces.GetAddress(1)));
+      pingHelper.SetAttribute("VerboseMode", EnumValue(Ping::VerboseMode::VERBOSE));
+      ApplicationContainer pingApps = pingHelper.Install(hosts.Get(0));
+      pingApps.Start(Seconds(1));
 
-    // Run the simulation
-    Simulator::Stop (Seconds (10));
-    Simulator::Run ();
-    Simulator::Destroy ();
+      // Run the simulation
+      Simulator::Stop(Seconds(10));
+      Simulator::Run();
+      Simulator::Destroy();
   }
 
 At first, don't forget to enable checksum computations, which are required by the |ofs13| module.
@@ -369,14 +369,14 @@ The following code, based on the ``openflow-switch.cc`` example, is used for dem
 
   // Create the learning controller app
   Ptr<ns3::ofi::LearningController> controller;
-  controller = CreateObject<ns3::ofi::LearningController> ();
-  if (!timeout.IsZero ())
+  controller = CreateObject<ns3::ofi::LearningController>();
+  if (!timeout.IsZero())
     {
-      controller->SetAttribute ("ExpirationTime", TimeValue (timeout));
+      controller->SetAttribute("ExpirationTime", TimeValue(timeout));
     }
 
   // Install the switch device, ports and set the controller
-  ofHelper.Install (switchNode, switchDevices, controller);
+  ofHelper.Install(switchNode, switchDevices, controller);
 
   // Other configurations: TCP/IP stack, apps, monitors, etc.
   // ...
@@ -396,23 +396,23 @@ The following code implements the same logic in the |ofs13| module:
   // ...
 
   // Create the OpenFlow 1.3 helper
-  Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper> ();
+  Ptr<OFSwitch13InternalHelper> of13Helper = CreateObject<OFSwitch13InternalHelper>();
 
   // Create the controller node and install the learning controller app into it
-  Ptr<Node> controllerNode = CreateObject<Node> ();
-  of13Helper->InstallController (controllerNode);
+  Ptr<Node> controllerNode = CreateObject<Node>();
+  of13Helper->InstallController(controllerNode);
 
   // Install the switch device and ports.
-  of13Helper->InstallSwitch (switchNode, switchDevices);
+  of13Helper->InstallSwitch(switchNode, switchDevices);
 
   // Create the OpenFlow channel connections.
-  of13Helper->CreateOpenFlowChannels ();
+  of13Helper->CreateOpenFlowChannels();
 
   // Other configurations: TCP/IP stack, apps, monitors, etc.
   // ...
 
   // Arbitrary simulation duration (can be changed for any value)
-  Simulator::Stop (Seconds (10));
+  Simulator::Stop(Seconds(10));
 
 Note that the |ofs13| module requires a new node to install the controller application into it.
 The ``InstallController()`` function creates the learning application object instance and installs it in the ``controllerNode``.
@@ -480,18 +480,18 @@ The experimental ``external-controller.cc`` example uses the ``OFSwitch13Externa
 
   // ...
   // Configure the OpenFlow network domain using an external controller
-  Ptr<OFSwitch13ExternalHelper> of13Helper = CreateObject<OFSwitch13ExternalHelper> ();
-  Ptr<NetDevice> ctrlDev = of13Helper->InstallExternalController (controllerNode);
-  of13Helper->InstallSwitch (switches.Get (0), switchPorts [0]);
-  of13Helper->InstallSwitch (switches.Get (1), switchPorts [1]);
-  of13Helper->CreateOpenFlowChannels ();
+  Ptr<OFSwitch13ExternalHelper> of13Helper = CreateObject<OFSwitch13ExternalHelper>();
+  Ptr<NetDevice> ctrlDev = of13Helper->InstallExternalController(controllerNode);
+  of13Helper->InstallSwitch(switches.Get(0), switchPorts [0]);
+  of13Helper->InstallSwitch(switches.Get(1), switchPorts [1]);
+  of13Helper->CreateOpenFlowChannels();
 
   // TapBridge the controller device to local machine
   // The default configuration expects a controller on local port 6653
   TapBridgeHelper tapBridge;
-  tapBridge.SetAttribute ("Mode", StringValue ("ConfigureLocal"));
-  tapBridge.SetAttribute ("DeviceName", StringValue ("ctrl"));
-  tapBridge.Install (controllerNode, ctrlDev);
+  tapBridge.SetAttribute("Mode", StringValue("ConfigureLocal"));
+  tapBridge.SetAttribute("DeviceName", StringValue("ctrl"));
+  tapBridge.Install(controllerNode, ctrlDev);
 
   // ...
 

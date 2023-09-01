@@ -99,9 +99,7 @@ TunnelController::HandshakeSuccessful(Ptr<const RemoteSwitch> swtch)
     uint64_t swDpId = swtch->GetDpId();
 
     // Send ARP requests to controller.
-    DpctlExecute(swDpId,
-                 "flow-mod cmd=add,table=0,prio=16 eth_type=0x0806 "
-                 "apply:output=ctrl");
+    DpctlExecute(swDpId, "flow-mod cmd=add,table=0,prio=16 eth_type=0x0806 apply:output=ctrl");
 
     // Table miss entry.
     DpctlExecute(swDpId, "flow-mod cmd=add,table=0,prio=0 apply:output=ctrl");
@@ -132,10 +130,10 @@ TunnelController::HandlePacketIn(struct ofl_msg_packet_in* msg,
 
         if (inPort == 1)
         {
-            // IP packets entering the switch from the physical port 1 are coming
-            // from the host node. In this case, identify and set TEID and tunnel
-            // endpoint IPv4 address into tunnel metadata, and output the packet
-            // on the logical port 2.
+            // IP packets entering the switch from the physical port 1 are
+            // coming from the host node. In this case, identify and set TEID
+            // and tunnel endpoint IPv4 address into tunnel metadata, and output
+            // the packet on the logical port 2.
             Ipv4Address dstAddr = GetTunnelEndpoint(swDpId, 2);
             uint64_t tunnelId = static_cast<uint64_t>(dstAddr.Get()) << 32;
             tunnelId |= 0xFFFF;
@@ -155,13 +153,14 @@ TunnelController::HandlePacketIn(struct ofl_msg_packet_in* msg,
         else if (inPort == 2)
         {
             // IP packets entering the switch from the logical port have already
-            // been de-encapsulated by the logical port operation, and the tunnel
-            // id must match the arbitrary value 0xFFFF defined set above. Theses
-            // packets must be forwarded to the host on the physical port 1. In
-            // this case, the OpenFlow switch is acting as a router, and we need
-            // to set the host destination MAC addresses. Note that the packet
-            // leaving the OpenFlow pipeline will not be sent to the IP layer, so
-            // no ARP resolution is available and we need to do it manually here.
+            // been de-encapsulated by the logical port operation, and the
+            // tunnel id must match the arbitrary value 0xFFFF defined set
+            // above. Theses packets must be forwarded to the host on the
+            // physical port 1. In this case, the OpenFlow switch is acting as a
+            // router, and we need to set the host destination MAC addresses.
+            // Note that the packet leaving the OpenFlow pipeline will not be
+            // sent to the IP layer, so no ARP resolution is available and we
+            // need to do it manually here.
             Ipv4Address dstIp = ExtractIpv4Address(OXM_OF_IPV4_DST, (struct ofl_match*)msg->match);
             Mac48Address dstMac = GetArpEntry(dstIp);
 

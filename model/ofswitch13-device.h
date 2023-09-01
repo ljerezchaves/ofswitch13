@@ -40,15 +40,15 @@ class OFSwitch13Port;
  *
  * An OpenFlow 1.3 device that switches multiple CSMA segments via OpenFlow
  * protocol. It takes a collection of ports, each one associated with a ns-3
- * underlying CsmaNetDevice. The device acts as the intermediary between the
+ * underlying CsmaNetDevice. The device acts as the intermediate between the
  * ports, receiving a packet from one port and forwarding it to another.
  *
  * The OpenFlow switch datapath implementation (flow tables, group table, and
- * meter table) is provided by the BOFUSS library. For this reason,
- * packets entering the switch are sent to the library for OpenFlow pipeline
- * processing before being forwarded to the correct output port(s). OpenFlow
- * messages received from the controller are also sent to the library for
- * datapath configuration.
+ * meter table) is provided by the BOFUSS library. For this reason, packets
+ * entering the switch are sent to the library for OpenFlow pipeline processing
+ * before being forwarded to the correct output port(s). OpenFlow messages
+ * received from the controller are also sent to the library for datapath
+ * configuration.
  */
 class OFSwitch13Device : public Object
 {
@@ -80,7 +80,7 @@ class OFSwitch13Device : public Object
      * the ID for each packet copy (notified by the clone callback). Note that
      * only one packet can be in pipeline at a time, but the packet can have
      * multiple internal copies (each one will receive an unique packet ID), and
-     * can also be saved into buffer for latter usage.
+     * can also be saved into buffer for later usage.
      */
     struct PipelinePacket
     {
@@ -98,7 +98,7 @@ class OFSwitch13Device : public Object
         /** \return The packet pointer. */
         Ptr<Packet> GetPacket() const;
 
-        /** Invalidate packet metatada.*/
+        /** Invalidate packet metadata. */
         void Invalidate();
 
         /**
@@ -150,7 +150,7 @@ class OFSwitch13Device : public Object
     uint64_t GetDatapathId() const;
 
     /**
-     * Alias for the GetDatapathId () method.
+     * Alias for the GetDatapathId() method.
      * \return The datapath ID.
      */
     uint64_t GetDpId() const;
@@ -210,8 +210,9 @@ class OFSwitch13Device : public Object
      * device. The current implementation only supports CsmaNetDevice (for
      * physical ports) or VirtualNetDevice (for logical ports). Keep in mind
      * that an OpenFlow switch expects to receive packets with Ethernet header
-     * from port devices). \param portDevice The NetDevice port to add. \return
-     * The OFSwitch13Port created.
+     * from port devices).
+     * \param portDevice The NetDevice port to add.
+     * \return The OFSwitch13Port created.
      */
     Ptr<OFSwitch13Port> AddSwitchPort(Ptr<NetDevice> portDevice);
 
@@ -224,13 +225,12 @@ class OFSwitch13Device : public Object
 
     /**
      * Called when a packet is received on one of the switch's ports. This
-     * method will schedule the packet for OpenFlow pipeline. \param packet The
-     * packet. \param portNo The switch input port number. \param tunnelId The
-     * metadata associated with a logical port.
+     * method will schedule the packet for OpenFlow pipeline.
+     * \param packet The packet.
+     * \param portNo The switch input port number.
+     * \param tunnelId The metadata associated with a logical port.
      */
-    void ReceiveFromSwitchPort(Ptr<Packet> packet,
-                               uint32_t portNo,
-                               uint64_t tunnelId = 0);
+    void ReceiveFromSwitchPort(Ptr<Packet> packet, uint32_t portNo, uint64_t tunnelId = 0);
 
     /**
      * Starts the TCP connection between this switch and the target controller
@@ -240,8 +240,8 @@ class OFSwitch13Device : public Object
     void StartControllerConnection(Address ctrlAddr);
 
     /**
-     * Overriding BOFUSS send_packet_to_controller weak function
-     * from udatapath/pipeline.c. Sends the given packet to controller(s) in a
+     * Overriding BOFUSS send_packet_to_controller weak function from
+     * udatapath/pipeline.c. Sends the given packet to controller(s) in a
      * packet_in message.
      * \internal
      * This function relies on the global map that stores OpenFlow devices to
@@ -267,14 +267,13 @@ class OFSwitch13Device : public Object
      * \param remote The remote controller connection information.
      * \return 0 if everything's ok, otherwise an error number.
      */
-    static int SendOpenflowBufferToRemote(struct ofpbuf* buffer,
-                                          struct remote* remote);
+    static int SendOpenflowBufferToRemote(struct ofpbuf* buffer, struct remote* remote);
 
     /**
      * Overriding BOFUSS dp_actions_output_port weak function from
      * udatapath/dp_actions.c. Outputs a datapath packet on switch port. This
-     * code is nearly the same on ofsoftswitch, but it gets the openflow device
-     * from datapath id and uses member functions to send the packet over ns3
+     * code is nearly the same on BOFUSS, but it gets the openflow device from
+     * datapath id and uses member functions to send the packet over ns3
      * structures.
      * \internal
      * This function relies on the global map that stores OpenFlow devices to
@@ -302,12 +301,12 @@ class OFSwitch13Device : public Object
      * \param pkt The original internal packet.
      * \param entry The meter entry that dropped the packet.
      */
-    static void MeterDropCallback(struct packet* pkt,
-                                  struct meter_entry* entry);
+    static void MeterDropCallback(struct packet* pkt, struct meter_entry* entry);
 
     /**
      * Callback fired when an unmatched packet is dropped by a flow table
-     * without a table-miss entry. \param pkt The original internal packet.
+     * without a table-miss entry.
+     * \param pkt The original internal packet.
      * \param table The flow table that dropped the packet.
      */
     static void TableDropCallback(struct packet* pkt, struct flow_table* table);
@@ -330,7 +329,7 @@ class OFSwitch13Device : public Object
      * \param pkt The internal packet saved into buffer.
      * \param timeout The timeout for this packet into buffer.
      */
-    static void BufferSaveCallback(struct packet* pkt, time_t timeout);
+    static void BufferSaveCallback(struct packet* pkt, uint64_t timeout);
 
     /**
      * Callback fired when a packet is retrieved from buffer.
@@ -350,8 +349,7 @@ class OFSwitch13Device : public Object
      * \param packet The dropped packet.
      * \param meterId The meter entry ID that dropped the packet.
      */
-    typedef void (*MeterDropTracedCallback)(Ptr<const Packet> packet,
-                                            uint32_t meterId);
+    typedef void (*MeterDropTracedCallback)(Ptr<const Packet> packet, uint32_t meterId);
 
     /**
      * TracedCallback signature for unmatched packets dropped by flow tables
@@ -359,12 +357,11 @@ class OFSwitch13Device : public Object
      * \param packet The dropped packet.
      * \param tableId The flow table ID that dropped the packet.
      */
-    typedef void (*TableDropTracedCallback)(Ptr<const Packet> packet,
-                                            uint8_t tableId);
+    typedef void (*TableDropTracedCallback)(Ptr<const Packet> packet, uint8_t tableId);
 
     /**
      * TracedCallback signature for OpenFlow switch device.
-     * \param deve The OpenFlow switch device pointer.
+     * \param dev The OpenFlow switch device pointer.
      */
     typedef void (*DeviceTracedCallback)(Ptr<const OFSwitch13Device> dev);
 
@@ -379,7 +376,7 @@ class OFSwitch13Device : public Object
     /**
      * Creates a new datapath.
      * \return The created datapath.
-     * \see ofsoftswitch dp_new () at udatapath/datapath.c
+     * \see BOFUSS dp_new() at udatapath/datapath.c
      */
     struct datapath* DatapathNew();
 
@@ -397,9 +394,9 @@ class OFSwitch13Device : public Object
 
     /**
      * Check if any flow in any table is timed out and update port status. This
-     * method reschedules itself at every m_timout interval, to constantly check
+     * method schedules itself at every m_timout interval, to periodically check
      * the pipeline for timed out flow entries and update port status.
-     * \see BOFUSS function pipeline_timeout () at udatapath/pipeline.c
+     * \see BOFUSS function pipeline_timeout() at udatapath/pipeline.c
      * \param dp The datapath.
      */
     void DatapathTimeout(struct datapath* dp);
@@ -421,17 +418,15 @@ class OFSwitch13Device : public Object
                             uint64_t cookie = 0);
 
     /**
-     * Send a message over a specific switch port. Check port configuration,
-     * get the ns-3 packet and send the packet over the proper OpenFlow port.
-     * \see DpActionsOutputPort ().
+     * Send a message over a specific switch port. Check port configuration, get
+     * the ns-3 packet and send the packet over the proper OpenFlow port.
+     * \see DpActionsOutputPort().
      * \param pkt The internal packet to send.
      * \param portNo The port number.
      * \param queueNo The queue number.
      * \return True if success, false otherwise.
      */
-    bool SendToSwitchPort(struct packet* pkt,
-                          uint32_t portNo,
-                          uint32_t queueNo = 0);
+    bool SendToSwitchPort(struct packet* pkt, uint32_t portNo, uint32_t queueNo = 0);
 
     /**
      * Send the packet to the OpenFlow BOFUSS pipeline.
@@ -439,26 +434,23 @@ class OFSwitch13Device : public Object
      * \param portNo The switch input port number.
      * \param tunnelId The metadata associated with a logical port.
      */
-    void SendToPipeline(Ptr<Packet> packet,
-                        uint32_t portNo,
-                        uint64_t tunnelId = 0);
+    void SendToPipeline(Ptr<Packet> packet, uint32_t portNo, uint64_t tunnelId = 0);
 
     /**
      * Send a packet to the controller node.
-     * \see SendOpenflowBufferToRemote ().
+     * \see SendOpenflowBufferToRemote().
      * \attention Don't use this method to directly send messages to controller.
-     * Use dp_send_message () instead, as it deals with multiple connections and
+     * Use dp_send_message() instead, as it deals with multiple connections and
      * check async config.
      * \param packet The ns-3 packet to send.
      * \param remoteCtrl The remote controller object to send the packet.
      * \return 0 if everything's ok, otherwise an error number.
      */
-    int SendToController(Ptr<Packet> packet,
-                         Ptr<OFSwitch13Device::RemoteController> remoteCtrl);
+    int SendToController(Ptr<Packet> packet, Ptr<OFSwitch13Device::RemoteController> remoteCtrl);
 
     /**
      * Receive an OpenFlow packet from controller.
-     * \see remote_rconn_run () at udatapath/datapath.c.
+     * \see remote_rconn_run() at udatapath/datapath.c.
      * \param packet The packet with the OpenFlow message.
      * \param from The packet sender address.
      */
@@ -473,9 +465,7 @@ class OFSwitch13Device : public Object
      * \param senderCtrl The origin of a received OpenFlow message.
      * \return 0 if everything's ok, otherwise an error number.
      */
-    int ReplyWithErrorMessage(ofl_err error,
-                              struct ofpbuf* buffer,
-                              struct sender* senderCtrl);
+    int ReplyWithErrorMessage(ofl_err error, struct ofpbuf* buffer, struct sender* senderCtrl);
 
     /**
      * Socket callback fired when a TCP connection to controller succeed.
@@ -516,8 +506,7 @@ class OFSwitch13Device : public Object
      * \param pkt The BOFUSS packet.
      * \param entry The meter entry that dropped the packet.
      */
-    void NotifyPacketDroppedByMeter(struct packet* pkt,
-                                    struct meter_entry* entry);
+    void NotifyPacketDroppedByMeter(struct packet* pkt, struct meter_entry* entry);
 
     /**
      * Notify this device of an unmatched packet dropped by OpenFlow flow table
@@ -525,20 +514,20 @@ class OFSwitch13Device : public Object
      * \param pkt The BOFUSS packet.
      * \param table The flow table that dropped the packet.
      */
-    void NotifyPacketDroppedByTable(struct packet* pkt,
-                                    struct flow_table* table);
+    void NotifyPacketDroppedByTable(struct packet* pkt, struct flow_table* table);
 
     /**
      * Notify this device of a packet saved into buffer. This method will get
-     * the ns-3 packet in pipeline and save into buffer map. \param packetId The
-     * ns-3 packet id. \param timeout The buffer timeout.
+     * the ns-3 packet in pipeline and save into buffer map.
+     * \param packetId The ns-3 packet id.
+     * \param timeout The buffer timeout.
      */
-    void BufferPacketSave(uint64_t packetId, time_t timeout);
+    void BufferPacketSave(uint64_t packetId, uint64_t timeout);
 
     /**
      * Notify this device of a packet retrieved from buffer. This method will
-     * get the ns-3 packet from buffer map and put it back into pipeline. \param
-     * packetId The ns-3 packet id.
+     * get the ns-3 packet from buffer map and put it back into pipeline.
+     * \param packetId The ns-3 packet id.
      */
     void BufferPacketRetrieve(uint64_t packetId);
 
@@ -553,29 +542,26 @@ class OFSwitch13Device : public Object
      * \param socket The connection socket.
      * \return The remote controller.
      */
-    Ptr<OFSwitch13Device::RemoteController> GetRemoteController(
-        Ptr<Socket> socket);
+    Ptr<OFSwitch13Device::RemoteController> GetRemoteController(Ptr<Socket> socket);
 
     /**
      * Get the remote controller for this address.
      * \param address The socket address.
      * \return The remote controller.
      */
-    Ptr<OFSwitch13Device::RemoteController> GetRemoteController(
-        Address address);
+    Ptr<OFSwitch13Device::RemoteController> GetRemoteController(Address address);
 
     /**
      * Get the remote controller for this BOFUSS remote pointer.
      * \param remote The BOFUSS remote pointer.
      * \return The remote controller.
      */
-    Ptr<OFSwitch13Device::RemoteController> GetRemoteController(
-        struct remote* remote);
+    Ptr<OFSwitch13Device::RemoteController> GetRemoteController(struct remote* remote);
 
     /**
      * Increase the global packet ID counter and return a new packet ID. This ID
-     * is different from the internal ns3::Packet::GetUid (), as we need an
-     * unique value even for fragmented or brodcast packets. Its usage is
+     * is different from the internal ns3::Packet::GetUid(), as we need an
+     * unique value even for fragmented or broadcast packets. Its usage is
      * restricted to this device.
      * \return New unique ID for this packet.
      */

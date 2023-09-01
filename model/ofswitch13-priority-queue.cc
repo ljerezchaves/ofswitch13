@@ -23,8 +23,7 @@
 #include "ns3/string.h"
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT                                                  \
-    std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
+#define NS_LOG_APPEND_CONTEXT std::clog << "[dp " << m_dpId << " port " << m_portNo << "] ";
 
 namespace ns3
 {
@@ -50,19 +49,17 @@ OFSwitch13PriorityQueue::GetTypeId()
             .SetParent<OFSwitch13Queue>()
             .SetGroupName("OFSwitch13")
             .AddConstructor<OFSwitch13PriorityQueue>()
-            .AddAttribute(
-                "NumQueues",
-                "The number of internal priority queues.",
-                TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                UintegerValue(1),
-                MakeUintegerAccessor(&OFSwitch13PriorityQueue::m_numQueues),
-                MakeUintegerChecker<int>(1, PORT_MAX_QUEUES))
+            .AddAttribute("NumQueues",
+                          "The number of internal priority queues.",
+                          TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
+                          UintegerValue(1),
+                          MakeUintegerAccessor(&OFSwitch13PriorityQueue::m_numQueues),
+                          MakeUintegerChecker<int>(1, PORT_MAX_QUEUES))
             .AddAttribute("QueueFactory",
                           "The object factory for internal priority queues.",
                           TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                           ObjectFactoryValue(GetDefaultQueueFactory()),
-                          MakeObjectFactoryAccessor(
-                              &OFSwitch13PriorityQueue::m_facQueues),
+                          MakeObjectFactoryAccessor(&OFSwitch13PriorityQueue::m_facQueues),
                           MakeObjectFactoryChecker());
     return tid;
 }

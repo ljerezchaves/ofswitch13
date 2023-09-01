@@ -1,6 +1,6 @@
-From 8110d79c7bb6e9f67d271e1bdda09e55c92ef107 Mon Sep 17 00:00:00 2001
+From 176c16929aa15119f1d5a6b90b5fdfdf7406368d Mon Sep 17 00:00:00 2001
 From: Luciano J Chaves <ljerezchaves@gmail.com>
-Date: Fri, 1 Sep 2023 09:24:38 -0300
+Date: Fri, 1 Sep 2023 10:00:47 -0300
 Subject: [PATCH] CSMA full-duplex patch
 
 ---
@@ -256,7 +256,7 @@ index 000000000..c9a3a3f2b
 +    std::cout << "Total bytes sent from H1 to H0: " << pktSink0->GetTotalRx() << std::endl;
 +}
 diff --git a/src/csma/model/csma-channel.cc b/src/csma/model/csma-channel.cc
-index 9f1fad3ce..2563bd662 100644
+index 9c9f253a6..e09138e45 100644
 --- a/src/csma/model/csma-channel.cc
 +++ b/src/csma/model/csma-channel.cc
 @@ -1,5 +1,8 @@
@@ -464,12 +464,12 @@ index 9f1fad3ce..2563bd662 100644
 -CsmaChannel::IsBusy()
 +CsmaChannel::IsBusy(uint32_t deviceId)
  {
--    if (m_state == IDLE)
-+    if (GetState(deviceId) == IDLE)
-     {
-         return false;
-     }
-@@ -333,9 +378,9 @@ CsmaChannel::GetDelay()
+-    return m_state != IDLE;
++    return GetState(deviceId) != IDLE;
+ }
+ 
+ DataRate
+@@ -326,9 +371,9 @@ CsmaChannel::GetDelay()
  }
  
  WireState
@@ -481,7 +481,7 @@ index 9f1fad3ce..2563bd662 100644
  }
  
  Ptr<NetDevice>
-@@ -344,6 +389,36 @@ CsmaChannel::GetDevice(std::size_t i) const
+@@ -337,6 +382,36 @@ CsmaChannel::GetDevice(std::size_t i) const
      return GetCsmaDevice(i);
  }
  
@@ -726,7 +726,7 @@ index da4e948da..5d824f073 100644
  
  } // namespace ns3
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
-index e10648f96..c164c1d13 100644
+index f6d3ff4ae..e2998cd19 100644
 --- a/src/csma/model/csma-net-device.cc
 +++ b/src/csma/model/csma-net-device.cc
 @@ -1,5 +1,8 @@
@@ -892,10 +892,10 @@ index e10648f96..c164c1d13 100644
  CsmaNetDevice::SetReceiveCallback(NetDevice::ReceiveCallback cb)
  {
 diff --git a/src/csma/test/examples-to-run.py b/src/csma/test/examples-to-run.py
-index eba7b5b77..b27be27b1 100644
+index 3e49f1972..c671e5427 100644
 --- a/src/csma/test/examples-to-run.py
 +++ b/src/csma/test/examples-to-run.py
-@@ -9,6 +9,7 @@
+@@ -8,6 +8,7 @@
  # See test.py for more information.
  cpp_examples = [
      ("csma-broadcast", "True", "True"),

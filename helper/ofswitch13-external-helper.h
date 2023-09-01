@@ -62,7 +62,6 @@ class OFSwitch13ExternalHelper : public OFSwitch13Helper
      * the local machine over a TapBridge device. It installs the TCP/IP stack
      * into controller node, attach it to the common CSMA channel and configure
      * IP address for it.
-     *
      * \param cNode The node to configure as the controller.
      * \return The network device to bind to the TapBridge.
      */

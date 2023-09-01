@@ -20,7 +20,7 @@ endif()
 
 # Check for BOFUSS dependency
 
-# List of BOFUSS headers files required by OFSwtich13
+# List of BOFUSS headers files required by OFSwitch13
 set(NS3_OFSWITCH13_BOFUSS_HEADERS
   bofuss/action_set.h
   bofuss/datapath.h
@@ -73,7 +73,7 @@ if(NOT bofuss_FOUND AND NOT ${bofuss_FOUND})
   ExternalProject_Add(
     bofuss_dep
     GIT_REPOSITORY https://github.com/ljerezchaves/ofsoftswitch13.git
-    GIT_TAG 0901aeb7f1612016e43e774381507c2aaef4afc2
+    GIT_TAG 1b6106e3e3814c50b323e43b6bb2dec5ab13ffe7
     PREFIX bofuss_dep
     BUILD_IN_SOURCE TRUE
     UPDATE_DISCONNECTED TRUE
@@ -143,11 +143,12 @@ set(header_files
 set(test_sources
 )
 
-# Library to link the OFSwitch13 module
+# Libraries to link to the OFSwitch13 module
 set(libraries_to_link
-  ${libcsma}
+  ${libcore}
+  ${libnetwork}
   ${libinternet}
-  ${libapplications}
+  ${libcsma}
   ${libpoint-to-point}
   ${libvirtual-net-device}
   ${bofuss_LIBRARIES}
@@ -162,7 +163,7 @@ build_lib(
   TEST_SOURCES ${test_sources}
 )
 
-# Add BOFUSS dependecy to OFswitch13 module
+# Add BOFUSS dependecy to OFSwitch13 module
 if(NOT bofuss_FOUND AND NOT ${bofuss_FOUND})
   add_dependencies(${libofswitch13} bofuss_dep)
   if(NOT ${XCODE})
