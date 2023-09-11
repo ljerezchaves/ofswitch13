@@ -163,7 +163,7 @@ build_lib(
   TEST_SOURCES ${test_sources}
 )
 
-# Add BOFUSS dependecy to OFSwitch13 module
+# Add BOFUSS dependency to OFSwitch13 module
 if(NOT bofuss_FOUND AND NOT ${bofuss_FOUND})
   add_dependencies(${libofswitch13} bofuss_dep)
   if(NOT ${XCODE})
