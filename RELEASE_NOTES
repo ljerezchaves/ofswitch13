@@ -4,6 +4,18 @@ OFSwitch13 release notes
 
 This file contains OFSwitch13 release notes (most recent releases first).
 
+Release 5.X.X (XXX XX, XXXX)
+============================
+
+- OFSwitch13PriorityQueue::QueueFactory with default DropTailQueue<Packet>
+  configuration.
+
+- This version is compatible with ns-3 versions 3.38 to 3.40 (including
+  patches). There is no backward compatibility with older ns-3 versions.
+
+- Compilation was tested in Ubuntu 22.04.1 LTS.
+
+
 Release 5.2.2 (Sep 01, 2023)
 ============================
 
