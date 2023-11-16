@@ -82,7 +82,7 @@ main(int argc, char* argv[])
 
     // Configure dedicated connections between controller and switches
     Config::SetDefault("ns3::OFSwitch13Helper::ChannelType",
-                       EnumValue(OFSwitch13Helper::DEDICATEDCSMA));
+                       EnumValue(OFSwitch13Helper::DEDICATED_CSMA));
 
     // Increase TCP MSS for larger packets
     Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1400));

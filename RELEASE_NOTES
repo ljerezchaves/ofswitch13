@@ -10,6 +10,8 @@ Release 5.X.X (XXX XX, XXXX)
 - OFSwitch13PriorityQueue::QueueFactory with default DropTailQueue<Packet>
   configuration.
 
+- Renaming OFSwitch13Helper::ChannelType enum values to match coding style.
+
 - This version is compatible with ns-3 versions 3.38 to 3.40 (including
   patches). There is no backward compatibility with older ns-3 versions.
 

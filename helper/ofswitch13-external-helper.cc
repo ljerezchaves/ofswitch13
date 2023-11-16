@@ -64,7 +64,7 @@ OFSwitch13ExternalHelper::SetChannelType(ChannelType type)
     NS_LOG_FUNCTION(this << type);
 
     // Check for valid channel type for this helper.
-    NS_ABORT_MSG_IF(type != OFSwitch13Helper::SINGLECSMA,
+    NS_ABORT_MSG_IF(type != OFSwitch13Helper::SINGLE_CSMA,
                     "Invalid channel type for OFSwitch13ExternalHelper (use SingleCsma).");
     OFSwitch13Helper::SetChannelType(type);
 }
@@ -92,7 +92,7 @@ OFSwitch13ExternalHelper::CreateOpenFlowChannels()
     // Create and start the connections between switches and controllers.
     switch (m_channelType)
     {
-    case OFSwitch13ExternalHelper::SINGLECSMA: {
+    case OFSwitch13ExternalHelper::SINGLE_CSMA: {
         NS_LOG_INFO("Attach all switches and controllers to the same CSMA network.");
 
         // Connecting all switches to the common channel.
@@ -112,8 +112,8 @@ OFSwitch13ExternalHelper::CreateOpenFlowChannels()
         m_ipv4helper.NewNetwork();
         break;
     }
-    case OFSwitch13ExternalHelper::DEDICATEDCSMA:
-    case OFSwitch13ExternalHelper::DEDICATEDP2P:
+    case OFSwitch13ExternalHelper::DEDICATED_CSMA:
+    case OFSwitch13ExternalHelper::DEDICATED_P2P:
     default: {
         NS_ABORT_MSG("Invalid OpenflowChannelType.");
     }

@@ -78,9 +78,9 @@ class OFSwitch13Helper : public Object
      */
     enum ChannelType
     {
-        SINGLECSMA = 0,    //!< Uses a single shared CSMA channel.
-        DEDICATEDCSMA = 1, //!< Uses individual CSMA channels.
-        DEDICATEDP2P = 2   //!< Uses individual P2P channels.
+        SINGLE_CSMA = 0,    //!< Uses a single shared CSMA channel.
+        DEDICATED_CSMA = 1, //!< Uses individual CSMA channels.
+        DEDICATED_P2P = 2   //!< Uses individual P2P channels.
     };
 
     OFSwitch13Helper();           //!< Default constructor.
