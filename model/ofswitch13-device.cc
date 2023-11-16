@@ -701,7 +701,7 @@ OFSwitch13Device::DatapathNew()
 {
     NS_LOG_FUNCTION(this);
 
-    struct datapath* dp = (struct datapath*)xmalloc(sizeof(struct datapath));
+    auto dp = (struct datapath*)xmalloc(sizeof(struct datapath));
 
     dp->mfr_desc = (char*)xmalloc(DESC_STR_LEN);
     dp->hw_desc = (char*)xmalloc(DESC_STR_LEN);
@@ -1014,7 +1014,7 @@ OFSwitch13Device::ReceiveFromController(Ptr<Packet> packet, Address from)
         // was sent and the one that was received in the version fields. So, for
         // the OFPT_HELLO message, we will check for advertised version to see
         // if it is higher than ours, in which case we can continue.
-        struct ofp_header* header = (struct ofp_header*)buffer->data;
+        auto header = (struct ofp_header*)buffer->data;
         if (header->type != OFPT_HELLO || header->version <= OFP_VERSION)
         {
             // This is not a hello message or the advertised version is lower
