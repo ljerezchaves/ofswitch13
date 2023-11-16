@@ -32,7 +32,7 @@ namespace ns3
  * calculator connects to a collection of trace sources in the OpenFlow switch
  * device to monitor the following metrics:
  *
- * -# [LoaKbps] CPU porocessing load in the last interval (Kbps);
+ * -# [LoaKbps] CPU processing load in the last interval (Kbps);
  * -# [LoaUsag] Average CPU processing capacity usage (percent);
  * -# [Packets] Packets processed by the pipeline in the last interval;
  * -# [DlyUsec] EWMA pipeline lookup delay for packet processing (usecs);
