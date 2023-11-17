@@ -1,8 +1,0 @@
-.. |ns3| replace:: *ns-3*
-
-.. |ns2| replace:: *ns-2*
-
-.. |ofs13| replace:: *OFSwitch13*
-
-.. |bofuss| replace:: *BOFUSS*
-

@@ -1,7 +1,6 @@
 Usage
 *****
 
-.. include:: replace.txt
 .. highlight:: cpp
 
 .. heading hierarchy:
@@ -13,8 +12,8 @@ Usage
 Building the Module
 ===================
 
-The |ofs13| module interconnects the |ns3| simulator and the |bofuss| software switch compiled as a library.
-Follow the instructions below to compile the |ofs13| module.
+The *OFSwitch13* module interconnects the *ns-3* simulator and the *BOFUSS* software switch compiled as a library.
+Follow the instructions below to compile the *OFSwitch13* module.
 *Instructions were tested on Ubuntu 22.04.1 LTS.* [#f1]_
 
 .. [#f1] Other distributions or versions may require different steps, especially regarding library compilation.
@@ -32,7 +31,7 @@ Before starting, ensure you have the following minimal requirements installed on
 Compiling the code
 ##################
 
-Clone the |ns3| source code repository into your machine and checkout a stable version (we are using the ns-3.39):
+Clone the *ns-3* source code repository into your machine and checkout a stable version (we are using the ns-3.39):
 
 .. code-block:: bash
 
@@ -40,24 +39,24 @@ Clone the |ns3| source code repository into your machine and checkout a stable v
   $ cd ns-3-dev
   $ git checkout -b ns-3.39 ns-3.39
 
-Download the |ofs13| code into the ``contrib/`` folder.
+Download the *OFSwitch13* code into the ``contrib/`` folder.
 
 .. code-block:: bash
 
   $ cd contrib/
   $ git clone https://github.com/ljerezchaves/ofswitch13.git
 
-Update the |ofs13| code to a stable version (we are using release 5.2.2, which is compatible with ns-3.39) [#f2]_:
+Update the *OFSwitch13* code to a stable version (we are using release 5.2.2, which is compatible with ns-3.39) [#f2]_:
 
-.. [#f2] Starting at |ofs13| release 5.2.0, the ``cmake`` build system will automatically download and compile the correct version of |bofuss| library (Internet connection is required).
-         For older |ofs13| releases, we suggest you check the documentation and follow the proper build steps.
+.. [#f2] Starting at *OFSwitch13* release 5.2.0, the ``cmake`` build system will automatically download and compile the correct version of *BOFUSS* library (Internet connection is required).
+         For older *OFSwitch13* releases, we suggest you check the documentation and follow the proper build steps.
 
 .. code-block:: bash
 
   $ cd ofswitch13
   $ git checkout 5.2.2
 
-Go back to the |ns3| root directory and patch the |ns3| code with the appropriated ``ofswitch13`` patch available under the ``ofswitch13/utils/`` directory (check for the correct |ns3| version):
+Go back to the *ns-3* root directory and patch the *ns-3* code with the appropriated ``ofswitch13`` patch available under the ``ofswitch13/utils/`` directory (check for the correct *ns-3* version):
 
 .. code-block:: bash
 
@@ -68,21 +67,21 @@ This patch creates the new OpenFlow receive callback at ``CsmaNetDevice`` and ``
 The module also brings a ``csma-full-duplex`` patch for improving CSMA connections with full-duplex support.
 This is an optional patch that can be applyed *after* the ``ofswitch13`` patch.
 
-Now, configure the |ns3|. By default, the ``cmake`` build system will handle |bofuss| library download and compilation.
-Anyway, if your want to use a custom |bofuss| library, use the ``-DNS3_OFSWITCH13_BOFUSS_PATH`` configuration option to specify its location:
+Now, configure the *ns-3*. By default, the ``cmake`` build system will handle *BOFUSS* library download and compilation.
+Anyway, if your want to use a custom *BOFUSS* library, use the ``-DNS3_OFSWITCH13_BOFUSS_PATH`` configuration option to specify its location:
 
 .. code-block:: bash
 
   $ ./ns3 configure
 
-Check for the enabled |ns3| |ofs13| *integration* feature after configuration.
+Check for the enabled *ns-3* *OFSwitch13* *integration* feature after configuration.
 Finally, compile the simulator:
 
 .. code-block:: bash
 
   $ ./ns3 build
 
-That's it! Enjoy your |ns3| fresh compilation with OpenFlow 1.3 capabilities.
+That's it! Enjoy your *ns-3* fresh compilation with OpenFlow 1.3 capabilities.
 
 Basic usage
 ===========
@@ -157,7 +156,7 @@ This script connects two hosts to a single OpenFlow switch using CSMA links, and
       Simulator::Destroy();
   }
 
-At first, don't forget to enable checksum computations, which are required by the |ofs13| module.
+At first, don't forget to enable checksum computations, which are required by the *OFSwitch13* module.
 After creating host and switch nodes, the user is responsible for connect the hosts and switches to create the desired network topology.
 Using CSMA links for these connections is mandatory.
 Note that ``CsmaNetDevices`` created and installed into switch node will be later configured as switch ports.
@@ -168,10 +167,10 @@ The ``InstallController()`` method configures the controller node with a default
 The ``InstallSwitch()`` method installs the OpenFlow datapath into switch node and configures the switch ports.
 In the end, it's mandatory to call the ``CreateOpenFlowChannels()`` method to create the connections and start the communication between switches and controllers.
 
-The rest of this example follows the standard |ns3| usage: installing TCP/IP stack into host nodes, configuring IP addresses, installing applications and running the simulation.
+The rest of this example follows the standard *ns-3* usage: installing TCP/IP stack into host nodes, configuring IP addresses, installing applications and running the simulation.
 Don't install the TCP/IP stack into switches and controllers nodes (the helper does that for you).
 Also, don't assign an IP address to devices configured as switch ports.
-For instructions on how to compile and run simulation programs, please refer to the |ns3| tutorial.
+For instructions on how to compile and run simulation programs, please refer to the *ns-3* tutorial.
 
 Helpers
 =======
@@ -183,7 +182,7 @@ This module follows the pattern usage of standard helpers.
 The ``OFSwitch13Helper`` is a base class that must be extended to create and configure an OpenFlow 1.3 network domain, composed of one or more OpenFlow switches connected to single or multiple OpenFlow controllers.
 By default, the connections between switches and controllers are created using a single shared out-of-band CSMA channel, with IP addresses assigned to the 10.100.0.0/24 network.
 Users can modify this configuration by changing the ``OFSwitch13Helper::ChannelType`` attribute (dedicated out-of-band connections over CSMA or point-to-point channels are also available), or setting a different IP network address with the ``OFSwitch13Helper::SetAddressBase()`` static method.
-The use of standard |ns3| channels and devices provides realistic connections with delay and error models.
+The use of standard *ns-3* channels and devices provides realistic connections with delay and error models.
 
 This base class brings the methods for configuring the switches (derived classes configure the controllers).
 The ``InstallSwitch()`` method can be used to create and aggregate an ``OFSwitch13Device`` object to each switch node.
@@ -305,7 +304,7 @@ OFSwitch13StatsCalculator
 Output
 ======
 
-This module relies on the |ns3| tracing subsystem for output.
+This module relies on the *ns-3* tracing subsystem for output.
 The ``OFSwitch13Helper`` base class allows users to monitor control-plane traffic by enabling PCAP and ASCII trace files for the ``NetDevices`` used to create the OpenFlow Channel(s).
 This approach can be useful to analyze the OpenFlow messages exchanged between switches and controllers on this network domain.
 To enable these traces, use the ``EnableOpenFlowPcap()`` and ``EnableOpenFlowAscii()`` helper member functions *after* configuring the switches and creating the OpenFlow channels.
@@ -341,7 +340,7 @@ To enable performance monitoring, use the ``EnableDatapathStats()`` helper membe
 By default, statistics are dumped every second, but users can adjust this interval with the ``OFSwitch13StatsCalculator::DumpTimeout`` attribute.
 Besides, an Exponentially Weighted Moving Average (EWMA) is used to update the average values, and the attribute ``OFSwitch13StatsCalculator::EwmaAlpha`` can be adjusted to reflect the desired weight given to most recent measured values.
 
-When necessary, it is also possible to enable the |bofuss| library logging mechanism using two different approaches:
+When necessary, it is also possible to enable the *BOFUSS* library logging mechanism using two different approaches:
 
 #. The simplified ``OFSwitch13Helper::EnableDatapathLogs()`` static method dumps messages at debug level for all library internal modules into the output file (users can set the filename prefix);
 
@@ -349,11 +348,11 @@ When necessary, it is also possible to enable the |bofuss| library logging mecha
 
 .. _port-coding:
 
-Porting |ns3| OpenFlow code
+Porting *ns-3* OpenFlow code
 ===========================
 
-For |ns3| OpenFlow users that want to port existing code to the new |ofs13| module, keep in mind that this is not an extension of the available implementation.
-For simulation scenarios using the existing |ns3| OpenFlow module configured with the ``ns3::OpenFlowSwitchHelper`` helper and using the ``ns3::ofi::LearningController``, it is possible to port the code to the |ofs13| module with little effort.
+For *ns-3* OpenFlow users that want to port existing code to the new *OFSwitch13* module, keep in mind that this is not an extension of the available implementation.
+For simulation scenarios using the existing *ns-3* OpenFlow module configured with the ``ns3::OpenFlowSwitchHelper`` helper and using the ``ns3::ofi::LearningController``, it is possible to port the code to the *OFSwitch13* module with little effort.
 The following code, based on the ``openflow-switch.cc`` example, is used for demonstration:
 
 .. code-block:: cpp
@@ -385,7 +384,7 @@ This code creates an ``ns3::ofi::LearningController`` object instance as the con
 It also sets the internal attribute ``ExpirationTime`` for cache timeout.
 Then, the helper installs the OpenFlow switch device into the ``switchNode`` node.
 The CSMA devices from ``switchDevices`` container are installed as OpenFlow ports, and the ``controller`` object is set as the OpenFlow controller for the network.
-The following code implements the same logic in the |ofs13| module:
+The following code implements the same logic in the *OFSwitch13* module:
 
 .. code-block:: cpp
 
@@ -414,14 +413,14 @@ The following code implements the same logic in the |ofs13| module:
   // Arbitrary simulation duration (can be changed for any value)
   Simulator::Stop(Seconds(10));
 
-Note that the |ofs13| module requires a new node to install the controller application into it.
+Note that the *OFSwitch13* module requires a new node to install the controller application into it.
 The ``InstallController()`` function creates the learning application object instance and installs it in the ``controllerNode``.
 Then, the ``InstallSwitch()`` function installs the OpenFlow device into ``switchNode`` and configures the CSMA devices from ``switchDevices`` container as OpenFlow ports.
 Finally, the ``CreateOpenFlowChannels()`` function configures the connection between the switch and the controller.
 Note that the ``OFSwitch13LearningController`` does not provide the ``ExpirationTime`` attribute.
 Don't forget to include the ``Simulator::Stop()`` command to schedule the time delay until the Simulator should stop; otherwise, the simulation will never end.
 
-For users who have implemented new controllers in the |ns3| OpenFlow module, extending the ``ns3::ofi::Controller`` class, are encouraged to explore the examples and the Doxygen documentation for the ``OFSwitch13Controller`` base class.
+For users who have implemented new controllers in the *ns-3* OpenFlow module, extending the ``ns3::ofi::Controller`` class, are encouraged to explore the examples and the Doxygen documentation for the ``OFSwitch13Controller`` base class.
 In a nutshell, the ``ReceiveFromSwitch()`` function is replaced by the internal handlers, used to process each type of OpenFlow message received from the switch.
 See the :ref:`extending-controller` section for more details.
 
@@ -464,7 +463,7 @@ It looks for L2 switching information and removes associated entry.
 
 The ``QosController`` example includes a non-trivial controller implementation that is used to configure the network described in :ref:`qos-controller` section.
 Several ``dpctl`` commands are used to configure the switches based on network topology and desired control logic, while the ``HandlePacketIn()`` is used to filter packets sent to the controller by the switch.
-Note that the |bofuss| function ``oxm_match_lookup()`` is used across the code to extract match information from the message received by the controller.
+Note that the *BOFUSS* function ``oxm_match_lookup()`` is used across the code to extract match information from the message received by the controller.
 For ARP messages, ``HandleArpPacketIn()`` exemplifies how to create a new packet at the controller and send to the network over a packet-out message.
 Developers are encouraged to study the library internal structures to understand better how the handlers are implemented and also how to build an OpenFlow message manually.
 
@@ -473,7 +472,7 @@ Developers are encouraged to study the library internal structures to understand
 External controller
 ###################
 
-Considering that the OpenFlow messages traversing the OpenFlow channel follow the standard wire format, it is possible to use the |ns3| ``TapBridge`` module to integrate an external OpenFlow 1.3 controller, running on the local system, to the simulated environment.
+Considering that the OpenFlow messages traversing the OpenFlow channel follow the standard wire format, it is possible to use the *ns-3* ``TapBridge`` module to integrate an external OpenFlow 1.3 controller, running on the local system, to the simulated environment.
 The experimental ``external-controller.cc`` example uses the ``OFSwitch13ExternalHelper`` to this end, as follows:
 
 .. code-block:: cpp
@@ -549,7 +548,7 @@ The "long-distance" connection between the sites is via two links of 10 Mbps eac
 On the server side, the *OpenFlow border switch* acts as a border router element: it is responsible for handling connection requests coming from the clients and redirecting them to the appropriate internal server.
 On the client side, the *OpenFlow client switch* is used to interconnect all clients in a star topology.
 Between these two switches, there is the *OpenFlow aggregation switch*, located at the border of the client side and used to provide improved long-distance communication.
-The default |ofs13| learning controller is used to manage the client switch, whereas the new *OpenFlow QoS controller* is used to manage the other two switches.
+The default *OFSwitch13* learning controller is used to manage the client switch, whereas the new *OpenFlow QoS controller* is used to manage the other two switches.
 The latter controller implements some QoS functionalities exploiting OpenFlow 1.3 features, as described below.
 Each client opens a single TCP connection with one of the 2 available servers, and sends packets in uplink direction as much as possible, trying to fill the available bandwidth.
 
@@ -569,7 +568,7 @@ Each group receives packets as input and performs any OpenFlow actions on these 
 The power of a group is that it contains separate lists of actions, and each action list is referred to as an OpenFlow bucket.
 There are different types of groups, and the *select* group type can be used to perform link aggregation.
 Each bucket in a select group has an assigned weight, and each packet that enters the group is sent to a single bucket.
-The bucket selection algorithm is undefined and is dependent on the switch's implementation (the |bofuss| library implements the weighted round robin algorithm).
+The bucket selection algorithm is undefined and is dependent on the switch's implementation (the *BOFUSS* library implements the weighted round robin algorithm).
 
 In the proposed network topology, the QoS controller configures both the border and the aggregation switches to perform link aggregation over the two narrowband long-distance connections, providing a 20 Mbps connection between servers and clients (use the ``QosController::LinkAggregation`` attribute to enable/disable this feature).
 Each OpenFlow bucket has the same weight in the select group, so the load is evenly distributed among the links.
