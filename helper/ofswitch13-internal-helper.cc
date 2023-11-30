@@ -21,6 +21,7 @@
 
 #include "ofswitch13-internal-helper.h"
 
+#include <ns3/global-value.h>
 #include <ns3/ofswitch13-learning-controller.h>
 
 namespace ns3
@@ -61,6 +62,9 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels()
 
     // Block this helper to avoid further calls to install methods.
     m_blocked = true;
+
+    // Enable checksum computations (mandatory for this module)
+    GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
 
     // Create and start the connections between switches and controllers.
     switch (m_channelType)

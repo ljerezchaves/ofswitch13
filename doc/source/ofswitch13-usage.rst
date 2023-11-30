@@ -65,7 +65,7 @@ Go back to the *ns-3* root directory and patch the *ns-3* code with the appropri
 
 This patch creates the new OpenFlow receive callback at ``CsmaNetDevice`` and ``VirtualNetDevice``, allowing OpenFlow switch to get raw packets from these devices.
 The module also brings a ``csma-full-duplex`` patch for improving CSMA connections with full-duplex support.
-This is an optional patch that can be applyed *after* the ``ofswitch13`` patch.
+This is an optional patch that can be applied *after* the ``ofswitch13`` patch.
 
 Now, configure the *ns-3*. By default, the ``cmake`` build system will handle *BOFUSS* library download and compilation.
 Anyway, if your want to use a custom *BOFUSS* library, use the ``-DNS3_OFSWITCH13_BOFUSS_PATH`` configuration option to specify its location:
@@ -103,9 +103,6 @@ This script connects two hosts to a single OpenFlow switch using CSMA links, and
   int
   main(int argc, char* argv[])
   {
-      // Enable checksum computations (required by OFSwitch13 module)
-      GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
-
       // Create two host nodes
       NodeContainer hosts;
       hosts.Create(2);
@@ -156,13 +153,11 @@ This script connects two hosts to a single OpenFlow switch using CSMA links, and
       Simulator::Destroy();
   }
 
-At first, don't forget to enable checksum computations, which are required by the *OFSwitch13* module.
-After creating host and switch nodes, the user is responsible for connect the hosts and switches to create the desired network topology.
+After creating host and switch nodes, the user is responsible for connecting the hosts and switches to create the desired network topology.
 Using CSMA links for these connections is mandatory.
 Note that ``CsmaNetDevices`` created and installed into switch node will be later configured as switch ports.
 After connecting hosts and switches, it's time to create a controller node and configure the OpenFlow network.
-The
-``OFSwitch13InternalHelper`` can be used to configure an OpenFlow network domain with internal controller application.
+The ``OFSwitch13InternalHelper`` can be used to configure an OpenFlow network domain with internal controller application.
 The ``InstallController()`` method configures the controller node with a default OpenFlow learning controller application.
 The ``InstallSwitch()`` method installs the OpenFlow datapath into switch node and configures the switch ports.
 In the end, it's mandatory to call the ``CreateOpenFlowChannels()`` method to create the connections and start the communication between switches and controllers.
@@ -216,7 +211,7 @@ OFSwitch13ExternalHelper
 This helper extends the base class and can be instantiated to create and configure an OpenFlow 1.3 network domain composed of one or more OpenFlow switches connected to a single external real OpenFlow controller.
 It brings methods for installing the controller node for TapBridge usage and creating the OpenFlow channels. The current implementation only supports the single shared CSMA channel type.
 
-To configure the external controller, the ``InstallExternalController()`` method can be used to prepare the controller node so it can be used to connect internal simulated switches to an external OpenFlow controller running on the local machine over a TapBridge device.
+To configure the external controller, the ``InstallExternalController()`` method can be used to prepare the controller node, so it can be used to connect internal simulated switches to an external OpenFlow controller running on the local machine over a TapBridge device.
 It installs the TCP/IP stack into controller node, attach it to the common CSMA channel, configure IP address for it and returns the ``NetDevice`` that the user will be responsible to bind to the TabBridge.
 Note that this helper is prepared to configure a single controller node.
 See the :ref:`external-controller` section for details.
@@ -541,7 +536,7 @@ Examples summary
 The QoS controller example
 ##########################
 
-A case study scenario was used by [Chaves2016a]_ to demonstrate how some of the available OpenFlow 1.3 module features can be employed to improve network management.
+A case study scenario was used by [Chaves2016a]_ to demonstrate how some available OpenFlow 1.3 module features can be employed to improve network management.
 Figure :ref:`fig-network-topo` shows the network topology used in this example.
 It represents the internal network of an organization, where servers and client nodes are located far from each other (e.g., in separated buildings).
 The "long-distance" connection between the sites is via two links of 10 Mbps each, while all the other local connections are 100 Mbps.
@@ -568,7 +563,7 @@ Each group receives packets as input and performs any OpenFlow actions on these 
 The power of a group is that it contains separate lists of actions, and each action list is referred to as an OpenFlow bucket.
 There are different types of groups, and the *select* group type can be used to perform link aggregation.
 Each bucket in a select group has an assigned weight, and each packet that enters the group is sent to a single bucket.
-The bucket selection algorithm is undefined and is dependent on the switch's implementation (the *BOFUSS* library implements the weighted round robin algorithm).
+The bucket selection algorithm is undefined and is dependent on the switch's implementation (the *BOFUSS* library implements the weighted round-robin algorithm).
 
 In the proposed network topology, the QoS controller configures both the border and the aggregation switches to perform link aggregation over the two narrowband long-distance connections, providing a 20 Mbps connection between servers and clients (use the ``QosController::LinkAggregation`` attribute to enable/disable this feature).
 Each OpenFlow bucket has the same weight in the select group, so the load is evenly distributed among the links.
@@ -581,7 +576,7 @@ The most commonly used applications of load balancing is to provide single Inter
 In the proposed network topology, the OpenFlow QoS controller configures the border switch to listen for new requests on the IP and port where external clients connect to access the servers.
 The switch forwards the new request to the controller, which decides which of the internal servers must take care of this connection.
 Then, it installs the match rules into border switch to forward the subsequent packets from the same connection directly to the chosen server.
-All this happen without the client ever knowing about the internal separation of functions.
+All this happens without the client ever knowing about the internal separation of functions.
 
 To implement this load balancing mechanism, the QoS controller depends on the extensible match support introduced in OpenFlow 1.2.
 Prior versions of the OpenFlow specification used a static fixed length structure to specify matches, which prevents flexible expression of matches and prevents the inclusion of new match fields.

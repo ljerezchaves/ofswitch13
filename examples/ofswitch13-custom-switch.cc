@@ -78,8 +78,6 @@ main(int argc, char* argv[])
         LogComponentEnable("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
     }
 
-    // Enable checksum computations (required by OFSwitch13 module)
-    GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
 
     // Create two host nodes
     NodeContainer hosts;
