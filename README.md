@@ -16,7 +16,7 @@ The OFSwitch13 module is a free software licensed under the [GNU GPLv2 license][
 ## Contribute
 
 The OFSwitch13 module is currently maintained by Luciano Jerez Chaves.
-It also received contributions from Vítor Marge Eichemberger, Islene Calciolari Garcia, and Arthur Boechat Mazzi.
+It also received contributions from Vítor Marge Eichemberger, Islene Calciolari Garcia, Arthur Boechat Mazzi, and Pasquale Imputato.
 We thank Eder Leão Fernandes for helping with the BOFUSS library integration.
 
 Please contribute to this project by submitting your bug reports to the [issue tracker][issues]. For fixes and improvements, consider creating a pull request.
