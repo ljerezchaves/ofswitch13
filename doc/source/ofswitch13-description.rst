@@ -203,8 +203,8 @@ For *ns-3* OpenFlow users who want to port existing code to this new module, ple
 The only required modification to the *ns-3* source code for *OFSwitch13* integration is the inclusion of the new OpenFlow receive callback in the ``CsmaNetDevice`` and ``VirtualNetDevice``.
 The module brings the patch for including this receive callback into *ns-3* source code, available under ``utils/`` directory.
 
-The current *OFSwitch13* stable version is 5.2.2.
-This version is compatible with *ns-3* versions 3.38 and 3.39, and will not compile with older *ns-3* versions.
+The current *OFSwitch13* stable version is 5.2.3.
+This version is compatible with *ns-3* versions 3.38, 3.39, adn 3.40, and will not compile with older *ns-3* versions.
 If you need to use another *ns-3* release, you can check the RELEASE_NOTES file for previous *OFSwitch13* releases and their *ns-3* version compatibility, but keep in mind that old releases may have known bugs and an old API.
 It is strongly recommended to use the latest module version.
 
