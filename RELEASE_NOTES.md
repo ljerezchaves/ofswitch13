@@ -2,9 +2,9 @@
 
 This file contains OFSwitch13 release notes (most recent releases first).
 
-## [Release 5.X.X](https://github.com/ljerezchaves/ofswitch13/releases/tag/5.X.X)
+## [Release 5.2.3](https://github.com/ljerezchaves/ofswitch13/releases/tag/5.2.3)
 
-**Release date:** XXX XX, XXXX.  
+**Release date:** Mar 02, 2024.  
 **Works with:** ns-3.38, ns-3.39, and ns-3.40.
 
 - Configuring `OFSwitch13PriorityQueue::QueueFactory` with `DropTailQueue<Packet>` queues by default.
