@@ -2,7 +2,6 @@
 OpenFlow 1.3 Module (OFSwitch13)
 --------------------------------
 
-.. include:: replace.txt
 .. highlight:: cpp
 
 .. heading hierarchy:

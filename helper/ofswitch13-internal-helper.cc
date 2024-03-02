@@ -21,6 +21,7 @@
 
 #include "ofswitch13-internal-helper.h"
 
+#include <ns3/global-value.h>
 #include <ns3/ofswitch13-learning-controller.h>
 
 namespace ns3
@@ -62,10 +63,13 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels()
     // Block this helper to avoid further calls to install methods.
     m_blocked = true;
 
+    // Enable checksum computations (mandatory for this module)
+    GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
+
     // Create and start the connections between switches and controllers.
     switch (m_channelType)
     {
-    case OFSwitch13InternalHelper::SINGLECSMA: {
+    case OFSwitch13InternalHelper::SINGLE_CSMA: {
         NS_LOG_INFO("Attach all switches and controllers to the same CSMA network.");
 
         // Create the common channel for all switches and controllers.
@@ -98,8 +102,8 @@ OFSwitch13InternalHelper::CreateOpenFlowChannels()
         m_ipv4helper.NewNetwork();
         break;
     }
-    case OFSwitch13InternalHelper::DEDICATEDCSMA:
-    case OFSwitch13InternalHelper::DEDICATEDP2P: {
+    case OFSwitch13InternalHelper::DEDICATED_CSMA:
+    case OFSwitch13InternalHelper::DEDICATED_P2P: {
         // Setting channel/device data rates.
         m_p2pHelper.SetDeviceAttribute("DataRate", DataRateValue(m_channelDataRate));
         m_csmaHelper.SetChannelAttribute("DataRate", DataRateValue(m_channelDataRate));
@@ -188,13 +192,13 @@ OFSwitch13InternalHelper::Connect(Ptr<Node> ctrl, Ptr<Node> swtch)
     NodeContainer pairNodes(ctrl, swtch);
     switch (m_channelType)
     {
-    case OFSwitch13InternalHelper::DEDICATEDCSMA: {
+    case OFSwitch13InternalHelper::DEDICATED_CSMA: {
         return m_csmaHelper.Install(pairNodes);
     }
-    case OFSwitch13InternalHelper::DEDICATEDP2P: {
+    case OFSwitch13InternalHelper::DEDICATED_P2P: {
         return m_p2pHelper.Install(pairNodes);
     }
-    case OFSwitch13InternalHelper::SINGLECSMA:
+    case OFSwitch13InternalHelper::SINGLE_CSMA:
     default: {
         NS_ABORT_MSG("Invalid OpenflowChannelType.");
     }

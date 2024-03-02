@@ -82,13 +82,10 @@ main(int argc, char* argv[])
 
     // Configure dedicated connections between controller and switches
     Config::SetDefault("ns3::OFSwitch13Helper::ChannelType",
-                       EnumValue(OFSwitch13Helper::DEDICATEDCSMA));
+                       EnumValue(OFSwitch13Helper::DEDICATED_CSMA));
 
     // Increase TCP MSS for larger packets
     Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1400));
-
-    // Enable checksum computations (required by OFSwitch13 module)
-    GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
 
     // Discard the first MAC address ("00:00:00:00:00:01") which will be used by
     // the border switch in association with the first IP address ("10.1.1.1")

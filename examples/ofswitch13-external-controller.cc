@@ -82,8 +82,6 @@ main(int argc, char* argv[])
         LogComponentEnable("OFSwitch13InternalHelper", LOG_LEVEL_ALL);
     }
 
-    // Enable checksum computations (required by OFSwitch13 module)
-    GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
 
     // Set simulator to real time mode
     GlobalValue::Bind("SimulatorImplementationType", StringValue("ns3::RealtimeSimulatorImpl"));

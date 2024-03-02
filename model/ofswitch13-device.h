@@ -394,7 +394,7 @@ class OFSwitch13Device : public Object
 
     /**
      * Check if any flow in any table is timed out and update port status. This
-     * method schedules itself at every m_timout interval, to periodically check
+     * method schedules itself at every m_timeout interval, to periodically check
      * the pipeline for timed out flow entries and update port status.
      * \see BOFUSS function pipeline_timeout() at udatapath/pipeline.c
      * \param dp The datapath.

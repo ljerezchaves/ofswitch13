@@ -41,7 +41,7 @@ EnableBofussLog(bool printToFile,
         std::string filename = prefix;
         if (!explicitFilename)
         {
-            if (filename.size() && filename.back() != '-')
+            if (!filename.empty() && filename.back() != '-')
             {
                 filename += "-";
             }
@@ -55,7 +55,7 @@ EnableBofussLog(bool printToFile,
         vlog_set_levels(VLM_ANY_MODULE, VLF_CONSOLE, VLL_DBG);
     }
 
-    if (customLevels.size())
+    if (!customLevels.empty())
     {
         vlog_set_levels_from_string(customLevels.c_str());
     }

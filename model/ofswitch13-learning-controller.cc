@@ -169,8 +169,7 @@ OFSwitch13LearningController::HandlePacketIn(struct ofl_msg_packet_in* msg,
         }
 
         // Create output action
-        struct ofl_action_output* a =
-            (struct ofl_action_output*)xmalloc(sizeof(struct ofl_action_output));
+        auto a = (struct ofl_action_output*)xmalloc(sizeof(struct ofl_action_output));
         a->header.type = OFPAT_OUTPUT;
         a->port = outPort;
         a->max_len = 0;

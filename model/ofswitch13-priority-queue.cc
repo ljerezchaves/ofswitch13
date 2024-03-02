@@ -37,7 +37,6 @@ GetDefaultQueueFactory()
     // Setting default internal queue configuration.
     ObjectFactory queueFactory;
     queueFactory.SetTypeId("ns3::DropTailQueue<Packet>");
-    queueFactory.Set("MaxSize", StringValue("100p"));
     return queueFactory;
 }
 

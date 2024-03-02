@@ -64,13 +64,13 @@ OFSwitch13Helper::GetTypeId()
             .AddAttribute("ChannelType",
                           "The configuration used to create the OpenFlow channel",
                           TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                          EnumValue(OFSwitch13Helper::SINGLECSMA),
+                          EnumValue(OFSwitch13Helper::SINGLE_CSMA),
                           MakeEnumAccessor(&OFSwitch13Helper::SetChannelType),
-                          MakeEnumChecker(OFSwitch13Helper::SINGLECSMA,
+                          MakeEnumChecker(OFSwitch13Helper::SINGLE_CSMA,
                                           "SingleCsma",
-                                          OFSwitch13Helper::DEDICATEDCSMA,
+                                          OFSwitch13Helper::DEDICATED_CSMA,
                                           "DedicatedCsma",
-                                          OFSwitch13Helper::DEDICATEDP2P,
+                                          OFSwitch13Helper::DEDICATED_P2P,
                                           "DedicatedP2p"));
     return tid;
 }
@@ -108,12 +108,12 @@ OFSwitch13Helper::EnableOpenFlowPcap(std::string prefix, bool promiscuous)
     NS_ABORT_MSG_IF(!m_blocked, "OpenFlow channels not configured yet.");
     switch (m_channelType)
     {
-    case OFSwitch13Helper::SINGLECSMA:
-    case OFSwitch13Helper::DEDICATEDCSMA: {
+    case OFSwitch13Helper::SINGLE_CSMA:
+    case OFSwitch13Helper::DEDICATED_CSMA: {
         m_csmaHelper.EnablePcap(prefix, m_controlDevs, promiscuous);
         break;
     }
-    case OFSwitch13Helper::DEDICATEDP2P: {
+    case OFSwitch13Helper::DEDICATED_P2P: {
         m_p2pHelper.EnablePcap(prefix, m_controlDevs, promiscuous);
         break;
     }
@@ -132,12 +132,12 @@ OFSwitch13Helper::EnableOpenFlowAscii(std::string prefix)
     AsciiTraceHelper ascii;
     switch (m_channelType)
     {
-    case OFSwitch13Helper::SINGLECSMA:
-    case OFSwitch13Helper::DEDICATEDCSMA: {
+    case OFSwitch13Helper::SINGLE_CSMA:
+    case OFSwitch13Helper::DEDICATED_CSMA: {
         m_csmaHelper.EnableAsciiAll(ascii.CreateFileStream(prefix + ".txt"));
         break;
     }
-    case OFSwitch13Helper::DEDICATEDP2P: {
+    case OFSwitch13Helper::DEDICATED_P2P: {
         m_p2pHelper.EnableAsciiAll(ascii.CreateFileStream(prefix + ".txt"));
         break;
     }
