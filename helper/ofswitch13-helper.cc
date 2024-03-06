@@ -65,7 +65,7 @@ OFSwitch13Helper::GetTypeId()
                           "The configuration used to create the OpenFlow channel",
                           TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
                           EnumValue(OFSwitch13Helper::SINGLE_CSMA),
-                          MakeEnumAccessor(&OFSwitch13Helper::SetChannelType),
+                          MakeEnumAccessor<ChannelType>(&OFSwitch13Helper::SetChannelType),
                           MakeEnumChecker(OFSwitch13Helper::SINGLE_CSMA,
                                           "SingleCsma",
                                           OFSwitch13Helper::DEDICATED_CSMA,

@@ -1,6 +1,6 @@
-From 8110d79c7bb6e9f67d271e1bdda09e55c92ef107 Mon Sep 17 00:00:00 2001
+From 68e16adc9b805558f6ca2e83e126edfe4a96e44b Mon Sep 17 00:00:00 2001
 From: Luciano J Chaves <ljerezchaves@gmail.com>
-Date: Fri, 1 Sep 2023 09:24:38 -0300
+Date: Wed, 6 Mar 2024 16:35:55 -0300
 Subject: [PATCH] CSMA full-duplex patch
 
 ---
@@ -256,7 +256,7 @@ index 000000000..c9a3a3f2b
 +    std::cout << "Total bytes sent from H1 to H0: " << pktSink0->GetTotalRx() << std::endl;
 +}
 diff --git a/src/csma/model/csma-channel.cc b/src/csma/model/csma-channel.cc
-index 9f1fad3ce..2563bd662 100644
+index 37ace2f98..2205435a9 100644
 --- a/src/csma/model/csma-channel.cc
 +++ b/src/csma/model/csma-channel.cc
 @@ -1,5 +1,8 @@
@@ -323,7 +323,7 @@ index 9f1fad3ce..2563bd662 100644
      return (m_deviceList.size() - 1);
  }
  
-@@ -110,7 +133,7 @@ CsmaChannel::Reattach(uint32_t deviceId)
+@@ -109,7 +132,7 @@ CsmaChannel::Reattach(uint32_t deviceId)
  {
      NS_LOG_FUNCTION(this << deviceId);
  
@@ -332,7 +332,7 @@ index 9f1fad3ce..2563bd662 100644
      {
          return false;
      }
-@@ -141,7 +164,7 @@ CsmaChannel::Detach(uint32_t deviceId)
+@@ -140,7 +163,7 @@ CsmaChannel::Detach(uint32_t deviceId)
  
          m_deviceList[deviceId].active = false;
  
@@ -341,7 +341,7 @@ index 9f1fad3ce..2563bd662 100644
          {
              NS_LOG_WARN("CsmaChannel::Detach(): Device is currently"
                          << "transmitting (" << deviceId << ")");
-@@ -179,7 +202,7 @@ CsmaChannel::TransmitStart(Ptr<const Packet> p, uint32_t srcId)
+@@ -177,7 +200,7 @@ CsmaChannel::TransmitStart(Ptr<const Packet> p, uint32_t srcId)
      NS_LOG_FUNCTION(this << p << srcId);
      NS_LOG_INFO("UID is " << p->GetUid() << ")");
  
@@ -350,7 +350,7 @@ index 9f1fad3ce..2563bd662 100644
      {
          NS_LOG_WARN("CsmaChannel::TransmitStart(): State is not IDLE");
          return false;
-@@ -188,14 +211,14 @@ CsmaChannel::TransmitStart(Ptr<const Packet> p, uint32_t srcId)
+@@ -186,14 +209,14 @@ CsmaChannel::TransmitStart(Ptr<const Packet> p, uint32_t srcId)
      if (!IsActive(srcId))
      {
          NS_LOG_ERROR(
@@ -360,16 +360,16 @@ index 9f1fad3ce..2563bd662 100644
      }
  
      NS_LOG_LOGIC("switch to TRANSMITTING");
--    m_currentPkt = p->Copy();
+-    m_currentPkt = p;
 -    m_currentSrc = srcId;
 -    m_state = TRANSMITTING;
-+    SetCurrentPkt(srcId, p->Copy());
++    SetCurrentPkt(srcId, p);
 +    SetCurrentSrc(srcId, srcId);
 +    SetState(srcId, TRANSMITTING);
      return true;
  }
  
-@@ -206,17 +229,23 @@ CsmaChannel::IsActive(uint32_t deviceId)
+@@ -204,17 +227,23 @@ CsmaChannel::IsActive(uint32_t deviceId)
  }
  
  bool
@@ -399,9 +399,9 @@ index 9f1fad3ce..2563bd662 100644
      {
          NS_LOG_ERROR("CsmaChannel::TransmitEnd(): Seclected source was detached before the end of "
                       "the transmission");
-@@ -230,31 +259,47 @@ CsmaChannel::TransmitEnd()
-     std::vector<CsmaDeviceRec>::iterator it;
-     for (it = m_deviceList.begin(); it < m_deviceList.end(); it++)
+@@ -227,31 +256,47 @@ CsmaChannel::TransmitEnd()
+ 
+     for (auto it = m_deviceList.begin(); it < m_deviceList.end(); it++)
      {
 -        if (it->IsActive() && it->devicePtr != m_deviceList[m_currentSrc].devicePtr)
 +        if (it->IsActive() && it->devicePtr != m_deviceList[GetCurrentSrc(srcId)].devicePtr)
@@ -411,9 +411,9 @@ index 9f1fad3ce..2563bd662 100644
                                             m_delay,
                                             &CsmaNetDevice::Receive,
                                             it->devicePtr,
--                                           m_currentPkt->Copy(),
+-                                           m_currentPkt,
 -                                           m_deviceList[m_currentSrc].devicePtr);
-+                                           GetCurrentPkt(srcId)->Copy(),
++                                           GetCurrentPkt(srcId),
 +                                           m_deviceList[GetCurrentSrc(srcId)].devicePtr);
          }
      }
@@ -457,19 +457,19 @@ index 9f1fad3ce..2563bd662 100644
  }
  
  uint32_t
-@@ -308,9 +353,9 @@ CsmaChannel::GetDeviceNum(Ptr<CsmaNetDevice> device)
+@@ -303,9 +348,9 @@ CsmaChannel::GetDeviceNum(Ptr<CsmaNetDevice> device)
  }
  
  bool
 -CsmaChannel::IsBusy()
 +CsmaChannel::IsBusy(uint32_t deviceId)
  {
--    if (m_state == IDLE)
-+    if (GetState(deviceId) == IDLE)
-     {
-         return false;
-     }
-@@ -333,9 +378,9 @@ CsmaChannel::GetDelay()
+-    return m_state != IDLE;
++    return GetState(deviceId) != IDLE;
+ }
+ 
+ DataRate
+@@ -321,9 +366,9 @@ CsmaChannel::GetDelay()
  }
  
  WireState
@@ -481,18 +481,18 @@ index 9f1fad3ce..2563bd662 100644
  }
  
  Ptr<NetDevice>
-@@ -344,6 +389,36 @@ CsmaChannel::GetDevice(std::size_t i) const
+@@ -332,6 +377,36 @@ CsmaChannel::GetDevice(std::size_t i) const
      return GetCsmaDevice(i);
  }
  
-+Ptr<Packet>
++Ptr<const Packet>
 +CsmaChannel::GetCurrentPkt(uint32_t deviceId)
 +{
 +    return m_currentPkt[m_fullDuplex ? deviceId : 0];
 +}
 +
 +void
-+CsmaChannel::SetCurrentPkt(uint32_t deviceId, Ptr<Packet> pkt)
++CsmaChannel::SetCurrentPkt(uint32_t deviceId, Ptr<const Packet> pkt)
 +{
 +    m_currentPkt[m_fullDuplex ? deviceId : 0] = pkt;
 +}
@@ -519,7 +519,7 @@ index 9f1fad3ce..2563bd662 100644
  {
      active = false;
 diff --git a/src/csma/model/csma-channel.h b/src/csma/model/csma-channel.h
-index da4e948da..5d824f073 100644
+index 92263545e..954b8dcb2 100644
 --- a/src/csma/model/csma-channel.h
 +++ b/src/csma/model/csma-channel.h
 @@ -1,5 +1,8 @@
@@ -653,8 +653,8 @@ index da4e948da..5d824f073 100644
 +     * last packet to have been transmitted if the subchannel is free).
 +     * In half-duplex mode, only the first subchannel is used.
       */
--    Ptr<Packet> m_currentPkt;
-+    Ptr<Packet> m_currentPkt[2];
+-    Ptr<const Packet> m_currentPkt;
++    Ptr<const Packet> m_currentPkt[2];
  
      /**
       * Device Id of the source that is currently transmitting on the
@@ -679,7 +679,7 @@ index da4e948da..5d824f073 100644
 +     * subchannel or the last source to have transmitted a packet on the
 +     * subchannel, if it is not currently busy.
 +     */
-+    Ptr<Packet> GetCurrentPkt(uint32_t deviceId);
++    Ptr<const Packet> GetCurrentPkt(uint32_t deviceId);
 +
 +    /**
 +     * \brief Sets the current packet
@@ -689,7 +689,7 @@ index da4e948da..5d824f073 100644
 +     * \param The Packet that is current being transmitted by deviceId (or last
 +     * packet to have been transmitted on the channel if the channel is free.)
 +     */
-+    void SetCurrentPkt(uint32_t deviceId, Ptr<Packet> pkt);
++    void SetCurrentPkt(uint32_t deviceId, Ptr<const Packet> pkt);
 +
 +    /**
 +     * \brief Gets current transmitter
@@ -726,7 +726,7 @@ index da4e948da..5d824f073 100644
  
  } // namespace ns3
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
-index e10648f96..c164c1d13 100644
+index 2f295c89b..b5b315624 100644
 --- a/src/csma/model/csma-net-device.cc
 +++ b/src/csma/model/csma-net-device.cc
 @@ -1,5 +1,8 @@
@@ -847,7 +847,7 @@ index e10648f96..c164c1d13 100644
      //
      // The channel provides us with the transmitter data rate.
      //
-@@ -699,6 +713,7 @@ CsmaNetDevice::Receive(Ptr<Packet> packet, Ptr<CsmaNetDevice> senderDevice)
+@@ -699,6 +713,7 @@ CsmaNetDevice::Receive(Ptr<const Packet> packet, Ptr<CsmaNetDevice> senderDevice
  {
      NS_LOG_FUNCTION(packet << senderDevice);
      NS_LOG_LOGIC("UID is " << packet->GetUid());
@@ -855,7 +855,7 @@ index e10648f96..c164c1d13 100644
  
      //
      // We never forward up packets that we sent.  Real devices don't do this since
-@@ -996,6 +1011,7 @@ CsmaNetDevice::SendFrom(Ptr<Packet> packet,
+@@ -997,6 +1012,7 @@ CsmaNetDevice::SendFrom(Ptr<Packet> packet,
      NS_LOG_FUNCTION(packet << src << dest << protocolNumber);
      NS_LOG_LOGIC("packet =" << packet);
      NS_LOG_LOGIC("UID is " << packet->GetUid() << ")");
@@ -863,7 +863,7 @@ index e10648f96..c164c1d13 100644
  
      NS_ASSERT(IsLinkUp());
  
-@@ -1052,13 +1068,6 @@ CsmaNetDevice::GetNode() const
+@@ -1053,13 +1069,6 @@ CsmaNetDevice::GetNode() const
      return m_node;
  }
  
@@ -877,7 +877,7 @@ index e10648f96..c164c1d13 100644
  void
  CsmaNetDevice::SetNode(Ptr<Node> node)
  {
-@@ -1074,6 +1083,13 @@ CsmaNetDevice::NeedsArp() const
+@@ -1075,6 +1084,13 @@ CsmaNetDevice::NeedsArp() const
      return true;
  }
  
@@ -892,10 +892,10 @@ index e10648f96..c164c1d13 100644
  CsmaNetDevice::SetReceiveCallback(NetDevice::ReceiveCallback cb)
  {
 diff --git a/src/csma/test/examples-to-run.py b/src/csma/test/examples-to-run.py
-index eba7b5b77..b27be27b1 100644
+index 3e49f1972..c671e5427 100644
 --- a/src/csma/test/examples-to-run.py
 +++ b/src/csma/test/examples-to-run.py
-@@ -9,6 +9,7 @@
+@@ -8,6 +8,7 @@
  # See test.py for more information.
  cpp_examples = [
      ("csma-broadcast", "True", "True"),

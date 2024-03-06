@@ -1,6 +1,6 @@
-From 598058c4f0d47d8635b1b57d62068195cba7f006 Mon Sep 17 00:00:00 2001
+From ffbdf4aba5f11abf805b4766b92d07ab53c13da4 Mon Sep 17 00:00:00 2001
 From: Luciano J Chaves <ljerezchaves@gmail.com>
-Date: Fri, 1 Sep 2023 10:03:56 -0300
+Date: Wed, 6 Mar 2024 16:24:48 -0300
 Subject: [PATCH] OFSwitch13 patch
 
 ---
@@ -12,24 +12,24 @@ Subject: [PATCH] OFSwitch13 patch
  5 files changed, 92 insertions(+)
 
 diff --git a/build-support/custom-modules/ns3-configtable.cmake b/build-support/custom-modules/ns3-configtable.cmake
-index c3baa514b..3b7434750 100644
+index 6de18dd2d..bdcf266cf 100644
 --- a/build-support/custom-modules/ns3-configtable.cmake
 +++ b/build-support/custom-modules/ns3-configtable.cmake
-@@ -161,6 +161,9 @@ macro(write_configtable)
+@@ -169,6 +169,9 @@ macro(write_configtable)
    string(APPEND out "ns-3 Click Integration        : ")
-   check_on_or_off("ON" "${NS3_CLICK}")
+   check_on_or_off("ON" "NS3_CLICK")
  
 +  string(APPEND out "ns-3 OFSwitch13 Integration   : ")
-+  check_on_or_off("ON" "${NS3_OFSWITCH13}")
++  check_on_or_off("ON" "NS3_OFSWITCH13")
 +
    string(APPEND out "ns-3 OpenFlow Integration     : ")
-   check_on_or_off("ON" "${NS3_OPENFLOW}")
+   check_on_or_off("ON" "NS3_OPENFLOW")
  
 diff --git a/src/csma/model/csma-net-device.cc b/src/csma/model/csma-net-device.cc
-index 33d555e15..e10648f96 100644
+index 1ce663ab5..2f295c89b 100644
 --- a/src/csma/model/csma-net-device.cc
 +++ b/src/csma/model/csma-net-device.cc
-@@ -806,6 +806,34 @@ CsmaNetDevice::Receive(Ptr<Packet> packet, Ptr<CsmaNetDevice> senderDevice)
+@@ -807,6 +807,34 @@ CsmaNetDevice::Receive(Ptr<const Packet> packet, Ptr<CsmaNetDevice> senderDevice
          packetType = PACKET_OTHERHOST;
      }
  
@@ -43,17 +43,17 @@ index 33d555e15..e10648f96 100644
 +        // to happen in normal situations), we also hit the non-promiscuous
 +        // sniffer hook, but in both cases we don't forward the packet up the
 +        // stack.
-+        m_promiscSnifferTrace(originalPacket);
++        m_promiscSnifferTrace(packet);
 +        if (packetType != PACKET_OTHERHOST)
 +        {
-+            m_snifferTrace(originalPacket);
++            m_snifferTrace(packet);
 +        }
 +
 +        // We forward the original packet (which includes the EthernetHeader) to
 +        // the OpenFlow receive callback for all kinds of packetType we receive
 +        // (broadcast, multicast, host or other host).
 +        m_openFlowRxCallback(this,
-+                             originalPacket,
++                             packet,
 +                             protocol,
 +                             header.GetSource(),
 +                             header.GetDestination(),
@@ -64,7 +64,7 @@ index 33d555e15..e10648f96 100644
      //
      // For all kinds of packetType we receive, we hit the promiscuous sniffer
      // hook and pass a copy up to the promiscuous callback.  Pass a copy to
-@@ -1024,6 +1052,13 @@ CsmaNetDevice::GetNode() const
+@@ -1025,6 +1053,13 @@ CsmaNetDevice::GetNode() const
      return m_node;
  }
  
@@ -79,10 +79,10 @@ index 33d555e15..e10648f96 100644
  CsmaNetDevice::SetNode(Ptr<Node> node)
  {
 diff --git a/src/csma/model/csma-net-device.h b/src/csma/model/csma-net-device.h
-index 237daf37e..226ea7477 100644
+index af092bfa6..634a32e59 100644
 --- a/src/csma/model/csma-net-device.h
 +++ b/src/csma/model/csma-net-device.h
-@@ -312,6 +312,14 @@ class CsmaNetDevice : public NetDevice
+@@ -313,6 +313,14 @@ class CsmaNetDevice : public NetDevice
       */
      bool NeedsArp() const override;
  
@@ -97,7 +97,7 @@ index 237daf37e..226ea7477 100644
      /**
       * Set the callback to be used to notify higher layers when a packet has been
       * received.
-@@ -692,6 +700,11 @@ class CsmaNetDevice : public NetDevice
+@@ -693,6 +701,11 @@ class CsmaNetDevice : public NetDevice
       */
      Mac48Address m_address;
  
@@ -110,7 +110,7 @@ index 237daf37e..226ea7477 100644
       * The callback used to notify higher layers that a packet has been received.
       */
 diff --git a/src/virtual-net-device/model/virtual-net-device.cc b/src/virtual-net-device/model/virtual-net-device.cc
-index 6b19ef1d7..b6122ac71 100644
+index 31518b7dc..e7613508f 100644
 --- a/src/virtual-net-device/model/virtual-net-device.cc
 +++ b/src/virtual-net-device/model/virtual-net-device.cc
 @@ -142,6 +142,29 @@ VirtualNetDevice::Receive(Ptr<Packet> packet,
@@ -143,7 +143,7 @@ index 6b19ef1d7..b6122ac71 100644
      //
      // For all kinds of packetType we receive, we hit the promiscuous sniffer
      // hook and pass a copy up to the promiscuous callback.  Pass a copy to
-@@ -319,4 +342,11 @@ VirtualNetDevice::IsBridge() const
+@@ -311,4 +334,11 @@ VirtualNetDevice::IsBridge() const
      return false;
  }
  

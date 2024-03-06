@@ -2,6 +2,14 @@
 
 This file contains OFSwitch13 release notes (most recent releases first).
 
+## [Release 5.X.X](https://github.com/ljerezchaves/ofswitch13/releases/tag/5.X.X)
+
+**Release date:** Mar XX, 2024.  
+**Works with:** ns-3.41.
+
+- Update the `OFSwitch13Helper` class to match the changes introduced by ns-3.41.
+- This release automatically handles the integration between OFSwitch13 module and BOFUSS library v5.2.x.
+
 ## [Release 5.2.3](https://github.com/ljerezchaves/ofswitch13/releases/tag/5.2.3)
 
 **Release date:** Mar 02, 2024.  
